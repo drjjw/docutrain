@@ -327,7 +327,8 @@ const pdfFiles = [
 // Copy logos to public directory
 console.log('\n🎨 Copying logo files:');
 const logoFiles = [
-    { from: 'public/logos/maker-logo.png', to: 'public/logos/maker-logo.png' }
+    { from: 'public/logos/maker-logo.png', to: 'public/logos/maker-logo.png' },
+    { from: 'public/logos/ukidney-logo.svg', to: 'public/logos/ukidney-logo.svg' }
 ];
 
 // Copy lib directory (for local embeddings module)

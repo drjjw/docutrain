@@ -127,15 +127,22 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     const logoLink = document.querySelector('.ukidney-logo a');
 
     if (logoElement && logoLink) {
-        logoElement.style.display = ''; // Show logo
-        logoElement.src = logoConfig.logo;
-        logoElement.alt = logoConfig.alt;
-        logoLink.href = logoConfig.link;
-        logoLink.title = logoConfig.alt;
+        if (logoConfig) {
+            // Show logo for recognized owners
+            logoElement.style.display = ''; // Show logo
+            logoElement.src = logoConfig.logo;
+            logoElement.alt = logoConfig.alt;
+            logoLink.href = logoConfig.link;
+            logoLink.title = logoConfig.alt;
 
-        // Update accent colors if needed (currently using CSS variables for consistency)
-        // The accent color is primarily handled in CSS with the --accent-color variable
-        console.log(`🎨 Header logo updated for owner: ${config.owner} (${logoConfig.alt})`);
+            // Update accent colors if needed (currently using CSS variables for consistency)
+            // The accent color is primarily handled in CSS with the --accent-color variable
+            console.log(`🎨 Header logo updated for owner: ${config.owner} (${logoConfig.alt})`);
+        } else {
+            // Hide logo for unrecognized owners (multi-tenant behavior)
+            logoElement.style.display = 'none';
+            console.log(`🎨 Header logo hidden for owner: ${config.owner} (no logo configured)`);
+        }
     }
 
     // Update submit button theme based on document owner

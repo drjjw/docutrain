@@ -54,7 +54,7 @@ const fallbackDocConfig = {
 // Logo configuration for different document owners
 const ownerLogoConfig = {
     'ukidney': {
-        logo: 'https://ukidney.com/images/ukidney-logo.svg',
+        logo: 'logos/ukidney-logo.svg',
         alt: 'UKidney',
         link: 'https://ukidney.com',
         accentColor: '#cc0000'
@@ -72,7 +72,7 @@ const ownerLogoConfig = {
  * Get logo configuration for a document owner
  */
 export function getOwnerLogoConfig(owner) {
-    return ownerLogoConfig[owner] || ownerLogoConfig['ukidney']; // Default to ukidney
+    return ownerLogoConfig[owner] || null; // Return null if owner not found (no default logo for multi-tenant app)
 }
 
 /**
