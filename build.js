@@ -324,6 +324,12 @@ const pdfFiles = [
     { from: 'PDFs/ajkd-core-curriculum/Viral-Nephropathies--Core-Curriculum-2024_2024_yaj.pdf', to: 'PDFs/ajkd-core-curriculum/Viral-Nephropathies--Core-Curriculum-2024_2024_yaj.pdf' }
 ];
 
+// Copy logos to public directory
+console.log('\n🎨 Copying logo files:');
+const logoFiles = [
+    { from: 'public/logos/maker-logo.png', to: 'public/logos/maker-logo.png' }
+];
+
 // Copy lib directory (for local embeddings module)
 console.log('\n📦 Copying lib directory:');
 const libSourceDir = path.join(__dirname, 'lib');
@@ -369,6 +375,27 @@ pdfFiles.forEach(file => {
     }
 });
 
+// Copy logo files
+logoFiles.forEach(file => {
+    const sourcePath = path.join(__dirname, file.from);
+    const destPath = path.join(distDir, file.to);
+
+    if (fs.existsSync(sourcePath)) {
+        // Ensure destination directory exists
+        const destDir = path.dirname(destPath);
+        if (!fs.existsSync(destDir)) {
+            fs.mkdirSync(destDir, { recursive: true });
+        }
+
+        fs.copyFileSync(sourcePath, destPath);
+        console.log(`✓ Copied logo ${file.from}`);
+        copiedCount++;
+    } else {
+        console.log(`✗ Missing logo file: ${file.from}`);
+        process.exit(1);
+    }
+});
+
 otherFiles.forEach(file => {
     const sourcePath = path.join(__dirname, file.from);
     const destPath = path.join(distDir, file.to);
@@ -397,7 +424,8 @@ console.log(`   - ${Object.keys(cssFiles).length} CSS files hashed and copied`);
 console.log(`   - ${Object.keys(jsFiles).length} JS files hashed and copied`);
 console.log(`   - 1 HTML file processed with hashed references`);
 console.log(`   - ${pdfFiles.length} PDF files copied to registry structure`);
-console.log(`   - ${copiedCount - pdfFiles.length} other files copied`);
+console.log(`   - ${logoFiles.length} logo files copied`);
+console.log(`   - ${copiedCount - pdfFiles.length - logoFiles.length} other files copied`);
 if (skippedCount > 0) {
     console.log(`   - ${skippedCount} optional files skipped`);
 }
