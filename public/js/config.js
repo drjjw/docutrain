@@ -24,6 +24,7 @@ const fallbackDocConfig = {
         welcomeMessage: 'SMH Housestaff Manual',
         embeddingType: 'openai',
         active: true,
+        owner: 'ukidney',
         metadata: {}
     },
     'uhn': {
@@ -34,6 +35,7 @@ const fallbackDocConfig = {
         welcomeMessage: 'UHN Nephrology Manual',
         embeddingType: 'openai',
         active: true,
+        owner: 'ukidney',
         metadata: {}
     },
     'ckd-dc-2025': {
@@ -44,9 +46,48 @@ const fallbackDocConfig = {
         welcomeMessage: 'CKD in Diabetes: Clinical Practice Guideline 2025',
         embeddingType: 'local',
         active: true,
+        owner: 'ukidney',
         metadata: {}
     }
 };
+
+// Logo configuration for different document owners
+const ownerLogoConfig = {
+    'ukidney': {
+        logo: 'https://ukidney.com/images/ukidney-logo.svg',
+        alt: 'UKidney',
+        link: 'https://ukidney.com',
+        accentColor: '#cc0000'
+    },
+    'maker': {
+        logo: 'logos/maker-logo.png',
+        alt: 'Maker',
+        link: '#', // No external link for maker
+        accentColor: '#007acc' // Example maker accent color - can be adjusted
+    }
+    // Add more owners as needed
+};
+
+/**
+ * Get logo configuration for a document owner
+ */
+export function getOwnerLogoConfig(owner) {
+    return ownerLogoConfig[owner] || ownerLogoConfig['ukidney']; // Default to ukidney
+}
+
+/**
+ * Preload all logos to prevent layout shift when switching documents
+ */
+export function preloadLogos() {
+    Object.values(ownerLogoConfig).forEach(config => {
+        if (config.logo && config.logo.startsWith('logos/')) {
+            // Only preload local logos, external ones (like ukidney.com) are already cached by browser
+            const img = new Image();
+            img.src = config.logo;
+            console.log(`📷 Preloading logo: ${config.logo}`);
+        }
+    });
+}
 
 // Dynamic document configuration (loaded from API)
 let docConfigCache = null;
@@ -54,18 +95,20 @@ let docConfigCache = null;
 /**
  * Fetch documents from API with caching
  */
-export async function loadDocuments() {
+export async function loadDocuments(forceRefresh = false) {
     try {
-        // Check cache first
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached) {
-            const { documents, timestamp } = JSON.parse(cached);
-            const age = Date.now() - timestamp;
-            
-            if (age < CACHE_TTL) {
-                console.log('📦 Using cached documents');
-                docConfigCache = documents;
-                return documents;
+        // Check cache first (unless force refresh requested)
+        if (!forceRefresh) {
+            const cached = localStorage.getItem(CACHE_KEY);
+            if (cached) {
+                const { documents, timestamp } = JSON.parse(cached);
+                const age = Date.now() - timestamp;
+
+                if (age < CACHE_TTL) {
+                    console.log('📦 Using cached documents');
+                    docConfigCache = documents;
+                    return documents;
+                }
             }
         }
         
@@ -106,9 +149,9 @@ export async function loadDocuments() {
 /**
  * Get document configuration (with lazy loading)
  */
-export async function getDocConfig() {
-    if (!docConfigCache) {
-        await loadDocuments();
+export async function getDocConfig(forceRefresh = false) {
+    if (!docConfigCache || forceRefresh) {
+        await loadDocuments(forceRefresh);
     }
     return docConfigCache;
 }
@@ -116,8 +159,8 @@ export async function getDocConfig() {
 /**
  * Get a specific document by slug
  */
-export async function getDocument(slug) {
-    const config = await getDocConfig();
+export async function getDocument(slug, forceRefresh = false) {
+    const config = await getDocConfig(forceRefresh);
     return config[slug] || null;
 }
 

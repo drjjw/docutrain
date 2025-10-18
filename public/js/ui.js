@@ -1,18 +1,94 @@
 // UI updates, messages, and loading states
-import { getDocument } from './config.js';
+import { getDocument, getOwnerLogoConfig } from './config.js';
 import { getRandomFact } from './facts.js';
 
+// Track if document modal has been shown to prevent multiple displays
+let documentModalShown = false;
+
 // Update document UI based on selected document (now async with registry)
-export async function updateDocumentUI(selectedDocument) {
-    const config = await getDocument(selectedDocument);
-    
+export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
+    // Get sendButton element for use throughout function
+    let sendButton = document.getElementById('sendButton');
+
+    // Handle case where no document is selected - show document selection modal
+    if (!selectedDocument) {
+
+        // Only show modal once to avoid annoying users
+        if (!documentModalShown) {
+            documentModalShown = true;
+
+            // SweetAlert2 is loaded globally
+            // Show modal explaining document selection is required
+            Swal.fire({
+                title: 'Document Required',
+                html: `
+                    <div style="text-align: left; line-height: 1.6;">
+                        <p style="margin-bottom: 16px;">Please specify a document using the URL parameter:</p>
+                        <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; font-family: monospace; margin: 12px 0;">
+                            ?doc=<strong>document-slug</strong>
+                        </div>
+                        <p style="margin-top: 16px; font-size: 14px; color: #666;">
+                            Example: <code>?doc=smh</code> or <code>?doc=maker-foh</code>
+                        </p>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'Got it',
+                confirmButtonColor: '#cc0000',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                customClass: {
+                    popup: 'document-modal'
+                }
+            });
+        }
+
+        // Set minimal generic interface
+        document.getElementById('headerTitle').textContent = 'Document Assistant';
+        document.getElementById('welcomeTitle').textContent = 'Document Required';
+
+        // Hide interface elements that require a document
+        const subtitleElement = document.getElementById('headerSubtitle');
+        subtitleElement.textContent = 'Please specify a document';
+
+        const backLink = document.querySelector('.back-link');
+        if (backLink) {
+            backLink.style.display = 'none';
+        }
+
+        // Disable input and send button
+        const messageInput = document.getElementById('messageInput');
+        if (messageInput) messageInput.disabled = true;
+        if (sendButton) sendButton.disabled = true;
+
+        // Clear about tooltip
+        const documentNameElement = document.getElementById('documentName');
+        if (documentNameElement) {
+            documentNameElement.textContent = 'Document Assistant';
+        }
+
+        // Reset logo to generic
+        const logoElement = document.querySelector('.ukidney-logo img');
+        const logoLink = document.querySelector('.ukidney-logo a');
+        if (logoElement && logoLink) {
+            logoElement.style.display = 'none'; // Hide logo when no document
+        }
+
+        return;
+    }
+
+    const config = await getDocument(selectedDocument, forceRefresh);
+
     if (!config) {
         console.error(`Document not found: ${selectedDocument}`);
         return;
     }
     
     document.getElementById('headerTitle').textContent = config.title;
-    
+
+    // Update welcome message
+    document.getElementById('welcomeTitle').textContent = config.welcomeMessage;
+
     // Update subtitle with PMID link if available, otherwise show subtitle
     const subtitleElement = document.getElementById('headerSubtitle');
     const metadata = config.metadata || {};
@@ -38,6 +114,39 @@ export async function updateDocumentUI(selectedDocument) {
     const documentNameElement = document.getElementById('documentName');
     if (documentNameElement) {
         documentNameElement.textContent = config.welcomeMessage;
+    }
+
+    // Enable input and send button when document is selected
+    const messageInput = document.getElementById('messageInput');
+    if (messageInput) messageInput.disabled = false;
+    if (sendButton) sendButton.disabled = false;
+
+    // Update header logo based on document owner
+    const logoConfig = getOwnerLogoConfig(config.owner);
+    const logoElement = document.querySelector('.ukidney-logo img');
+    const logoLink = document.querySelector('.ukidney-logo a');
+
+    if (logoElement && logoLink) {
+        logoElement.style.display = ''; // Show logo
+        logoElement.src = logoConfig.logo;
+        logoElement.alt = logoConfig.alt;
+        logoLink.href = logoConfig.link;
+        logoLink.title = logoConfig.alt;
+
+        // Update accent colors if needed (currently using CSS variables for consistency)
+        // The accent color is primarily handled in CSS with the --accent-color variable
+        console.log(`🎨 Header logo updated for owner: ${config.owner} (${logoConfig.alt})`);
+    }
+
+    // Update submit button theme based on document owner
+    if (sendButton) {
+        if (config.owner === 'maker') {
+            sendButton.classList.add('maker-theme');
+            console.log(`🎨 Submit button updated to maker theme (yellow)`);
+        } else {
+            sendButton.classList.remove('maker-theme');
+            console.log(`🎨 Submit button updated to default theme (red)`);
+        }
     }
 
     console.log(`📄 Document set to: ${selectedDocument.toUpperCase()} - ${config.welcomeMessage}`);

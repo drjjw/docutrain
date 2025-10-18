@@ -1,10 +1,9 @@
 // Main initialization and event wiring
-import { API_URL, generateSessionId, getEmbeddingType } from './config.js';
+import { API_URL, generateSessionId, getEmbeddingType, preloadLogos } from './config.js';
 import { checkHealth } from './api.js';
 import { updateDocumentUI, updateModelInTooltip } from './ui.js';
 import { sendMessage } from './chat.js';
 import { submitRating } from './rating.js';
-import { showDisclaimerIfNeeded } from './disclaimer.js';
 
 // Configure marked for better formatting
 marked.setOptions({
@@ -89,15 +88,16 @@ async function initializeDocument() {
         updateModelInTooltip(state.selectedModel);
     }
 
-    // Validate document slug using registry
-    let selectedDoc = 'smh'; // default
+    // Validate document slug using registry - no default to prevent flash
+    let selectedDoc = null;
     if (docParam) {
         const { documentExists } = await import('./config.js');
         const exists = await documentExists(docParam);
         if (exists) {
             selectedDoc = docParam;
         } else {
-            console.warn(`⚠️  Document '${docParam}' not found in registry, using default (smh)`);
+            console.warn(`⚠️  Document '${docParam}' not found in registry`);
+            selectedDoc = null;
         }
     }
     
@@ -116,8 +116,8 @@ async function initializeDocument() {
     // Log all URL parameters
     console.log('\n📋 URL Parameters Applied:');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`  Document:        ${docParam || 'smh (default)'}`);
-    console.log(`  Validated as:    ${selectedDoc}`);
+    console.log(`  Document:        ${docParam || 'none specified'}`);
+    console.log(`  Validated as:    ${selectedDoc || 'none (generic interface)'}`);
     console.log(`  Model:           ${state.selectedModel}`);
     console.log(`  Search Mode:     ${searchMode}`);
     console.log(`  Embedding Type:  ${embeddingParam} ${embeddingParam === 'openai' ? '(1536D)' : '(384D)'}`);
@@ -177,8 +177,8 @@ async function initializeDocument() {
         elements.grokReasoningBtn.textContent = 'Grok';
     }
 
-    // Update UI based on selected document (async)
-    await updateDocumentUI(state.selectedDocument);
+    // Update UI based on selected document (async) - force refresh to get latest data
+    await updateDocumentUI(state.selectedDocument, true);
 }
 
 // Model selector event listeners
@@ -274,13 +274,23 @@ window.submitRating = submitRating;
 
 // Initialize (async to ensure document is loaded before health check)
 (async () => {
+    // Preload logos to prevent layout shift
+    preloadLogos();
+
     await initializeDocument();
     initializeHeaderToggle();
     checkHealth(state.selectedDocument, elements.statusDiv);
-    
-    // Show disclaimer if needed
-    showDisclaimerIfNeeded();
-    
+
+    // Show disclaimer only for UKidney documents
+    if (state.selectedDocument) {
+        const { getDocument } = await import('./config.js');
+        const docConfig = await getDocument(state.selectedDocument);
+        if (docConfig && docConfig.owner === 'ukidney') {
+            const { showDisclaimerIfNeeded } = await import('./disclaimer.js');
+            showDisclaimerIfNeeded();
+        }
+    }
+
     // Focus input
     elements.messageInput.focus();
 })();
