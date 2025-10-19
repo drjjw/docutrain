@@ -474,7 +474,7 @@ app.post('/api/chat', async (req, res) => {
         const { message, history = [], model = 'gemini', doc = 'smh' } = req.body;
         
         // Get embedding type from query parameter (openai or local)
-        const embeddingType = req.query.embedding || 'openai';
+        let embeddingType = req.query.embedding || 'openai';
 
         if (!message) {
             return res.status(400).json({ error: 'Message is required' });
@@ -491,6 +491,15 @@ app.post('/api/chat', async (req, res) => {
                 error: 'Too Many Documents',
                 message: `Maximum ${MAX_DOCUMENTS} documents can be searched simultaneously. You specified ${documentSlugs.length}.`
             });
+        }
+
+        // For multi-document searches, ALWAYS use OpenAI embeddings for consistency
+        // This ensures all documents can be searched together regardless of individual settings
+        if (documentSlugs.length > 1) {
+            if (embeddingType !== 'openai') {
+                console.log(`🔄 Multi-doc search: Forcing OpenAI embeddings (was: ${embeddingType})`);
+            }
+            embeddingType = 'openai';
         }
 
         console.log(`RAG: Message length: ${message.length} chars, Model: ${model}, Docs: ${documentSlugs.join('+')}, Embedding: ${embeddingType}`);
@@ -518,14 +527,9 @@ app.post('/api/chat', async (req, res) => {
                 });
             }
 
-            // Validate all documents have same embedding type
-            const embeddingValidation = await documentRegistry.validateSameEmbeddingType(documentSlugs);
-            if (!embeddingValidation.valid) {
-                return res.status(400).json({
-                    error: 'Embedding Type Mismatch',
-                    message: embeddingValidation.error
-                });
-            }
+            // Note: Embedding type validation removed - multi-doc always uses OpenAI
+            // Individual documents may have different settings in DB, but we override to OpenAI
+            // This ensures compatibility and allows all documents to be searched together
         }
 
         // Use array for multi-document, single string for backward compatibility
