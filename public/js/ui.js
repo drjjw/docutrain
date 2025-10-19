@@ -1,6 +1,6 @@
 // UI updates, messages, and loading states
-import { getDocument, getOwnerLogoConfig } from './config.js';
-import { getRandomFact } from './facts.js';
+import { getDocument, getOwnerLogoConfig, parseDocumentSlugs } from './config.js?v=20251019-02';
+import { getRandomFact } from './facts.js?v=20251019-02';
 
 // Track if document modal has been shown to prevent multiple displays
 let documentModalShown = false;
@@ -77,34 +77,52 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
         return;
     }
 
-    const config = await getDocument(selectedDocument, forceRefresh);
-
-    if (!config) {
-        console.error(`Document not found: ${selectedDocument}`);
+    // Handle multi-document case: selectedDocument can be "slug1+slug2" or just "slug"
+    const documentSlugs = selectedDocument.includes('+') ? selectedDocument.split('+').map(s => s.trim()) : [selectedDocument];
+    const isMultiDoc = documentSlugs.length > 1;
+    
+    // Fetch all document configs
+    const configs = await Promise.all(
+        documentSlugs.map(slug => getDocument(slug, forceRefresh))
+    );
+    
+    // Filter out null configs
+    const validConfigs = configs.filter(c => c !== null);
+    
+    if (validConfigs.length === 0) {
+        console.error(`No documents found for: ${selectedDocument}`);
         return;
     }
     
-    document.getElementById('headerTitle').textContent = config.title;
+    // Use first document as primary for most properties
+    const config = validConfigs[0];
+    
+    // Build combined title
+    const combinedTitle = validConfigs.map(c => c.title).join(' + ');
+    document.getElementById('headerTitle').textContent = combinedTitle;
 
-    // Update welcome message
-    document.getElementById('welcomeTitle').textContent = config.welcomeMessage;
+    // Build combined welcome message
+    const combinedWelcome = validConfigs.map(c => c.welcomeMessage).join(' and ');
+    document.getElementById('welcomeTitle').textContent = combinedWelcome;
 
-    // Update subtitle with PMID link if available, otherwise show subtitle
+    // Update subtitle - for multi-doc, show document count
     const subtitleElement = document.getElementById('headerSubtitle');
-    const metadata = config.metadata || {};
-    const pmid = metadata.pmid || metadata.pubmed_id || metadata.PMID;
-    
-    if (pmid) {
-        // Show only PMID link with magnifying glass icon
-        subtitleElement.innerHTML = `<a href="https://pubmed.ncbi.nlm.nih.gov/${pmid}/" target="_blank" rel="noopener noreferrer" class="pmid-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>PMID: ${pmid}</a>`;
+    if (isMultiDoc) {
+        subtitleElement.textContent = `Multi-document search across ${validConfigs.length} documents`;
     } else {
-        // No PMID, show subtitle text
-        subtitleElement.textContent = config.subtitle;
+        const metadata = config.metadata || {};
+        const pmid = metadata.pmid || metadata.pubmed_id || metadata.PMID;
+        
+        if (pmid) {
+            // Show only PMID link with magnifying glass icon
+            subtitleElement.innerHTML = `<a href="https://pubmed.ncbi.nlm.nih.gov/${pmid}/" target="_blank" rel="noopener noreferrer" class="pmid-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>PMID: ${pmid}</a>`;
+        } else {
+            // No PMID, show subtitle text
+            subtitleElement.textContent = config.subtitle;
+        }
     }
-    
-    document.getElementById('welcomeTitle').textContent = config.welcomeMessage;
 
-    // Update back link
+    // Update back link (use first document's link)
     const backLink = document.querySelector('.back-link');
     if (backLink) {
         backLink.href = config.backLink;
@@ -113,7 +131,7 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     // Update about tooltip document name
     const documentNameElement = document.getElementById('documentName');
     if (documentNameElement) {
-        documentNameElement.textContent = config.welcomeMessage;
+        documentNameElement.textContent = combinedWelcome;
     }
 
     // Enable input and send button when document is selected
@@ -424,10 +442,16 @@ export function buildResponseWithMetadata(data, isLocalEnv) {
             const embeddingInfo = data.metadata.embedding_type 
                 ? ` | Embedding: ${data.metadata.embedding_type} (${data.metadata.embedding_dimensions}D)` 
                 : '';
-            metaInfo = `\n\n---\n*🔍 Used ${data.metadata.chunksUsed} relevant chunks (retrieval: ${data.metadata.retrievalTime}ms, total: ${data.metadata.responseTime}ms)${embeddingInfo}*`;
+            const multiDocInfo = data.metadata.isMultiDocument 
+                ? ` | Multi-doc: ${data.metadata.documentSlugs.length} sources`
+                : '';
+            metaInfo = `\n\n---\n*🔍 Used ${data.metadata.chunksUsed} relevant chunks (retrieval: ${data.metadata.retrievalTime}ms, total: ${data.metadata.responseTime}ms)${embeddingInfo}${multiDocInfo}*`;
         } else {
             // Production: Show only response time
-            metaInfo = `\n\n---\n*Response time: ${data.metadata.responseTime}ms*`;
+            const multiDocInfo = data.metadata.isMultiDocument 
+                ? ` | ${data.metadata.documentSlugs.length} documents`
+                : '';
+            metaInfo = `\n\n---\n*Response time: ${data.metadata.responseTime}ms${multiDocInfo}*`;
         }
         responseText += metaInfo;
 
@@ -436,6 +460,8 @@ export function buildResponseWithMetadata(data, isLocalEnv) {
             chunks: data.metadata.chunksUsed,
             retrievalTime: data.metadata.retrievalTime,
             totalTime: data.metadata.responseTime,
+            isMultiDocument: data.metadata.isMultiDocument,
+            documentSlugs: data.metadata.documentSlugs,
             similarities: data.metadata.chunkSimilarities
         });
     }

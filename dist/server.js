@@ -140,26 +140,49 @@ async function embedQuery(text) {
 
 /**
  * Find relevant chunks from Supabase using vector similarity
+ * Supports both single and multiple documents
  */
-async function findRelevantChunks(embedding, documentType, limit = 5, threshold = null) {
+async function findRelevantChunks(embedding, documentTypes, limit = 5, threshold = null) {
     try {
         // OpenAI embeddings use higher threshold (0.3), local embeddings use lower (0.1)
         const defaultThreshold = threshold || parseFloat(process.env.RAG_SIMILARITY_THRESHOLD) || 0.3;
 
-        // Call the match_document_chunks function we created in Supabase
-        const { data, error } = await supabase.rpc('match_document_chunks', {
-            query_embedding: embedding,
-            doc_slug: documentType,
-            match_threshold: defaultThreshold,
-            match_count: limit
-        });
+        // Handle both single string and array of document types
+        const isMultiDoc = Array.isArray(documentTypes);
+        const docArray = isMultiDoc ? documentTypes : [documentTypes];
 
-        if (error) {
-            console.error('Error finding relevant chunks:', error);
-            throw error;
+        // Use multi-document function if searching across multiple documents
+        if (docArray.length > 1) {
+            console.log(`RAG: Using multi-document search for: ${docArray.join(', ')}`);
+            const { data, error } = await supabase.rpc('match_document_chunks_multi', {
+                query_embedding: embedding,
+                doc_slugs: docArray,
+                match_threshold: defaultThreshold,
+                match_count_per_doc: limit
+            });
+
+            if (error) {
+                console.error('Error finding relevant chunks (multi):', error);
+                throw error;
+            }
+
+            return data || [];
+        } else {
+            // Single document - use original function
+            const { data, error } = await supabase.rpc('match_document_chunks', {
+                query_embedding: embedding,
+                doc_slug: docArray[0],
+                match_threshold: defaultThreshold,
+                match_count: limit
+            });
+
+            if (error) {
+                console.error('Error finding relevant chunks:', error);
+                throw error;
+            }
+
+            return data || [];
         }
-
-        return data || [];
     } catch (error) {
         console.error('Error in findRelevantChunks:', error);
         throw error;
@@ -168,26 +191,49 @@ async function findRelevantChunks(embedding, documentType, limit = 5, threshold 
 
 /**
  * Find relevant chunks from Supabase using local embeddings
+ * Supports both single and multiple documents
  */
-async function findRelevantChunksLocal(embedding, documentType, limit = 5, threshold = null) {
+async function findRelevantChunksLocal(embedding, documentTypes, limit = 5, threshold = null) {
     try {
         // Local embeddings use lower threshold (0.05) since they have lower similarity scores
         const defaultThreshold = threshold || parseFloat(process.env.RAG_SIMILARITY_THRESHOLD_LOCAL) || 0.05;
 
-        // Call the match_document_chunks_local function for local embeddings
-        const { data, error } = await supabase.rpc('match_document_chunks_local', {
-            query_embedding: embedding,
-            doc_slug: documentType,
-            match_threshold: defaultThreshold,
-            match_count: limit
-        });
+        // Handle both single string and array of document types
+        const isMultiDoc = Array.isArray(documentTypes);
+        const docArray = isMultiDoc ? documentTypes : [documentTypes];
 
-        if (error) {
-            console.error('Error finding relevant chunks (local):', error);
-            throw error;
+        // Use multi-document function if searching across multiple documents
+        if (docArray.length > 1) {
+            console.log(`RAG: Using multi-document search (local) for: ${docArray.join(', ')}`);
+            const { data, error } = await supabase.rpc('match_document_chunks_local_multi', {
+                query_embedding: embedding,
+                doc_slugs: docArray,
+                match_threshold: defaultThreshold,
+                match_count_per_doc: limit
+            });
+
+            if (error) {
+                console.error('Error finding relevant chunks (local, multi):', error);
+                throw error;
+            }
+
+            return data || [];
+        } else {
+            // Single document - use original function
+            const { data, error } = await supabase.rpc('match_document_chunks_local', {
+                query_embedding: embedding,
+                doc_slug: docArray[0],
+                match_threshold: defaultThreshold,
+                match_count: limit
+            });
+
+            if (error) {
+                console.error('Error finding relevant chunks (local):', error);
+                throw error;
+            }
+
+            return data || [];
         }
-
-        return data || [];
     } catch (error) {
         console.error('Error in findRelevantChunksLocal:', error);
         throw error;
@@ -196,29 +242,63 @@ async function findRelevantChunksLocal(embedding, documentType, limit = 5, thres
 
 /**
  * Build RAG system prompt with retrieved chunks
+ * Supports both single and multiple document types
  */
-const getRAGSystemPrompt = async (documentType = 'smh', chunks = []) => {
-    // Get document info from registry (for RAG, PDF might not be loaded in memory)
+const getRAGSystemPrompt = async (documentTypes = 'smh', chunks = []) => {
+    // Handle both single string and array of document types
+    const docArray = Array.isArray(documentTypes) ? documentTypes : [documentTypes];
+    
+    // Get document info from registry
     let docName = 'SMH Housestaff Manual';
     try {
-        const docConfig = await documentRegistry.getDocumentBySlug(documentType);
-        if (docConfig) {
-            // Use title for RAG prompt (cleaner), fall back to welcome_message or default
-            docName = docConfig.title || docConfig.welcome_message || docName;
+        if (docArray.length === 1) {
+            const docConfig = await documentRegistry.getDocumentBySlug(docArray[0]);
+            if (docConfig) {
+                docName = docConfig.title || docConfig.welcome_message || docName;
+            }
+        } else {
+            // Multiple documents - combine titles
+            const docConfigs = await Promise.all(
+                docArray.map(slug => documentRegistry.getDocumentBySlug(slug))
+            );
+            const titles = docConfigs
+                .filter(cfg => cfg)
+                .map(cfg => cfg.title || cfg.welcome_message)
+                .filter(t => t);
+            docName = titles.length > 0 ? titles.join(' and ') : 'the provided documents';
         }
     } catch (error) {
-        console.warn(`Could not get document config for ${documentType}, using default name`);
+        console.warn(`Could not get document config, using default name`);
     }
     
-    // Combine chunk content with page information
+    // Combine chunk content with page and source document information
     const context = chunks.map(chunk => {
         const pageInfo = chunk.metadata?.estimated_page ? ` [Page ${chunk.metadata.estimated_page}]` : '';
-        return chunk.content + pageInfo;
+        const sourceInfo = docArray.length > 1 ? ` [Source: ${chunk.document_name || chunk.document_slug}]` : '';
+        return chunk.content + pageInfo + sourceInfo;
     }).join('\n\n---\n\n');
 
-    return `You are a helpful assistant that answers questions based on the ${docName}.
+    // Determine if this is a multi-document query
+    const isMultiDoc = docArray.length > 1;
+    
+    // Build citation format instructions based on single vs multi-doc
+    const citationFormat = isMultiDoc 
+        ? `Look for [Page X] and [Source: Document Name] markers in the text. For multi-document searches, your references MUST include both the source document name AND page number. Example: "Drug X is indicated[1]. Dosage is 100mg[2].\n\n---\n\n**References**\n[1] SMH Manual, Page 15\n[2] UHN Manual, Page 42"`
+        : `Look for [Page X] markers in the text. For single-document searches, your references should include the page number. Example: "Drug X is indicated[1]. Dosage is 100mg[2].\n\n---\n\n**References**\n[1] Page 15\n[2] Page 45"`;
+    
+    // Add conflict detection instructions for multi-document queries
+    const conflictInstructions = isMultiDoc ? `
+7. **CRITICAL FOR MULTI-DOCUMENT SEARCHES**: If you notice CONFLICTING or CONTRADICTORY information between the sources:
+   - Explicitly state that "Different recommendations exist between sources" or similar
+   - Present BOTH perspectives clearly with their respective source citations
+   - If publication years are mentioned or implied, note which guideline is more recent
+   - Example: "Source A recommends X[1], while Source B suggests Y[2]"
+   - Do NOT try to reconcile or choose between conflicts - present them transparently
+   - If differences are due to context (e.g., different patient populations), explain the distinction` : '';
 
-***CRITICAL FORMATTING REQUIREMENT: You MUST include footnotes [1], [2], etc. for EVERY claim/fact in your response, with references at the end. Look for [Page X] markers in the text and use them for page numbers in your references. Example: "Drug X is indicated[1]. Dosage is 100mg[2]. [1] Section 3.2, Page 15 [2] Page 45"***
+    return `You are a helpful assistant that answers questions based on ${isMultiDoc ? 'multiple documents: ' + docName : 'the ' + docName}.
+
+***CRITICAL FORMATTING REQUIREMENT: You MUST include footnotes [1], [2], etc. for EVERY claim/fact in your response, with references at the end. ${citationFormat}***
 
 IMPORTANT RULES:
 1. Answer questions ONLY using information from the provided relevant excerpts below
@@ -226,7 +306,7 @@ IMPORTANT RULES:
 3. Be concise and professional
 4. If you're unsure, admit it rather than guessing
 5. Do NOT mention chunk numbers or reference which excerpt information came from
-6. For questions about drug dose conversions related to MMF (CellCept) PO, Myfortic PO, MMF IV, Cyclosporine PO, Cyclosporine IV, Envarsus, Advagraf/Astagraf, Prograf, Prednisone, Methylprednisolone IV, Hydrocortisone IV, or Dexamethasone, attempt to answer but include a message directing users to consult https://ukidney.com/drugs
+6. For questions about drug dose conversions related to MMF (CellCept) PO, Myfortic PO, MMF IV, Cyclosporine PO, Cyclosporine IV, Envarsus, Advagraf/Astagraf, Prograf, Prednisone, Methylprednisolone IV, Hydrocortisone IV, or Dexamethasone, attempt to answer but include a message directing users to consult https://ukidney.com/drugs${conflictInstructions}
 
 FORMATTING RULES:
 - Use **bold** for important terms and section titles
@@ -237,8 +317,7 @@ FORMATTING RULES:
 - **MANDATORY**: Use footnotes [1], [2], etc. for EVERY claim or fact: place superscript [number] immediately after each claim
 - **MANDATORY**: Provide numbered references at the end of EVERY response (do not skip this step)
 - Number footnotes sequentially starting from [1] for each response
-- Extract page numbers from [Page X] markers in the text for accurate citations
-- Example: "Drug X is indicated[1]. Dosage is 100mg[2].\n\n---\n\n**References**\n[1] Section 3.2, Page 15\n[2] Page 45"
+- ${isMultiDoc ? '**FOR MULTI-DOCUMENT**: References MUST include source document name AND page (e.g., [1] SMH Manual, Page 15)' : 'Extract page numbers from [Page X] markers for citations (e.g., [1] Page 15)'}
 
 RELEVANT EXCERPTS FROM ${docName.toUpperCase()}:
 ---
@@ -396,21 +475,61 @@ app.post('/api/chat', async (req, res) => {
         
         // Get embedding type from query parameter (openai or local)
         const embeddingType = req.query.embedding || 'openai';
-        console.log(`RAG: Message length: ${message.length} chars, Model: ${model}, Doc: ${doc}, Embedding: ${embeddingType}`);
 
         if (!message) {
             return res.status(400).json({ error: 'Message is required' });
         }
 
-        // Validate document type using registry (metadata only, no PDF loading)
-        const isValid = await documentRegistry.isValidSlug(doc);
-        if (!isValid) {
+        // Parse document parameter - supports multiple documents with + separator
+        const docParam = doc || 'smh';
+        const documentSlugs = docParam.split('+').map(s => s.trim()).filter(s => s);
+
+        // Validate max document limit (5 documents)
+        const MAX_DOCUMENTS = 5;
+        if (documentSlugs.length > MAX_DOCUMENTS) {
             return res.status(400).json({
-                error: 'Invalid Document',
-                message: `The requested document (${doc}) is not available in the registry.`
+                error: 'Too Many Documents',
+                message: `Maximum ${MAX_DOCUMENTS} documents can be searched simultaneously. You specified ${documentSlugs.length}.`
             });
         }
-        const documentType = doc;
+
+        console.log(`RAG: Message length: ${message.length} chars, Model: ${model}, Docs: ${documentSlugs.join('+')}, Embedding: ${embeddingType}`);
+
+        // Validate all document slugs exist
+        const validationResults = await Promise.all(
+            documentSlugs.map(slug => documentRegistry.isValidSlug(slug))
+        );
+        const invalidSlugs = documentSlugs.filter((slug, idx) => !validationResults[idx]);
+        
+        if (invalidSlugs.length > 0) {
+            return res.status(400).json({
+                error: 'Invalid Document(s)',
+                message: `The following document(s) are not available: ${invalidSlugs.join(', ')}`
+            });
+        }
+
+        // Validate all documents have same owner (if multiple documents)
+        if (documentSlugs.length > 1) {
+            const ownerValidation = await documentRegistry.validateSameOwner(documentSlugs);
+            if (!ownerValidation.valid) {
+                return res.status(400).json({
+                    error: 'Owner Mismatch',
+                    message: ownerValidation.error
+                });
+            }
+
+            // Validate all documents have same embedding type
+            const embeddingValidation = await documentRegistry.validateSameEmbeddingType(documentSlugs);
+            if (!embeddingValidation.valid) {
+                return res.status(400).json({
+                    error: 'Embedding Type Mismatch',
+                    message: embeddingValidation.error
+                });
+            }
+        }
+
+        // Use array for multi-document, single string for backward compatibility
+        const documentType = documentSlugs.length === 1 ? documentSlugs[0] : documentSlugs;
 
         let responseText;
         let retrievalTimeMs = 0;
@@ -494,10 +613,22 @@ app.post('/api/chat', async (req, res) => {
             const responseTime = Date.now() - startTime;
 
             // Log to Supabase with RAG metadata
-            // Get document info from registry for logging
-            const docConfig = await documentRegistry.getDocumentBySlug(documentType);
+            // Get document info from registry for logging (handle multi-document)
+            const isMultiDoc = Array.isArray(documentType);
+            const firstDocSlug = isMultiDoc ? documentType[0] : documentType;
+            const docConfig = await documentRegistry.getDocumentBySlug(firstDocSlug);
             const docFileName = docConfig ? docConfig.pdf_filename : 'unknown.pdf';
             const docYear = docConfig ? docConfig.year : null;
+            
+            // For multi-document, create combined document name
+            let combinedDocName = docFileName;
+            if (isMultiDoc && documentType.length > 1) {
+                const allConfigs = await Promise.all(
+                    documentType.map(slug => documentRegistry.getDocumentBySlug(slug))
+                );
+                const fileNames = allConfigs.filter(cfg => cfg).map(cfg => cfg.pdf_filename);
+                combinedDocName = fileNames.join(' + ');
+            }
             
             const conversationData = {
                 session_id: sessionId,
@@ -505,20 +636,27 @@ app.post('/api/chat', async (req, res) => {
                 response: responseText || '',
                 model: model,
                 response_time_ms: responseTime,
-                document_name: docFileName,
+                document_name: combinedDocName,
                 document_path: '', // Not used in RAG-only mode
                 document_version: docYear,
-                pdf_name: docFileName, // Legacy field for compatibility
+                pdf_name: combinedDocName, // Legacy field for compatibility
                 pdf_pages: 0, // Not applicable for RAG
                 error: errorOccurred,
-                retrieval_method: 'rag',
+                retrieval_method: isMultiDoc ? 'rag-multi' : 'rag',
                 chunks_used: chunksUsed,
                 retrieval_time_ms: retrievalTimeMs,
                 metadata: {
                     history_length: history.length,
                     timestamp: new Date().toISOString(),
                     document_type: documentType,
+                    document_slugs: isMultiDoc ? documentType : [documentType],
+                    is_multi_document: isMultiDoc,
                     chunk_similarities: retrievedChunks.map(c => c.similarity),
+                    chunk_sources: retrievedChunks.map(c => ({
+                        slug: c.document_slug,
+                        name: c.document_name,
+                        similarity: c.similarity
+                    })),
                     embedding_type: embeddingType,
                     embedding_dimensions: embeddingType === 'local' ? 384 : 1536
                 }
@@ -542,9 +680,16 @@ app.post('/api/chat', async (req, res) => {
                                 model === 'grok-reasoning' ? 'grok-4-fast-reasoning' :
                                 'gemini-2.5-flash';
 
-        // Get document info from registry for response metadata
-        const docConfigResponse = await documentRegistry.getDocumentBySlug(documentType);
-        const docFileNameResponse = docConfigResponse ? docConfigResponse.pdf_filename : 'unknown.pdf';
+        // Get document info from registry for response metadata (handle multi-document)
+        const isMultiDocResponse = Array.isArray(documentType);
+        const slugsArray = isMultiDocResponse ? documentType : [documentType];
+        
+        const docConfigs = await Promise.all(
+            slugsArray.map(slug => documentRegistry.getDocumentBySlug(slug))
+        );
+        
+        const docTitles = docConfigs.filter(cfg => cfg).map(cfg => cfg.title).join(' + ');
+        const docFileNames = docConfigs.filter(cfg => cfg).map(cfg => cfg.pdf_filename).join(' + ');
         
         res.json({
             response: responseText,
@@ -553,18 +698,21 @@ app.post('/api/chat', async (req, res) => {
             sessionId: sessionId,
             conversationId: res.locals.conversationId,
             metadata: {
-                document: docFileNameResponse,
+                document: docFileNames,
                 documentType: documentType,
-                documentTitle: docConfigResponse ? docConfigResponse.title : 'Unknown',
+                documentSlugs: slugsArray,
+                documentTitle: docTitles || 'Unknown',
+                isMultiDocument: isMultiDocResponse,
                 responseTime: finalResponseTime,
-                retrievalMethod: 'rag',
+                retrievalMethod: isMultiDocResponse ? 'rag-multi' : 'rag',
                 chunksUsed: chunksUsed,
                 retrievalTime: retrievalTimeMs,
                 embedding_type: embeddingType,
                 embedding_dimensions: embeddingType === 'local' ? 384 : 1536,
                 chunkSimilarities: retrievedChunks.map(c => ({
                     index: c.chunk_index,
-                    similarity: c.similarity
+                    similarity: c.similarity,
+                    source: c.document_slug
                 }))
             }
         });

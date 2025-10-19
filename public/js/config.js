@@ -192,13 +192,33 @@ export function generateSessionId() {
     });
 }
 
-// Get embedding type from URL parameter (openai or local)
+/**
+ * Parse document slug parameter - supports multiple documents with + separator
+ * Note: In URLs, + is decoded as a space, so we need to handle both
+ * @returns {Array<string>} Array of document slugs
+ */
+export function parseDocumentSlugs() {
+    const params = new URLSearchParams(window.location.search);
+    const docParam = params.get('doc') || 'smh';
+    
+    // Split on both + and space (since + gets decoded to space in URLs)
+    // Then filter out empty strings
+    const slugs = docParam.split(/[\s+]+/).map(s => s.trim()).filter(s => s);
+    
+    return slugs;
+}
+
+/**
+ * Get embedding type from URL parameter (openai or local)
+ * For multi-document queries, uses the first document's default embedding type
+ */
 export function getEmbeddingType() {
     const params = new URLSearchParams(window.location.search);
-    const docParam = params.get('doc');
+    const docSlugs = parseDocumentSlugs();
+    const firstDoc = docSlugs[0];
 
     // ckd-dc-2025 uses local embeddings, others use OpenAI by default
-    if (docParam === 'ckd-dc-2025') {
+    if (firstDoc === 'ckd-dc-2025') {
         return params.get('embedding') || 'local';
     }
 

@@ -1,9 +1,9 @@
 // Main initialization and event wiring
-import { API_URL, generateSessionId, getEmbeddingType, preloadLogos } from './config.js';
-import { updateDocumentUI, updateModelInTooltip } from './ui.js';
-import { sendMessage } from './chat.js';
-import { submitRating } from './rating.js';
-import { initializePubMedPopup } from './pubmed-popup.js';
+import { API_URL, generateSessionId, getEmbeddingType, preloadLogos, parseDocumentSlugs } from './config.js?v=20251019-02';
+import { updateDocumentUI, updateModelInTooltip } from './ui.js?v=20251019-02';
+import { sendMessage } from './chat.js?v=20251019-02';
+import { submitRating } from './rating.js?v=20251019-02';
+import { initializePubMedPopup } from './pubmed-popup.js?v=20251019-02';
 
 // Configure marked for better formatting
 marked.setOptions({
@@ -17,7 +17,8 @@ const state = {
     isLoading: false,
     selectedModel: 'grok',
     sessionId: generateSessionId(),
-    selectedDocument: 'smh', // Default to SMH
+    selectedDocument: 'smh', // Default to SMH (can be string or array for multi-doc)
+    selectedDocuments: ['smh'], // Array of selected documents
     isLocalEnv: false
 };
 
@@ -84,29 +85,59 @@ async function initializeDocument() {
         updateModelInTooltip(state.selectedModel);
     }
 
-    // Validate document slug using registry - no default to prevent flash
-    let selectedDoc = null;
+    // Validate document slugs using registry - supports multi-document with + separator
+    let validatedSlugs = [];
     if (docParam) {
-        const { documentExists, getDocument } = await import('./config.js');
-        // Force refresh to avoid stale cache
-        const exists = await documentExists(docParam, true);
-        if (exists) {
-            // Get the actual document to ensure we use the correct case
-            const doc = await getDocument(docParam, true);
-            selectedDoc = doc.slug; // Use the actual slug from the document
-        } else {
-            console.warn(`⚠️  Document '${docParam}' not found in registry`);
-            selectedDoc = null;
+        try {
+            const { documentExists, getDocument } = await import('./config.js?v=20251019-02');
+            const requestedSlugs = parseDocumentSlugs();
+            
+            console.log(`📋 Validating ${requestedSlugs.length} document(s): ${requestedSlugs.join(', ')}`);
+            
+            // Validate each slug
+            for (const slug of requestedSlugs) {
+                try {
+                    // Force refresh to avoid stale cache
+                    const exists = await documentExists(slug, true);
+                    if (exists) {
+                        // Get the actual document to ensure we use the correct case
+                        const doc = await getDocument(slug, true);
+                        if (doc && doc.slug) {
+                            validatedSlugs.push(doc.slug);
+                            console.log(`  ✓ Validated: ${doc.slug}`);
+                        } else {
+                            console.warn(`  ⚠️  Document '${slug}' returned invalid config`);
+                        }
+                    } else {
+                        console.warn(`  ⚠️  Document '${slug}' not found in registry`);
+                    }
+                } catch (slugError) {
+                    console.error(`  ❌ Error validating '${slug}':`, slugError);
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error during document validation:', error);
         }
     }
     
-    state.selectedDocument = selectedDoc;
+    // Set state based on validated slugs
+    if (validatedSlugs.length > 0) {
+        state.selectedDocuments = validatedSlugs;
+        // For backward compatibility, set selectedDocument to joined string
+        state.selectedDocument = validatedSlugs.join('+');
+        console.log(`✓ Documents set: ${state.selectedDocument}`);
+    } else {
+        state.selectedDocuments = [];
+        state.selectedDocument = null;
+        console.warn('⚠️  No valid documents found, showing generic interface');
+    }
 
     // Log all URL parameters
     console.log('\n📋 URL Parameters Applied:');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(`  Document:        ${docParam || 'none specified'}`);
-    console.log(`  Validated as:    ${selectedDoc || 'none (generic interface)'}`);
+    console.log(`  Validated as:    ${validatedSlugs.length > 0 ? validatedSlugs.join(' + ') : 'none (generic interface)'}`);
+    console.log(`  Multi-document:  ${validatedSlugs.length > 1 ? 'Yes (' + validatedSlugs.length + ' docs)' : 'No'}`);
     console.log(`  Model:           ${state.selectedModel}`);
     console.log(`  Mode:            RAG-only (database retrieval)`);
     console.log(`  Embedding Type:  ${embeddingParam} ${embeddingParam === 'openai' ? '(1536D)' : '(384D)'}`);
