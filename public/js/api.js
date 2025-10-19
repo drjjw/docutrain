@@ -1,36 +1,14 @@
-// API communication and health checks
+// API communication (RAG-only mode)
 import { API_URL, getEmbeddingType } from './config.js';
 
-// Check server health on load
-export async function checkHealth(selectedDocument, statusDiv) {
-    try {
-        const response = await fetch(`${API_URL}/api/health?doc=${selectedDocument}`);
-        const data = await response.json();
-        if (data.status === 'ok' && data.loadedDocuments && data.loadedDocuments.length > 0) {
-            const currentDoc = data.documentDetails[data.currentDocumentType];
-            statusDiv.textContent = `✓ Ready - Trained on ${currentDoc.pages} pages`;
-            statusDiv.className = 'status online';
-        } else {
-            statusDiv.textContent = '⚠ Documents not loaded';
-            statusDiv.className = 'status';
-        }
-    } catch (error) {
-        statusDiv.textContent = '✗ Server offline';
-        statusDiv.className = 'status';
-    }
-}
-
-// Send a message to the API
-export async function sendMessageToAPI(message, conversationHistory, selectedModel, sessionId, selectedDocument, ragMode) {
-    // Choose endpoint based on RAG mode
-    // Add embedding type parameter for RAG mode
+// Send a message to the API (RAG-only mode)
+export async function sendMessageToAPI(message, conversationHistory, selectedModel, sessionId, selectedDocument) {
+    // RAG-only mode - always use embedding type parameter
     const embeddingType = getEmbeddingType();
-    const endpoint = ragMode 
-        ? `${API_URL}/api/chat-rag?embedding=${embeddingType}` 
-        : `${API_URL}/api/chat`;
+    const endpoint = `${API_URL}/api/chat?embedding=${embeddingType}`;
 
-    // Create AbortController for timeout (60 seconds for RAG, 30 for regular)
-    const timeoutMs = ragMode ? 60000 : 30000;
+    // Create AbortController for timeout (60 seconds)
+    const timeoutMs = 60000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -55,7 +33,7 @@ export async function sendMessageToAPI(message, conversationHistory, selectedMod
     } catch (error) {
         clearTimeout(timeoutId);
         if (error.name === 'AbortError') {
-            throw new Error(`Request timeout after ${timeoutMs / 1000} seconds. This may happen with complex queries in RAG mode. Please try again or simplify your question.`);
+            throw new Error(`Request timeout after ${timeoutMs / 1000} seconds. This may happen with complex queries. Please try again or simplify your question.`);
         }
         throw error;
     }

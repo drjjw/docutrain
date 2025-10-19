@@ -92,7 +92,8 @@ async function getDocumentBySlug(slug) {
 }
 
 /**
- * Build full filesystem path to PDF file
+ * Build full filesystem path to PDF file (for embedding scripts only)
+ * Note: Not used at runtime in RAG-only mode
  * @param {Object} doc - Document object from registry
  * @returns {string} Absolute path to PDF file
  */

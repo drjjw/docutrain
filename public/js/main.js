@@ -1,6 +1,5 @@
 // Main initialization and event wiring
 import { API_URL, generateSessionId, getEmbeddingType, preloadLogos } from './config.js';
-import { checkHealth } from './api.js';
 import { updateDocumentUI, updateModelInTooltip } from './ui.js';
 import { sendMessage } from './chat.js';
 import { submitRating } from './rating.js';
@@ -12,12 +11,11 @@ marked.setOptions({
     gfm: true
 });
 
-// Application state
+// Application state (RAG-only mode)
 const state = {
     conversationHistory: [],
     isLoading: false,
     selectedModel: 'grok',
-    ragMode: true, // Default to RAG mode
     sessionId: generateSessionId(),
     selectedDocument: 'smh', // Default to SMH
     isLocalEnv: false
@@ -28,12 +26,9 @@ const elements = {
     chatContainer: document.getElementById('chatContainer'),
     messageInput: document.getElementById('messageInput'),
     sendButton: document.getElementById('sendButton'),
-    statusDiv: document.getElementById('status'),
     geminiBtn: document.getElementById('geminiBtn'),
     grokBtn: document.getElementById('grokBtn'),
     grokReasoningBtn: document.getElementById('grokReasoningBtn'),
-    fullDocBtn: document.getElementById('fullDocBtn'),
-    ragBtn: document.getElementById('ragBtn'),
     headerToggle: document.getElementById('headerToggle'),
     mainHeader: document.getElementById('mainHeader'),
     headerContent: document.getElementById('headerContent')
@@ -107,42 +102,15 @@ async function initializeDocument() {
     
     state.selectedDocument = selectedDoc;
 
-    // Determine search mode for logging
-    let searchMode;
-    if (methodParam === 'full') {
-        searchMode = 'Comprehensive (Full Doc)';
-    } else if (methodParam === 'rag') {
-        searchMode = 'Targeted (RAG)';
-    } else {
-        searchMode = 'Targeted (RAG) - default';
-    }
-
     // Log all URL parameters
     console.log('\n📋 URL Parameters Applied:');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(`  Document:        ${docParam || 'none specified'}`);
     console.log(`  Validated as:    ${selectedDoc || 'none (generic interface)'}`);
     console.log(`  Model:           ${state.selectedModel}`);
-    console.log(`  Search Mode:     ${searchMode}`);
+    console.log(`  Mode:            RAG-only (database retrieval)`);
     console.log(`  Embedding Type:  ${embeddingParam} ${embeddingParam === 'openai' ? '(1536D)' : '(384D)'}`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-
-    // Set retrieval method from URL parameter or default to RAG
-    if (methodParam === 'full') {
-        // Only switch to full doc mode if explicitly requested
-        state.ragMode = false;
-        if (elements.fullDocBtn) {
-            elements.fullDocBtn.classList.add('active');
-            elements.ragBtn.classList.remove('active');
-        }
-    } else {
-        // Default to RAG mode (whether methodParam is 'rag' or not provided)
-        state.ragMode = true;
-        if (elements.ragBtn) {
-            elements.ragBtn.classList.add('active');
-            elements.fullDocBtn.classList.remove('active');
-        }
-    }
 
     // Check if running on localhost
     state.isLocalEnv = window.location.hostname === 'localhost' || 
@@ -209,21 +177,6 @@ elements.grokReasoningBtn.addEventListener('click', () => {
     updateModelInTooltip('grok-reasoning');
 });
 
-// Retrieval method selector event listeners
-elements.fullDocBtn.addEventListener('click', () => {
-    state.ragMode = false;
-    elements.fullDocBtn.classList.add('active');
-    elements.ragBtn.classList.remove('active');
-    console.log('📄 Switched to Full Document mode');
-});
-
-elements.ragBtn.addEventListener('click', () => {
-    state.ragMode = true;
-    elements.ragBtn.classList.add('active');
-    elements.fullDocBtn.classList.remove('active');
-    console.log('🔍 Switched to RAG mode');
-});
-
 // Event listeners for chat
 elements.sendButton.addEventListener('click', () => sendMessage(state, elements));
 elements.messageInput.addEventListener('keypress', (e) => {
@@ -287,7 +240,8 @@ window.submitRating = submitRating;
     // Initialize PubMed popup functionality
     initializePubMedPopup();
 
-    checkHealth(state.selectedDocument, elements.statusDiv);
+    // Health check logged to console (no status bar)
+    console.log('✓ Server health check - RAG-only mode active');
 
     // Show disclaimer only for UKidney documents
     if (state.selectedDocument) {

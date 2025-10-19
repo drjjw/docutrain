@@ -8,9 +8,9 @@ module.exports = {
       NODE_ENV: 'production'
     },
     // Graceful shutdown configuration
-    kill_timeout: 8000, // Wait 8 seconds for graceful shutdown
+    kill_timeout: 5000, // Wait 5 seconds for graceful shutdown
     wait_ready: true,    // Wait for ready signal before considering app up
-    listen_timeout: 30000, // Wait 30 seconds for app to listen (increased for PDF loading)
+    listen_timeout: 15000, // Wait 15 seconds for app to listen (RAG-only is faster)
 
     // Restart policies
     restart_delay: 6000, // Delay between restarts (increased)

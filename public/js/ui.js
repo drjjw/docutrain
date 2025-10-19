@@ -68,8 +68,8 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
         }
 
         // Reset logo to generic
-        const logoElement = document.querySelector('.ukidney-logo img');
-        const logoLink = document.querySelector('.ukidney-logo a');
+        const logoElement = document.querySelector('.logo img');
+        const logoLink = document.querySelector('.logo a');
         if (logoElement && logoLink) {
             logoElement.style.display = 'none'; // Hide logo when no document
         }
@@ -123,8 +123,8 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
 
     // Update header logo based on document owner
     const logoConfig = getOwnerLogoConfig(config.owner);
-    const logoElement = document.querySelector('.ukidney-logo img');
-    const logoLink = document.querySelector('.ukidney-logo a');
+    const logoElement = document.querySelector('.logo img');
+    const logoLink = document.querySelector('.logo a');
 
     if (logoElement && logoLink) {
         if (logoConfig) {
@@ -412,20 +412,19 @@ export function removeLoading() {
     }
 }
 
-// Build response text with metadata
-export function buildResponseWithMetadata(data, ragMode, isLocalEnv) {
+// Build response text with metadata (RAG-only mode)
+export function buildResponseWithMetadata(data, isLocalEnv) {
     let responseText = data.response;
 
-    // Add metadata based on mode and environment
-    if (ragMode && data.metadata && data.metadata.chunksUsed) {
-        // RAG Mode metadata
+    // Add metadata based on environment
+    if (data.metadata && data.metadata.chunksUsed) {
         let metaInfo;
         if (isLocalEnv) {
             // Local: Show detailed debug info
             const embeddingInfo = data.metadata.embedding_type 
                 ? ` | Embedding: ${data.metadata.embedding_type} (${data.metadata.embedding_dimensions}D)` 
                 : '';
-            metaInfo = `\n\n---\n*🔍 RAG Mode: Used ${data.metadata.chunksUsed} relevant chunks (retrieval: ${data.metadata.retrievalTime}ms, total: ${data.metadata.responseTime}ms)${embeddingInfo}*`;
+            metaInfo = `\n\n---\n*🔍 Used ${data.metadata.chunksUsed} relevant chunks (retrieval: ${data.metadata.retrievalTime}ms, total: ${data.metadata.responseTime}ms)${embeddingInfo}*`;
         } else {
             // Production: Show only response time
             metaInfo = `\n\n---\n*Response time: ${data.metadata.responseTime}ms*`;
@@ -438,25 +437,6 @@ export function buildResponseWithMetadata(data, ragMode, isLocalEnv) {
             retrievalTime: data.metadata.retrievalTime,
             totalTime: data.metadata.responseTime,
             similarities: data.metadata.chunkSimilarities
-        });
-    } else if (!ragMode && data.metadata) {
-        // Full Doc Mode metadata
-        let metaInfo;
-        if (isLocalEnv) {
-            // Local: Show detailed debug info
-            const docSize = data.metadata.pdfPages ? `${data.metadata.pdfPages} pages` : 'full document';
-            metaInfo = `\n\n---\n*📄 Full Doc Mode: Entire ${docSize} context (response time: ${data.metadata.responseTime}ms)*`;
-        } else {
-            // Production: Show only response time
-            metaInfo = `\n\n---\n*Response time: ${data.metadata.responseTime}ms*`;
-        }
-        responseText += metaInfo;
-
-        // Log Full Doc performance
-        console.log('📊 Full Doc Performance:', {
-            document: data.metadata.document,
-            pages: data.metadata.pdfPages,
-            totalTime: data.metadata.responseTime
         });
     }
 

@@ -60,7 +60,7 @@ const ownerLogoConfig = {
         accentColor: '#cc0000'
     },
     'maker': {
-        logo: 'logos/maker-logo.png',
+        logo: 'logos/maker-logo-trns.png',
         alt: 'Maker',
         link: '#', // No external link for maker
         accentColor: '#007acc' // Example maker accent color - can be adjusted

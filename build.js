@@ -204,132 +204,17 @@ const otherFiles = [
     { from: '.htaccess', to: '.htaccess', optional: true }
 ];
 
-// Copy PDFs to their proper subdirectories (for document registry system)
-console.log('\n📄 Copying PDF files to registry structure:');
-const pdfFiles = [
-    { from: 'PDFs/manuals/smh-manual-2023.pdf', to: 'PDFs/manuals/smh-manual-2023.pdf' },
-    { from: 'PDFs/manuals/uhn-manual-2025.pdf', to: 'PDFs/manuals/uhn-manual-2025.pdf' },
-    { from: 'PDFs/manuals/Kidney-Transplant-Medications-Tip-Sheet-Aug-2024.pdf', to: 'PDFs/manuals/Kidney-Transplant-Medications-Tip-Sheet-Aug-2024.pdf' },
-    { from: 'PDFs/manuals/EPIC in the ICU at SMH_Trainees.pdf', to: 'PDFs/manuals/EPIC in the ICU at SMH_Trainees.pdf' },
-    { from: 'PDFs/guidelines/PIIS1499267125000206.pdf', to: 'PDFs/guidelines/PIIS1499267125000206.pdf' },
-    { from: 'PDFs/guidelines/KDIGO-2025-ADPKD-Guideline.pdf', to: 'PDFs/guidelines/KDIGO-2025-ADPKD-Guideline.pdf' },
-    { from: 'PDFs/guidelines/KDIGO-2021-BP-GL.pdf', to: 'PDFs/guidelines/KDIGO-2021-BP-GL.pdf' },
-    { from: 'PDFs/guidelines/KDIGO-2024-ANCA-Vasculitis-Guideline-Update.pdf', to: 'PDFs/guidelines/KDIGO-2024-ANCA-Vasculitis-Guideline-Update.pdf' },
-    { from: 'PDFs/guidelines/KDIGO-2024-CKD-Guideline.pdf', to: 'PDFs/guidelines/KDIGO-2024-CKD-Guideline.pdf' },
-    { from: 'PDFs/guidelines/KDIGO-2025-IgAN-IgAV-Guideline.pdf', to: 'PDFs/guidelines/KDIGO-2025-IgAN-IgAV-Guideline.pdf' },
-    { from: 'PDFs/guidelines/KDIGO-2021-Glomerular-Diseases-Guideline_English_2024-Chapter-Updates.pdf', to: 'PDFs/guidelines/KDIGO-2021-Glomerular-Diseases-Guideline_English_2024-Chapter-Updates.pdf' },
-    { from: 'PDFs/guidelines/KDIGO-2009-Transplant-Recipient-Guideline-English.pdf', to: 'PDFs/guidelines/KDIGO-2009-Transplant-Recipient-Guideline-English.pdf' },
-    { from: 'PDFs/guidelines/KDIGO-Txp-Candidate-GL-FINAL.pdf', to: 'PDFs/guidelines/KDIGO-Txp-Candidate-GL-FINAL.pdf' },
-    { from: 'PDFs/guidelines/KDIGO-2025-Guideline-for-Nephrotic-Syndrome-in-Children.pdf', to: 'PDFs/guidelines/KDIGO-2025-Guideline-for-Nephrotic-Syndrome-in-Children.pdf' },
-    { from: 'PDFs/guidelines/2017-KDIGO-LD-GL.pdf', to: 'PDFs/guidelines/2017-KDIGO-LD-GL.pdf' },
-    { from: 'PDFs/books/Fluid-Electrolyte-and-Acid-Base-Physiology-Kamel-Halperin.pdf', to: 'PDFs/books/Fluid-Electrolyte-and-Acid-Base-Physiology-Kamel-Halperin.pdf' },
-    { from: 'PDFs/maker/FOH-TRAINING-GUIDE-MAY-2023.pdf', to: 'PDFs/maker/FOH-TRAINING-GUIDE-MAY-2023.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Magnesium-Disorders--Core-Curriculum-2024_2024_yaj.pdf', to: 'PDFs/ajkd-core-curriculum/Magnesium-Disorders--Core-Curriculum-2024_2024_yaj.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Management-of-Acute-Kidney-Injury--Core-Curriculum.pdf', to: 'PDFs/ajkd-core-curriculum/Management-of-Acute-Kidney-Injury--Core-Curriculum.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Management-of-Diabetes-Mellitus-in-Patients-With-C.pdf', to: 'PDFs/ajkd-core-curriculum/Management-of-Diabetes-Mellitus-in-Patients-With-C.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Management-of-Heart-Failure-in-Advancing-CKD--Core.pdf', to: 'PDFs/ajkd-core-curriculum/Management-of-Heart-Failure-in-Advancing-CKD--Core.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/ANCA-Associated-Vasculitis--Core-Curriculum-2020_2.pdf', to: 'PDFs/ajkd-core-curriculum/ANCA-Associated-Vasculitis--Core-Curriculum-2020_2.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Approach-to-Diagnosis-and-Management-of-Primary-Gl.pdf', to: 'PDFs/ajkd-core-curriculum/Approach-to-Diagnosis-and-Management-of-Primary-Gl.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Approach-to-Kidney-Biopsy--Core-Curriculum-2022_20.pdf', to: 'PDFs/ajkd-core-curriculum/Approach-to-Kidney-Biopsy--Core-Curriculum-2022_20.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Approach-to-Patients-With-High-Anion-Gap-Metabolic.pdf', to: 'PDFs/ajkd-core-curriculum/Approach-to-Patients-With-High-Anion-Gap-Metabolic.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Autosomal-Dominant-Polycystic-Kidney-Disease--Core.pdf', to: 'PDFs/ajkd-core-curriculum/Autosomal-Dominant-Polycystic-Kidney-Disease--Core.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Biomarkers-in-Nephrology--Core-Curriculum-2013_201.pdf', to: 'PDFs/ajkd-core-curriculum/Biomarkers-in-Nephrology--Core-Curriculum-2013_201.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/CKD&#x2013;Mineral-and-Bone-Disorder--Core-Curricu.pdf', to: 'PDFs/ajkd-core-curriculum/CKD&#x2013;Mineral-and-Bone-Disorder--Core-Curricu.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Calcium-and-Phosphate-Disorders--Core-Curriculum-2.pdf', to: 'PDFs/ajkd-core-curriculum/Calcium-and-Phosphate-Disorders--Core-Curriculum-2.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Cardiovascular-Disease-and-CKD--Core-Curriculum-20.pdf', to: 'PDFs/ajkd-core-curriculum/Cardiovascular-Disease-and-CKD--Core-Curriculum-20.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Clinical-Genetic-Testing-in-Nephrology--Core-Curri.pdf', to: 'PDFs/ajkd-core-curriculum/Clinical-Genetic-Testing-in-Nephrology--Core-Curri.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Concomitant-Lung-and-Kidney-Disorders-in-Criticall.pdf', to: 'PDFs/ajkd-core-curriculum/Concomitant-Lung-and-Kidney-Disorders-in-Criticall.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Continuous-Dialysis-Therapies--Core-Curriculum-201.pdf', to: 'PDFs/ajkd-core-curriculum/Continuous-Dialysis-Therapies--Core-Curriculum-201.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Critical-Care-Nephrology--Core-Curriculum-2009_200.pdf', to: 'PDFs/ajkd-core-curriculum/Critical-Care-Nephrology--Core-Curriculum-2009_200.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Critical-Care-Nephrology--Core-Curriculum-2020_202.pdf', to: 'PDFs/ajkd-core-curriculum/Critical-Care-Nephrology--Core-Curriculum-2020_202.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Dermatological-Disease-in-Patients-With-CKD_yajkd.pdf', to: 'PDFs/ajkd-core-curriculum/Dermatological-Disease-in-Patients-With-CKD_yajkd.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Development-of-Clinical-Practice-Guidelines-in-the.pdf', to: 'PDFs/ajkd-core-curriculum/Development-of-Clinical-Practice-Guidelines-in-the.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Diagnosis-and-Management-of-Disorders-of-Body-Toni.pdf', to: 'PDFs/ajkd-core-curriculum/Diagnosis-and-Management-of-Disorders-of-Body-Toni.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Diagnosis-and-Management-of-Renal-Cystic-Disease-o.pdf', to: 'PDFs/ajkd-core-curriculum/Diagnosis-and-Management-of-Renal-Cystic-Disease-o.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Diuretics-in-States-of-Volume-Overload--Core-Curri.pdf', to: 'PDFs/ajkd-core-curriculum/Diuretics-in-States-of-Volume-Overload--Core-Curri.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Dysproteinemia-and-the-Kidney--Core-Curriculum-201.pdf', to: 'PDFs/ajkd-core-curriculum/Dysproteinemia-and-the-Kidney--Core-Curriculum-201.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Economic-Factors-in-Nephrology--Core-Curriculum-20.pdf', to: 'PDFs/ajkd-core-curriculum/Economic-Factors-in-Nephrology--Core-Curriculum-20.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Evaluation-and-Management-of-Resistant-Hypertensio.pdf', to: 'PDFs/ajkd-core-curriculum/Evaluation-and-Management-of-Resistant-Hypertensio.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Evaluation-of-Adult-Kidney-Transplant-Candidates_y.pdf', to: 'PDFs/ajkd-core-curriculum/Evaluation-of-Adult-Kidney-Transplant-Candidates_y.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Evaluation-of-Kidney-Donors--Core-Curriculum-2018_.pdf', to: 'PDFs/ajkd-core-curriculum/Evaluation-of-Kidney-Donors--Core-Curriculum-2018_.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Evaluation-of-the-Potential-Living-Kidney-Donor_20.pdf', to: 'PDFs/ajkd-core-curriculum/Evaluation-of-the-Potential-Living-Kidney-Donor_20.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Fluid-Management-in-Adults-and-Children--Core-Curr.pdf', to: 'PDFs/ajkd-core-curriculum/Fluid-Management-in-Adults-and-Children--Core-Curr.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/General-Medical-Care-of-the-Dialysis-Patient--Core.pdf', to: 'PDFs/ajkd-core-curriculum/General-Medical-Care-of-the-Dialysis-Patient--Core.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Genetic-Investigations-of-Kidney-Disease--Core-Cur.pdf', to: 'PDFs/ajkd-core-curriculum/Genetic-Investigations-of-Kidney-Disease--Core-Cur.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Genetics-of-Nephrotic-Syndrome-Presenting-in-Child.pdf', to: 'PDFs/ajkd-core-curriculum/Genetics-of-Nephrotic-Syndrome-Presenting-in-Child.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Glomerular-Diseases-Dependent-on-Complement-Activa.pdf', to: 'PDFs/ajkd-core-curriculum/Glomerular-Diseases-Dependent-on-Complement-Activa.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Health-Policy-and-Kidney-Care-in-the-United-States.pdf', to: 'PDFs/ajkd-core-curriculum/Health-Policy-and-Kidney-Care-in-the-United-States.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Hemodialysis--Core-Curriculum-2014_2013_yajkd.pdf', to: 'PDFs/ajkd-core-curriculum/Hemodialysis--Core-Curriculum-2014_2013_yajkd.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Hemodialysis-Emergencies--Core-Curriculum-2021_202.pdf', to: 'PDFs/ajkd-core-curriculum/Hemodialysis-Emergencies--Core-Curriculum-2021_202.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Home-Hemodialysis,-Daily-Hemodialysis,-and-Nocturn.pdf', to: 'PDFs/ajkd-core-curriculum/Home-Hemodialysis,-Daily-Hemodialysis,-and-Nocturn.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Home-Hemodialysis--Core-Curriculum-2021_2021_yajkd.pdf', to: 'PDFs/ajkd-core-curriculum/Home-Hemodialysis--Core-Curriculum-2021_2021_yajkd.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Hypertension-in-CKD--Core-Curriculum-2019_2019_yaj.pdf', to: 'PDFs/ajkd-core-curriculum/Hypertension-in-CKD--Core-Curriculum-2019_2019_yaj.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/IgA-Nephropathy--Core-Curriculum-2021_2021_yajkd.pdf', to: 'PDFs/ajkd-core-curriculum/IgA-Nephropathy--Core-Curriculum-2021_2021_yajkd.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Infectious-Disease-Following-Kidney-Transplant--Co.pdf', to: 'PDFs/ajkd-core-curriculum/Infectious-Disease-Following-Kidney-Transplant--Co.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Interventional-Nephrology--Core-Curriculum-2009_20.pdf', to: 'PDFs/ajkd-core-curriculum/Interventional-Nephrology--Core-Curriculum-2009_20.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Kidney-Development--Core-Curriculum-2011_2011_yajk.pdf', to: 'PDFs/ajkd-core-curriculum/Kidney-Development--Core-Curriculum-2011_2011_yajk.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Kidney-Disease-in-the-Setting-of-Liver-Failure--Co.pdf', to: 'PDFs/ajkd-core-curriculum/Kidney-Disease-in-the-Setting-of-Liver-Failure--Co.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Kidney-Dysfunction-in-the-Setting-of-Liver-Failure.pdf', to: 'PDFs/ajkd-core-curriculum/Kidney-Dysfunction-in-the-Setting-of-Liver-Failure.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Kidney-Stone-Pathophysiology,-Evaluation-and-Manag.pdf', to: 'PDFs/ajkd-core-curriculum/Kidney-Stone-Pathophysiology,-Evaluation-and-Manag.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Kidney-Supportive-Care--Core-Curriculum-2020_2020_.pdf', to: 'PDFs/ajkd-core-curriculum/Kidney-Supportive-Care--Core-Curriculum-2020_2020_.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Laboratory-Anomalies-in-the-Basic-Metabolic-Panel-.pdf', to: 'PDFs/ajkd-core-curriculum/Laboratory-Anomalies-in-the-Basic-Metabolic-Panel-.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Management-of-Kidney-Transplant-Recipients-by-Gene.pdf', to: 'PDFs/ajkd-core-curriculum/Management-of-Kidney-Transplant-Recipients-by-Gene.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Management-of-Poisonings--Core-Curriculum-2010_201.pdf', to: 'PDFs/ajkd-core-curriculum/Management-of-Poisonings--Core-Curriculum-2010_201.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Management-of-the-Hemodialysis-Unit--Core-Curricul.pdf', to: 'PDFs/ajkd-core-curriculum/Management-of-the-Hemodialysis-Unit--Core-Curricul.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Measurement-and-Estimation-of-GFR-for-Use-in-Clini.pdf', to: 'PDFs/ajkd-core-curriculum/Measurement-and-Estimation-of-GFR-for-Use-in-Clini.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Membranous-Nephropathy--Core-Curriculum-2021_2021_.pdf', to: 'PDFs/ajkd-core-curriculum/Membranous-Nephropathy--Core-Curriculum-2021_2021_.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Metabolic-Acidosis-in-CKD--Core-Curriculum-2019_20.pdf', to: 'PDFs/ajkd-core-curriculum/Metabolic-Acidosis-in-CKD--Core-Curriculum-2019_20.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Metabolic-Alkalosis-Pathogenesis,-Diagnosis,-and-T.pdf', to: 'PDFs/ajkd-core-curriculum/Metabolic-Alkalosis-Pathogenesis,-Diagnosis,-and-T.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Nutrition-in-Kidney-Disease--Core-Curriculum-2022_.pdf', to: 'PDFs/ajkd-core-curriculum/Nutrition-in-Kidney-Disease--Core-Curriculum-2022_.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Nutritional-Considerations-in-Kidney-Disease--Core.pdf', to: 'PDFs/ajkd-core-curriculum/Nutritional-Considerations-in-Kidney-Disease--Core.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Onco-Nephrology--Core-Curriculum-2015_2015_yajkd.pdf', to: 'PDFs/ajkd-core-curriculum/Onco-Nephrology--Core-Curriculum-2015_2015_yajkd.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Onconephrology--Core-Curriculum-2023_2023_yajkd.pdf', to: 'PDFs/ajkd-core-curriculum/Onconephrology--Core-Curriculum-2023_2023_yajkd.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Pathophysiology-of-Renal-Tubular-Acidosis--Core-Cu.pdf', to: 'PDFs/ajkd-core-curriculum/Pathophysiology-of-Renal-Tubular-Acidosis--Core-Cu.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Patient-Safety-Issues-in-CKD--Core-Curriculum-2015.pdf', to: 'PDFs/ajkd-core-curriculum/Patient-Safety-Issues-in-CKD--Core-Curriculum-2015.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Performance-and-Interpretation-of-Sonography-in-th.pdf', to: 'PDFs/ajkd-core-curriculum/Performance-and-Interpretation-of-Sonography-in-th.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Peritoneal-Dialysis-Prescription-and-Adequacy-in-C.pdf', to: 'PDFs/ajkd-core-curriculum/Peritoneal-Dialysis-Prescription-and-Adequacy-in-C.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Person-Centered-Care-for-Older-Adults-With-Kidney-.pdf', to: 'PDFs/ajkd-core-curriculum/Person-Centered-Care-for-Older-Adults-With-Kidney-.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Physiology-and-Pathophysiology-of-Potassium-Homeos.pdf', to: 'PDFs/ajkd-core-curriculum/Physiology-and-Pathophysiology-of-Potassium-Homeos.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Podocyte-Disorders--Core-Curriculum-2011_2011_yajk.pdf', to: 'PDFs/ajkd-core-curriculum/Podocyte-Disorders--Core-Curriculum-2011_2011_yajk.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Principles-of-Immunosuppression-in-the-Management-.pdf', to: 'PDFs/ajkd-core-curriculum/Principles-of-Immunosuppression-in-the-Management-.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Principles-of-Kidney-Pharmacotherapy-for-the-Nephr.pdf', to: 'PDFs/ajkd-core-curriculum/Principles-of-Kidney-Pharmacotherapy-for-the-Nephr.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Reducing-Kidney-Function-Decline-in-Patients-With-.pdf', to: 'PDFs/ajkd-core-curriculum/Reducing-Kidney-Function-Decline-in-Patients-With-.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Renal-Disorders-in-Pregnancy--Core-Curriculum-2019.pdf', to: 'PDFs/ajkd-core-curriculum/Renal-Disorders-in-Pregnancy--Core-Curriculum-2019.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Renal-Imaging--Core-Curriculum-2019_2019_yajkd.pdf', to: 'PDFs/ajkd-core-curriculum/Renal-Imaging--Core-Curriculum-2019_2019_yajkd.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Resistant-Hypertension--Core-Curriculum-2008_2008_.pdf', to: 'PDFs/ajkd-core-curriculum/Resistant-Hypertension--Core-Curriculum-2008_2008_.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Respiratory-Acidosis-and-Respiratory-Alkalosis--Co.pdf', to: 'PDFs/ajkd-core-curriculum/Respiratory-Acidosis-and-Respiratory-Alkalosis--Co.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Targeting-Zero-Infections-in-the-Outpatient-Dialys.pdf', to: 'PDFs/ajkd-core-curriculum/Targeting-Zero-Infections-in-the-Outpatient-Dialys.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Telenephrology--An-Emerging-Platform-for-Deliverin.pdf', to: 'PDFs/ajkd-core-curriculum/Telenephrology--An-Emerging-Platform-for-Deliverin.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/The-Role-of-the-General-Nephrologist-in-Evaluating.pdf', to: 'PDFs/ajkd-core-curriculum/The-Role-of-the-General-Nephrologist-in-Evaluating.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/The-Role-of-the-Kidney-in-Disorders-of-Volume--Cor.pdf', to: 'PDFs/ajkd-core-curriculum/The-Role-of-the-Kidney-in-Disorders-of-Volume--Cor.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/The-Role-of-the-Nephrologist-in-Management-of-Pois.pdf', to: 'PDFs/ajkd-core-curriculum/The-Role-of-the-Nephrologist-in-Management-of-Pois.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Therapeutic-Plasma-Exchange--Core-Curriculum-2008_.pdf', to: 'PDFs/ajkd-core-curriculum/Therapeutic-Plasma-Exchange--Core-Curriculum-2008_.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Therapeutic-Plasma-Exchange--Core-Curriculum-2023_.pdf', to: 'PDFs/ajkd-core-curriculum/Therapeutic-Plasma-Exchange--Core-Curriculum-2023_.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Toxic-Nephropathies--Core-Curriculum-2010_2009_yaj.pdf', to: 'PDFs/ajkd-core-curriculum/Toxic-Nephropathies--Core-Curriculum-2010_2009_yaj.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Toxic-Nephropathies-of-the-Tubulointerstitium--Cor.pdf', to: 'PDFs/ajkd-core-curriculum/Toxic-Nephropathies-of-the-Tubulointerstitium--Cor.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Transplant-Immunology-and-Immunosuppression--Core-.pdf', to: 'PDFs/ajkd-core-curriculum/Transplant-Immunology-and-Immunosuppression--Core-.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Tubular-Transport--Core-Curriculum-2010_2010_yajkd.pdf', to: 'PDFs/ajkd-core-curriculum/Tubular-Transport--Core-Curriculum-2010_2010_yajkd.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Unique-Considerations-in-Renal-Replacement-Therapy.pdf', to: 'PDFs/ajkd-core-curriculum/Unique-Considerations-in-Renal-Replacement-Therapy.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Update-on-Anemia-in-ESRD-and-Earlier-Stages-of-CKD.pdf', to: 'PDFs/ajkd-core-curriculum/Update-on-Anemia-in-ESRD-and-Earlier-Stages-of-CKD.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Update-on-Diabetic-Nephropathy--Core-Curriculum-20.pdf', to: 'PDFs/ajkd-core-curriculum/Update-on-Diabetic-Nephropathy--Core-Curriculum-20.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Update-on-Lupus-Nephritis--Core-Curriculum-2020_20.pdf', to: 'PDFs/ajkd-core-curriculum/Update-on-Lupus-Nephritis--Core-Curriculum-2020_20.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Update-on-Nephrolithiasis--Core-Curriculum-2016_20.pdf', to: 'PDFs/ajkd-core-curriculum/Update-on-Nephrolithiasis--Core-Curriculum-2016_20.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Update-on-Peritoneal-Dialysis--Core-Curriculum-201.pdf', to: 'PDFs/ajkd-core-curriculum/Update-on-Peritoneal-Dialysis--Core-Curriculum-201.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Update-on-the-Native-Kidney-Biopsy--Core-Curriculu.pdf', to: 'PDFs/ajkd-core-curriculum/Update-on-the-Native-Kidney-Biopsy--Core-Curriculu.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Updates-on-Infectious-and-Other-Complications-in-P.pdf', to: 'PDFs/ajkd-core-curriculum/Updates-on-Infectious-and-Other-Complications-in-P.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Urinalysis--Core-Curriculum-2008_yajkd.pdf', to: 'PDFs/ajkd-core-curriculum/Urinalysis--Core-Curriculum-2008_yajkd.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Urinary-Diversion--Core-Curriculum-2021_2021_yajkd.pdf', to: 'PDFs/ajkd-core-curriculum/Urinary-Diversion--Core-Curriculum-2021_2021_yajkd.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Urinary-Tract-Infections--Core-Curriculum-2024_202.pdf', to: 'PDFs/ajkd-core-curriculum/Urinary-Tract-Infections--Core-Curriculum-2024_202.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Urine-Sediment-Examination-in-the-Diagnosis-and-Ma.pdf', to: 'PDFs/ajkd-core-curriculum/Urine-Sediment-Examination-in-the-Diagnosis-and-Ma.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Vascular-Access--Core-Curriculum-2008_2008_yajkd.pdf', to: 'PDFs/ajkd-core-curriculum/Vascular-Access--Core-Curriculum-2008_2008_yajkd.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Viral-Nephropathies--Core-Curriculum-2008_yajkd.pdf', to: 'PDFs/ajkd-core-curriculum/Viral-Nephropathies--Core-Curriculum-2008_yajkd.pdf' },
-    { from: 'PDFs/ajkd-core-curriculum/Viral-Nephropathies--Core-Curriculum-2024_2024_yaj.pdf', to: 'PDFs/ajkd-core-curriculum/Viral-Nephropathies--Core-Curriculum-2024_2024_yaj.pdf' }
-];
+// PDFs are NOT copied to production (RAG-only mode)
+// PDFs remain in development for training/embedding generation only
+console.log('\n📄 PDFs excluded from production build (RAG-only mode):');
+console.log('   - PDFs remain in development for training/embedding');
+console.log('   - Production uses database-stored embeddings only');
+console.log('   - ~500MB deployment size saved\n');
 
 // Copy logos to public directory
 console.log('\n🎨 Copying logo files:');
 const logoFiles = [
-    { from: 'public/logos/maker-logo.png', to: 'public/logos/maker-logo.png' },
+    { from: 'public/logos/maker-logo-trns.png', to: 'public/logos/maker-logo-trns.png' },
     { from: 'public/logos/ukidney-logo.svg', to: 'public/logos/ukidney-logo.svg' }
 ];
 
@@ -356,27 +241,6 @@ if (fs.existsSync(libSourceDir)) {
 
 let copiedCount = 0;
 let skippedCount = 0;
-
-// Copy PDF files first to ensure directories exist
-pdfFiles.forEach(file => {
-    const sourcePath = path.join(__dirname, file.from);
-    const destPath = path.join(distDir, file.to);
-
-    if (fs.existsSync(sourcePath)) {
-        // Ensure destination directory exists
-        const destDir = path.dirname(destPath);
-        if (!fs.existsSync(destDir)) {
-            fs.mkdirSync(destDir, { recursive: true });
-        }
-
-        fs.copyFileSync(sourcePath, destPath);
-        console.log(`✓ Copied PDF ${file.from}`);
-        copiedCount++;
-    } else {
-        console.log(`✗ Missing PDF file: ${file.from}`);
-        process.exit(1);
-    }
-});
 
 // Copy logo files
 logoFiles.forEach(file => {
@@ -426,13 +290,14 @@ console.log(`\n📦 Build complete!`);
 console.log(`   - ${Object.keys(cssFiles).length} CSS files hashed and copied`);
 console.log(`   - ${Object.keys(jsFiles).length} JS files hashed and copied`);
 console.log(`   - 1 HTML file processed with hashed references`);
-console.log(`   - ${pdfFiles.length} PDF files copied to registry structure`);
 console.log(`   - ${logoFiles.length} logo files copied`);
-console.log(`   - ${copiedCount - pdfFiles.length - logoFiles.length} other files copied`);
+console.log(`   - ${copiedCount - logoFiles.length} other files copied`);
 if (skippedCount > 0) {
     console.log(`   - ${skippedCount} optional files skipped`);
 }
+console.log(`   - PDFs excluded (RAG-only mode)`);
 console.log(`   - Output: dist/\n`);
 console.log('💡 Note: .env file must be manually copied to server (not included in build)');
 console.log('💡 Run "npm install --production" in dist/ on the server');
-console.log('💡 Cache busting enabled: File hashes will change when content changes\n');
+console.log('💡 Cache busting enabled: File hashes will change when content changes');
+console.log('💡 RAG-only: PDFs remain in development for training/embedding only\n');

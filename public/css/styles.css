@@ -409,20 +409,22 @@ body {
     flex-wrap: wrap;
 }
 
-.ukidney-logo {
+.logo {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     padding-right: 16px;
     margin-right: 4px;
     border-right: 2px solid #d5d5d5;
     /* Fixed dimensions to prevent layout shift - balanced for both square and rectangular logos */
-    min-width: 80px;
-    height: 32px;
+    min-width: 120px;
+    height: 48px;
 }
 
-.ukidney-logo a {
+.logo a {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     text-decoration: none;
     transition: opacity 0.3s ease;
     /* Ensure logo link takes full space */
@@ -430,14 +432,14 @@ body {
     height: 100%;
 }
 
-.ukidney-logo a:hover {
+.logo a:hover {
     opacity: 0.7;
 }
 
-.ukidney-logo img {
-    height: 32px;
+.logo img {
+    height: 48px;
     width: auto;
-    max-width: 76px;
+    max-width: 120px;
     object-fit: contain;
     /* Smooth transition when logo changes */
     transition: opacity 0.3s ease;
@@ -535,17 +537,18 @@ body:not(.local-env) .retrieval-selector {
         font-size: 12px;
     }
 
-    .ukidney-logo {
+    .logo {
+        justify-content: flex-end;
         padding-right: 12px;
         margin-right: 4px;
         /* Maintain fixed dimensions on mobile to prevent layout shift - balanced for both logos */
-        min-width: 60px;
-        height: 28px;
+        min-width: 80px;
+        height: 36px;
     }
 
-    .ukidney-logo img {
-        height: 28px;
-        max-width: 56px;
+    .logo img {
+        height: 36px;
+        max-width: 80px;
         /* Maintain smooth transition on mobile */
         transition: opacity 0.3s ease;
     }

@@ -24,8 +24,7 @@ export async function sendMessage(state, elements) {
             state.conversationHistory,
             state.selectedModel,
             state.sessionId,
-            state.selectedDocument,
-            state.ragMode
+            state.selectedDocument
         );
 
         let data;
@@ -50,7 +49,7 @@ export async function sendMessage(state, elements) {
             }
 
             // Build response with metadata
-            const responseText = buildResponseWithMetadata(data, state.ragMode, state.isLocalEnv);
+            const responseText = buildResponseWithMetadata(data, state.isLocalEnv);
 
             // Get the last user message for the switch button
             const lastUserMessage = state.conversationHistory.length > 0 &&

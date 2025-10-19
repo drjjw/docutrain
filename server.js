@@ -112,244 +112,7 @@ const supabase = createClient(
     process.env.SUPABASE_ANON_KEY
 );
 
-// Store PDF content in memory (now supports multiple documents from registry)
-let documents = {};
-let currentDocument = null; // Will be set from registry
-
-// Clean PDF text to reduce token usage
-function cleanPDFText(text) {
-    let cleaned = text;
-    
-    // Convert "Page X" headers to citation markers
-    cleaned = cleaned.replace(/\s*Page (\d+)\s*/g, '\n[Page $1]\n');
-    
-    // Remove excessive whitespace (3+ blank lines -> 2)
-    cleaned = cleaned.replace(/\n\n\n+/g, '\n\n');
-    
-    // Trim lines
-    cleaned = cleaned.split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0) // Remove empty lines
-        .join('\n');
-    
-    return cleaned;
-}
-
-// Load and parse PDF documents (now using document registry)
-async function loadPDF(documentSlug = 'smh') {
-    try {
-        // Check if document is already loaded
-        if (documents[documentSlug]) {
-            console.log(`✓ Document ${documentSlug} already loaded`);
-            return documents[documentSlug];
-        }
-
-        // Get document metadata from registry
-        const docConfig = await documentRegistry.getDocumentBySlug(documentSlug);
-        if (!docConfig) {
-            throw new Error(`Document not found in registry: ${documentSlug}`);
-        }
-
-        console.log(`Loading ${documentSlug} document from registry...`);
-        console.log(`  - Title: ${docConfig.title}`);
-        console.log(`  - File: ${docConfig.pdf_subdirectory}/${docConfig.pdf_filename}`);
-
-        // Get full path to PDF using registry
-        const pdfPath = documentRegistry.getDocumentPath(docConfig);
-
-        // Check if PDF file exists before trying to load it
-        if (!fs.existsSync(pdfPath)) {
-            throw new Error(`PDF file not found: ${pdfPath}`);
-        }
-
-        // Load and parse PDF
-        const dataBuffer = fs.readFileSync(pdfPath);
-        const data = await pdf(dataBuffer);
-
-        // Clean the PDF text to reduce tokens
-        const originalSize = data.text.length;
-        const cleanedContent = cleanPDFText(data.text);
-        const savedChars = originalSize - cleanedContent.length;
-        const percentSaved = ((savedChars / originalSize) * 100).toFixed(1);
-
-        const docMetadata = {
-            pages: data.numpages,
-            info: data.info
-        };
-
-        // Store document information with registry metadata
-        const docInfo = {
-            slug: documentSlug,
-            name: docConfig.pdf_filename,
-            path: pdfPath,
-            title: docConfig.title,
-            welcomeMessage: docConfig.welcome_message,
-            year: docConfig.year,
-            embeddingType: docConfig.embedding_type,
-            content: cleanedContent,
-            metadata: docMetadata,
-            registryConfig: docConfig
-        };
-
-        // Store in documents cache
-        documents[documentSlug] = docInfo;
-
-        console.log('✓ PDF loaded successfully');
-        console.log(`  - Document: ${docInfo.name} (${documentSlug.toUpperCase()})`);
-        console.log(`  - Title: ${docConfig.title}`);
-        console.log(`  - Pages: ${docMetadata.pages}`);
-        console.log(`  - Characters: ${cleanedContent.length} (saved ${savedChars} / ${percentSaved}%)`);
-        console.log(`  - Est. tokens: ~${Math.round(cleanedContent.length / 4)}`);
-        console.log(`  - Embedding type: ${docConfig.embedding_type}`);
-
-        return docInfo;
-    } catch (error) {
-        console.error(`Error loading PDF ${documentSlug}:`, error);
-        throw error;
-    }
-}
-
-// Set current document context
-function setCurrentDocument(documentSlug) {
-    if (documents[documentSlug]) {
-        currentDocument = documents[documentSlug];
-        console.log(`✓ Switched to document: ${currentDocument.title} (${documentSlug})`);
-    } else {
-        console.error(`Document ${documentSlug} not loaded`);
-    }
-}
-
-// System prompt - Base for both models (now document-aware with registry)
-const getBaseSystemPrompt = (documentSlug = 'smh') => {
-    const doc = documents[documentSlug];
-    const docName = doc?.welcomeMessage || 'SMH Housestaff Manual';
-    const docContent = doc?.content || '';
-
-    return `You are a helpful assistant that answers questions ONLY based on the ${docName} provided below.
-
-***CRITICAL FORMATTING REQUIREMENT: You MUST include footnotes [1], [2], etc. for EVERY claim/fact in your response, with references at the end. Look for [Page X] markers in the text and use them for page numbers in your references. Example: "Drug X is indicated[1]. Dosage is 100mg[2]. [1] Section 3.2, Page 15 [2] Page 45"***
-
-IMPORTANT RULES:
-1. Answer questions ONLY using information from the manual
-2. If the answer is not in the manual, say "I don't have that information in the ${docName}"
-3. Always cite the relevant section or page when possible
-4. Do not use external knowledge or information from the internet
-5. Be concise and professional
-6. If you're unsure, admit it rather than guessing
-7. For questions about drug dose conversions related to MMF (CellCept) PO, Myfortic PO, MMF IV, Cyclosporine PO, Cyclosporine IV, Envarsus, Advagraf/Astagraf, Prograf, Prednisone, Methylprednisolone IV, Hydrocortisone IV, or Dexamethasone, attempt to answer but include a message directing users to consult https://ukidney.com/drugs
-
-FORMATTING RULES:
-- Use **bold** for important terms and section titles
-- Use bullet points (- or *) for lists
-- Use numbered lists (1., 2., 3.) for sequential steps
-- Use line breaks between different topics
-- Cite sections like this: *(Reference: Section Name, Page X)*
-- Keep paragraphs short and scannable
-- **MANDATORY**: Use footnotes [1], [2], etc. for EVERY claim or fact: place superscript [number] immediately after each claim
-- **MANDATORY**: Provide numbered references at the end of EVERY response (do not skip this step)
-- Number footnotes sequentially starting from [1] for each response
-- Extract page numbers from [Page X] markers in the text for accurate citations
-- Example: "Drug X is indicated[1]. Dosage is 100mg[2].\n\n---\n\n**References**\n[1] Section 3.2, Page 15\n[2] Page 45"
-
-${docName.toUpperCase()} CONTENT:
----
-${docContent}
----`;
-};
-
-// Gemini-specific prompt (structured, organized)
-const getGeminiPrompt = (documentType = 'smh') => getBaseSystemPrompt(documentType) + `
-
-RESPONSE STYLE - STRICTLY FOLLOW:
-- Use markdown tables when presenting structured data with multiple conditions
-- Present information in the most compact, scannable format
-- Lead with the direct answer, then provide details
-- Use minimal explanatory text - let the structure speak
-- **MANDATORY**: Include footnotes [1], [2], etc. for EVERY claim with references at response end
-- Example format for drug indications:
-  | Condition | Indication |
-  |-----------|------------|
-  | X         | YES/NO[1]     |
-
-[1] Reference: Section X.X`;
-
-// Grok-specific prompt (analytical, contextual)
-const getGrokPrompt = (documentType = 'smh') => getBaseSystemPrompt(documentType) + `
-
-RESPONSE STYLE - STRICTLY FOLLOW:
-- ALWAYS add a brief introductory sentence explaining the purpose or context
-- When presenting factual data, include WHY it matters (even briefly)
-- Add a short concluding note with clinical significance when relevant
-- Use more descriptive language - don't just list, explain
-- **MANDATORY**: Include footnotes [1], [2], etc. for EVERY claim with references at response end
-- Example: Instead of just "Indication: YES", write "indicated because...[1]" and add "[1] Reference: Section X.X" at end
-- Connect facts to their clinical rationale from the manual when available`;
-
-// Chat with Gemini
-async function chatWithGemini(message, history, documentType = 'smh') {
-    console.log(`🤖 Using Gemini model: gemini-2.5-flash`);
-    const model = genAI.getGenerativeModel({
-        model: "gemini-2.5-flash"
-    });
-
-    const systemMessage = getGeminiPrompt(documentType);
-    
-    // Get document name from registry
-    const doc = documents[documentType];
-    const docName = doc?.welcomeMessage || 'SMH Housestaff Manual';
-
-    const fullHistory = [
-        {
-            role: 'user',
-            parts: [{ text: systemMessage + `\n\nI understand. I will only answer questions based on the ${docName} content you provided.` }]
-        },
-        {
-            role: 'model',
-            parts: [{ text: `I understand. I will only answer questions based on the ${docName} content you provided. What would you like to know?` }]
-        },
-        ...history.map(msg => ({
-            role: msg.role === 'user' ? 'user' : 'model',
-            parts: [{ text: msg.content }]
-        }))
-    ];
-
-    const chat = model.startChat({
-        history: fullHistory
-    });
-
-    const result = await chat.sendMessage(message);
-    const response = await result.response;
-    return response.text();
-}
-
-// Chat with Grok
-async function chatWithGrok(message, history, documentType = 'smh', modelName = 'grok-4-fast-non-reasoning') {
-    console.log(`🤖 Using Grok model: ${modelName}`);
-    const systemMessage = getGrokPrompt(documentType);
-
-    const messages = [
-        {
-            role: 'system',
-            content: systemMessage
-        },
-        ...history.map(msg => ({
-            role: msg.role === 'user' ? 'user' : 'assistant',
-            content: msg.content
-        })),
-        {
-            role: 'user',
-            content: message
-        }
-    ];
-
-    const completion = await xai.chat.completions.create({
-        model: modelName,
-        messages: messages,
-        temperature: 0.7
-    });
-
-    return completion.choices[0].message.content;
-}
+// RAG-only architecture - no PDF loading in memory
 
 // ==================== RAG ENHANCEMENT ====================
 
@@ -617,122 +380,8 @@ async function updateConversationRating(conversationId, rating) {
     }
 }
 
-// Chat endpoint
+// RAG Chat endpoint (primary and only chat endpoint)
 app.post('/api/chat', async (req, res) => {
-    const startTime = Date.now();
-    // Ensure sessionId is a valid UUID
-    let sessionId = req.body.sessionId;
-    if (!sessionId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)) {
-        sessionId = uuidv4();
-    }
-
-    try {
-        const { message, history = [], model = 'gemini', doc = 'smh' } = req.body;
-
-        if (!message) {
-            return res.status(400).json({ error: 'Message is required' });
-        }
-
-        // Validate document type using registry
-        const isValid = await documentRegistry.isValidSlug(doc);
-        const documentType = isValid ? doc : 'smh';
-
-        // Ensure document is loaded (lazy loading)
-        if (!documents[documentType]) {
-            try {
-                await ensureDocumentLoaded(documentType);
-                setCurrentDocument(documentType);
-            } catch (error) {
-                console.error(`Failed to load document ${documentType}:`, error.message);
-                return res.status(500).json({
-                    error: 'Document Loading Error',
-                    message: `The requested document (${documentType}) could not be loaded. The PDF file may be missing or corrupted.`,
-                    details: error.message
-                });
-            }
-        }
-
-        let responseText;
-        let errorOccurred = null;
-
-        try {
-            if (model === 'grok') {
-                const modelName = 'grok-4-fast-non-reasoning';
-                responseText = await chatWithGrok(message, history, documentType, modelName);
-            } else if (model === 'grok-reasoning') {
-                const modelName = 'grok-4-fast-reasoning';
-                responseText = await chatWithGrok(message, history, documentType, modelName);
-            } else {
-                responseText = await chatWithGemini(message, history, documentType);
-            }
-        } catch (chatError) {
-            errorOccurred = chatError.message;
-            throw chatError;
-        } finally {
-            const responseTime = Date.now() - startTime;
-
-            // Log to Supabase
-            const conversationData = {
-                session_id: sessionId,
-                question: message,
-                response: responseText || '',
-                model: model,
-                response_time_ms: responseTime,
-                document_name: currentDocument.name,
-                document_path: currentDocument.path,
-                document_version: currentDocument.version,
-                pdf_name: currentDocument.name, // Legacy field
-                pdf_pages: currentDocument.metadata.pages,
-                error: errorOccurred,
-                metadata: {
-                    history_length: history.length,
-                    timestamp: new Date().toISOString(),
-                    document_title: currentDocument.metadata.info?.Title,
-                    document_type: currentDocument.type
-                }
-            };
-
-            const { data: loggedConversation } = await supabase
-                .from('chat_conversations')
-                .insert([conversationData])
-                .select('id')
-                .single();
-
-            res.locals.conversationId = loggedConversation?.id;
-        }
-
-        // Determine actual API model name for response
-        const actualModelName = model === 'grok' ? 'grok-4-fast-non-reasoning' :
-                                model === 'grok-reasoning' ? 'grok-4-fast-reasoning' :
-                                'gemini-2.5-flash';
-
-        res.json({
-            response: responseText,
-            model: model,
-            actualModel: actualModelName,
-            sessionId: sessionId,
-            conversationId: res.locals.conversationId,
-            metadata: {
-                document: currentDocument.name,
-                documentVersion: currentDocument.version,
-                documentType: currentDocument.type,
-                pdfPages: currentDocument.metadata.pages,
-                pdfTitle: currentDocument.metadata.info?.Title || currentDocument.name,
-                responseTime: Date.now() - startTime
-            }
-        });
-
-    } catch (error) {
-        console.error('Chat error:', error);
-        res.status(500).json({ 
-            error: 'Failed to process chat message',
-            details: error.message 
-        });
-    }
-});
-
-// RAG Chat endpoint
-app.post('/api/chat-rag', async (req, res) => {
     const startTime = Date.now();
     console.log(`\n=== RAG Request received ===`);
     
@@ -753,24 +402,15 @@ app.post('/api/chat-rag', async (req, res) => {
             return res.status(400).json({ error: 'Message is required' });
         }
 
-        // Validate document type using registry
+        // Validate document type using registry (metadata only, no PDF loading)
         const isValid = await documentRegistry.isValidSlug(doc);
-        const documentType = isValid ? doc : 'smh';
-
-        // Ensure document is loaded (lazy loading) - for RAG we need the document loaded
-        // to get document metadata, but the actual content is retrieved from database chunks
-        if (!documents[documentType]) {
-            try {
-                await ensureDocumentLoaded(documentType);
-            } catch (error) {
-                console.error(`Failed to load document ${documentType} for RAG:`, error.message);
-                return res.status(500).json({
-                    error: 'Document Loading Error',
-                    message: `The requested document (${documentType}) could not be loaded. The PDF file may be missing or corrupted.`,
-                    details: error.message
-                });
-            }
+        if (!isValid) {
+            return res.status(400).json({
+                error: 'Invalid Document',
+                message: `The requested document (${doc}) is not available in the registry.`
+            });
         }
+        const documentType = doc;
 
         let responseText;
         let retrievalTimeMs = 0;
@@ -857,7 +497,6 @@ app.post('/api/chat-rag', async (req, res) => {
             // Get document info from registry for logging
             const docConfig = await documentRegistry.getDocumentBySlug(documentType);
             const docFileName = docConfig ? docConfig.pdf_filename : 'unknown.pdf';
-            const docPath = docConfig ? documentRegistry.getDocumentPath(docConfig) : '';
             const docYear = docConfig ? docConfig.year : null;
             
             const conversationData = {
@@ -867,9 +506,9 @@ app.post('/api/chat-rag', async (req, res) => {
                 model: model,
                 response_time_ms: responseTime,
                 document_name: docFileName,
-                document_path: docPath,
+                document_path: '', // Not used in RAG-only mode
                 document_version: docYear,
-                pdf_name: docFileName,
+                pdf_name: docFileName, // Legacy field for compatibility
                 pdf_pages: 0, // Not applicable for RAG
                 error: errorOccurred,
                 retrieval_method: 'rag',
@@ -967,23 +606,12 @@ app.get('/api/ready', async (req, res) => {
             });
         }
 
-        // Check if default document is loaded
-        const defaultDoc = activeDocumentSlugs.includes('smh') ? 'smh' : activeDocumentSlugs[0];
-        if (!defaultDoc || !documents[defaultDoc]) {
-            return res.status(503).json({
-                status: 'not_ready',
-                message: 'Default document not loaded yet',
-                defaultDocument: defaultDoc
-            });
-        }
-
-        // Server is ready to serve requests
+        // Server is ready to serve requests (RAG-only, no PDF loading required)
         res.json({
             status: 'ready',
             message: 'Server is fully ready to serve requests',
-            defaultDocument: defaultDoc,
-            loadedDocuments: Object.keys(documents).length,
-            availableDocuments: activeDocumentSlugs.length
+            availableDocuments: activeDocumentSlugs.length,
+            mode: 'rag-only'
         });
     } catch (error) {
         console.error('Readiness check error:', error);
@@ -995,10 +623,9 @@ app.get('/api/ready', async (req, res) => {
     }
 });
 
-// Health check endpoint (with lazy loading awareness)
+// Health check endpoint (RAG-only mode)
 app.get('/api/health', async (req, res) => {
     try {
-        const loadedDocs = Object.keys(documents);
         const requestedDoc = req.query.doc || 'smh';
 
         // Ensure registry is loaded for health check
@@ -1012,50 +639,25 @@ app.get('/api/health', async (req, res) => {
         const isValid = await documentRegistry.isValidSlug(requestedDoc);
         const docType = isValid ? requestedDoc : 'smh';
 
-        // Get current document info
+        // Get document info from registry (metadata only)
         let currentDocInfo;
-        if (documents[docType]) {
-            // Document is loaded in memory
-            currentDocInfo = {
-                title: documents[docType].title,
-                pages: documents[docType].metadata.pages,
-                loaded: true
-            };
-        } else if (isValid) {
-            // Document exists in registry but not loaded yet (lazy loading)
+        if (isValid) {
             const docConfig = await documentRegistry.getDocumentBySlug(docType);
             currentDocInfo = {
                 title: docConfig.title,
-                pages: 'Not loaded (lazy loading)',
-                loaded: false
+                embeddingType: docConfig.embedding_type,
+                year: docConfig.year
             };
         }
 
-        // Build document status for all loaded documents
-        const docStatus = {};
-        loadedDocs.forEach(doc => {
-            docStatus[doc] = {
-                loaded: true,
-                title: documents[doc].title,
-                name: documents[doc].name,
-                year: documents[doc].year,
-                pages: documents[doc].metadata.pages,
-                characters: documents[doc].content.length,
-                embeddingType: documents[doc].embeddingType
-            };
-        });
-
         res.json({
             status: 'ok',
-            lazyLoadingEnabled: true,
+            mode: 'rag-only',
             currentDocument: currentDocInfo?.title || 'Unknown',
             currentDocumentType: docType,
-            currentDocumentLoaded: currentDocInfo?.loaded || false,
-            loadedDocuments: loadedDocs,
             availableDocuments: activeDocumentSlugs,
             totalAvailableDocuments: activeDocumentSlugs.length,
-            requestedDoc: requestedDoc,
-            documentDetails: docStatus
+            requestedDoc: requestedDoc
         });
     } catch (error) {
         console.error('Health check error:', error);
@@ -1238,85 +840,32 @@ app.get('/api/documents', async (req, res) => {
     }
 });
 
-// Track lazy loading status
+// Track registry loading status
 let documentRegistryLoaded = false;
 let activeDocumentSlugs = [];
 
-// Lazy load document when first requested
-async function ensureDocumentLoaded(documentSlug) {
-    // Check if document is already loaded
-    if (documents[documentSlug]) {
-        return documents[documentSlug];
-    }
-
-    // Ensure registry is loaded
-    if (!documentRegistryLoaded) {
-        console.log('🔄 Loading document registry from database...');
-        await documentRegistry.loadDocuments();
-        activeDocumentSlugs = await documentRegistry.getActiveSlugs();
-        documentRegistryLoaded = true;
-        console.log(`✓ Document registry loaded: ${activeDocumentSlugs.length} active documents`);
-    }
-
-    // Validate document exists in registry
-    if (!activeDocumentSlugs.includes(documentSlug)) {
-        throw new Error(`Document not found in registry: ${documentSlug}`);
-    }
-
-    // Load the document
-    console.log(`📄 Lazy loading document: ${documentSlug}`);
-    try {
-        const docInfo = await loadPDF(documentSlug);
-        console.log(`✓ Document ${documentSlug} loaded successfully`);
-        return docInfo;
-    } catch (error) {
-        console.error(`⚠️  Failed to lazy load ${documentSlug}:`, error.message);
-        throw error;
-    }
-}
-
-// Background preload other documents after server starts
-async function preloadDocumentsInBackground() {
-    try {
-        console.log('🔄 Starting background document preloading...');
-
-        // Ensure registry is loaded
-        if (!documentRegistryLoaded) {
-            await documentRegistry.loadDocuments();
+// Auto-refresh document registry every 2 minutes
+function initializeRegistryAutoRefresh() {
+    const REFRESH_INTERVAL = 2 * 60 * 1000; // 2 minutes
+    
+    setInterval(async () => {
+        try {
+            console.log('🔄 Auto-refreshing document registry...');
+            await documentRegistry.refreshRegistry();
             activeDocumentSlugs = await documentRegistry.getActiveSlugs();
-            documentRegistryLoaded = true;
+            console.log(`✓ Registry auto-refreshed: ${activeDocumentSlugs.length} active documents`);
+        } catch (error) {
+            console.error('❌ Auto-refresh failed:', error.message);
         }
-
-        // Get documents that aren't already loaded
-        const unloadedDocs = activeDocumentSlugs.filter(slug => !documents[slug]);
-
-        if (unloadedDocs.length === 0) {
-            console.log('✓ All documents already loaded');
-            return;
-        }
-
-        console.log(`📄 Background loading ${unloadedDocs.length} additional documents...`);
-
-        // Load documents in background (non-blocking)
-        for (const slug of unloadedDocs) {
-            try {
-                await loadPDF(slug);
-                console.log(`✓ Background loaded: ${slug}`);
-            } catch (error) {
-                console.error(`⚠️  Background load failed for ${slug}:`, error.message);
-            }
-        }
-
-        console.log('✓ Background document preloading complete');
-    } catch (error) {
-        console.error('⚠️  Background preloading error:', error);
-    }
+    }, REFRESH_INTERVAL);
+    
+    console.log(`✓ Registry auto-refresh enabled (every ${REFRESH_INTERVAL / 1000}s)`);
 }
 
 // Start server
 async function start() {
     const startupStart = Date.now();
-    console.log('🔄 Starting server with lazy document loading...');
+    console.log('🔄 Starting RAG-only server...');
 
     try {
         // Phase 1: Load document registry
@@ -1330,37 +879,19 @@ async function start() {
         const phase1Time = Date.now() - phase1Start;
         console.log(`✓ Document registry loaded (${phase1Time}ms): ${activeDocumentSlugs.length} active documents available`);
 
-        // Phase 2: Load default document
+        // Phase 2: Initialize services
         const phase2Start = Date.now();
-        const defaultDoc = activeDocumentSlugs.includes('smh') ? 'smh' : activeDocumentSlugs[0];
-
-        if (defaultDoc) {
-            console.log(`📄 Phase 2: Loading default document: ${defaultDoc}`);
-            try {
-                await loadPDF(defaultDoc);
-                setCurrentDocument(defaultDoc);
-                const phase2Time = Date.now() - phase2Start;
-                console.log(`✓ Default document loaded (${phase2Time}ms): ${documents[defaultDoc].title}`);
-            } catch (error) {
-                console.error(`⚠️  Failed to load default document ${defaultDoc}:`, error.message);
-                throw new Error(`Cannot start server: default document ${defaultDoc} failed to load`);
-            }
-        } else {
-            throw new Error('❌ No documents available in registry. Server cannot start.');
-        }
-
-        // Phase 3: Initialize services
-        const phase3Start = Date.now();
-        console.log('🔧 Phase 3: Initializing services...');
+        console.log('🔧 Phase 2: Initializing services...');
 
         initializeCacheCleanup();
+        initializeRegistryAutoRefresh();
 
-        const phase3Time = Date.now() - phase3Start;
-        console.log(`✓ Services initialized (${phase3Time}ms)`);
+        const phase2Time = Date.now() - phase2Start;
+        console.log(`✓ Services initialized (${phase2Time}ms)`);
 
-        // Phase 4: Start HTTP server
-        const phase4Start = Date.now();
-        console.log('🌐 Phase 4: Starting HTTP server...');
+        // Phase 3: Start HTTP server
+        const phase3Start = Date.now();
+        console.log('🌐 Phase 3: Starting HTTP server...');
 
         const serverStart = Date.now();
         server = app.listen(PORT, () => {
@@ -1368,11 +899,10 @@ async function start() {
             const totalStartupTime = Date.now() - startupStart;
 
             console.log(`\n🚀 Server running at http://localhost:${PORT} (${serverTime}ms)`);
-            console.log(`📚 Multi-document chatbot ready (lazy loading enabled)!`);
+            console.log(`📚 RAG-only chatbot ready!`);
             console.log(`   - Total startup time: ${totalStartupTime}ms`);
-            console.log(`   - Default document: ${defaultDoc} (${documents[defaultDoc].title})`);
             console.log(`   - Available documents: ${activeDocumentSlugs.length} total`);
-            console.log(`   - Documents will load on first request`);
+            console.log(`   - Mode: RAG-only (database retrieval)`);
             console.log(`   - Use ?doc=<slug> URL parameter to select document\n`);
 
             // Signal to PM2 that the app is ready
@@ -1380,11 +910,6 @@ async function start() {
                 process.send('ready');
                 console.log('✓ Sent ready signal to PM2');
             }
-
-            // Start background preloading after server is ready
-            setTimeout(() => {
-                preloadDocumentsInBackground();
-            }, 1000); // Wait 1 second to ensure server is fully ready
         });
     } catch (error) {
         const totalStartupTime = Date.now() - startupStart;
