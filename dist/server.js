@@ -1063,6 +1063,35 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
+// Document registry refresh endpoint (for admin use)
+app.post('/api/refresh-registry', async (req, res) => {
+    try {
+        console.log('🔄 Forcing document registry refresh...');
+
+        // Force refresh the document registry
+        await documentRegistry.refreshRegistry();
+
+        // Reload active slugs
+        activeDocumentSlugs = await documentRegistry.getActiveSlugs();
+
+        console.log('✅ Document registry refreshed successfully');
+
+        res.json({
+            success: true,
+            message: 'Document registry cache cleared and refreshed',
+            documentCount: activeDocumentSlugs.length
+        });
+
+    } catch (error) {
+        console.error('Registry refresh error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to refresh document registry',
+            error: error.message
+        });
+    }
+});
+
 // Rating endpoint
 app.post('/api/rate', async (req, res) => {
     try {

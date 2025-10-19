@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PubMed Popup Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .demo-header {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .pmid-link {
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+        .pmid-link:hover {
+            color: #004499;
+            text-decoration: underline;
+        }
+        .demo-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-header">
+        <h1>PubMed Popup Demo</h1>
+        <p>This demonstrates the new PubMed popup functionality. Hover over the PMID link below to see the popup with article information.</p>
+
+        <h2>CKD in Diabetes Guidelines</h2>
+        <p><a href="https://pubmed.ncbi.nlm.nih.gov/40382193/" target="_blank" rel="noopener noreferrer" class="pmid-link">PMID: 40382193</a></p>
+
+        <div class="demo-info">
+            <strong>What happens when you hover:</strong>
+            <ul>
+                <li>A popup appears with article details</li>
+                <li>Title, authors, journal, and publication year</li>
+                <li>DOI link and direct PubMed link</li>
+                <li>Abstract (when available)</li>
+                <li>Results are cached for 24 hours</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>Features:</h3>
+    <ul>
+        <li><strong>API Integration:</strong> Uses NCBI E-utilities esummary API</li>
+        <li><strong>Caching:</strong> 24-hour cache prevents repeated API calls</li>
+        <li><strong>Smart Positioning:</strong> Popup positions itself to stay on screen</li>
+        <li><strong>Mobile Responsive:</strong> Adapts to mobile screens</li>
+        <li><strong>Error Handling:</strong> Graceful fallback if API fails</li>
+        <li><strong>Performance:</strong> Lazy loading and efficient DOM handling</li>
+    </ul>
+
+    <p><em>Note: This is a demo page. The actual functionality is integrated into the main chat application.</em></p>
+</body>
+</html>

@@ -4,6 +4,7 @@ import { checkHealth } from './api.js';
 import { updateDocumentUI, updateModelInTooltip } from './ui.js';
 import { sendMessage } from './chat.js';
 import { submitRating } from './rating.js';
+import { initializePubMedPopup } from './pubmed-popup.js';
 
 // Configure marked for better formatting
 marked.setOptions({
@@ -91,10 +92,13 @@ async function initializeDocument() {
     // Validate document slug using registry - no default to prevent flash
     let selectedDoc = null;
     if (docParam) {
-        const { documentExists } = await import('./config.js');
-        const exists = await documentExists(docParam);
+        const { documentExists, getDocument } = await import('./config.js');
+        // Force refresh to avoid stale cache
+        const exists = await documentExists(docParam, true);
         if (exists) {
-            selectedDoc = docParam;
+            // Get the actual document to ensure we use the correct case
+            const doc = await getDocument(docParam, true);
+            selectedDoc = doc.slug; // Use the actual slug from the document
         } else {
             console.warn(`⚠️  Document '${docParam}' not found in registry`);
             selectedDoc = null;
@@ -279,6 +283,10 @@ window.submitRating = submitRating;
 
     await initializeDocument();
     initializeHeaderToggle();
+
+    // Initialize PubMed popup functionality
+    initializePubMedPopup();
+
     checkHealth(state.selectedDocument, elements.statusDiv);
 
     // Show disclaimer only for UKidney documents

@@ -92,11 +92,11 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     // Update subtitle with PMID link if available, otherwise show subtitle
     const subtitleElement = document.getElementById('headerSubtitle');
     const metadata = config.metadata || {};
-    const pmid = metadata.pubmed_id || metadata.PMID;
+    const pmid = metadata.pmid || metadata.pubmed_id || metadata.PMID;
     
     if (pmid) {
-        // Show only PMID link
-        subtitleElement.innerHTML = `<a href="https://pubmed.ncbi.nlm.nih.gov/${pmid}/" target="_blank" rel="noopener noreferrer" class="pmid-link">PMID: ${pmid}</a>`;
+        // Show only PMID link with magnifying glass icon
+        subtitleElement.innerHTML = `<a href="https://pubmed.ncbi.nlm.nih.gov/${pmid}/" target="_blank" rel="noopener noreferrer" class="pmid-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>PMID: ${pmid}</a>`;
     } else {
         // No PMID, show subtitle text
         subtitleElement.textContent = config.subtitle;

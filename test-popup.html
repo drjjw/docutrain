@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PubMed Popup Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .pmid-link {
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .pmid-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>PubMed Popup Test</h1>
+
+    <div class="test-section">
+        <h2>Test: Hover over PMID link</h2>
+        <p>Hover over this link: <a href="https://pubmed.ncbi.nlm.nih.gov/40382193/" target="_blank" rel="noopener noreferrer" class="pmid-link">PMID: 40382193</a></p>
+        <p>The popup should appear and stay open when you move your mouse into it.</p>
+        <p>You should be able to click the links inside the popup.</p>
+    </div>
+
+    <div class="test-section">
+        <h2>Instructions:</h2>
+        <ol>
+            <li>Move your mouse over the PMID link above</li>
+            <li>The popup should appear with article information</li>
+            <li>Move your mouse into the popup content</li>
+            <li>The popup should stay open</li>
+            <li>Try clicking the "View on PubMed" or DOI links</li>
+            <li>Move your mouse away from both the link and popup to close it</li>
+        </ol>
+    </div>
+
+    <!-- Load the actual app scripts -->
+    <script src="dist/js/pubmed-api.js" type="module"></script>
+    <script src="dist/js/pubmed-popup.js" type="module"></script>
+</body>
+</html>

@@ -59,6 +59,8 @@ const jsFiles = {
     'public/js/chat.js': 'js',
     'public/js/rating.js': 'js',
     'public/js/disclaimer.js': 'js',
+    'public/js/pubmed-api.js': 'js',
+    'public/js/pubmed-popup.js': 'js',
     'public/js/main.js': 'js'
 };
 

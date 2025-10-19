@@ -136,7 +136,7 @@ export async function loadDocuments(forceRefresh = false) {
         
         docConfigCache = documents;
         console.log(`✓ Loaded ${data.documents.length} documents from registry`);
-        
+
         return documents;
     } catch (error) {
         console.warn('⚠️  Failed to load documents from API:', error.message);
@@ -157,19 +157,22 @@ export async function getDocConfig(forceRefresh = false) {
 }
 
 /**
- * Get a specific document by slug
+ * Get a specific document by slug (case-insensitive)
  */
 export async function getDocument(slug, forceRefresh = false) {
     const config = await getDocConfig(forceRefresh);
-    return config[slug] || null;
+    const lowerSlug = slug.toLowerCase();
+    const actualKey = Object.keys(config).find(key => key.toLowerCase() === lowerSlug);
+    return actualKey ? config[actualKey] : null;
 }
 
 /**
- * Check if a document exists
+ * Check if a document exists (case-insensitive)
  */
-export async function documentExists(slug) {
-    const config = await getDocConfig();
-    return slug in config;
+export async function documentExists(slug, forceRefresh = false) {
+    const config = await getDocConfig(forceRefresh);
+    const lowerSlug = slug.toLowerCase();
+    return Object.keys(config).some(key => key.toLowerCase() === lowerSlug);
 }
 
 /**
