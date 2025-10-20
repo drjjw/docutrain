@@ -53,13 +53,25 @@ function cleanPDFText(text) {
 }
 
 /**
- * Split text into overlapping chunks
+ * Split text into overlapping chunks with accurate page detection
  */
 function chunkText(text, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP, totalPages = 1) {
     const chunks = [];
     const chunkChars = chunkSize * CHARS_PER_TOKEN;
     const overlapChars = overlap * CHARS_PER_TOKEN;
-    const charsPerPage = text.length / totalPages; // Rough estimate
+
+    // Find all page markers and their positions
+    const pageMarkers = [];
+    const pageMarkerRegex = /\[Page (\d+)\]/g;
+    let match;
+    while ((match = pageMarkerRegex.exec(text)) !== null) {
+        const pageNum = parseInt(match[1]);
+        const position = match.index;
+        pageMarkers.push({ pageNum, position });
+    }
+
+    // Sort by position (should already be sorted, but ensure it)
+    pageMarkers.sort((a, b) => a.position - b.position);
 
     let start = 0;
     let chunkIndex = 0;
@@ -70,15 +82,40 @@ function chunkText(text, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP, totalP
 
         // Only include non-empty chunks
         if (chunk.trim().length > 0) {
-            // Estimate page number based on character position
-            const estimatedPage = Math.min(Math.max(1, Math.ceil((start + (end - start) / 2) / charsPerPage)), totalPages);
+            // Determine actual page number using page markers
+            const chunkCenter = start + (end - start) / 2;
+            let actualPage = 1; // Default to page 1
+
+            // Find which page this chunk belongs to
+            for (let i = 0; i < pageMarkers.length; i++) {
+                if (chunkCenter < pageMarkers[i].position) {
+                    // Chunk center is before this marker
+                    if (i === 0) {
+                        // Before first marker = page 1
+                        actualPage = 1;
+                    } else {
+                        // Between markers = page of previous marker
+                        actualPage = pageMarkers[i - 1].pageNum;
+                    }
+                    break;
+                }
+            }
+
+            // If chunk center is after the last marker, it belongs to the last page
+            if (pageMarkers.length > 0 && chunkCenter >= pageMarkers[pageMarkers.length - 1].position) {
+                actualPage = pageMarkers[pageMarkers.length - 1].pageNum;
+            }
+
+            // Ensure page number is within valid range
+            actualPage = Math.min(Math.max(1, actualPage), totalPages);
 
             chunks.push({
                 index: chunkIndex,
                 content: chunk.trim(),
                 charStart: start,
                 charEnd: end,
-                estimatedPage: estimatedPage
+                pageNumber: actualPage, // Now accurate instead of estimated
+                pageMarkersFound: pageMarkers.length
             });
             chunkIndex++;
         }
@@ -141,7 +178,8 @@ async function storeChunks(documentSlug, documentName, chunksWithEmbeddings) {
                 char_start: chunk.charStart,
                 char_end: chunk.charEnd,
                 tokens_approx: Math.round(chunk.content.length / CHARS_PER_TOKEN),
-                estimated_page: chunk.estimatedPage
+                page_number: chunk.pageNumber,
+                page_markers_found: chunk.pageMarkersFound
             }
         }));
     
@@ -204,7 +242,7 @@ async function processDocument(docConfig) {
     console.log(`  ✓ Created ${chunks.length} chunks`);
     console.log(`  ✓ Chunk size: ~${CHUNK_SIZE} tokens (${CHUNK_SIZE * CHARS_PER_TOKEN} chars)`);
     console.log(`  ✓ Overlap: ~${CHUNK_OVERLAP} tokens (${CHUNK_OVERLAP * CHARS_PER_TOKEN} chars)`);
-    console.log(`  ✓ Page estimation: based on ${pdfData.pages} total pages`);
+    console.log(`  ✓ Page detection: using ${pdfData.pages} total pages`);
     
     // 3. Generate embeddings with local model
     console.log('\n🔢 Generating embeddings with local all-MiniLM-L6-v2...');

@@ -273,7 +273,7 @@ const getRAGSystemPrompt = async (documentTypes = 'smh', chunks = []) => {
     
     // Combine chunk content with page and source document information
     const context = chunks.map(chunk => {
-        const pageInfo = chunk.metadata?.estimated_page ? ` [Page ${chunk.metadata.estimated_page}]` : '';
+        const pageInfo = chunk.metadata?.page_number ? ` [Page ${chunk.metadata.page_number}]` : '';
         const sourceInfo = docArray.length > 1 ? ` [Source: ${chunk.document_name || chunk.document_slug}]` : '';
         return chunk.content + pageInfo + sourceInfo;
     }).join('\n\n---\n\n');
@@ -462,7 +462,9 @@ async function updateConversationRating(conversationId, rating) {
 // RAG Chat endpoint (primary and only chat endpoint)
 app.post('/api/chat', async (req, res) => {
     const startTime = Date.now();
-    console.log(`\n=== RAG Request received ===`);
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`🔵 RAG REQUEST RECEIVED`);
+    console.log(`${'='.repeat(80)}`);
     
     // Ensure sessionId is a valid UUID
     let sessionId = req.body.sessionId;
@@ -483,6 +485,16 @@ app.post('/api/chat', async (req, res) => {
         // Parse document parameter - supports multiple documents with + separator
         const docParam = doc || 'smh';
         const documentSlugs = docParam.split('+').map(s => s.trim()).filter(s => s);
+        
+        // Log request details
+        console.log(`📝 Query: "${message.substring(0, 100)}${message.length > 100 ? '...' : ''}"`);
+        console.log(`📊 Request Details:`);
+        console.log(`   - Message length: ${message.length} characters`);
+        console.log(`   - History length: ${history.length} messages`);
+        console.log(`   - Model: ${model}`);
+        console.log(`   - Document(s): ${documentSlugs.join(' + ')}`);
+        console.log(`   - Embedding type: ${embeddingType}`);
+        console.log(`   - Session ID: ${sessionId}`);
 
         // Validate max document limit (5 documents)
         const MAX_DOCUMENTS = 5;
@@ -535,6 +547,56 @@ app.post('/api/chat', async (req, res) => {
         // Use array for multi-document, single string for backward compatibility
         const documentType = documentSlugs.length === 1 ? documentSlugs[0] : documentSlugs;
 
+        // Get owner-specific chunk limit from database
+        let chunkLimit = 50; // Default fallback
+        let ownerInfo = null;
+        try {
+            if (documentSlugs.length === 1) {
+                // Single document - get its owner's chunk limit
+                const { data, error } = await supabase.rpc('get_document_chunk_limit', {
+                    doc_slug: documentSlugs[0]
+                });
+                if (!error && data) {
+                    chunkLimit = data;
+                }
+                
+                // Get owner info for logging
+                const { data: docData } = await supabase
+                    .from('documents_with_owner')
+                    .select('owner_slug, owner_name, default_chunk_limit')
+                    .eq('slug', documentSlugs[0])
+                    .single();
+                ownerInfo = docData;
+            } else {
+                // Multi-document - get chunk limit (uses owner limit if same owner, else default)
+                const { data, error } = await supabase.rpc('get_multi_document_chunk_limit', {
+                    doc_slugs: documentSlugs
+                });
+                if (!error && data) {
+                    chunkLimit = data;
+                }
+                
+                // Get owner info for logging
+                const { data: docData } = await supabase
+                    .from('documents_with_owner')
+                    .select('owner_slug, owner_name, default_chunk_limit')
+                    .in('slug', documentSlugs);
+                if (docData && docData.length > 0) {
+                    const uniqueOwners = [...new Set(docData.map(d => d.owner_slug))];
+                    if (uniqueOwners.length === 1) {
+                        ownerInfo = docData[0];
+                    } else {
+                        ownerInfo = { owner_slug: 'mixed', owner_name: 'Multiple Owners', default_chunk_limit: 50 };
+                    }
+                }
+            }
+            console.log(`   - Owner: ${ownerInfo?.owner_name || 'Unknown'} (${ownerInfo?.owner_slug || 'unknown'})`);
+            console.log(`   - Configured chunk limit: ${chunkLimit}`);
+        } catch (limitError) {
+            console.warn(`⚠️  Could not fetch chunk limit, using default (50):`, limitError.message);
+            chunkLimit = 50;
+        }
+
         let responseText;
         let retrievalTimeMs = 0;
         let chunksUsed = 0;
@@ -579,34 +641,82 @@ app.post('/api/chat', async (req, res) => {
             
             // Step 2: Find relevant chunks (from appropriate table)
             try {
+                console.log(`\n🔍 CHUNK RETRIEVAL:`);
+                console.log(`   - Owner: ${ownerInfo?.owner_name || 'Unknown'}`);
+                console.log(`   - Requesting: ${chunkLimit} chunks (owner-configured)`);
+                console.log(`   - Embedding type: ${embeddingType}`);
+                console.log(`   - Similarity threshold: ${embeddingType === 'local' ? '0.05' : '0.3'}`);
+                
                 if (embeddingType === 'local') {
-                    retrievedChunks = await findRelevantChunksLocal(queryEmbedding, documentType, 5);
+                    retrievedChunks = await findRelevantChunksLocal(queryEmbedding, documentType, chunkLimit);
                 } else {
-                    retrievedChunks = await findRelevantChunks(queryEmbedding, documentType, 5);
+                    retrievedChunks = await findRelevantChunks(queryEmbedding, documentType, chunkLimit);
                 }
                 retrievalTimeMs = Date.now() - retrievalStart;
                 chunksUsed = retrievedChunks.length;
-                console.log(`RAG: Found ${chunksUsed} relevant chunks in ${retrievalTimeMs}ms (${embeddingType})`);
+                
+                // Calculate similarity statistics
+                const similarities = retrievedChunks.map(c => c.similarity);
+                const avgSimilarity = similarities.length > 0 
+                    ? (similarities.reduce((a, b) => a + b, 0) / similarities.length).toFixed(3)
+                    : 0;
+                const maxSimilarity = similarities.length > 0 ? Math.max(...similarities).toFixed(3) : 0;
+                const minSimilarity = similarities.length > 0 ? Math.min(...similarities).toFixed(3) : 0;
+                
+                console.log(`   ✓ Retrieved: ${chunksUsed} chunks in ${retrievalTimeMs}ms`);
+                console.log(`   - Similarity range: ${minSimilarity} - ${maxSimilarity} (avg: ${avgSimilarity})`);
+                console.log(`   - Top 5 similarities: ${similarities.slice(0, 5).map(s => s.toFixed(3)).join(', ')}`);
+                
+                // Log chunk sources for multi-document
+                if (Array.isArray(documentType)) {
+                    const sourceCounts = {};
+                    retrievedChunks.forEach(c => {
+                        sourceCounts[c.document_slug] = (sourceCounts[c.document_slug] || 0) + 1;
+                    });
+                    console.log(`   - Chunks per document:`, sourceCounts);
+                }
             } catch (chunkError) {
-                console.error('RAG: Error finding chunks:', chunkError.message);
+                console.error('❌ Error finding chunks:', chunkError.message);
                 throw new Error(`Failed to find relevant chunks with ${embeddingType}: ${chunkError.message}`);
             }
 
             // Step 3: Generate response using RAG
             try {
-                console.log(`RAG: Generating response using ${model}...`);
+                const genStart = Date.now();
+                console.log(`\n🤖 AI GENERATION:`);
+                
+                let actualModelName;
+                let temperature;
+                
                 if (model === 'grok') {
-                    const modelName = 'grok-4-fast-non-reasoning';
-                    responseText = await chatWithRAGGrok(message, history, documentType, retrievedChunks, modelName);
+                    actualModelName = 'grok-4-fast-non-reasoning';
+                    temperature = 0.7;
+                    console.log(`   - Model: ${actualModelName}`);
+                    console.log(`   - Temperature: ${temperature}`);
+                    console.log(`   - Context: ${chunksUsed} chunks + ${history.length} history messages`);
+                    responseText = await chatWithRAGGrok(message, history, documentType, retrievedChunks, actualModelName);
                 } else if (model === 'grok-reasoning') {
-                    const modelName = 'grok-4-fast-reasoning';
-                    responseText = await chatWithRAGGrok(message, history, documentType, retrievedChunks, modelName);
+                    actualModelName = 'grok-4-fast-reasoning';
+                    temperature = 0.7;
+                    console.log(`   - Model: ${actualModelName}`);
+                    console.log(`   - Temperature: ${temperature}`);
+                    console.log(`   - Context: ${chunksUsed} chunks + ${history.length} history messages`);
+                    responseText = await chatWithRAGGrok(message, history, documentType, retrievedChunks, actualModelName);
                 } else {
+                    actualModelName = 'gemini-2.5-flash';
+                    temperature = 'default (Gemini auto)';
+                    console.log(`   - Model: ${actualModelName}`);
+                    console.log(`   - Temperature: ${temperature}`);
+                    console.log(`   - Context: ${chunksUsed} chunks + ${history.length} history messages`);
                     responseText = await chatWithRAGGemini(message, history, documentType, retrievedChunks);
                 }
-                console.log(`RAG: Response generated (${responseText.length} chars)`);
+                
+                const genTime = Date.now() - genStart;
+                console.log(`   ✓ Generated: ${responseText.length} characters in ${genTime}ms`);
+                console.log(`   - Words: ~${responseText.split(/\s+/).length}`);
+                console.log(`   - Tokens (est): ~${Math.ceil(responseText.length / 4)}`);
             } catch (genError) {
-                console.error('RAG: Error generating response:', genError.message);
+                console.error('❌ Error generating response:', genError.message);
                 throw new Error(`Failed to generate response: ${genError.message}`);
             }
         } catch (chatError) {
@@ -662,7 +772,11 @@ app.post('/api/chat', async (req, res) => {
                         similarity: c.similarity
                     })),
                     embedding_type: embeddingType,
-                    embedding_dimensions: embeddingType === 'local' ? 384 : 1536
+                    embedding_dimensions: embeddingType === 'local' ? 384 : 1536,
+                    owner_slug: ownerInfo?.owner_slug || null,
+                    owner_name: ownerInfo?.owner_name || null,
+                    chunk_limit_configured: chunkLimit,
+                    chunk_limit_source: ownerInfo ? 'owner' : 'default'
                 }
             };
 
@@ -676,8 +790,20 @@ app.post('/api/chat', async (req, res) => {
         }
 
         const finalResponseTime = Date.now() - startTime;
-        console.log(`RAG: Total response time: ${finalResponseTime}ms`);
-        console.log(`=== RAG Request completed ===\n`);
+        
+        // Final summary
+        console.log(`\n${'='.repeat(80)}`);
+        console.log(`✅ RAG REQUEST COMPLETED`);
+        console.log(`${'='.repeat(80)}`);
+        console.log(`⏱️  Performance Summary:`);
+        console.log(`   - Total time: ${finalResponseTime}ms`);
+        console.log(`   - Retrieval time: ${retrievalTimeMs}ms (${((retrievalTimeMs/finalResponseTime)*100).toFixed(1)}%)`);
+        console.log(`   - Generation time: ${finalResponseTime - retrievalTimeMs}ms (${(((finalResponseTime-retrievalTimeMs)/finalResponseTime)*100).toFixed(1)}%)`);
+        console.log(`📦 Data Summary:`);
+        console.log(`   - Chunks used: ${chunksUsed}`);
+        console.log(`   - Response length: ${responseText.length} chars (~${responseText.split(/\s+/).length} words)`);
+        console.log(`   - Conversation ID: ${res.locals.conversationId || 'N/A'}`);
+        console.log(`${'='.repeat(80)}\n`);
 
         // Determine actual API model name for response
         const actualModelName = model === 'grok' ? 'grok-4-fast-non-reasoning' :
@@ -723,8 +849,12 @@ app.post('/api/chat', async (req, res) => {
 
     } catch (error) {
         const errorTime = Date.now() - startTime;
-        console.error(`RAG Chat error after ${errorTime}ms:`, error);
-        console.log(`=== RAG Request failed ===\n`);
+        console.log(`\n${'='.repeat(80)}`);
+        console.log(`❌ RAG REQUEST FAILED`);
+        console.log(`${'='.repeat(80)}`);
+        console.error(`⚠️  Error after ${errorTime}ms:`, error.message);
+        console.error(`   Stack:`, error.stack);
+        console.log(`${'='.repeat(80)}\n`);
         res.status(500).json({ 
             error: 'Failed to process RAG chat message',
             details: error.message 
