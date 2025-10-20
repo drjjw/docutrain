@@ -112,6 +112,9 @@ const supabase = createClient(
     process.env.SUPABASE_ANON_KEY
 );
 
+// Import authentication middleware
+const { requireAuth, optionalAuth } = require('./lib/auth-middleware');
+
 // RAG-only architecture - no PDF loading in memory
 
 // ==================== HTML SANITIZATION ====================
@@ -471,6 +474,173 @@ async function chatWithRAGGrok(message, history, documentType, chunks, modelName
 
 // ==================== END RAG ENHANCEMENT ====================
 
+// ==================== AUTHENTICATION ENDPOINTS ====================
+
+// Sign up with email and password
+app.post('/api/auth/signup', async (req, res) => {
+    try {
+        const { email, password, metadata = {} } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({
+                error: 'Bad Request',
+                message: 'Email and password are required'
+            });
+        }
+
+        // Validate password strength
+        if (password.length < 6) {
+            return res.status(400).json({
+                error: 'Bad Request',
+                message: 'Password must be at least 6 characters long'
+            });
+        }
+
+        // Create user with Supabase Auth
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: metadata
+            }
+        });
+
+        if (error) {
+            return res.status(400).json({
+                error: 'Signup Failed',
+                message: error.message
+            });
+        }
+
+        res.json({
+            success: true,
+            user: data.user,
+            session: data.session,
+            message: 'User created successfully'
+        });
+
+    } catch (error) {
+        console.error('Signup error:', error);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Failed to create user'
+        });
+    }
+});
+
+// Sign in with email and password
+app.post('/api/auth/signin', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({
+                error: 'Bad Request',
+                message: 'Email and password are required'
+            });
+        }
+
+        // Sign in with Supabase Auth
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (error) {
+            return res.status(401).json({
+                error: 'Authentication Failed',
+                message: error.message
+            });
+        }
+
+        res.json({
+            success: true,
+            user: data.user,
+            session: data.session
+        });
+
+    } catch (error) {
+        console.error('Signin error:', error);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Failed to sign in'
+        });
+    }
+});
+
+// Sign out
+app.post('/api/auth/signout', requireAuth, async (req, res) => {
+    try {
+        // Supabase handles token invalidation on the client side
+        // Server-side sign out is primarily for logging/cleanup
+        res.json({
+            success: true,
+            message: 'Signed out successfully'
+        });
+    } catch (error) {
+        console.error('Signout error:', error);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Failed to sign out'
+        });
+    }
+});
+
+// Get current session/user
+app.get('/api/auth/session', requireAuth, async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            user: req.user
+        });
+    } catch (error) {
+        console.error('Session check error:', error);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Failed to check session'
+        });
+    }
+});
+
+// Refresh session (optional - for token refresh)
+app.post('/api/auth/refresh', async (req, res) => {
+    try {
+        const { refresh_token } = req.body;
+
+        if (!refresh_token) {
+            return res.status(400).json({
+                error: 'Bad Request',
+                message: 'Refresh token is required'
+            });
+        }
+
+        const { data, error } = await supabase.auth.refreshSession({
+            refresh_token
+        });
+
+        if (error) {
+            return res.status(401).json({
+                error: 'Refresh Failed',
+                message: error.message
+            });
+        }
+
+        res.json({
+            success: true,
+            session: data.session
+        });
+
+    } catch (error) {
+        console.error('Token refresh error:', error);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Failed to refresh token'
+        });
+    }
+});
+
+// ==================== END AUTHENTICATION ENDPOINTS ====================
+
 // Helper function to log conversation to Supabase
 async function logConversation(data) {
     try {
@@ -507,7 +677,8 @@ async function updateConversationRating(conversationId, rating) {
 }
 
 // RAG Chat endpoint (primary and only chat endpoint)
-app.post('/api/chat', async (req, res) => {
+// Uses optionalAuth to support both authenticated and anonymous users
+app.post('/api/chat', optionalAuth, async (req, res) => {
     const startTime = Date.now();
     console.log(`\n${'='.repeat(80)}`);
     console.log(`🔵 RAG REQUEST RECEIVED`);
@@ -806,6 +977,7 @@ app.post('/api/chat', async (req, res) => {
             
             const conversationData = {
                 session_id: sessionId,
+                user_id: req.user ? req.user.id : null, // Add user_id if authenticated
                 question: message,
                 response: responseText || '',
                 model: model,
