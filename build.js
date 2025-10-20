@@ -61,6 +61,7 @@ const jsFiles = {
     'public/js/disclaimer.js': 'js',
     'public/js/pubmed-api.js': 'js',
     'public/js/pubmed-popup.js': 'js',
+    'public/js/document-selector.js': 'js',
     'public/js/main.js': 'js'
 };
 
@@ -123,26 +124,30 @@ Object.keys(fileContents).forEach(filePath => {
             const originalFilename = original.split('/').pop();
             const hashedFilename = hashed.split('/').pop();
             
-            // Update import statements: from './config.js' to './config.77794265.js'
-            const importPattern = new RegExp(`from\\s+['"]\\.\\/([^'"]+)['"]`, 'g');
-            // Also update dynamic imports: import('./config.js') to import('./config.77794265.js')
-            const dynamicImportPattern = new RegExp(`import\\(\\s*['"]\\.\\/([^'"]+)['"]`, 'g');
+            // Update import statements: from './config.js?v=xxx' to './config.77794265.js'
+            // Pattern matches: from './config.js' OR from './config.js?v=xxx'
+            const importPattern = new RegExp(`from\\s+['"]\\.\\/([^'"?]+)(\\?[^'"]*)?['"]`, 'g');
+            // Also update dynamic imports: import('./config.js?v=xxx') to import('./config.77794265.js')
+            const dynamicImportPattern = new RegExp(`import\\(\\s*['"]\\.\\/([^'"?]+)(\\?[^'"]*)?['"]`, 'g');
+            
             // Update static imports
-            const newContent = content.replace(importPattern, (match, importPath) => {
+            const newContent = content.replace(importPattern, (match, importPath, queryString) => {
                 const importFile = importPath.split('/').pop();
                 if (importFile === originalFilename) {
                     updated = true;
-                    return match.replace(originalFilename, hashedFilename);
+                    // Replace the entire filename (with or without query string) with hashed version
+                    return match.replace(importFile + (queryString || ''), hashedFilename);
                 }
                 return match;
             });
 
             // Update dynamic imports
-            const newContent2 = newContent.replace(dynamicImportPattern, (match, importPath) => {
+            const newContent2 = newContent.replace(dynamicImportPattern, (match, importPath, queryString) => {
                 const importFile = importPath.split('/').pop();
                 if (importFile === originalFilename) {
                     updated = true;
-                    return match.replace(originalFilename, hashedFilename);
+                    // Replace the entire filename (with or without query string) with hashed version
+                    return match.replace(importFile + (queryString || ''), hashedFilename);
                 }
                 return match;
             });
@@ -176,15 +181,17 @@ console.log('\n📝 Processing HTML:');
 const htmlSourcePath = path.join(__dirname, 'public/index.html');
 let htmlContent = fs.readFileSync(htmlSourcePath, 'utf8');
 
-// Replace CSS references
+// Replace CSS and JS references (handles query parameters)
 Object.keys(hashedFiles).forEach(original => {
     const hashed = hashedFiles[original];
+    // Replace href with optional query parameters
     htmlContent = htmlContent.replace(
-        new RegExp(`href="${original}"`, 'g'),
+        new RegExp(`href="${original}(\\?[^"]*)?"`, 'g'),
         `href="${hashed}"`
     );
+    // Replace src with optional query parameters
     htmlContent = htmlContent.replace(
-        new RegExp(`src="${original}"`, 'g'),
+        new RegExp(`src="${original}(\\?[^"]*)?"`, 'g'),
         `src="${hashed}"`
     );
 });

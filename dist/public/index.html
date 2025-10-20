@@ -11,34 +11,72 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     
     <!-- Application Styles -->
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/disclaimer.css">
+    <link rel="stylesheet" href="css/styles.3455de61.css">
+    <link rel="stylesheet" href="css/disclaimer.4b8723a3.css">
 </head>
 <body>
+    <!-- Document Selector Overlay (for mobile) -->
+    <div class="document-selector-overlay" id="documentSelectorOverlay"></div>
+    
     <div class="container">
         <div class="header" id="mainHeader">
             <div class="header-title-row">
-                <h1 id="headerTitle">Nephrology Manual</h1>
-                <div class="header-icons">
-                    <button class="about-icon" id="aboutIcon" title="About this assistant">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path d="m9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                            <path d="M12 17h.01"></path>
-                        </svg>
-                        <div class="about-tooltip" id="aboutTooltip">
-                            This assistant uses the <span id="documentName">Nephrology Manual</span> to provide contextual responses powered by <span id="modelName">Gemini 2.5</span>.
-                        </div>
-                    </button>
-                    <button id="headerToggle" class="header-toggle" aria-label="Toggle header" title="Collapse/Expand header">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="18 15 12 9 6 15"></polyline>
-                        </svg>
-                    </button>
+                <div class="header-title-wrapper">
+                    <h1 id="headerTitle">Nephrology Manual</h1>
+                    <div class="header-icons">
+                        <button class="about-icon" id="aboutIcon" title="About this assistant">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="m9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <path d="M12 17h.01"></path>
+                            </svg>
+                            <div class="about-tooltip" id="aboutTooltip">
+                                This assistant uses the <span id="documentName">Nephrology Manual</span> to provide contextual responses powered by <span id="modelName">Gemini 2.5</span>.
+                            </div>
+                        </button>
+                        <button id="headerToggle" class="header-toggle" aria-label="Toggle header" title="Collapse/Expand header">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="18 15 12 9 6 15"></polyline>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
+                <!-- Document Selector (shown when owner has document_selector enabled) -->
+                <div class="document-selector-container" id="documentSelectorContainer" style="display: none;">
+                    <button class="document-selector-btn" id="documentSelectorBtn">
+                        <svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <span class="current-doc-name" id="currentDocName">Select Document</span>
+                        <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="document-selector-dropdown" id="documentSelectorDropdown">
+                        <div class="dropdown-header">
+                            <h3>Available Documents</h3>
+                            <button class="close-dropdown" id="closeDropdown">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="dropdown-search">
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            <input type="text" id="documentSearch" placeholder="Search documents..." autocomplete="off">
+                        </div>
+                        <div class="document-list" id="documentList">
+                        </div>
+                    </div>
+                </div>
+                <p id="headerSubtitle">Interactive search and consultation</p>
             </div>
             <div class="header-content" id="headerContent">
-                <p id="headerSubtitle">Interactive search and consultation</p>
                 <div class="model-selector">
                     <div class="logo">
                         <a href="#" target="_blank" rel="noopener noreferrer">
@@ -98,8 +136,9 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <!-- Application Scripts -->
-    <script src="js/pubmed-api.js?v=20251019-02" type="module"></script>
-    <script src="js/pubmed-popup.js?v=20251019-02" type="module"></script>
-    <script src="js/main.js?v=20251019-02" type="module"></script>
+    <script src="js/pubmed-api.f2a73656.js" type="module"></script>
+    <script src="js/pubmed-popup.a297e8ce.js" type="module"></script>
+    <script src="js/document-selector.738983a3.js" type="module"></script>
+    <script src="js/main.0a54d665.js" type="module"></script>
 </body>
 </html>
