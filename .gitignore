@@ -14,3 +14,4 @@ database-dumps/
 # Supabase local config
 supabase/.env.local
 supabase/.temp/
+*.pid
