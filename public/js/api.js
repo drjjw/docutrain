@@ -1,5 +1,6 @@
 // API communication (RAG-only mode)
 import { API_URL, getEmbeddingType } from './config.js';
+import { getAuthToken } from './auth.js';
 
 // Send a message to the API (RAG-only mode)
 export async function sendMessageToAPI(message, conversationHistory, selectedModel, sessionId, selectedDocument) {
@@ -12,10 +13,17 @@ export async function sendMessageToAPI(message, conversationHistory, selectedMod
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+    // Build headers with optional authentication
+    const headers = { 'Content-Type': 'application/json' };
+    const authToken = getAuthToken();
+    if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
     try {
         const response = await fetch(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: headers,
             body: JSON.stringify({
                 message,
                 history: conversationHistory.slice(0, -1),

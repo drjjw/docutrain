@@ -639,6 +639,14 @@ app.post('/api/auth/refresh', async (req, res) => {
     }
 });
 
+// Get Supabase config for frontend
+app.get('/api/config/supabase', (req, res) => {
+    res.json({
+        url: process.env.SUPABASE_URL,
+        anonKey: process.env.SUPABASE_ANON_KEY
+    });
+});
+
 // ==================== END AUTHENTICATION ENDPOINTS ====================
 
 // Helper function to log conversation to Supabase

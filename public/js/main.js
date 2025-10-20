@@ -4,6 +4,7 @@ import { updateDocumentUI, updateModelInTooltip } from './ui.js?v=20251019-02';
 import { sendMessage } from './chat.js?v=20251019-02';
 import { submitRating } from './rating.js?v=20251019-02';
 import { initializePubMedPopup } from './pubmed-popup.js?v=20251019-02';
+import { initAuthUI, restoreSession } from './auth.js?v=20251020-01';
 
 // Configure marked for better formatting
 marked.setOptions({
@@ -152,6 +153,18 @@ window.submitRating = submitRating;
 (async () => {
     // Preload logos to prevent layout shift
     await preloadLogos();
+
+    // Initialize authentication
+    console.log('🔐 Initializing authentication...');
+    initAuthUI();
+    
+    // Try to restore previous session
+    const sessionRestored = await restoreSession();
+    if (sessionRestored) {
+        console.log('✓ Previous session restored');
+    } else {
+        console.log('ℹ️  No previous session found');
+    }
 
     await initializeDocument();
 
