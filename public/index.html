@@ -25,6 +25,7 @@
     <!-- Application Styles -->
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/disclaimer.css">
+    <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
     <!-- Document Selector Overlay (for mobile) -->
@@ -59,6 +60,24 @@
                 <p id="headerSubtitle" class="loading-text">Loading document...</p>
             </div>
 
+            <!-- Authentication Section - Right -->
+            <div class="header-auth">
+                <!-- Sign In Button (shown when not authenticated) -->
+                <button class="auth-button" id="authButton" style="display: none;">
+                    Sign In
+                </button>
+
+                <!-- User Profile (shown when authenticated) -->
+                <div class="user-profile" id="userProfile">
+                    <button class="user-profile-btn" id="userProfileBtn">
+                        <div class="user-avatar" id="userAvatar">U</div>
+                        <span class="user-email" id="userEmail">user@example.com</span>
+                    </button>
+                    <div class="user-dropdown" id="userDropdown">
+                        <a href="#" id="logoutBtn">Sign Out</a>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Always Visible Header Content -->
@@ -130,6 +149,70 @@
         </div>
     </div>
 
+    <!-- Authentication Modal -->
+    <div class="auth-modal" id="authModal">
+        <div class="auth-modal-content">
+            <button class="close-modal">&times;</button>
+            
+            <!-- Sign In Form -->
+            <div class="auth-form" id="signinForm">
+                <h2>Welcome Back</h2>
+                <p>Sign in to access your conversations</p>
+                
+                <form id="signinFormElement">
+                    <div class="form-group">
+                        <label for="signinEmail">Email</label>
+                        <input type="email" id="signinEmail" required autocomplete="email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="signinPassword">Password</label>
+                        <input type="password" id="signinPassword" required autocomplete="current-password">
+                    </div>
+                    
+                    <span class="auth-error" id="signinError"></span>
+                    
+                    <button type="submit" class="auth-submit-btn">Sign In</button>
+                </form>
+                
+                <div class="auth-switch">
+                    Don't have an account? <a href="#" id="switchToSignup">Sign up</a>
+                </div>
+            </div>
+            
+            <!-- Sign Up Form -->
+            <div class="auth-form" id="signupForm" style="display: none;">
+                <h2>Create Account</h2>
+                <p>Get started with your AI assistant</p>
+                
+                <form id="signupFormElement">
+                    <div class="form-group">
+                        <label for="signupEmail">Email</label>
+                        <input type="email" id="signupEmail" required autocomplete="email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <input type="password" id="signupPassword" required autocomplete="new-password" minlength="6">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="signupConfirmPassword">Confirm Password</label>
+                        <input type="password" id="signupConfirmPassword" required autocomplete="new-password" minlength="6">
+                    </div>
+                    
+                    <span class="auth-error" id="signupError"></span>
+                    
+                    <button type="submit" class="auth-submit-btn">Sign Up</button>
+                </form>
+                
+                <div class="auth-switch">
+                    Already have an account? <a href="#" id="switchToSignin">Sign in</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- External Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/js-cookie@3"></script>
@@ -139,6 +222,7 @@
     <script src="js/pubmed-api.js?v=20251019-02" type="module"></script>
     <script src="js/pubmed-popup.js?v=20251019-02" type="module"></script>
     <script src="js/document-selector.js?v=20251019-03" type="module"></script>
-    <script src="js/main.js?v=20251019-02" type="module"></script>
+    <script src="js/auth.js?v=20251020-01" type="module"></script>
+    <script src="js/main.js?v=20251020-01" type="module"></script>
 </body>
 </html>
