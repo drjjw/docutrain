@@ -1,7 +1,7 @@
 /**
  * Document Selector Module
  * Provides a beautiful dropdown UI for navigating between documents
- * Only shown when owner has document_selector enabled
+ * Only shown when URL parameter document_selector=true
  */
 
 class DocumentSelector {
@@ -65,14 +65,20 @@ class DocumentSelector {
             const urlParams = new URLSearchParams(window.location.search);
             this.currentDocSlug = urlParams.get('doc') || 'smh';
             
-            // Find current document and check if selector should be shown
-            const currentDoc = this.documents.find(d => d.slug === this.currentDocSlug);
-            
-            if (currentDoc && currentDoc.ownerInfo && currentDoc.ownerInfo.documentSelector) {
-                this.currentOwner = currentDoc.ownerInfo.slug;
-                this.show();
-                this.renderDocuments();
-                this.updateCurrentDocName(currentDoc);
+            // Check if document selector should be shown (URL parameter)
+            const showSelector = urlParams.get('document_selector') === 'true';
+
+            if (showSelector) {
+                // Find current document to get owner info for filtering
+                const currentDoc = this.documents.find(d => d.slug === this.currentDocSlug);
+                if (currentDoc && currentDoc.ownerInfo) {
+                    this.currentOwner = currentDoc.ownerInfo.slug;
+                    this.show();
+                    this.renderDocuments();
+                    this.updateCurrentDocName(currentDoc);
+                } else {
+                    this.hide();
+                }
             } else {
                 this.hide();
             }
@@ -161,12 +167,13 @@ class DocumentSelector {
         }
         
         this.documentList.innerHTML = ownerDocs.map(doc => `
-            <div class="document-item ${doc.slug === this.currentDocSlug ? 'active' : ''}" 
+            <div class="document-item ${doc.slug === this.currentDocSlug ? 'active' : ''}"
                  data-slug="${doc.slug}">
-                <svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                </svg>
+                ${doc.cover ? `<img class="doc-cover-thumb" src="${doc.cover}" alt="${this.escapeHtml(doc.title)} cover" loading="lazy">` :
+                    `<svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>`}
                 <div class="document-item-content">
                     <div class="document-item-title">${this.escapeHtml(doc.title)}</div>
                     ${doc.subtitle ? `<div class="document-item-subtitle">${this.escapeHtml(doc.subtitle)}</div>` : ''}

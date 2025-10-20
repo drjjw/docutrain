@@ -1,29 +1,25 @@
 # Document Selector Feature
 
 ## Overview
-Added a beautiful, responsive document selector UI component that allows users to navigate between documents when enabled for their owner. This feature provides an elegant dropdown interface for document selection with search functionality.
+Added a beautiful, responsive document selector UI component that allows users to navigate between documents when enabled via URL parameter. This feature provides an elegant dropdown interface for document selection with search functionality.
 
 ## Implementation Date
 October 19, 2025
 
+## Last Updated
+October 20, 2025 - Changed to URL parameter control (removed database dependency)
+
 ## Database Changes
 
-### 1. Added `document_selector` Column to `owners` Table
+### 1. Removed `document_selector` Column from `owners` Table (Deprecated)
 ```sql
-ALTER TABLE owners 
-ADD COLUMN document_selector BOOLEAN NOT NULL DEFAULT false;
-
-COMMENT ON COLUMN owners.document_selector IS 'Enable document selector UI for this owner''s documents';
-
--- Set document_selector to true for maker-pizza
-UPDATE owners 
-SET document_selector = true 
-WHERE slug = 'maker-pizza';
+-- Column removed - no longer needed since control moved to URL parameters
+ALTER TABLE owners DROP COLUMN document_selector;
 ```
 
-**Migration:** `add_document_selector_to_owners`
+**Migration:** `remove_document_selector_from_owners` ✅ **Applied**
 
-### Current Status
+### Previous Status (Before URL Parameter Control)
 - **default** owner: `document_selector = false`
 - **maker-pizza** owner: `document_selector = true` ✓
 - **ukidney** owner: `document_selector = false`
@@ -166,10 +162,15 @@ The feature will automatically appear for all documents belonging to that owner.
 - **Method**: GET
 - **Response**: Array of documents with `ownerInfo`
 
-### URL Parameter
+### URL Parameter Control
 - Documents are selected via `?doc=<slug>` parameter
+- Selector is enabled via `?document_selector=true` parameter
 - Selector updates URL and reloads page on selection
 - Maintains other URL parameters
+
+**Example URLs:**
+- `/?doc=maker-menu-deck&document_selector=true` - Shows selector for Maker documents
+- `/?doc=smh` - Hides selector (default behavior)
 
 ### Caching
 - Document registry uses 5-minute cache
@@ -195,8 +196,10 @@ The feature will automatically appear for all documents belonging to that owner.
 
 ## Testing Checklist
 
-- [ ] Verify selector appears for maker documents
-- [ ] Verify selector hidden for ukidney documents
+- [x] Removed `document_selector` column from owners table
+- [x] Updated to URL parameter control (`?document_selector=true`)
+- [ ] Verify selector appears with `?document_selector=true`
+- [ ] Verify selector hidden without URL parameter (default)
 - [ ] Test search functionality
 - [ ] Test document navigation
 - [ ] Test mobile responsive layout
@@ -227,7 +230,7 @@ Potential improvements:
 
 For issues or questions about the document selector feature:
 1. Check browser console for JavaScript errors
-2. Verify owner has `document_selector = true`
+2. Verify URL contains `?document_selector=true` parameter
 3. Ensure documents have valid `owner_id` foreign key
 4. Check that `/api/documents` returns `ownerInfo` object
 

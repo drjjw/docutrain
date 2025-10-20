@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+---
+You do not have to edit the /dist files, we will always rebuild them from source.

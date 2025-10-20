@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Encoding Examples - Interactive Demo</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #cc0000;
+        }
+        .demo-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .demo-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            box-sizing: border-box;
+        }
+        .output {
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            word-break: break-all;
+        }
+        .output.encoded {
+            background: #e7f4e7;
+            border-color: #28a745;
+        }
+        .output.decoded {
+            background: #e7f0ff;
+            border-color: #007bff;
+        }
+        button {
+            background: #cc0000;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px 5px 5px 0;
+        }
+        button:hover {
+            background: #aa0000;
+        }
+        button.secondary {
+            background: #6c757d;
+        }
+        button.secondary:hover {
+            background: #5a6268;
+        }
+        .example-buttons {
+            margin: 15px 0;
+        }
+        .example-buttons button {
+            background: #007bff;
+            margin: 5px;
+        }
+        .example-buttons button:hover {
+            background: #0056b3;
+        }
+        .code-example {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        .code-example code {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            color: #0c5460;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            color: #856404;
+        }
+        .test-link {
+            display: inline-block;
+            padding: 8px 15px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+        .test-link:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 URL Encoding Interactive Demo</h1>
+    
+    <div class="info">
+        <strong>💡 What is this?</strong><br>
+        This tool helps you encode URLs for the <code>back-button</code> parameter. 
+        Simple URLs work without encoding, but URLs with special characters (<code>?</code>, <code>&</code>, <code>#</code>) must be encoded.
+    </div>
+
+    <!-- Interactive Encoder -->
+    <div class="demo-section">
+        <h2>🎯 Interactive URL Encoder</h2>
+        
+        <div class="input-group">
+            <label for="backURL">Enter your back button URL:</label>
+            <input type="text" id="backURL" placeholder="https://ukidney.com/page?id=123&ref=test" value="https://ukidney.com">
+        </div>
+
+        <div class="example-buttons">
+            <strong>Try these examples:</strong><br>
+            <button onclick="setExample('https://ukidney.com')">Simple URL</button>
+            <button onclick="setExample('https://ukidney.com/manuals/smh')">URL with Path</button>
+            <button onclick="setExample('https://ukidney.com/page?id=123')">URL with Query</button>
+            <button onclick="setExample('https://ukidney.com/page?id=123&ref=test')">Complex URL</button>
+            <button onclick="setExample('https://ukidney.com/page#section')">URL with Hash</button>
+        </div>
+
+        <button onclick="encodeURL()">🔒 Encode URL</button>
+        <button onclick="buildFullURL()" class="secondary">🔗 Build Full Chat URL</button>
+        <button onclick="clearFields()" class="secondary">🗑️ Clear</button>
+
+        <div id="results" style="display: none;">
+            <h3>Results:</h3>
+            
+            <label>Original URL:</label>
+            <div class="output decoded" id="originalURL"></div>
+
+            <label>Encoded Value (for URL parameter):</label>
+            <div class="output encoded" id="encodedURL"></div>
+
+            <label>Full Chat URL:</label>
+            <div class="output" id="fullURL"></div>
+
+            <div id="testLink" style="margin-top: 15px;"></div>
+
+            <div id="needsEncoding"></div>
+        </div>
+    </div>
+
+    <!-- Code Examples -->
+    <div class="demo-section">
+        <h2>📝 Code Examples</h2>
+
+        <h3>Method 1: Using encodeURIComponent() (Recommended)</h3>
+        <div class="code-example">
+<code>// Encode a single URL
+const backURL = 'https://ukidney.com/page?id=123&ref=test';
+const encoded = encodeURIComponent(backURL);
+console.log(encoded);
+// Output: https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest
+
+// Build the full chat URL
+const chatURL = `?doc=smh&back-button=${encodeURIComponent(backURL)}`;
+console.log(chatURL);
+// Output: ?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest</code>
+        </div>
+
+        <h3>Method 2: Using URLSearchParams (Automatic Encoding)</h3>
+        <div class="code-example">
+<code>// URLSearchParams automatically encodes values
+const params = new URLSearchParams();
+params.set('doc', 'smh');
+params.set('back-button', 'https://ukidney.com/page?id=123&ref=test');
+
+const chatURL = `?${params.toString()}`;
+console.log(chatURL);
+// Output: ?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest</code>
+        </div>
+
+        <h3>Method 3: Helper Function (Best Practice)</h3>
+        <div class="code-example">
+<code>// Create a reusable function
+function buildChatURL(docSlug, backURL) {
+    const params = new URLSearchParams();
+    params.set('doc', docSlug);
+    if (backURL) {
+        params.set('back-button', backURL);
+    }
+    return `?${params.toString()}`;
+}
+
+// Usage
+const url1 = buildChatURL('smh', 'https://ukidney.com');
+const url2 = buildChatURL('uhn', 'https://ukidney.com/page?id=123');
+const url3 = buildChatURL('smh', null); // No back button</code>
+        </div>
+
+        <button onclick="copyCode(0)">📋 Copy Method 1</button>
+        <button onclick="copyCode(1)">📋 Copy Method 2</button>
+        <button onclick="copyCode(2)">📋 Copy Method 3</button>
+    </div>
+
+    <!-- Real-World Examples -->
+    <div class="demo-section">
+        <h2>🌍 Real-World Use Cases</h2>
+
+        <h3>1. Dynamic Back Link from Current Page</h3>
+        <div class="code-example">
+<code>// Use current page as back link
+const currentURL = window.location.href;
+const chatURL = `/chat?doc=smh&back-button=${encodeURIComponent(currentURL)}`;
+
+// Or use referrer
+const referrer = document.referrer || 'https://ukidney.com';
+const chatURL = `/chat?doc=smh&back-button=${encodeURIComponent(referrer)}`;</code>
+        </div>
+
+        <h3>2. Embedding in HTML</h3>
+        <div class="code-example">
+<code>&lt;!-- Simple URL (no encoding needed) --&gt;
+&lt;iframe src="/chat?doc=smh&back-button=https://ukidney.com"&gt;&lt;/iframe&gt;
+
+&lt;!-- Complex URL (must be encoded) --&gt;
+&lt;iframe src="/chat?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123"&gt;&lt;/iframe&gt;
+
+&lt;!-- Generate dynamically with JavaScript --&gt;
+&lt;script&gt;
+const backURL = 'https://ukidney.com/page?id=123';
+const iframe = document.createElement('iframe');
+iframe.src = `/chat?doc=smh&back-button=${encodeURIComponent(backURL)}`;
+document.body.appendChild(iframe);
+&lt;/script&gt;</code>
+        </div>
+
+        <h3>3. Server-Side (Node.js/Express)</h3>
+        <div class="code-example">
+<code>// Express route that generates chat URLs
+app.get('/embed-chat', (req, res) => {
+    const backURL = req.query.return_url || 'https://ukidney.com';
+    const docSlug = req.query.doc || 'smh';
+    
+    // Build URL with proper encoding
+    const params = new URLSearchParams();
+    params.set('doc', docSlug);
+    params.set('back-button', backURL);
+    
+    const chatURL = `/chat?${params.toString()}`;
+    res.redirect(chatURL);
+});</code>
+        </div>
+    </div>
+
+    <!-- Testing Section -->
+    <div class="demo-section">
+        <h2>🧪 Test Your Understanding</h2>
+        
+        <div class="warning">
+            <strong>⚠️ Common Mistakes:</strong>
+            <ul>
+                <li>❌ Not encoding URLs with <code>?</code>, <code>&</code>, or <code>#</code></li>
+                <li>❌ Double encoding (encoding an already encoded URL)</li>
+                <li>❌ Encoding the entire URL instead of just the parameter value</li>
+                <li>❌ Using user input without encoding (security risk)</li>
+            </ul>
+        </div>
+
+        <div class="info">
+            <strong>✅ Best Practices:</strong>
+            <ul>
+                <li>✓ Always encode when building URLs programmatically</li>
+                <li>✓ Use <code>URLSearchParams</code> for automatic encoding</li>
+                <li>✓ Test with complex URLs containing special characters</li>
+                <li>✓ Encode user-provided URLs for security</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function setExample(url) {
+            document.getElementById('backURL').value = url;
+            encodeURL();
+        }
+
+        function encodeURL() {
+            const backURL = document.getElementById('backURL').value.trim();
+            
+            if (!backURL) {
+                alert('Please enter a URL');
+                return;
+            }
+
+            // Encode the URL
+            const encoded = encodeURIComponent(backURL);
+            
+            // Build full chat URL
+            const fullURL = `?doc=smh&back-button=${encoded}`;
+            
+            // Check if encoding is needed
+            const needsEncoding = /[?&#=+\s]/.test(backURL);
+            
+            // Display results
+            document.getElementById('originalURL').textContent = backURL;
+            document.getElementById('encodedURL').textContent = encoded;
+            document.getElementById('fullURL').textContent = fullURL;
+            document.getElementById('results').style.display = 'block';
+            
+            // Show encoding status
+            const needsEncodingDiv = document.getElementById('needsEncoding');
+            if (needsEncoding) {
+                needsEncodingDiv.innerHTML = `
+                    <div class="warning" style="margin-top: 15px;">
+                        <strong>⚠️ Encoding Required!</strong><br>
+                        This URL contains special characters that must be encoded.
+                    </div>
+                `;
+            } else {
+                needsEncodingDiv.innerHTML = `
+                    <div class="info" style="margin-top: 15px;">
+                        <strong>✓ Encoding Optional</strong><br>
+                        This simple URL works without encoding, but encoding is still recommended for consistency.
+                    </div>
+                `;
+            }
+            
+            // Create test link
+            const testLinkDiv = document.getElementById('testLink');
+            testLinkDiv.innerHTML = `
+                <strong>Test it now:</strong><br>
+                <a href="${fullURL}" class="test-link" target="_blank">🚀 Open Chatbot with This Back Button</a>
+            `;
+        }
+
+        function buildFullURL() {
+            encodeURL();
+        }
+
+        function clearFields() {
+            document.getElementById('backURL').value = '';
+            document.getElementById('results').style.display = 'none';
+        }
+
+        function copyCode(method) {
+            const codes = [
+                // Method 1
+                `const backURL = 'https://ukidney.com/page?id=123&ref=test';
+const encoded = encodeURIComponent(backURL);
+const chatURL = \`?doc=smh&back-button=\${encodeURIComponent(backURL)}\`;`,
+                
+                // Method 2
+                `const params = new URLSearchParams();
+params.set('doc', 'smh');
+params.set('back-button', 'https://ukidney.com/page?id=123&ref=test');
+const chatURL = \`?\${params.toString()}\`;`,
+                
+                // Method 3
+                `function buildChatURL(docSlug, backURL) {
+    const params = new URLSearchParams();
+    params.set('doc', docSlug);
+    if (backURL) {
+        params.set('back-button', backURL);
+    }
+    return \`?\${params.toString()}\`;
+}
+
+const url = buildChatURL('smh', 'https://ukidney.com/page?id=123');`
+            ];
+
+            navigator.clipboard.writeText(codes[method]).then(() => {
+                alert('✓ Code copied to clipboard!');
+            }).catch(err => {
+                alert('Failed to copy code. Please copy manually.');
+            });
+        }
+
+        // Auto-encode on page load if there's a default value
+        window.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('backURL');
+            if (input.value) {
+                encodeURL();
+            }
+        });
+    </script>
+</body>
+</html>
+

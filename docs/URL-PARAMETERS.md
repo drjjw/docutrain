@@ -52,14 +52,39 @@ http://localhost:3456?method=rag
 http://localhost:3456
 ```
 
+### 3. `back-button` - Back Button Configuration
+Controls whether to show a back button in the mobile view and where it should link to.
+
+**Behavior:**
+- If the parameter is present, the back button will be shown in mobile view with the specified URL
+- If the parameter is absent, no back button will be displayed
+- This replaces the old hardcoded "Back to Manual" button
+
+**Examples:**
+```
+# Show back button linking to a specific page
+http://localhost:3456?doc=smh&back-button=https://ukidney.com/manuals
+
+# Show back button linking to homepage
+http://localhost:3456?doc=uhn&back-button=https://ukidney.com
+
+# No back button (parameter omitted)
+http://localhost:3456?doc=smh
+```
+
+**Use Cases:**
+- Embed the chatbot in different contexts with appropriate back navigation
+- Create custom navigation flows for different document types
+- Remove back button entirely for standalone deployments
+
 ## Combined Parameters
 
 You can combine parameters using `&`:
 
 ```
 http://localhost:3456?doc=uhn&method=rag
-http://localhost:3456?doc=smh&method=rag
-http://localhost:3456?doc=ckd-dc-2025&method=rag
+http://localhost:3456?doc=smh&method=rag&back-button=https://ukidney.com
+http://localhost:3456?doc=ckd-dc-2025&method=rag&back-button=https://example.com/guidelines
 ```
 
 ## Production vs Local Behavior

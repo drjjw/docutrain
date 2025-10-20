@@ -43,9 +43,30 @@ export async function sendMessage(state, elements) {
         removeLoading();
 
         if (response.ok) {
-            // Log the actual model being used
+            // Log the actual model being used and detect overrides
+            // Server may override model selection based on document owner's forced_grok_model setting
             if (data.actualModel) {
-                console.log(`🤖 Response generated using: ${data.actualModel}`);
+                const requestedModel = state.selectedModel;
+                const actualModel = data.actualModel;
+                
+                // Map requested model to expected actual model
+                const expectedActual = requestedModel === 'grok' ? 'grok-4-fast-non-reasoning' :
+                                     requestedModel === 'grok-reasoning' ? 'grok-4-fast-reasoning' :
+                                     'gemini-2.5-flash';
+                
+                // Detect if override occurred
+                const wasOverridden = expectedActual !== actualModel;
+                
+                if (wasOverridden) {
+                    console.log('\n🔒 MODEL OVERRIDE DETECTED:');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log(`  Requested:  ${requestedModel} (${expectedActual})`);
+                    console.log(`  Actually used: ${actualModel}`);
+                    console.log(`  Reason: Owner-configured safety mechanism`);
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+                } else {
+                    console.log(`🤖 Response generated using: ${actualModel}`);
+                }
             }
 
             // Build response with metadata

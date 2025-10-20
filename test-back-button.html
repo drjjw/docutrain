@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Back Button Feature Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #cc0000;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .test-link {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #0066cc;
+        }
+        .test-link:hover {
+            background: #f0f0f0;
+        }
+        .description {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .note {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔗 Back Button URL Configuration Test</h1>
+    
+    <div class="note">
+        <strong>📱 Mobile Testing Required:</strong> The back button only appears in mobile view. 
+        Use browser DevTools to test with mobile viewport (e.g., iPhone 12, Pixel 5).
+    </div>
+
+    <div class="test-section">
+        <h2>✅ Test 1: With Back Button (UKidney Homepage)</h2>
+        <a href="?doc=smh&back-button=https://ukidney.com" class="test-link" target="_blank">
+            Open Chatbot with Back Button → UKidney
+        </a>
+        <div class="description">
+            Expected: Back button visible in mobile view, links to https://ukidney.com
+        </div>
+        <code>?doc=smh&back-button=https://ukidney.com</code>
+    </div>
+
+    <div class="test-section">
+        <h2>✅ Test 2: With Back Button (SMH Manual Page)</h2>
+        <a href="?doc=smh&back-button=https://ukidney.com/nephrology-publications/nephrology-manuals/st-michael-s-hospital-nephrology-manual" class="test-link" target="_blank">
+            Open Chatbot with Back Button → SMH Manual
+        </a>
+        <div class="description">
+            Expected: Back button visible in mobile view, links to SMH manual page
+        </div>
+        <code>?doc=smh&back-button=https://ukidney.com/nephrology-publications/...</code>
+    </div>
+
+    <div class="test-section">
+        <h2>✅ Test 3: With Back Button (UHN Document)</h2>
+        <a href="?doc=uhn&back-button=https://ukidney.com/manuals/uhn" class="test-link" target="_blank">
+            Open UHN Chatbot with Back Button
+        </a>
+        <div class="description">
+            Expected: UHN document loaded, back button visible in mobile view
+        </div>
+        <code>?doc=uhn&back-button=https://ukidney.com/manuals/uhn</code>
+    </div>
+
+    <div class="test-section">
+        <h2>❌ Test 4: Without Back Button (Standalone)</h2>
+        <a href="?doc=smh" class="test-link" target="_blank">
+            Open Chatbot WITHOUT Back Button
+        </a>
+        <div class="description">
+            Expected: No back button visible (standalone mode)
+        </div>
+        <code>?doc=smh</code>
+    </div>
+
+    <div class="test-section">
+        <h2>✅ Test 5: Combined with RAG Mode</h2>
+        <a href="?doc=smh&method=rag&back-button=https://ukidney.com" class="test-link" target="_blank">
+            Open Chatbot with RAG + Back Button
+        </a>
+        <div class="description">
+            Expected: RAG mode active, back button visible in mobile view
+        </div>
+        <code>?doc=smh&method=rag&back-button=https://ukidney.com</code>
+    </div>
+
+    <div class="test-section">
+        <h2>⚠️ Test 6: URL with Query Parameters (NEEDS ENCODING)</h2>
+        <a href="?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest" class="test-link" target="_blank">
+            Open Chatbot with Complex Back URL (Properly Encoded)
+        </a>
+        <div class="description">
+            Expected: Back button works correctly with URL containing query parameters<br>
+            <strong>Note:</strong> URL is properly encoded using encodeURIComponent()
+        </div>
+        <code>?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest</code>
+        <br><br>
+        <strong style="color: #d9534f;">❌ Broken Example (Not Encoded):</strong><br>
+        <code style="background: #f8d7da; color: #721c24;">?doc=smh&back-button=https://example.com/page?id=123&ref=test</code><br>
+        <small style="color: #666;">This would break because the ? and & in the back URL would be parsed as separate query parameters!</small>
+    </div>
+
+    <div class="note">
+        <strong>🧪 Testing Checklist:</strong>
+        <ul>
+            <li>✓ Open each test link in a new tab</li>
+            <li>✓ Open DevTools (F12 or Cmd+Option+I)</li>
+            <li>✓ Toggle device toolbar (Cmd+Shift+M or Ctrl+Shift+M)</li>
+            <li>✓ Select a mobile device (e.g., iPhone 12)</li>
+            <li>✓ Look for the back button in the header area</li>
+            <li>✓ Click the back button to verify navigation</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 Implementation Details</h2>
+        <p><strong>Files Modified:</strong></p>
+        <ul>
+            <li><code>public/js/config.js</code> - Added getBackButtonURL() function</li>
+            <li><code>public/js/ui.js</code> - Updated updateDocumentUI() to handle parameter</li>
+            <li><code>public/index.html</code> - Changed default to hidden with display: none</li>
+            <li><code>dist/</code> - All corresponding dist files updated</li>
+        </ul>
+        
+        <p><strong>Key Features:</strong></p>
+        <ul>
+            <li>✅ No hardcoded URLs - fully configurable via URL parameter</li>
+            <li>✅ Graceful degradation - hidden when parameter absent</li>
+            <li>✅ Works with all document types</li>
+            <li>✅ Supports complex URLs with query parameters</li>
+            <li>✅ Mobile-only display (CSS controlled)</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 JavaScript URL Builder Example</h2>
+        <p>When building URLs programmatically, always use <code>encodeURIComponent()</code>:</p>
+        <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto;"><code>// ✅ CORRECT: Always encode
+const backURL = 'https://ukidney.com/page?id=123&ref=test';
+const chatURL = `?doc=smh&back-button=${encodeURIComponent(backURL)}`;
+
+// ✅ Using URLSearchParams (automatic encoding)
+const params = new URLSearchParams();
+params.set('doc', 'smh');
+params.set('back-button', backURL);  // Automatically encodes
+const chatURL = `?${params.toString()}`;</code></pre>
+    </div>
+
+    <div class="note">
+        <strong>📖 Documentation:</strong> See 
+        <a href="docs/BACK-BUTTON-FEATURE.md">BACK-BUTTON-FEATURE.md</a>,
+        <a href="docs/BACK-BUTTON-URL-ENCODING.md">BACK-BUTTON-URL-ENCODING.md</a>, and 
+        <a href="docs/URL-PARAMETERS.md">URL-PARAMETERS.md</a> for complete details.
+    </div>
+</body>
+</html>
+

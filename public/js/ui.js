@@ -1,12 +1,139 @@
 // UI updates, messages, and loading states
-import { getDocument, getOwnerLogoConfig, parseDocumentSlugs } from './config.js?v=20251019-02';
+import { getDocument, getOwnerLogoConfig, parseDocumentSlugs, getBackButtonURL } from './config.js?v=20251019-02';
 import { getRandomFact } from './facts.js?v=20251019-02';
 
 // Track if document modal has been shown to prevent multiple displays
 let documentModalShown = false;
 
+/**
+ * Update page meta tags with document information
+ * @param {string} title - Document title
+ * @param {string} description - Document description/subtitle
+ */
+function updateMetaTags(title, description) {
+    // Update page title
+    document.title = title;
+    
+    // Update meta description
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+        metaDescription.setAttribute('content', description);
+    }
+    
+    // Update Open Graph meta tags
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) {
+        ogTitle.setAttribute('content', title);
+    }
+    
+    const ogDescription = document.querySelector('meta[property="og:description"]');
+    if (ogDescription) {
+        ogDescription.setAttribute('content', description);
+    }
+    
+    // Update Twitter Card meta tags
+    const twitterTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twitterTitle) {
+        twitterTitle.setAttribute('content', title);
+    }
+    
+    const twitterDescription = document.querySelector('meta[name="twitter:description"]');
+    if (twitterDescription) {
+        twitterDescription.setAttribute('content', description);
+    }
+    
+    console.log(`📄 Meta tags updated: "${title}"`);
+}
+
+/**
+ * Helper function to darken a hex color by a percentage
+ * @param {string} hex - Hex color code (e.g., '#cc0000')
+ * @param {number} percent - Percentage to darken (0-1)
+ * @returns {string} Darkened hex color
+ */
+function darkenColor(hex, percent) {
+    // Remove # if present
+    hex = hex.replace('#', '');
+
+    // Convert to RGB
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+
+    // Darken each component
+    const newR = Math.max(0, Math.floor(r * (1 - percent)));
+    const newG = Math.max(0, Math.floor(g * (1 - percent)));
+    const newB = Math.max(0, Math.floor(b * (1 - percent)));
+
+    // Convert back to hex
+    return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+}
+
+/**
+ * Helper function to convert hex color to rgba
+ * @param {string} hex - Hex color code (e.g., '#cc0000')
+ * @param {number} alpha - Alpha value (0-1)
+ * @returns {string} RGBA color string
+ */
+function hexToRgba(hex, alpha) {
+    // Remove # if present
+    hex = hex.replace('#', '');
+
+    // Convert to RGB
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// Function to equalize heights of cover and welcome sections
+function equalizeContainerHeights() {
+    const coverSection = document.querySelector('.document-cover-section');
+    const welcomeSection = document.querySelector('.welcome-message-section');
+    
+    if (!coverSection || !welcomeSection) return;
+    
+    // Only equalize on desktop (> 768px) - mobile uses vertical stacking
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        // Reset heights on mobile to allow natural sizing
+        coverSection.style.height = '';
+        welcomeSection.style.height = '';
+        console.log(`📱 Mobile view: Heights reset to natural sizing`);
+        return;
+    }
+    
+    // Desktop: Reset any previously set heights
+    coverSection.style.height = '';
+    welcomeSection.style.height = '';
+    
+    // Get natural heights
+    const coverHeight = coverSection.offsetHeight;
+    const welcomeHeight = welcomeSection.offsetHeight;
+    
+    // Set both to the maximum height
+    const maxHeight = Math.max(coverHeight, welcomeHeight);
+    coverSection.style.height = `${maxHeight}px`;
+    welcomeSection.style.height = `${maxHeight}px`;
+    
+    console.log(`📏 Desktop: Equalized heights: cover=${coverHeight}px, welcome=${welcomeHeight}px, set to=${maxHeight}px`);
+}
+
+// Add resize listener to re-equalize on window resize
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        equalizeContainerHeights();
+    }, 250); // Debounce resize events
+});
+
 // Update document UI based on selected document (now async with registry)
 export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
+    console.log(`🚀 updateDocumentUI called with: ${selectedDocument}`);
+
     // Get sendButton element for use throughout function
     let sendButton = document.getElementById('sendButton');
 
@@ -33,8 +160,7 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                     </div>
                 `,
                 icon: 'info',
-                confirmButtonText: 'Got it',
-                confirmButtonColor: '#cc0000',
+                showConfirmButton: false,
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 customClass: {
@@ -46,6 +172,9 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
         // Set minimal generic interface
         document.getElementById('headerTitle').textContent = 'Document Assistant';
         document.getElementById('welcomeTitle').textContent = 'Document Required';
+        
+        // Reset meta tags to defaults
+        updateMetaTags('AI Document Assistant', 'AI-powered document assistant for medical guidelines and research papers');
 
         // Hide interface elements that require a document
         const subtitleElement = document.getElementById('headerSubtitle');
@@ -68,10 +197,20 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
         }
 
         // Reset logo to generic
-        const logoElement = document.querySelector('.logo img');
-        const logoLink = document.querySelector('.logo a');
+        const logoElement = document.querySelector('.header-logo img');
+        const logoLink = document.querySelector('.header-logo a');
         if (logoElement && logoLink) {
             logoElement.style.display = 'none'; // Hide logo when no document
+        }
+
+        // Hide cover image layout and regular welcome when no document selected
+        const coverContainer = document.getElementById('documentCoverContainer');
+        const regularWelcome = document.getElementById('regularWelcomeMessage');
+        if (coverContainer) {
+            coverContainer.style.display = 'none';
+        }
+        if (regularWelcome) {
+            regularWelcome.style.display = 'none'; // Hide when no document
         }
 
         return;
@@ -101,9 +240,16 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     const combinedTitle = validConfigs.map(c => c.title).join(' + ');
     document.getElementById('headerTitle').textContent = combinedTitle;
 
-    // Build combined welcome message
+    // Build combined welcome message (always needed)
     const combinedWelcome = validConfigs.map(c => c.welcomeMessage).join(' and ');
-    document.getElementById('welcomeTitle').textContent = combinedWelcome;
+    
+    // Build description for meta tags
+    const metaDescription = isMultiDoc 
+        ? `Multi-document search across ${validConfigs.length} documents: ${combinedTitle}`
+        : (config.subtitle || config.welcomeMessage || 'AI-powered document assistant');
+    
+    // Update page meta tags with document information
+    updateMetaTags(combinedTitle, metaDescription);
 
     // Update subtitle - for multi-doc, show document count
     const subtitleElement = document.getElementById('headerSubtitle');
@@ -122,10 +268,19 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
         }
     }
 
-    // Update back link (use first document's link)
+    // Update back link based on URL parameter
     const backLink = document.querySelector('.back-link');
     if (backLink) {
-        backLink.href = config.backLink;
+        const backButtonURL = getBackButtonURL();
+        
+        if (backButtonURL) {
+            // Show back button with URL from parameter
+            backLink.href = backButtonURL;
+            backLink.style.display = '';
+        } else {
+            // Hide back button if no URL parameter provided
+            backLink.style.display = 'none';
+        }
     }
 
     // Update about tooltip document name
@@ -140,9 +295,14 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     if (sendButton) sendButton.disabled = false;
 
     // Update header logo based on document owner
-    const logoConfig = getOwnerLogoConfig(config.owner);
-    const logoElement = document.querySelector('.logo img');
-    const logoLink = document.querySelector('.logo a');
+    console.log(`🎨 Updating logo for owner: ${config.owner}`);
+    const logoConfig = await getOwnerLogoConfig(config.owner);
+    console.log(`🎨 Logo config retrieved:`, logoConfig);
+
+    const logoElement = document.querySelector('.header-logo img');
+    const logoLink = document.querySelector('.header-logo a');
+
+    console.log(`🎨 Logo elements found:`, !!logoElement, !!logoLink);
 
     if (logoElement && logoLink) {
         if (logoConfig) {
@@ -153,9 +313,23 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
             logoLink.href = logoConfig.link;
             logoLink.title = logoConfig.alt;
 
-            // Update accent colors if needed (currently using CSS variables for consistency)
-            // The accent color is primarily handled in CSS with the --accent-color variable
-            console.log(`🎨 Header logo updated for owner: ${config.owner} (${logoConfig.alt})`);
+            console.log(`🎨 Logo set: src=${logoConfig.logo}, alt=${logoConfig.alt}`);
+
+            // Update accent colors dynamically using CSS variables
+            if (logoConfig.accentColor) {
+                const root = document.documentElement;
+                root.style.setProperty('--accent-color', logoConfig.accentColor);
+
+                // Generate hover color (darker version)
+                const hoverColor = darkenColor(logoConfig.accentColor, 0.15);
+                root.style.setProperty('--accent-color-hover', hoverColor);
+
+                // Generate shadow color (semi-transparent version)
+                const shadowColor = hexToRgba(logoConfig.accentColor, 0.2);
+                root.style.setProperty('--accent-color-shadow', shadowColor);
+
+                console.log(`🎨 Header logo and accent color updated for owner: ${config.owner} (${logoConfig.alt}) - ${logoConfig.accentColor}`);
+            }
         } else {
             // Hide logo for unrecognized owners (multi-tenant behavior)
             logoElement.style.display = 'none';
@@ -170,7 +344,113 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
             console.log(`🎨 Submit button updated to maker theme (yellow)`);
         } else {
             sendButton.classList.remove('maker-theme');
-            console.log(`🎨 Submit button updated to default theme (red)`);
+            console.log(`🎨 Submit button updated to dynamic accent theme`);
+        }
+    }
+
+    // Update document cover and welcome message display
+    let coverContainer = document.getElementById('documentCoverContainer');
+    const regularWelcome = document.getElementById('regularWelcomeMessage');
+    const chatContainer = document.getElementById('chatContainer');
+
+    if (chatContainer && regularWelcome) {
+        // Build combined welcome message
+        const combinedWelcome = validConfigs.map(c => c.welcomeMessage).join(' and ');
+
+        // Determine intro message for display
+        // For multi-doc: check if all have same owner and intro, otherwise show nothing
+        let introMessage = null;
+        if (isMultiDoc) {
+            const introMessages = validConfigs.map(c => c.introMessage).filter(m => m);
+            const uniqueIntros = [...new Set(introMessages)];
+            // Only show intro if all documents have the same intro message
+            if (uniqueIntros.length === 1) {
+                introMessage = uniqueIntros[0];
+            }
+        } else {
+            // Single document - use its intro message if available
+            introMessage = config.introMessage || null;
+        }
+
+        // Check if cover exists and is not empty/whitespace
+        const hasValidCover = config.cover && typeof config.cover === 'string' && config.cover.trim().length > 0;
+
+        if (hasValidCover && !isMultiDoc) {
+            // Create cover container if it doesn't exist
+            if (!coverContainer) {
+                coverContainer = document.createElement('div');
+                coverContainer.id = 'documentCoverContainer';
+                coverContainer.className = 'document-cover-and-welcome';
+                coverContainer.innerHTML = `
+                    <div class="document-cover-section">
+                        <img id="documentCoverImage" class="document-cover-image" alt="" loading="lazy">
+                    </div>
+                    <div class="welcome-message-section">
+                        <div class="message assistant" id="welcomeMessage">
+                            <div class="message-content">
+                                <strong id="welcomeTitle" class="loading-text">${combinedWelcome}</strong>
+                                <div id="welcomeIntroContent"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                // Insert before regular welcome message
+                chatContainer.insertBefore(coverContainer, regularWelcome);
+            } else {
+                // Update existing welcome title
+                const welcomeTitleElement = coverContainer.querySelector('#welcomeTitle');
+                if (welcomeTitleElement) {
+                    welcomeTitleElement.innerHTML = combinedWelcome;
+                }
+            }
+
+            // Update intro content with HTML
+            const welcomeIntroContent = coverContainer.querySelector('#welcomeIntroContent');
+            if (welcomeIntroContent && introMessage) {
+                welcomeIntroContent.innerHTML = introMessage;
+            } else if (welcomeIntroContent) {
+                welcomeIntroContent.innerHTML = '';
+            }
+
+            // Show cover image layout and hide regular welcome
+            const coverImage = coverContainer.querySelector('#documentCoverImage');
+            if (coverImage) {
+                coverImage.src = config.cover.trim();
+                coverImage.alt = `${config.title} - Title Slide`;
+                
+                // Equalize heights after image loads
+                coverImage.onload = () => {
+                    equalizeContainerHeights();
+                };
+            }
+            coverContainer.style.display = 'flex';
+            regularWelcome.style.display = 'none';
+            console.log(`🖼️  Cover image layout displayed: ${config.cover}`);
+        } else {
+            // Remove cover container if it exists
+            if (coverContainer) {
+                coverContainer.remove();
+            }
+            
+            // Show regular welcome only if there's an intro message
+            if (introMessage) {
+                const regularWelcomeTitleElement = document.getElementById('regularWelcomeTitle');
+                const regularWelcomeContent = document.getElementById('regularWelcomeContent');
+                
+                if (regularWelcomeTitleElement) {
+                    regularWelcomeTitleElement.innerHTML = combinedWelcome;
+                }
+                if (regularWelcomeContent) {
+                    regularWelcomeContent.innerHTML = introMessage;
+                }
+                
+                regularWelcome.style.display = 'block';
+                console.log(`📝 Regular welcome displayed with intro message`);
+            } else {
+                // No intro message - hide welcome entirely
+                regularWelcome.style.display = 'none';
+                console.log(`🖼️  No intro message - welcome hidden. Cover: "${config.cover}", isMultiDoc: ${isMultiDoc}`);
+            }
         }
     }
 
@@ -273,6 +553,8 @@ export function addMessage(content, role, model = null, conversationId = null, c
         // Style references section
         styleReferences(contentDiv);
 
+        // TEMPORARILY HIDDEN: Model badge and switch button (may restore later)
+        /*
         // Add subtle model badge
         if (model) {
             const badge = document.createElement('div');
@@ -296,6 +578,7 @@ export function addMessage(content, role, model = null, conversationId = null, c
             switchBtn.onclick = () => handleModelSwitch(userMessage, model, state, chatContainer, sendMessageCallback);
             contentDiv.appendChild(switchBtn);
         }
+        */
 
         // Add rating buttons for assistant messages
         if (conversationId) {
@@ -479,18 +762,6 @@ function handleModelSwitch(userMessage, currentModel, state, chatContainer, send
     // Switch to the other model
     const newModel = currentModel === 'gemini' ? 'grok' : 'gemini';
     state.selectedModel = newModel;
-
-    // Update model selector buttons in header
-    const geminiBtn = document.getElementById('geminiBtn');
-    const grokBtn = document.getElementById('grokBtn');
-
-    if (newModel === 'grok') {
-        grokBtn.classList.add('active');
-        geminiBtn.classList.remove('active');
-    } else {
-        geminiBtn.classList.add('active');
-        grokBtn.classList.remove('active');
-    }
 
     // Update tooltip
     updateModelInTooltip(newModel);

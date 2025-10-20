@@ -26,13 +26,7 @@ const state = {
 const elements = {
     chatContainer: document.getElementById('chatContainer'),
     messageInput: document.getElementById('messageInput'),
-    sendButton: document.getElementById('sendButton'),
-    geminiBtn: document.getElementById('geminiBtn'),
-    grokBtn: document.getElementById('grokBtn'),
-    grokReasoningBtn: document.getElementById('grokReasoningBtn'),
-    headerToggle: document.getElementById('headerToggle'),
-    mainHeader: document.getElementById('mainHeader'),
-    headerContent: document.getElementById('headerContent')
+    sendButton: document.getElementById('sendButton')
 };
 
 console.log('🔍 URL Detection:');
@@ -51,37 +45,9 @@ async function initializeDocument() {
     // Set model from URL parameter
     if (modelParam && (modelParam === 'gemini' || modelParam === 'grok' || modelParam === 'grok-reasoning')) {
         state.selectedModel = modelParam;
-        // Update button states
-        if (modelParam === 'grok') {
-            elements.grokBtn.classList.add('active');
-            elements.geminiBtn.classList.remove('active');
-            elements.grokReasoningBtn.classList.remove('active');
-        } else if (modelParam === 'grok-reasoning') {
-            elements.grokReasoningBtn.classList.add('active');
-            elements.grokBtn.classList.remove('active');
-            elements.geminiBtn.classList.remove('active');
-        } else {
-            elements.geminiBtn.classList.add('active');
-            elements.grokBtn.classList.remove('active');
-            elements.grokReasoningBtn.classList.remove('active');
-        }
-        // Update tooltip
         updateModelInTooltip(modelParam);
     } else {
-        // Default model - update button states and tooltip
-        if (state.selectedModel === 'grok') {
-            elements.grokBtn.classList.add('active');
-            elements.geminiBtn.classList.remove('active');
-            elements.grokReasoningBtn.classList.remove('active');
-        } else if (state.selectedModel === 'grok-reasoning') {
-            elements.grokReasoningBtn.classList.add('active');
-            elements.grokBtn.classList.remove('active');
-            elements.geminiBtn.classList.remove('active');
-        } else {
-            elements.geminiBtn.classList.add('active');
-            elements.grokBtn.classList.remove('active');
-            elements.grokReasoningBtn.classList.remove('active');
-        }
+        // Default model - update tooltip
         updateModelInTooltip(state.selectedModel);
     }
 
@@ -153,16 +119,6 @@ async function initializeDocument() {
         document.body.classList.add('local-env');
         console.log('🏠 Local environment detected - retrieval controls visible');
 
-        // Update button text for local environment (detailed labels)
-        elements.geminiBtn.textContent = 'Gemini 2.5';
-        elements.grokBtn.textContent = 'Grok 4 Fast';
-        elements.grokReasoningBtn.textContent = 'Grok 4 Fast Reasoning';
-
-        // Show additional Grok model option in local environment
-        if (elements.grokReasoningBtn) {
-            elements.grokReasoningBtn.style.display = 'inline-block';
-        }
-
         // Show URL parameters info in welcome message
         const urlParamsInfo = document.getElementById('urlParamsInfo');
         if (urlParamsInfo) {
@@ -172,41 +128,15 @@ async function initializeDocument() {
         console.log('🌐 Production environment - retrieval controls hidden');
 
         // In production, set default model to grok-4-fast-non-reasoning
-        state.selectedModel = 'grok';
-
-        // Update button text for production (simple labels)
-        elements.geminiBtn.textContent = 'Gemini';
-        elements.grokBtn.textContent = 'Grok';
-        elements.grokReasoningBtn.textContent = 'Grok';
+        // UNLESS explicitly overridden by URL parameter
+        if (!modelParam) {
+            state.selectedModel = 'grok';
+        }
     }
 
     // Update UI based on selected document (async) - force refresh to get latest data
     await updateDocumentUI(state.selectedDocument, true);
 }
-
-// Model selector event listeners
-elements.geminiBtn.addEventListener('click', () => {
-    state.selectedModel = 'gemini';
-    elements.geminiBtn.classList.add('active');
-    elements.grokBtn.classList.remove('active');
-    updateModelInTooltip('gemini');
-});
-
-elements.grokBtn.addEventListener('click', () => {
-    state.selectedModel = 'grok';
-    elements.grokBtn.classList.add('active');
-    elements.geminiBtn.classList.remove('active');
-    elements.grokReasoningBtn.classList.remove('active');
-    updateModelInTooltip('grok');
-});
-
-elements.grokReasoningBtn.addEventListener('click', () => {
-    state.selectedModel = 'grok-reasoning';
-    elements.grokReasoningBtn.classList.add('active');
-    elements.grokBtn.classList.remove('active');
-    elements.geminiBtn.classList.remove('active');
-    updateModelInTooltip('grok-reasoning');
-});
 
 // Event listeners for chat
 elements.sendButton.addEventListener('click', () => sendMessage(state, elements));
@@ -214,48 +144,6 @@ elements.messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendMessage(state, elements);
 });
 
-// Header collapse/expand functionality
-function initializeHeaderToggle() {
-    const STORAGE_KEY = 'ukidney-header-collapsed';
-    
-    // Load saved state from localStorage (defaults to false/expanded if not set)
-    const savedState = localStorage.getItem(STORAGE_KEY);
-    const isCollapsed = savedState === 'true';
-    
-    // Apply collapsed state only if explicitly saved as collapsed
-    if (isCollapsed && elements.mainHeader && elements.headerContent) {
-        elements.mainHeader.classList.add('collapsed');
-        console.log('Header initialized as collapsed (from localStorage)');
-    } else {
-        // Ensure it starts expanded (remove any collapsed class that might exist)
-        elements.mainHeader?.classList.remove('collapsed');
-        console.log('Header initialized as expanded (default)');
-    }
-    
-    // Toggle header on button click
-    if (elements.headerToggle && elements.mainHeader && elements.headerContent) {
-        elements.headerToggle.addEventListener('click', () => {
-            const isCurrentlyCollapsed = elements.mainHeader.classList.toggle('collapsed');
-            
-            // Save state to localStorage
-            localStorage.setItem(STORAGE_KEY, isCurrentlyCollapsed.toString());
-            
-            // Notify parent window if in iframe (for embedded usage)
-            if (window.parent !== window) {
-                try {
-                    window.parent.postMessage({
-                        type: 'headerCollapsed',
-                        collapsed: isCurrentlyCollapsed
-                    }, '*');
-                } catch (e) {
-                    console.log('Could not notify parent:', e);
-                }
-            }
-            
-            console.log(`Header ${isCurrentlyCollapsed ? 'collapsed' : 'expanded'}`);
-        });
-    }
-}
 
 // Expose submitRating to window for rating button clicks
 window.submitRating = submitRating;
@@ -263,10 +151,9 @@ window.submitRating = submitRating;
 // Initialize (async to ensure document is loaded before health check)
 (async () => {
     // Preload logos to prevent layout shift
-    preloadLogos();
+    await preloadLogos();
 
     await initializeDocument();
-    initializeHeaderToggle();
 
     // Initialize PubMed popup functionality
     initializePubMedPopup();

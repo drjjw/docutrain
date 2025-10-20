@@ -60,7 +60,7 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
-app.use(express.static('public'));
+// Note: express.static moved AFTER custom routes to allow dynamic meta tag injection
 
 // Initialize AI clients
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -113,6 +113,53 @@ const supabase = createClient(
 );
 
 // RAG-only architecture - no PDF loading in memory
+
+// ==================== HTML SANITIZATION ====================
+
+/**
+ * Sanitize HTML intro messages to prevent XSS attacks
+ * Allows only safe tags and strips dangerous attributes
+ */
+function sanitizeIntroHTML(html) {
+    if (!html || typeof html !== 'string') {
+        return null;
+    }
+    
+    // Allowed tags (safe for display)
+    const allowedTags = ['strong', 'em', 'b', 'i', 'br', 'ul', 'ol', 'li', 'a', 'p', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+    
+    // Remove script tags and their content
+    let sanitized = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    
+    // Remove event handlers (onclick, onerror, etc.)
+    sanitized = sanitized.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
+    sanitized = sanitized.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '');
+    
+    // Remove javascript: protocol from hrefs
+    sanitized = sanitized.replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"');
+    
+    // Remove style attributes (to prevent CSS injection)
+    sanitized = sanitized.replace(/\s*style\s*=\s*["'][^"']*["']/gi, '');
+    
+    // Remove any tags not in allowed list
+    const tagRegex = /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi;
+    sanitized = sanitized.replace(tagRegex, (match, tagName) => {
+        if (allowedTags.includes(tagName.toLowerCase())) {
+            // For anchor tags, ensure only href attribute is kept
+            if (tagName.toLowerCase() === 'a') {
+                const hrefMatch = match.match(/href\s*=\s*["']([^"']*)["']/i);
+                if (hrefMatch) {
+                    return `<a href="${hrefMatch[1]}">`;
+                }
+                return match.includes('</') ? '</a>' : '<a>';
+            }
+            return match;
+        }
+        return ''; // Remove disallowed tags
+    });
+    
+    return sanitized.trim() || null;
+}
 
 // ==================== RAG ENHANCEMENT ====================
 
@@ -473,7 +520,8 @@ app.post('/api/chat', async (req, res) => {
     }
 
     try {
-        const { message, history = [], model = 'gemini', doc = 'smh' } = req.body;
+        const { message, history = [], model: requestedModel = 'gemini', doc = 'smh' } = req.body;
+        let model = requestedModel; // Use let so we can override if needed
         
         // Get embedding type from query parameter (openai or local)
         let embeddingType = req.query.embedding || 'openai';
@@ -560,10 +608,10 @@ app.post('/api/chat', async (req, res) => {
                     chunkLimit = data;
                 }
                 
-                // Get owner info for logging
+                // Get owner info for logging and model enforcement
                 const { data: docData } = await supabase
                     .from('documents_with_owner')
-                    .select('owner_slug, owner_name, default_chunk_limit')
+                    .select('owner_slug, owner_name, default_chunk_limit, forced_grok_model')
                     .eq('slug', documentSlugs[0])
                     .single();
                 ownerInfo = docData;
@@ -576,17 +624,17 @@ app.post('/api/chat', async (req, res) => {
                     chunkLimit = data;
                 }
                 
-                // Get owner info for logging
+                // Get owner info for logging and model enforcement
                 const { data: docData } = await supabase
                     .from('documents_with_owner')
-                    .select('owner_slug, owner_name, default_chunk_limit')
+                    .select('owner_slug, owner_name, default_chunk_limit, forced_grok_model')
                     .in('slug', documentSlugs);
                 if (docData && docData.length > 0) {
                     const uniqueOwners = [...new Set(docData.map(d => d.owner_slug))];
                     if (uniqueOwners.length === 1) {
                         ownerInfo = docData[0];
                     } else {
-                        ownerInfo = { owner_slug: 'mixed', owner_name: 'Multiple Owners', default_chunk_limit: 50 };
+                        ownerInfo = { owner_slug: 'mixed', owner_name: 'Multiple Owners', default_chunk_limit: 50, forced_grok_model: null };
                     }
                 }
             }
@@ -595,6 +643,18 @@ app.post('/api/chat', async (req, res) => {
         } catch (limitError) {
             console.warn(`⚠️  Could not fetch chunk limit, using default (50):`, limitError.message);
             chunkLimit = 50;
+        }
+
+        // Apply forced Grok model override if configured for this owner
+        let originalModel = model;
+        if (ownerInfo?.forced_grok_model && (model === 'grok' || model === 'grok-reasoning')) {
+            originalModel = model;
+            model = ownerInfo.forced_grok_model;
+            console.log(`🔒 FORCED MODEL OVERRIDE:`);
+            console.log(`   - Owner: ${ownerInfo.owner_name}`);
+            console.log(`   - User requested: ${originalModel}`);
+            console.log(`   - Forced to use: ${model}`);
+            console.log(`   - Reason: Owner-configured safety mechanism`);
         }
 
         let responseText;
@@ -776,7 +836,10 @@ app.post('/api/chat', async (req, res) => {
                     owner_slug: ownerInfo?.owner_slug || null,
                     owner_name: ownerInfo?.owner_name || null,
                     chunk_limit_configured: chunkLimit,
-                    chunk_limit_source: ownerInfo ? 'owner' : 'default'
+                    chunk_limit_source: ownerInfo ? 'owner' : 'default',
+                    forced_grok_model: ownerInfo?.forced_grok_model || null,
+                    model_override_applied: originalModel !== model,
+                    original_model_requested: originalModel !== model ? originalModel : null
                 }
             };
 
@@ -862,20 +925,184 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-// Root route - serve index.html
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Helper function to escape HTML to prevent XSS
+function escapeHtml(text) {
+    if (!text) return '';
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// Root route - serve index.html with dynamic meta tags
+app.get('/', async (req, res) => {
+    try {
+        // Read the index.html file
+        const indexPath = path.join(__dirname, 'public', 'index.html');
+        let html = fs.readFileSync(indexPath, 'utf8');
+        
+        // Check if doc parameter is provided
+        const docParam = req.query.doc;
+        
+        if (docParam) {
+            // Parse multiple documents (support for + separator)
+            const docSlugs = docParam.split('+').map(s => s.trim()).filter(s => s);
+            
+            if (docSlugs.length > 0) {
+                // Fetch document configs
+                const docConfigs = await Promise.all(
+                    docSlugs.map(slug => documentRegistry.getDocumentBySlug(slug))
+                );
+                
+                // Filter out null results
+                const validConfigs = docConfigs.filter(c => c !== null);
+                
+                if (validConfigs.length > 0) {
+                    // Build title and description
+                    const isMultiDoc = validConfigs.length > 1;
+                    const combinedTitle = validConfigs.map(c => c.title).join(' + ');
+                    const metaDescription = isMultiDoc 
+                        ? `Multi-document search across ${validConfigs.length} documents: ${combinedTitle}`
+                        : (validConfigs[0].subtitle || validConfigs[0].welcome_message || 'AI-powered document assistant');
+                    
+                    // Escape HTML to prevent XSS
+                    const escapedTitle = escapeHtml(combinedTitle);
+                    const escapedDescription = escapeHtml(metaDescription);
+                    
+                    // Replace meta tags in HTML
+                    html = html.replace(
+                        /<title>.*?<\/title>/,
+                        `<title>${escapedTitle}</title>`
+                    );
+                    
+                    html = html.replace(
+                        /<meta name="description" content=".*?">/,
+                        `<meta name="description" content="${escapedDescription}">`
+                    );
+                    
+                    html = html.replace(
+                        /<meta property="og:title" content=".*?">/,
+                        `<meta property="og:title" content="${escapedTitle}">`
+                    );
+                    
+                    html = html.replace(
+                        /<meta property="og:description" content=".*?">/,
+                        `<meta property="og:description" content="${escapedDescription}">`
+                    );
+                    
+                    html = html.replace(
+                        /<meta name="twitter:title" content=".*?">/,
+                        `<meta name="twitter:title" content="${escapedTitle}">`
+                    );
+                    
+                    html = html.replace(
+                        /<meta name="twitter:description" content=".*?">/,
+                        `<meta name="twitter:description" content="${escapedDescription}">`
+                    );
+                    
+                    console.log(`📄 Serving index.html with dynamic meta tags for: ${combinedTitle}`);
+                }
+            }
+        }
+        
+        // Send the modified HTML
+        res.send(html);
+    } catch (error) {
+        console.error('Error serving index.html with dynamic meta tags:', error);
+        // Fallback to static file on error
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    }
 });
 
-// Catch index.php requests (Joomla/Apache adds this)
-app.get('/index.php', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Catch index.php requests (Joomla/Apache adds this) - use same dynamic meta tag logic
+app.get('/index.php', async (req, res) => {
+    try {
+        // Read the index.html file
+        const indexPath = path.join(__dirname, 'public', 'index.html');
+        let html = fs.readFileSync(indexPath, 'utf8');
+        
+        // Check if doc parameter is provided
+        const docParam = req.query.doc;
+        
+        if (docParam) {
+            // Parse multiple documents (support for + separator)
+            const docSlugs = docParam.split('+').map(s => s.trim()).filter(s => s);
+            
+            if (docSlugs.length > 0) {
+                // Fetch document configs
+                const docConfigs = await Promise.all(
+                    docSlugs.map(slug => documentRegistry.getDocumentBySlug(slug))
+                );
+                
+                // Filter out null results
+                const validConfigs = docConfigs.filter(c => c !== null);
+                
+                if (validConfigs.length > 0) {
+                    // Build title and description
+                    const isMultiDoc = validConfigs.length > 1;
+                    const combinedTitle = validConfigs.map(c => c.title).join(' + ');
+                    const metaDescription = isMultiDoc 
+                        ? `Multi-document search across ${validConfigs.length} documents: ${combinedTitle}`
+                        : (validConfigs[0].subtitle || validConfigs[0].welcome_message || 'AI-powered document assistant');
+                    
+                    // Escape HTML to prevent XSS
+                    const escapedTitle = escapeHtml(combinedTitle);
+                    const escapedDescription = escapeHtml(metaDescription);
+                    
+                    // Replace meta tags in HTML
+                    html = html.replace(
+                        /<title>.*?<\/title>/,
+                        `<title>${escapedTitle}</title>`
+                    );
+                    
+                    html = html.replace(
+                        /<meta name="description" content=".*?">/,
+                        `<meta name="description" content="${escapedDescription}">`
+                    );
+                    
+                    html = html.replace(
+                        /<meta property="og:title" content=".*?">/,
+                        `<meta property="og:title" content="${escapedTitle}">`
+                    );
+                    
+                    html = html.replace(
+                        /<meta property="og:description" content=".*?">/,
+                        `<meta property="og:description" content="${escapedDescription}">`
+                    );
+                    
+                    html = html.replace(
+                        /<meta name="twitter:title" content=".*?">/,
+                        `<meta name="twitter:title" content="${escapedTitle}">`
+                    );
+                    
+                    html = html.replace(
+                        /<meta name="twitter:description" content=".*?">/,
+                        `<meta name="twitter:description" content="${escapedDescription}">`
+                    );
+                    
+                    console.log(`📄 Serving index.php with dynamic meta tags for: ${combinedTitle}`);
+                }
+            }
+        }
+        
+        // Send the modified HTML
+        res.send(html);
+    } catch (error) {
+        console.error('Error serving index.php with dynamic meta tags:', error);
+        // Fallback to static file on error
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    }
 });
 
 // Catch any other .php requests
 app.get('*.php', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// Serve static files AFTER custom routes to allow dynamic meta tag injection
+app.use(express.static('public'));
 
 // Readiness check endpoint (for load balancers and PM2 health checks)
 app.get('/api/ready', async (req, res) => {
@@ -1119,6 +1346,39 @@ app.get('/api/documents', async (req, res) => {
     } catch (error) {
         console.error('Error fetching documents:', error);
         res.status(500).json({ error: 'Failed to fetch documents' });
+    }
+});
+
+// Owners API endpoint for logo configuration
+app.get('/api/owners', async (req, res) => {
+    try {
+        const { data: owners, error } = await supabase
+            .from('owners')
+            .select('slug, name, logo_url, metadata')
+            .not('logo_url', 'is', null);
+
+        if (error) {
+            console.error('Error fetching owners:', error);
+            return res.status(500).json({ error: 'Failed to fetch owners' });
+        }
+
+        // Transform the data to match the expected format
+        const ownerConfigs = {};
+        owners.forEach(owner => {
+            if (owner.logo_url) {
+                ownerConfigs[owner.slug] = {
+                    logo: owner.logo_url,
+                    alt: owner.metadata?.logo_alt || owner.name,
+                    link: owner.metadata?.logo_link || '#',
+                    accentColor: owner.metadata?.accent_color || '#cc0000'
+                };
+            }
+        });
+
+        res.json({ owners: ownerConfigs });
+    } catch (error) {
+        console.error('Error in owners API:', error);
+        res.status(500).json({ error: 'Failed to fetch owners' });
     }
 });
 

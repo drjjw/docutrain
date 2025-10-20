@@ -4,6 +4,8 @@
     box-sizing: border-box;
 }
 
+/* Dynamic accent color variables - set by JavaScript immediately on load */
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: #f8f8f8;
@@ -27,13 +29,57 @@ body {
     color: #333;
     padding: 24px 20px;
     border-bottom: 1px solid #e0e0e0;
-    text-align: center;
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     position: relative;
     transition: padding 0.3s ease;
     overflow: visible;
     z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
 }
+
+/* Header Logo - Left Section */
+.header-logo {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-shrink: 0;
+}
+
+.header-logo a {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-decoration: none;
+    transition: opacity 0.3s ease;
+}
+
+.header-logo a:hover {
+    opacity: 0.7;
+}
+
+.header-logo img {
+    height: 48px;
+    width: auto;
+    max-width: 200px;
+    object-fit: contain;
+    transition: opacity 0.3s ease;
+}
+
+/* Header Center - Title and Icons */
+.header-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+}
+
 
 /* Header Title Row - Title with Icons Beside It */
 .header-title-row {
@@ -57,95 +103,49 @@ body {
     gap: 8px;
 }
 
-/* Desktop: Enhanced card-based layout */
+/* Desktop: Enhanced header layout */
 @media (min-width: 769px) {
     .header {
         padding: 24px 40px;
         background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
     }
-    
-    .header-title-row {
-        background: white;
-        padding: 20px 28px 16px 28px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        border: 1px solid #e8e8e8;
-        margin-bottom: 0;
+
+    .header-logo {
+        margin-right: 20px;
     }
-    
-    .header-title-row h1 {
+
+    .header-center {
+        margin: 0 20px;
+    }
+
+
+    .header h1 {
         font-size: 24px;
-        margin-bottom: 0;
+        font-family: 'Anton', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        margin-bottom: 4px;
     }
-    
-    .header-title-row p {
-        margin-top: 8px;
-        margin-bottom: 0;
+
+    .header p {
         font-size: 14px;
         color: #777;
+        margin-top: 0;
     }
-    
+
     .header-content {
-        background: white;
-        padding: 16px 28px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        border: 1px solid #e8e8e8;
-        margin-top: 12px;
+        margin-top: 20px;
         display: flex;
         flex-direction: column;
-        gap: 0;
+        gap: 16px;
+        align-items: center;
     }
-    
-    .model-selector {
-        margin-top: 0;
-        background: transparent;
-        padding: 0;
-        border-radius: 0;
-        box-shadow: none;
-        border: none;
-        justify-content: center;
-    }
-    
+
     .back-link {
-        margin: 12px 0 0 0;
         align-self: center;
     }
 }
 
-/* Header Toggle Button */
-.header-toggle {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid #d5d5d5;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    padding: 0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-}
-
-.header-toggle:hover {
-    background: rgba(248, 248, 248, 1);
-    border-color: #999;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-}
-
-.header-toggle svg {
-    width: 16px;
-    height: 16px;
-    transition: transform 0.3s ease;
-    color: #555;
-}
-
 /* Desktop: Enhanced header icons */
 @media (min-width: 769px) {
-    .header-toggle,
     .about-icon {
         width: 32px;
         height: 32px;
@@ -154,42 +154,24 @@ body {
         border: 1px solid #e0e0e0;
         box-shadow: 0 2px 4px rgba(0,0,0,0.06);
     }
-    
-    .header-toggle:hover,
+
     .about-icon:hover {
         background: white;
         border-color: #cc0000;
         box-shadow: 0 3px 8px rgba(0,0,0,0.12);
     }
-    
-    .header-toggle svg,
+
     .about-icon svg {
         width: 18px;
         height: 18px;
     }
 }
 
-/* Collapsed state */
-.header.collapsed {
-    padding: 12px 20px;
-}
-
-.header.collapsed .header-toggle svg {
-    transform: rotate(180deg);
-}
 
 .header-content {
-    max-height: 500px;
+    width: 100%;
     opacity: 1;
     overflow: visible;
-    transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
-}
-
-.header.collapsed .header-content {
-    max-height: 0;
-    opacity: 0;
-    margin: 0;
-    overflow: hidden;
 }
 
 .back-link {
@@ -225,9 +207,9 @@ body {
 
 .header h1 {
     font-size: 26px;
-    font-weight: 600;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    letter-spacing: -0.02em;
+    font-weight: 400;
+    font-family: 'Anton', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    letter-spacing: 0.02em;
     line-height: 1.2;
     margin-bottom: 8px;
     color: #1a1a1a;
@@ -329,6 +311,108 @@ body {
 }
 
 /* Loading State */
+.loading-text {
+    opacity: 1;
+    font-style: none;
+}
+
+/* Document Cover and Welcome Layout */
+.document-cover-and-welcome {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 20px;
+    margin: 20px -20px; /* Negative margin to counteract parent padding */
+    padding: 0 20px; /* Add back padding for content */
+    width: calc(100% + 40px); /* Account for negative margins */
+    box-sizing: border-box;
+    align-items: flex-start; /* Align to top, let content determine height */
+    max-width: none; /* Allow full width */
+}
+
+.document-cover-section {
+    flex: 2; /* 2/5 of the width */
+    min-width: 0; /* Allow flex item to shrink below content size */
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    border-radius: 12px;
+    background: white;
+    display: flex;
+    align-items: center; /* Center image vertically when container is taller */
+    justify-content: center;
+}
+
+.document-cover-image {
+    width: 100%;
+    height: 100%; /* Fill container height */
+    object-fit: fill; /* Maintain aspect ratio */
+    display: block;
+    border-radius: 0;
+}
+
+.welcome-message-section {
+    flex: 3; /* 3/5 of the width */
+    min-width: 0; /* Allow flex item to shrink below content size */
+    display: flex;
+    align-items: stretch; /* Make message fill full height */
+}
+
+.welcome-message-section .message.assistant {
+    width: 100%;
+    height: 100%; /* Fill full height of container */
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0; /* Remove default margin */
+}
+
+/* Mobile responsiveness for cover and welcome layout */
+@media (max-width: 768px) {
+    .document-cover-and-welcome {
+        flex-direction: column !important;
+        gap: 15px;
+        margin: 15px 16px; /* Add side margins for mobile */
+        padding: 0;
+        width: auto; /* Let it size naturally within container */
+        align-items: stretch; /* Keep equal heights on mobile */
+    }
+
+    .document-cover-section {
+        flex: none;
+        height: 200px; /* Fixed height for mobile */
+        padding: 0;
+        margin: 0;
+        display: flex;
+        align-items: stretch;
+        border-radius: 8px; /* Add border radius on mobile */
+        overflow: hidden; /* Contain the image */
+    }
+
+    .document-cover-image {
+        height: 100%;
+        object-fit: contain;
+        border-radius: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .document-cover-and-welcome {
+        margin: 10px 12px; /* Add side margins for small screens */
+        padding: 0;
+        gap: 10px;
+        width: auto; /* Let it size naturally within container */
+    }
+
+    .document-cover-section {
+        height: 180px; /* Slightly larger height for better visibility */
+        padding: 0;
+        margin: 0;
+        display: flex;
+        align-items: stretch;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+}
 .pubmed-loading {
     display: flex;
     flex-direction: column;
@@ -353,9 +437,17 @@ body {
     100% { transform: rotate(360deg); }
 }
 
-.loading-text {
-    font-size: 14px;
-    text-align: center;
+/* Welcome Title Typography - Both regular and cover versions */
+#regularWelcomeTitle, #welcomeTitle {
+    font-size: 32px;
+    font-weight: 400;
+    font-family: 'Anton', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+    text-align: left;
+    color: #1a1a1a;
+    margin-bottom: 12px;
+    text-transform: uppercase;
 }
 
 /* Content State */
@@ -445,35 +537,34 @@ body {
     }
 }
 
-/* Mobile: Show back link since user is on full page */
+/* Mobile: Responsive header layout */
 @media (max-width: 768px) {
     .header {
         padding: 20px 16px;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
     }
 
     .header.collapsed {
         padding: 10px 16px;
     }
 
-    .header-title-row {
-        gap: 8px;
+    .header-logo {
+        justify-content: center;
+        margin-bottom: 8px;
+        order: -1; /* Logo comes first on mobile */
     }
 
-    .header-toggle {
-        width: 24px;
-        height: 24px;
-        min-width: 24px;
-    }
-
-    .header-toggle svg {
-        width: 14px;
-        height: 14px;
+    .header-center {
+        margin-bottom: 8px;
     }
 
     .header h1 {
         font-size: 22px;
-        font-weight: 600;
-        letter-spacing: -0.02em;
+        font-weight: 400;
+        font-family: 'Anton', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        letter-spacing: 0.02em;
         line-height: 1.2;
         margin-bottom: 6px;
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -484,120 +575,20 @@ body {
         margin-bottom: 12px;
     }
 
+    .header-content {
+        margin-top: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+
     .back-link {
         display: inline-flex;
+        align-self: center;
     }
 }
 
-.model-selector {
-    display: flex;
-    gap: 12px;
-    margin-top: 16px;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.logo {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-right: 16px;
-    margin-right: 4px;
-    border-right: 2px solid #d5d5d5;
-    /* Fixed dimensions to prevent layout shift - balanced for both square and rectangular logos */
-    min-width: 120px;
-    height: 48px;
-}
-
-/* Desktop: Enhanced logo styling within card */
-@media (min-width: 769px) {
-    .logo {
-        border-right: 2px solid #e8e8e8;
-        padding-right: 20px;
-        margin-right: 8px;
-    }
-}
-
-.logo a {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    text-decoration: none;
-    transition: opacity 0.3s ease;
-    /* Ensure logo link takes full space */
-    width: 100%;
-    height: 100%;
-}
-
-.logo a:hover {
-    opacity: 0.7;
-}
-
-.logo img {
-    height: 48px;
-    width: auto;
-    max-width: 120px;
-    object-fit: contain;
-    /* Smooth transition when logo changes */
-    transition: opacity 0.3s ease;
-}
-
-.model-btn {
-    padding: 8px 20px;
-    border: 1px solid #d5d5d5;
-    background: white;
-    color: #555;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    letter-spacing: 0.3px;
-}
-
-.model-btn:hover {
-    background: #f8f8f8;
-    border-color: #999;
-    color: #333;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-}
-
-.model-btn.active {
-    background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
-    color: #2c2c2c;
-    border-color: #aaa;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    font-weight: 600;
-}
-
-/* Desktop: Enhanced button styling */
-@media (min-width: 769px) {
-    .model-btn {
-        padding: 10px 24px;
-        font-size: 15px;
-        border-radius: 9px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-    }
-    
-    .model-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    
-    .model-btn.active {
-        background: linear-gradient(135deg, #cc0000 0%, #b30000 100%);
-        color: white;
-        border-color: #cc0000;
-        box-shadow: 0 3px 6px rgba(204, 0, 0, 0.25);
-    }
-    
-    .model-btn.active:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 10px rgba(204, 0, 0, 0.3);
-    }
-}
 
 .retrieval-selector {
     display: flex;
@@ -652,28 +643,9 @@ body:not(.local-env) .retrieval-selector {
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
-    .model-selector {
-        gap: 8px;
-        margin-top: 12px;
-    }
-
-    .model-btn {
-        padding: 6px 12px;
-        font-size: 12px;
-    }
-
-    .logo {
-        justify-content: flex-end;
-        padding-right: 12px;
-        margin-right: 4px;
-        /* Maintain fixed dimensions on mobile to prevent layout shift - balanced for both logos */
-        min-width: 80px;
-        height: 36px;
-    }
-
-    .logo img {
-        height: 36px;
-        max-width: 80px;
+    .header-logo img {
+        height: 56px;
+        max-width: 180px;
         /* Maintain smooth transition on mobile */
         transition: opacity 0.3s ease;
     }
@@ -735,6 +707,18 @@ body:not(.local-env) .retrieval-selector {
     max-width: 90%;
     padding: 20px 24px;
     border-radius: 12px;
+    height: 100%; /* Fill full height of message container */
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Center content vertically within the message */
+}
+
+/* Special styling for welcome message in cover layout */
+.welcome-message-section .message.assistant .message-content {
+    padding: 20px 24px;
+    justify-content: flex-start;
+    align-items: flex-start;
+    height: 100%; /* Fill full height to match cover image */
 }
 
 /* Mobile message adjustments */
@@ -974,7 +958,7 @@ body:not(.local-env) .retrieval-selector {
 
 #sendButton {
     padding: 14px 24px;
-    background: linear-gradient(135deg, #cc0000 0%, #b30000 100%);
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-color-hover) 100%);
     color: white;
     border: none;
     border-radius: 10px;
@@ -982,13 +966,13 @@ body:not(.local-env) .retrieval-selector {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(204, 0, 0, 0.2);
+    box-shadow: 0 2px 8px var(--accent-color-shadow);
     letter-spacing: 0.3px;
 }
 
 #sendButton:hover:not(:disabled) {
-    background: linear-gradient(135deg, #b30000 0%, #990000 100%);
-    box-shadow: 0 4px 12px rgba(204, 0, 0, 0.3);
+    background: linear-gradient(135deg, var(--accent-color-hover) 0%, var(--accent-color-hover) 100%);
+    box-shadow: 0 4px 12px var(--accent-color-shadow);
 }
 
 #sendButton:disabled {
@@ -996,17 +980,17 @@ body:not(.local-env) .retrieval-selector {
     cursor: not-allowed;
 }
 
-/* Maker-specific submit button styling */
+/* Maker-specific submit button styling - uses dynamic accent colors */
 #sendButton.maker-theme {
-    background: linear-gradient(135deg, #ffe801 0%, #e6d401 100%);
-    color: #000000;
-    box-shadow: 0 2px 8px rgba(255, 232, 1, 0.2);
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-color-hover) 100%);
+    color: #000000; /* Black text for bright backgrounds */
+    box-shadow: 0 2px 8px var(--accent-color-shadow);
 }
 
 #sendButton.maker-theme:hover:not(:disabled) {
-    background: linear-gradient(135deg, #e6d401 0%, #ccc101 100%);
-    color: #000000;
-    box-shadow: 0 4px 12px rgba(255, 232, 1, 0.3);
+    background: linear-gradient(135deg, var(--accent-color-hover) 0%, var(--accent-color-hover) 100%);
+    color: #000000; /* Black text for bright backgrounds */
+    box-shadow: 0 4px 12px var(--accent-color-shadow);
 }
 
 /* Document selection modal styling */
@@ -1651,6 +1635,16 @@ hr.references-separator {
     color: #4285f4;
     flex-shrink: 0;
     margin-top: 2px;
+}
+
+.document-item .doc-cover-thumb {
+    width: 32px;
+    height: 24px;
+    margin-right: 12px;
+    object-fit: cover;
+    border-radius: 3px;
+    border: 1px solid #e0e0e0;
+    flex-shrink: 0;
 }
 
 .document-item-content {

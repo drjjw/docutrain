@@ -4,8 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="origin">
-    <title>UKidney Manual Assistant</title>
+    <title>AI Document Assistant</title>
+    <meta name="description" content="AI-powered document assistant for medical guidelines and research papers">
+    <meta property="og:title" content="AI Document Assistant">
+    <meta property="og:description" content="AI-powered document assistant for medical guidelines and research papers">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="AI Document Assistant">
+    <meta name="twitter:description" content="AI-powered document assistant for medical guidelines and research papers">
     
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton:wght@400&display=swap" rel="stylesheet">
+
     <!-- External Dependencies -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
@@ -20,9 +32,17 @@
     
     <div class="container">
         <div class="header" id="mainHeader">
-            <div class="header-title-row">
+            <!-- Logo Section - Left -->
+            <div class="header-logo">
+                <a href="#" target="_blank" rel="noopener noreferrer">
+                    <img src="" alt="" style="display: none;" />
+                </a>
+            </div>
+
+            <!-- Title and Icons Section - Center -->
+            <div class="header-center">
                 <div class="header-title-wrapper">
-                    <h1 id="headerTitle">Nephrology Manual</h1>
+                    <h1 id="headerTitle" class="loading-text">Loading...</h1>
                     <div class="header-icons">
                         <button class="about-icon" id="aboutIcon" title="About this assistant">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -31,91 +51,69 @@
                                 <path d="M12 17h.01"></path>
                             </svg>
                             <div class="about-tooltip" id="aboutTooltip">
-                                This assistant uses the <span id="documentName">Nephrology Manual</span> to provide contextual responses powered by <span id="modelName">Gemini 2.5</span>.
+                                This assistant uses the <span id="documentName" class="loading-text">Loading...</span> to provide contextual responses powered by <span id="modelName">Gemini 2.5</span>.
                             </div>
                         </button>
-                        <button id="headerToggle" class="header-toggle" aria-label="Toggle header" title="Collapse/Expand header">
+                    </div>
+                </div>
+                <p id="headerSubtitle" class="loading-text">Loading document...</p>
+            </div>
+
+        </div>
+
+        <!-- Always Visible Header Content -->
+        <div class="header-content">
+            <!-- Document Selector (shown when owner has document_selector enabled) -->
+            <div class="document-selector-container" id="documentSelectorContainer" style="display: none;">
+                <button class="document-selector-btn" id="documentSelectorBtn">
+                    <svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <span class="current-doc-name" id="currentDocName">Select Document</span>
+                    <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+                <div class="document-selector-dropdown" id="documentSelectorDropdown">
+                    <div class="dropdown-header">
+                        <h3>Available Documents</h3>
+                        <button class="close-dropdown" id="closeDropdown">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="18 15 12 9 6 15"></polyline>
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
                             </svg>
                         </button>
                     </div>
-                </div>
-                <p id="headerSubtitle">Interactive search and consultation</p>
-            </div>
-            <div class="header-content" id="headerContent">
-                <!-- Document Selector (shown when owner has document_selector enabled) -->
-                <div class="document-selector-container" id="documentSelectorContainer" style="display: none;">
-                    <button class="document-selector-btn" id="documentSelectorBtn">
-                        <svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
+                    <div class="dropdown-search">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
                         </svg>
-                        <span class="current-doc-name" id="currentDocName">Select Document</span>
-                        <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <div class="document-selector-dropdown" id="documentSelectorDropdown">
-                        <div class="dropdown-header">
-                            <h3>Available Documents</h3>
-                            <button class="close-dropdown" id="closeDropdown">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="dropdown-search">
-                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
-                            </svg>
-                            <input type="text" id="documentSearch" placeholder="Search documents..." autocomplete="off">
-                        </div>
-                        <div class="document-list" id="documentList">
-                            <!-- Documents will be populated here -->
-                        </div>
+                        <input type="text" id="documentSearch" placeholder="Search documents..." autocomplete="off">
+                    </div>
+                    <div class="document-list" id="documentList">
+                        <!-- Documents will be populated here -->
                     </div>
                 </div>
-                
-                <div class="model-selector">
-                    <div class="logo">
-                        <a href="#" target="_blank" rel="noopener noreferrer">
-                            <img src="" alt="" style="display: none;" />
-                        </a>
-                    </div>
-                    <button id="geminiBtn" class="model-btn active">Gemini</button>
-                    <button id="grokBtn" class="model-btn">Grok</button>
-                    <button id="grokReasoningBtn" class="model-btn" style="display: none;">Grok</button>
-                </div>
-                <a href="https://ukidney.com/nephrology-publications/nephrology-manuals/st-michael-s-hospital-nephrology-manual" class="back-link">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M19 12H5M12 19l-7-7 7-7"/>
-                    </svg>
-                    Back to Manual
-                </a>
             </div>
+
+            <a href="#" class="back-link" style="display: none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                Back to Manual
+            </a>
         </div>
 
         <div id="chatContainer" class="chat-container">
-            <div class="message assistant" id="welcomeMessage">
+            <!-- Document Cover and Welcome Section (dynamically created when cover exists) -->
+
+            <!-- Regular welcome message for documents without cover -->
+            <div class="message assistant" id="regularWelcomeMessage" style="display: none;">
                 <div class="message-content">
-                    <strong id="welcomeTitle">Welcome</strong>
-                    <br><br>
-                    This is a document assistant. Please specify a document using <code>?doc=document-slug</code> in the URL.
-                    <br>
-                    <br>• <strong>Gemini 2.5</strong> — Structured responses with detailed organization
-                    <br>• <strong>Grok 4</strong> — Analytical reasoning with contextual depth
-                    <br><br>
-                    <span id="urlParamsInfo" style="display: none;">
-                        <strong>Advanced options:</strong>
-                        <br>• <code>?doc=smh</code> or <code>?doc=uhn</code> to select manual
-                        <br>• <code>?method=rag</code> for targeted retrieval mode
-                        <br>• Example: <code>?doc=uhn&method=rag</code>
-                        <br><br>
-                    </span>
-                    <em>Example: "What are the indications for urgent dialysis?" or "Compare hemodialysis and peritoneal dialysis"</em>
+                    <strong id="regularWelcomeTitle" class="loading-text"></strong>
+                    <div id="regularWelcomeContent"></div>
                 </div>
             </div>
         </div>
