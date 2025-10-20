@@ -100,6 +100,23 @@
         "department": "Intensive Care Unit",
         "audience": "Trainees"
       }
+    },
+    {
+      "slug": "obesity-management-2024",
+      "title": "Evidence to Action: Obesity Management",
+      "subtitle": "CPD Network",
+      "year": "2024",
+      "backLink": "https://cpdnetwork.ca/",
+      "welcomeMessage": "Evidence to Action: Obesity Management Educational Resource",
+      "pdfFilename": "Evidence-to-Action_Obesity-Management-EN_Sept18_FINAL.pdf",
+      "pdfSubdirectory": "slides",
+      "embeddingTypes": "both",
+      "owner": "CPD Network",
+      "metadata": {
+        "source": "CPD Network",
+        "document_type": "Educational Slides",
+        "topic": "Obesity Management"
+      }
     }
   ]
 }

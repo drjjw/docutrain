@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Downloads Feature Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 30px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        
+        .sql-block {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        .test-url {
+            background: #e7f3ff;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #0066cc;
+            margin: 15px 0;
+        }
+        
+        .test-url a {
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .test-url a:hover {
+            text-decoration: underline;
+        }
+        
+        .expected {
+            background: #d4edda;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #28a745;
+            margin: 15px 0;
+        }
+        
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .checklist li {
+            padding: 8px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        
+        .checklist li:before {
+            content: "☐";
+            position: absolute;
+            left: 0;
+            font-size: 18px;
+            color: #666;
+        }
+        
+        .note {
+            background: #fff3cd;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+        
+        code {
+            background: #f1f1f1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📥 Downloads Feature - Test Suite</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Single Download</h2>
+        <p>Add a single download button to a document.</p>
+        
+        <div class="sql-block">
+UPDATE documents 
+SET downloads = '[{
+  "title": "Download PDF",
+  "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+}]'::jsonb
+WHERE slug = 'smh';
+        </div>
+        
+        <div class="test-url">
+            <strong>Test URL:</strong> <a href="/?doc=smh" target="_blank">/?doc=smh</a>
+        </div>
+        
+        <div class="expected">
+            <strong>Expected Result:</strong>
+            <ul>
+                <li>One download button appears below the header</li>
+                <li>Button labeled "Download PDF"</li>
+                <li>Button uses document owner's accent color</li>
+                <li>Clicking button downloads the PDF</li>
+            </ul>
+        </div>
+        
+        <ul class="checklist">
+            <li>Button appears correctly</li>
+            <li>Button has download icon</li>
+            <li>Hover effect works</li>
+            <li>Download works</li>
+            <li>Mobile responsive</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Multiple Downloads</h2>
+        <p>Add multiple download buttons to a document.</p>
+        
+        <div class="sql-block">
+UPDATE documents 
+SET downloads = '[
+  {"title": "PDF Version", "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"},
+  {"title": "EPUB Version", "url": "https://example.com/test.epub"},
+  {"title": "Supplementary Materials", "url": "https://example.com/supplement.pdf"}
+]'::jsonb
+WHERE slug = 'smh';
+        </div>
+        
+        <div class="test-url">
+            <strong>Test URL:</strong> <a href="/?doc=smh" target="_blank">/?doc=smh</a>
+        </div>
+        
+        <div class="expected">
+            <strong>Expected Result:</strong>
+            <ul>
+                <li>Three download buttons appear side by side</li>
+                <li>Buttons wrap on mobile</li>
+                <li>All buttons use same accent color</li>
+                <li>Each button has its own label</li>
+            </ul>
+        </div>
+        
+        <ul class="checklist">
+            <li>All three buttons appear</li>
+            <li>Buttons are evenly spaced</li>
+            <li>Layout wraps on mobile</li>
+            <li>Each button works independently</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Multi-Document with Downloads</h2>
+        <p>Test downloads when viewing multiple documents.</p>
+        
+        <div class="sql-block">
+-- Add downloads to first document
+UPDATE documents 
+SET downloads = '[{"title": "SMH Manual PDF", "url": "https://example.com/smh.pdf"}]'::jsonb
+WHERE slug = 'smh';
+
+-- Add downloads to second document
+UPDATE documents 
+SET downloads = '[{"title": "Maker Manual PDF", "url": "https://example.com/maker.pdf"}]'::jsonb
+WHERE slug = 'maker-franchise-training';
+        </div>
+        
+        <div class="test-url">
+            <strong>Test URL:</strong> <a href="/?doc=smh+maker-franchise-training" target="_blank">/?doc=smh+maker-franchise-training</a>
+        </div>
+        
+        <div class="expected">
+            <strong>Expected Result:</strong>
+            <ul>
+                <li>Both download buttons appear</li>
+                <li>Tooltips show which document each belongs to</li>
+                <li>Example: "SMH Manual PDF - SMH Nephrology Housestaff Manual"</li>
+            </ul>
+        </div>
+        
+        <ul class="checklist">
+            <li>Both buttons appear</li>
+            <li>Tooltips show document names</li>
+            <li>Both downloads work</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 4: No Downloads</h2>
+        <p>Test that container is hidden when no downloads are available.</p>
+        
+        <div class="sql-block">
+UPDATE documents 
+SET downloads = '[]'::jsonb
+WHERE slug = 'smh';
+        </div>
+        
+        <div class="test-url">
+            <strong>Test URL:</strong> <a href="/?doc=smh" target="_blank">/?doc=smh</a>
+        </div>
+        
+        <div class="expected">
+            <strong>Expected Result:</strong>
+            <ul>
+                <li>No download buttons appear</li>
+                <li>No empty container visible</li>
+                <li>Console shows: <code>📥 No downloads available for current document(s)</code></li>
+            </ul>
+        </div>
+        
+        <ul class="checklist">
+            <li>No buttons visible</li>
+            <li>No layout shift</li>
+            <li>Console message appears</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 5: Invalid JSON Handling</h2>
+        <p>Test that invalid download objects are skipped gracefully.</p>
+        
+        <div class="sql-block">
+UPDATE documents 
+SET downloads = '[
+  {"title": "Valid PDF", "url": "https://example.com/valid.pdf"},
+  {"title": "Missing URL"},
+  {"url": "https://example.com/missing-title.pdf"},
+  {"title": "Another Valid", "url": "https://example.com/valid2.pdf"}
+]'::jsonb
+WHERE slug = 'smh';
+        </div>
+        
+        <div class="test-url">
+            <strong>Test URL:</strong> <a href="/?doc=smh" target="_blank">/?doc=smh</a>
+        </div>
+        
+        <div class="expected">
+            <strong>Expected Result:</strong>
+            <ul>
+                <li>Only two buttons appear (the valid ones)</li>
+                <li>Invalid entries are silently skipped</li>
+                <li>No JavaScript errors in console</li>
+            </ul>
+        </div>
+        
+        <ul class="checklist">
+            <li>Only valid buttons appear</li>
+            <li>No errors in console</li>
+            <li>Layout still looks good</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 6: Different Owner Accent Colors</h2>
+        <p>Test that buttons use the correct accent color for different owners.</p>
+        
+        <div class="note">
+            <strong>Note:</strong> This test requires documents with different owners (e.g., UKidney, Maker, SMH).
+        </div>
+        
+        <div class="sql-block">
+-- Add downloads to documents with different owners
+UPDATE documents 
+SET downloads = '[{"title": "Download", "url": "https://example.com/file.pdf"}]'::jsonb
+WHERE owner IN ('ukidney', 'maker', 'smh');
+        </div>
+        
+        <div class="test-url">
+            <strong>Test URLs:</strong><br>
+            <a href="/?doc=smh" target="_blank">/?doc=smh</a> (Blue)<br>
+            <a href="/?doc=maker-franchise-training" target="_blank">/?doc=maker-franchise-training</a> (Yellow)<br>
+        </div>
+        
+        <div class="expected">
+            <strong>Expected Result:</strong>
+            <ul>
+                <li>Each document's download button uses its owner's accent color</li>
+                <li>Hover effects use the darker shade of the accent color</li>
+            </ul>
+        </div>
+        
+        <ul class="checklist">
+            <li>SMH buttons are blue</li>
+            <li>Maker buttons are yellow</li>
+            <li>Colors match header theme</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 7: Mobile Responsive</h2>
+        <p>Test download buttons on mobile devices.</p>
+        
+        <div class="note">
+            <strong>Testing:</strong> Use browser DevTools to simulate mobile viewport (iPhone, Android).
+        </div>
+        
+        <ul class="checklist">
+            <li>Buttons stack vertically on narrow screens</li>
+            <li>Font size is appropriate for mobile</li>
+            <li>Touch targets are large enough (min 44x44px)</li>
+            <li>No horizontal scrolling</li>
+            <li>Buttons remain centered</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>Cleanup</h2>
+        <p>After testing, reset the test document:</p>
+        
+        <div class="sql-block">
+-- Remove test downloads
+UPDATE documents 
+SET downloads = '[]'::jsonb
+WHERE slug = 'smh';
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Console Debugging</h2>
+        <p>Open browser console (F12) and look for these messages:</p>
+        
+        <ul>
+            <li><code>📥 Created N download button(s)</code> - Success</li>
+            <li><code>📥 No downloads available for current document(s)</code> - No downloads</li>
+        </ul>
+        
+        <div class="note">
+            <strong>Tip:</strong> Filter console by "download" to see only relevant messages.
+        </div>
+    </div>
+</body>
+</html>
+
