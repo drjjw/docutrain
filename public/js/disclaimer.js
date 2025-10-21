@@ -83,9 +83,9 @@ function showDisclaimer() {
             });
             console.log('✅ User accepted disclaimer (session only)');
         } else if (result.isDismissed) {
-            // User declined - redirect to home
+            // User declined - redirect to goodbye page
             console.log('❌ User declined disclaimer');
-            window.location.href = "/";
+            window.location.href = "/goodbye";
         }
     });
 }

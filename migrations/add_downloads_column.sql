@@ -32,3 +32,4 @@ COMMENT ON COLUMN documents.downloads IS 'Array of download links with title and
 -- ]'::jsonb
 -- WHERE slug = 'document-slug';
 
+

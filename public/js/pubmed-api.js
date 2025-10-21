@@ -33,7 +33,11 @@ export async function fetchPubMedArticle(pmid) {
         });
 
         if (!response.ok) {
-            throw new Error(`PubMed API error: ${response.status}`);
+            if (response.status === 429) {
+                throw new Error(`Rate limit exceeded. Please wait before making another request.`);
+            } else {
+                throw new Error(`PubMed API error: ${response.status} ${response.statusText}`);
+            }
         }
 
         const data = await response.json();

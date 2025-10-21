@@ -16,7 +16,7 @@ const { createCacheRouter } = require('./lib/routes/cache');
 const rag = require('./lib/rag');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3457;
 
 // Graceful shutdown handling
 let server;

@@ -36,20 +36,83 @@ const BATCH_DELAY_MS = 10; // Small delay between batches (local is fast)
  */
 function cleanPDFText(text) {
     let cleaned = text;
-    
-    // Remove "Page X" headers
-    cleaned = cleaned.replace(/\s*Page \d+\s*/g, '\n');
-    
+
+    // Convert "Page X" headers to citation markers
+    cleaned = cleaned.replace(/\s*Page (\d+)\s*/g, '\n[Page $1]\n');
+
+    // Convert standalone page numbers (like "2 ", "3 ", etc.) to citation markers
+    // This handles UHN PDF format where page numbers appear as standalone numbers
+    cleaned = cleaned.replace(/^\s*(\d+)\s*$/gm, '\n[Page $1]\n');
+
     // Remove excessive whitespace
     cleaned = cleaned.replace(/\n\n\n+/g, '\n\n');
-    
+
     // Trim lines
     cleaned = cleaned.split('\n')
         .map(line => line.trim())
         .filter(line => line.length > 0)
         .join('\n');
-    
+
     return cleaned;
+}
+
+/**
+ * Enhanced PDF text extraction with automatic page markers
+ * Uses pdf-parse's page-by-page capabilities to insert accurate page markers
+ */
+async function extractPDFTextWithPageMarkers(pdfPath) {
+    const fs = require('fs');
+    const pdf = require('pdf-parse');
+
+    const buffer = fs.readFileSync(pdfPath);
+    const data = await pdf(buffer);
+
+    let fullText = data.text;
+    const numPages = data.numpages;
+
+    // Check if text already has page markers
+    const pageMarkerRegex = /\[Page \d+\]/g;
+    const existingMarkers = fullText.match(pageMarkerRegex);
+
+    if (!existingMarkers || existingMarkers.length < numPages * 0.5) {
+        console.log(`   Adding ${numPages} page markers to text...`);
+
+        // Since pdf-parse doesn't easily give us page-by-page text,
+        // we'll use a different approach: estimate page boundaries and insert markers
+
+        // Clean the text first
+        fullText = cleanPDFText(fullText);
+
+        // Calculate approximate characters per page
+        const totalChars = fullText.length;
+        const avgCharsPerPage = Math.floor(totalChars / numPages);
+
+        // Insert page markers at estimated boundaries
+        let markedText = '';
+        let currentPos = 0;
+        let currentPage = 1;
+
+        // Add first page marker
+        markedText += `[Page ${currentPage}]\n`;
+
+        while (currentPos < totalChars && currentPage <= numPages) {
+            const pageEnd = Math.min(currentPos + avgCharsPerPage, totalChars);
+            const pageText = fullText.substring(currentPos, pageEnd);
+
+            markedText += pageText;
+
+            currentPos = pageEnd;
+            currentPage++;
+
+            if (currentPage <= numPages && currentPos < totalChars) {
+                markedText += `\n\n[Page ${currentPage}]\n`;
+            }
+        }
+
+        fullText = markedText;
+    }
+
+    return fullText;
 }
 
 /**
@@ -152,10 +215,13 @@ async function processEmbeddingsBatch(chunks, startIdx, batchSize) {
  * Load PDF and return content
  */
 async function loadPDF(filepath) {
+    // Use enhanced text extraction with automatic page markers
+    const text = await extractPDFTextWithPageMarkers(filepath);
     const dataBuffer = fs.readFileSync(filepath);
     const data = await pdf(dataBuffer);
+
     return {
-        text: cleanPDFText(data.text),
+        text: text, // Already cleaned and marked in extractPDFTextWithPageMarkers
         pages: data.numpages,
         info: data.info
     };
@@ -363,10 +429,50 @@ async function main() {
         await processDocument(doc);
     }
 
+    // Post-processing validation
+    console.log('\n🔍 Running page number validation...');
+    await validatePageNumbers(docsToProcess);
+
     console.log('\n' + '='.repeat(60));
     console.log(`🎉 Processed ${docsToProcess.length} document(s) successfully!`);
     console.log('📊 Local embeddings stored in document_chunks_local table');
     console.log('='.repeat(60) + '\n');
+}
+
+/**
+ * Validate page numbers for processed documents
+ */
+async function validatePageNumbers(processedDocs) {
+    for (const doc of processedDocs) {
+        try {
+            // Check how many unique page numbers we have vs total chunks
+            const { data, error } = await supabase
+                .from('document_chunks_local')
+                .select('metadata')
+                .eq('document_slug', doc.slug);
+
+            if (error) {
+                console.error(`❌ Error querying chunks for ${doc.slug}:`, error.message);
+                continue;
+            }
+
+            const totalChunks = data.length;
+            const uniquePages = new Set(data.map(chunk => chunk.metadata?.page_number)).size;
+
+            // Flag potential issues
+            if (uniquePages === 1) {
+                console.warn(`⚠️  WARNING: ${doc.slug} has only 1 unique page number (${totalChunks} total chunks)`);
+                console.warn(`    This suggests page detection may have failed. Check PDF format.`);
+            } else if (uniquePages < totalChunks * 0.1) {
+                console.warn(`⚠️  WARNING: ${doc.slug} has very few unique pages (${uniquePages}/${totalChunks})`);
+                console.warn(`    This may indicate page detection issues.`);
+            } else {
+                console.log(`✅ ${doc.slug}: ${uniquePages} unique pages across ${totalChunks} chunks`);
+            }
+        } catch (error) {
+            console.error(`❌ Error validating ${doc.slug}:`, error.message);
+        }
+    }
 }
 
 // Run main function

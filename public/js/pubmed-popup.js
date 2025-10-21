@@ -5,6 +5,37 @@
 
 import { fetchPubMedArticle } from './pubmed-api.js';
 
+/**
+ * Fetch PubMed article with retry logic for rate limiting
+ */
+async function fetchPubMedArticleWithRetry(pmid, maxRetries = 2, delay = 1000) {
+    let lastError;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            return await fetchPubMedArticle(pmid);
+        } catch (error) {
+            lastError = error;
+
+            // If it's the last attempt, throw the error
+            if (attempt === maxRetries) {
+                throw error;
+            }
+
+            // If it's a rate limit error (429) or network error, wait and retry
+            if (error.message.includes('429') || error.message.includes('rate limit') || error.message.includes('fetch')) {
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2; // Exponential backoff
+            } else {
+                // For other errors (like article not found), don't retry
+                throw error;
+            }
+        }
+    }
+
+    throw lastError;
+}
+
 // Global popup instance
 let pubmedPopup = null;
 let currentPopupTimeout = null;
@@ -94,7 +125,7 @@ function setupPMIDLinkListeners() {
 }
 
 /**
- * Handle mouseover events on PMID links
+ * Handle mouseover events on PMID links and about icon
  */
 function handleMouseOver(event) {
     const target = event.target;
@@ -108,17 +139,36 @@ function handleMouseOver(event) {
             showPopupForPMID(pmid, linkElement);
         }
     }
+
+    // Check if this is the about icon (question mark) with PMID data
+    if (target.id === 'aboutIcon' || target.closest('#aboutIcon')) {
+        const iconElement = target.id === 'aboutIcon' ? target : target.closest('#aboutIcon');
+        const pmid = iconElement.dataset.pmid;
+
+        if (pmid) {
+            showPopupForPMID(pmid, iconElement);
+        }
+    }
 }
 
 /**
- * Handle mouseout events
+ * Handle mouseout events from PMID links and about icon
  */
 function handleMouseOut(event) {
     const target = event.target;
     const relatedTarget = event.relatedTarget;
 
-    // Only handle mouseout from PMID links
+    // Handle mouseout from PMID links
     if (target.classList.contains('pmid-link') || target.closest('.pmid-link')) {
+        // If we're not moving to the popup, schedule hide
+        if (!relatedTarget || !pubmedPopup || !pubmedPopup.contains(relatedTarget)) {
+            scheduleHidePopup();
+        }
+        // If we're moving to the popup, the popup's mouseenter will cancel the hide
+    }
+
+    // Handle mouseout from about icon (question mark)
+    if (target.id === 'aboutIcon' || target.closest('#aboutIcon')) {
         // If we're not moving to the popup, schedule hide
         if (!relatedTarget || !pubmedPopup || !pubmedPopup.contains(relatedTarget)) {
             scheduleHidePopup();
@@ -160,15 +210,26 @@ async function showPopupForPMID(pmid, triggerElement) {
     showLoadingState();
 
     try {
-        // Fetch article data
-        const articleData = await fetchPubMedArticle(pmid);
+        // Fetch article data with retry logic
+        const articleData = await fetchPubMedArticleWithRetry(pmid);
 
         // Display article data
         showArticleData(articleData);
 
     } catch (error) {
         console.error('Error loading PubMed article:', error);
-        showErrorState(error.message);
+
+        // Provide more specific error messages
+        let errorMessage = error.message;
+        if (error.message.includes('fetch')) {
+            errorMessage = 'Network error: Unable to connect to PubMed. Please try again later.';
+        } else if (error.message.includes('rate limit') || error.message.includes('429')) {
+            errorMessage = 'PubMed API rate limit reached. Please wait a moment and try again.';
+        } else if (error.message.includes('Article not found')) {
+            errorMessage = 'Article not found in PubMed database.';
+        }
+
+        showErrorState(errorMessage);
     }
 
     // Show popup
