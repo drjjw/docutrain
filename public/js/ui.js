@@ -137,8 +137,19 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     // Get sendButton element for use throughout function
     let sendButton = document.getElementById('sendButton');
 
+    // Skip document modal for goodbye route
+    const isGoodbyeRoute = window.location.pathname === '/goodbye';
+    if (isGoodbyeRoute) {
+        console.log('👋 Goodbye route detected - skipping document modal');
+        return;
+    }
+
     // Handle case where no document is selected - show document selection modal
-    if (!selectedDocument) {
+    // But skip if owner parameter is present (document selector will be shown instead)
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasOwnerParam = urlParams.has('owner');
+
+    if (!selectedDocument && !hasOwnerParam) {
 
         // Only show modal once to avoid annoying users
         if (!documentModalShown) {
@@ -217,7 +228,7 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     }
 
     // Handle multi-document case: selectedDocument can be "slug1+slug2" or just "slug"
-    const documentSlugs = selectedDocument.includes('+') ? selectedDocument.split('+').map(s => s.trim()) : [selectedDocument];
+    const documentSlugs = selectedDocument && selectedDocument.includes('+') ? selectedDocument.split('+').map(s => s.trim()) : selectedDocument ? [selectedDocument] : [];
     const isMultiDoc = documentSlugs.length > 1;
     
     // Fetch all document configs
@@ -229,7 +240,7 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     const validConfigs = configs.filter(c => c !== null);
     
     if (validConfigs.length === 0) {
-        console.error(`No documents found for: ${selectedDocument}`);
+        console.error(`No documents found for: ${selectedDocument || 'null'}`);
         return;
     }
     
@@ -251,19 +262,28 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     // Update page meta tags with document information
     updateMetaTags(combinedTitle, metaDescription);
 
-    // Update subtitle - for multi-doc, show document count
-    const subtitleElement = document.getElementById('headerSubtitle');
-    if (isMultiDoc) {
-        subtitleElement.textContent = `Multi-document search across ${validConfigs.length} documents`;
+    // Store current PMID for PubMed popup functionality
+    const metadata = config.metadata || {};
+    const currentPMID = metadata.pmid || metadata.pubmed_id || metadata.PMID;
+
+    // Update question mark icon visibility based on PMID availability
+    const aboutIcon = document.getElementById('aboutIcon');
+    if (currentPMID) {
+        aboutIcon.style.display = 'flex';
+        // Store PMID on the icon for PubMed popup functionality
+        aboutIcon.dataset.pmid = currentPMID;
     } else {
-        const metadata = config.metadata || {};
-        const pmid = metadata.pmid || metadata.pubmed_id || metadata.PMID;
-        
-        if (pmid) {
-            // Show only PMID link with magnifying glass icon
-            subtitleElement.innerHTML = `<a href="https://pubmed.ncbi.nlm.nih.gov/${pmid}/" target="_blank" rel="noopener noreferrer" class="pmid-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>PMID: ${pmid}</a>`;
+        aboutIcon.style.display = 'none';
+        delete aboutIcon.dataset.pmid;
+    }
+
+    // Update subtitle - for multi-doc, show document count (if element exists)
+    const subtitleElement = document.getElementById('headerSubtitle');
+    if (subtitleElement) {
+        if (isMultiDoc) {
+            subtitleElement.textContent = `Multi-document search across ${validConfigs.length} documents`;
         } else {
-            // No PMID, show subtitle text
+            // Always show subtitle text (no more inline PMID display)
             subtitleElement.textContent = config.subtitle;
         }
     }
@@ -459,7 +479,7 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
         }
     }
 
-    console.log(`📄 Document set to: ${selectedDocument.toUpperCase()} - ${config.welcomeMessage}`);
+    console.log(`📄 Document set to: ${selectedDocument ? selectedDocument.toUpperCase() : 'NONE'} - ${config.welcomeMessage}`);
 }
 
 // Update model name in about tooltip

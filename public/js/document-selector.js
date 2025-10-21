@@ -14,15 +14,30 @@ class DocumentSelector {
         this.searchInput = document.getElementById('documentSearch');
         this.documentList = document.getElementById('documentList');
         this.currentDocName = document.getElementById('currentDocName');
-        
+
         this.documents = [];
         this.currentOwner = null;
         this.currentDocSlug = null;
         this.isOpen = false;
-        
+        this.ownerMode = false; // New flag for owner parameter mode
+        this.modalMode = false; // New flag for central modal mode
+        this.originalParent = null; // For modal mode DOM manipulation
+        this.originalNextSibling = null; // For modal mode DOM manipulation
+
         this.init();
     }
-    
+
+    /**
+     * Set owner mode - show document selector for a specific owner
+     */
+    setOwnerMode(ownerSlug) {
+        this.ownerMode = true;
+        this.modalMode = true; // Owner mode uses central modal
+        this.currentOwner = ownerSlug;
+        // Force reload documents with owner mode
+        this.loadDocuments();
+    }
+
     init() {
         // Event listeners
         const handleToggle = () => this.toggle();
@@ -41,12 +56,17 @@ class DocumentSelector {
             handleClose();
         });
 
-        this.overlay?.addEventListener('click', handleClose);
+        // Handle overlay clicks - only close in modal mode (but not in owner mode)
+        this.overlay?.addEventListener('click', (e) => {
+            if (this.modalMode && this.isOpen && !this.ownerMode) {
+                handleClose();
+            }
+        });
         this.searchInput?.addEventListener('input', (e) => this.handleSearch(e.target.value));
         
-        // Close on escape key
+        // Close on escape key (but not in owner mode)
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.isOpen) {
+            if (e.key === 'Escape' && this.isOpen && !this.ownerMode) {
                 this.close();
             }
         });
@@ -60,24 +80,55 @@ class DocumentSelector {
             const response = await fetch('/api/documents');
             const data = await response.json();
             this.documents = data.documents || [];
-            
+
             // Get current document from URL
             const urlParams = new URLSearchParams(window.location.search);
-            this.currentDocSlug = urlParams.get('doc') || 'smh';
-            
-            // Check if document selector should be shown (URL parameter)
-            const showSelector = urlParams.get('document_selector') === 'true';
+
+            // Check for owner parameter first - if present, enable owner mode
+            const ownerParam = urlParams.get('owner');
+            console.log('📋 Document Selector - Owner param:', ownerParam, 'Current owner mode:', this.ownerMode, 'URL:', window.location.href);
+            if (ownerParam && !this.ownerMode) {
+                this.ownerMode = true;
+                this.modalMode = true;
+                this.currentOwner = ownerParam;
+                console.log('🎯 Document Selector - Owner mode activated for:', ownerParam, 'Modal mode:', this.modalMode);
+            }
+
+            // Set current document slug - in owner mode, don't default to 'smh' since no doc is selected
+            this.currentDocSlug = this.ownerMode ? urlParams.get('doc') : (urlParams.get('doc') || 'smh');
+
+            // Check if document selector should be shown (URL parameter or owner mode) - case insensitive
+            const showSelector = this.getCaseInsensitiveParam(urlParams, 'document_selector') === 'true' || this.ownerMode;
 
             if (showSelector) {
-                // Find current document to get owner info for filtering
-                const currentDoc = this.documents.find(d => d.slug === this.currentDocSlug);
-                if (currentDoc && currentDoc.ownerInfo) {
-                    this.currentOwner = currentDoc.ownerInfo.slug;
-                    this.show();
+                console.log('🎨 Document Selector - Showing modal (showSelector:', showSelector, 'ownerMode:', this.ownerMode, ')');
+                // If in owner mode, use the owner from owner mode
+                if (this.ownerMode) {
+                    console.log('📂 Document Selector - Owner mode: showing documents for owner:', this.currentOwner);
+                    this.show(); // Show the container
+                    this.open(); // Open the dropdown
                     this.renderDocuments();
-                    this.updateCurrentDocName(currentDoc);
+                    // In owner mode, don't set a current doc name since we're showing all docs for the owner
+                    if (this.currentDocName) {
+                        // Use better display name for known owners
+                        let displayName = this.currentOwner.charAt(0).toUpperCase() + this.currentOwner.slice(1);
+                        if (this.currentOwner === 'ukidney') {
+                            displayName = 'UKidney Medical';
+                        }
+                        this.currentDocName.textContent = `${displayName} Documents`;
+                        console.log('🏷️ Document Selector - Set title to:', this.currentDocName.textContent);
+                    }
                 } else {
-                    this.hide();
+                    // Find current document to get owner info for filtering
+                    const currentDoc = this.documents.find(d => d.slug === this.currentDocSlug);
+                    if (currentDoc && currentDoc.ownerInfo) {
+                        this.currentOwner = currentDoc.ownerInfo.slug;
+                        this.show();
+                        this.renderDocuments();
+                        this.updateCurrentDocName(currentDoc);
+                    } else {
+                        this.hide();
+                    }
                 }
             } else {
                 this.hide();
@@ -89,8 +140,12 @@ class DocumentSelector {
     }
     
     show() {
+        console.log('🔍 Document Selector - show() called, container exists:', !!this.container, 'modalMode:', this.modalMode);
         if (this.container) {
             this.container.style.display = 'block';
+            console.log('✅ Document Selector - Container shown, display:', this.container.style.display);
+        } else {
+            console.error('❌ Document Selector - Container not found!');
         }
     }
     
@@ -110,23 +165,82 @@ class DocumentSelector {
     
     open() {
         this.isOpen = true;
-        this.btn?.classList.add('active');
-        this.dropdown?.classList.add('active');
 
-        // Don't show overlay on mobile to avoid z-index issues
-        // if (window.innerWidth <= 768) {
-        //     this.overlay?.classList.add('active');
-        // }
+        if (this.modalMode) {
+            // In modal mode, move dropdown to body and show as central modal
+            if (this.dropdown && this.dropdown.parentNode) {
+                // Store original parent for restoration
+                this.originalParent = this.dropdown.parentNode;
+                this.originalNextSibling = this.dropdown.nextSibling;
+
+                // Move to body
+                document.body.appendChild(this.dropdown);
+                console.log('🎭 Moved dropdown to body for modal mode');
+            }
+
+            // Show overlay and style dropdown as central modal
+            this.overlay?.classList.add('active');
+            this.dropdown?.classList.add('modal');
+            this.dropdown?.classList.add('active'); // Make it visible
+
+            // Hide the button and close button in modal mode
+            if (this.btn) {
+                this.btn.style.display = 'none';
+            }
+            if (this.closeBtn) {
+                this.closeBtn.style.display = 'none';
+            }
+
+            console.log('🎭 Document Selector - Opened in modal mode');
+            console.log('🎭 Modal classes:', this.dropdown?.className);
+            console.log('🎭 Modal computed style z-index:', window.getComputedStyle(this.dropdown).zIndex);
+            console.log('🎭 Modal computed position:', window.getComputedStyle(this.dropdown).position);
+            console.log('🎭 Modal computed top:', window.getComputedStyle(this.dropdown).top);
+            console.log('🎭 Modal computed left:', window.getComputedStyle(this.dropdown).left);
+            console.log('🎭 Modal computed transform:', window.getComputedStyle(this.dropdown).transform);
+        } else {
+            // Normal dropdown mode
+            this.btn?.classList.add('active');
+            this.dropdown?.classList.add('active');
+        }
 
         this.searchInput?.focus();
     }
     
     close() {
         this.isOpen = false;
-        this.btn?.classList.remove('active');
-        this.dropdown?.classList.remove('active');
-        // Don't remove overlay on mobile since we don't show it
-        // this.overlay?.classList.remove('active');
+
+        if (this.modalMode) {
+            // In modal mode, hide overlay and remove modal styling
+            this.overlay?.classList.remove('active');
+            this.dropdown?.classList.remove('modal');
+            this.dropdown?.classList.remove('active'); // Hide it
+
+            // Restore dropdown to original position
+            if (this.dropdown && this.originalParent) {
+                if (this.originalNextSibling) {
+                    this.originalParent.insertBefore(this.dropdown, this.originalNextSibling);
+                } else {
+                    this.originalParent.appendChild(this.dropdown);
+                }
+                console.log('🎭 Restored dropdown to original position');
+            }
+
+            // Show the button again if we're closing the modal
+            if (this.btn) {
+                this.btn.style.display = 'block';
+            }
+            // Don't show close button in owner mode (modal should not be dismissible)
+            if (this.closeBtn && !this.ownerMode) {
+                this.closeBtn.style.display = 'block';
+            }
+            console.log('🎭 Document Selector - Closed modal mode');
+        } else {
+            // Normal dropdown mode
+            this.btn?.classList.remove('active');
+            this.dropdown?.classList.remove('active');
+        }
+
         this.searchInput.value = '';
         this.renderDocuments(); // Reset search
     }
@@ -139,10 +253,11 @@ class DocumentSelector {
     
     renderDocuments(searchTerm = '') {
         if (!this.documentList) return;
-        
-        // Filter documents by current owner
-        let ownerDocs = this.documents.filter(d => 
-            d.ownerInfo && d.ownerInfo.slug === this.currentOwner
+
+        // Filter documents by owner - use owner from owner mode if active, otherwise current owner
+        const filterOwner = this.ownerMode ? this.currentOwner : this.currentOwner;
+        let ownerDocs = this.documents.filter(d =>
+            d.ownerInfo && d.ownerInfo.slug === filterOwner
         );
         
         // Apply search filter
@@ -206,10 +321,29 @@ class DocumentSelector {
             this.close();
             return;
         }
-        
+
         // Update URL and reload page
         const url = new URL(window.location.href);
         url.searchParams.set('doc', slug);
+
+        // If in owner mode, remove the owner parameter since user has selected a document
+        if (this.ownerMode) {
+            url.searchParams.delete('owner');
+        }
+
+        // Normalize document_selector parameter to lowercase if it exists with different casing
+        const currentParams = new URLSearchParams(window.location.search);
+        const selectorValue = this.getCaseInsensitiveParam(currentParams, 'document_selector');
+        if (selectorValue) {
+            // Remove any existing variations and set the correct lowercase version
+            for (let [key] of currentParams) {
+                if (key.toLowerCase() === 'document_selector' && key !== 'document_selector') {
+                    url.searchParams.delete(key);
+                }
+            }
+            url.searchParams.set('document_selector', selectorValue);
+        }
+
         window.location.href = url.toString();
     }
     
@@ -218,14 +352,31 @@ class DocumentSelector {
         div.textContent = text;
         return div.innerHTML;
     }
+
+    // Helper method to get URL parameter case-insensitively
+    getCaseInsensitiveParam(urlParams, paramName) {
+        // First try exact match
+        let value = urlParams.get(paramName);
+        if (value !== null) return value;
+
+        // If not found, try case-insensitive search
+        for (let [key, val] of urlParams) {
+            if (key.toLowerCase() === paramName.toLowerCase()) {
+                return val;
+            }
+        }
+        return null;
+    }
 }
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+        console.log('🏗️ Initializing document selector...');
         window.documentSelector = new DocumentSelector();
     });
 } else {
+    console.log('🏗️ Initializing document selector (already loaded)...');
     window.documentSelector = new DocumentSelector();
 }
 

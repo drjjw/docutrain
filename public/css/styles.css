@@ -49,6 +49,15 @@ body {
     flex-shrink: 0;
 }
 
+/* Header Document Selector - Right Section */
+.header-document-selector {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
 .header-logo a {
     display: flex;
     align-items: center;
@@ -574,6 +583,14 @@ body {
         margin-bottom: 8px;
     }
 
+    .header-document-selector {
+        margin-left: 0;
+        margin-top: 8px;
+        width: 100%;
+        justify-content: center;
+        order: 1; /* Document selector comes after center content on mobile */
+    }
+
     .header h1 {
         font-size: 22px;
         font-weight: 400;
@@ -937,6 +954,62 @@ body:not(.local-env) .retrieval-selector {
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
+/* AI Hint Message - Discrete and Dismissible */
+.ai-hint-message {
+    padding: 8px 20px;
+    background: #f8f9fa;
+    border-top: 1px solid #e5e5e5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-size: 12px;
+    color: #666;
+    transition: all 0.3s ease;
+}
+
+.ai-hint-text {
+    font-weight: 400;
+    letter-spacing: 0.2px;
+}
+
+.ai-hint-dismiss {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.ai-hint-dismiss:hover {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.ai-hint-dismiss svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Mobile adjustments for AI hint */
+@media (max-width: 768px) {
+    .ai-hint-message {
+        padding: 6px 16px;
+        font-size: 11px;
+    }
+    
+    .ai-hint-dismiss svg {
+        width: 12px;
+        height: 12px;
+    }
+}
+
 .input-container {
     padding: 20px 24px;
     background: linear-gradient(to top, #fafafa 0%, #ffffff 100%);
@@ -1225,46 +1298,9 @@ body:not(.local-env) .retrieval-selector {
     transform: scale(1.1);
 }
 
-/* About Tooltip */
-.about-tooltip {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    transform: translateX(0);
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 12px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    line-height: 1.5;
-    white-space: normal;
-    word-wrap: break-word;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    z-index: 1000;
-    margin-top: 8px;
-    max-width: 280px;
-    width: max-content;
-    min-width: 200px;
-}
-
-.about-tooltip::after {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    right: 12px;
-    transform: translateX(0);
-    border: 6px solid transparent;
-    border-bottom-color: rgba(0, 0, 0, 0.9);
-}
-
-.about-icon:hover .about-tooltip {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(0) translateY(2px);
+/* Question mark icon for PubMed information */
+.about-icon {
+    cursor: help;
 }
 
 #documentName {
@@ -1293,13 +1329,6 @@ body:not(.local-env) .retrieval-selector {
         height: 14px;
     }
 
-    .about-tooltip {
-        font-size: 12px;
-        padding: 10px 12px;
-        max-width: 280px;
-        white-space: normal;
-        word-wrap: break-word;
-    }
 }
 
 /* Subtle reference styling */
@@ -1457,12 +1486,23 @@ hr.references-separator {
 
 .document-selector-container {
     position: relative;
-    margin-bottom: 16px;
     width: 100%;
-    max-width: 500px;
-    margin-left: auto;
-    margin-right: auto;
+    max-width: 280px;
     z-index: 1000;
+}
+
+/* Header-specific document selector styling */
+.header-document-selector .document-selector-container {
+    margin-bottom: 0;
+    max-width: 240px;
+}
+
+/* Header-specific dropdown positioning - wider and right-aligned */
+.header-document-selector .document-selector-dropdown {
+    right: 0;
+    left: auto;
+    width: 350px;
+    max-width: 90vw; /* Prevent overflow on small screens */
 }
 
 .document-selector-btn {
@@ -1496,7 +1536,7 @@ hr.references-separator {
     width: 20px;
     height: 20px;
     margin-right: 12px;
-    color: #4285f4;
+    color: #000;
     flex-shrink: 0;
 }
 
@@ -1547,6 +1587,28 @@ hr.references-separator {
     visibility: visible;
     transform: translateY(0);
     pointer-events: auto;
+}
+
+/* Modal mode styling - central modal instead of dropdown */
+.document-selector-dropdown.modal {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 600px !important;
+    max-width: 90vw !important;
+    max-height: 80vh !important;
+    z-index: 9999999 !important; /* Much higher than backdrop */
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+.document-selector-dropdown.modal.active {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translate(-50%, -50%) !important;
+    pointer-events: auto !important;
 }
 
 .dropdown-header {
@@ -1704,7 +1766,20 @@ hr.references-separator {
     .document-selector-container {
         max-width: 100%;
     }
-    
+
+    /* Header document selector on mobile */
+    .header-document-selector .document-selector-container {
+        max-width: 100%;
+    }
+
+    /* Header document selector dropdown on mobile - full width */
+    .header-document-selector .document-selector-dropdown {
+        left: 0 !important;
+        right: 0 !important;
+        width: auto !important;
+        max-width: none !important;
+    }
+
     .document-selector-dropdown {
         position: absolute !important;
         top: calc(100% + 8px) !important;
@@ -1745,7 +1820,7 @@ hr.references-separator {
     }
 }
 
-/* Overlay for mobile */
+/* Overlay for modal mode */
 .document-selector-overlay {
     display: none;
     position: fixed;
@@ -1762,19 +1837,12 @@ hr.references-separator {
 
 .document-selector-overlay.active {
     opacity: 1;
-    pointer-events: none; /* Allow clicks to pass through to dropdown */
+    pointer-events: auto; /* Allow closing modal by clicking overlay */
 }
 
-@media (max-width: 768px) {
-    .document-selector-overlay {
-        display: block;
-        z-index: 10000;
-    }
-
-    .document-selector-overlay.active {
-        /* Keep pointer-events: none so clicks pass through to dropdown */
-        pointer-events: none;
-    }
+/* Show overlay in modal mode on all screen sizes */
+.document-selector-overlay.active {
+    display: block !important;
 }
 
 /* Downloads Section - Inside Welcome Message */

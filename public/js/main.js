@@ -4,6 +4,7 @@ import { updateDocumentUI, updateModelInTooltip } from './ui.js?v=20251019-02';
 import { sendMessage } from './chat.js?v=20251019-02';
 import { submitRating } from './rating.js?v=20251019-02';
 import { initializePubMedPopup } from './pubmed-popup.js?v=20251019-02';
+import { initializeAIHint } from './ai-hint.js?v=20251021-01';
 
 // Configure marked for better formatting
 marked.setOptions({
@@ -38,6 +39,7 @@ console.log('  - Health endpoint:', `${API_URL}/api/health`);
 async function initializeDocument() {
     const urlParams = new URLSearchParams(window.location.search);
     const docParam = urlParams.get('doc');
+    const ownerParam = urlParams.get('owner');
     const methodParam = urlParams.get('method');
     const embeddingParam = getEmbeddingType();
     const modelParam = urlParams.get('model');
@@ -102,6 +104,7 @@ async function initializeDocument() {
     console.log('\n📋 URL Parameters Applied:');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(`  Document:        ${docParam || 'none specified'}`);
+    console.log(`  Owner:           ${ownerParam || 'none specified'}`);
     console.log(`  Validated as:    ${validatedSlugs.length > 0 ? validatedSlugs.join(' + ') : 'none (generic interface)'}`);
     console.log(`  Multi-document:  ${validatedSlugs.length > 1 ? 'Yes (' + validatedSlugs.length + ' docs)' : 'No'}`);
     console.log(`  Model:           ${state.selectedModel}`);
@@ -134,6 +137,52 @@ async function initializeDocument() {
         }
     }
 
+    // Handle owner parameter - show document selector modal for owner's documents
+    if (ownerParam) {
+        // Try to show owner's logo in owner mode
+        const { getOwnerLogoConfig } = await import('./config.js?v=20251019-02');
+        const ownerLogoConfig = await getOwnerLogoConfig(ownerParam);
+        console.log('🎨 Owner logo config for', ownerParam, ':', ownerLogoConfig);
+
+        // In owner mode, update header to show owner name
+        const headerTitle = document.getElementById('headerTitle');
+        if (headerTitle) {
+            // Use the owner's display name from the config, with smart fallbacks
+            let ownerDisplayName = ownerLogoConfig?.name || ownerLogoConfig?.alt ||
+                                 `${ownerParam.charAt(0).toUpperCase() + ownerParam.slice(1)}`;
+
+            // Special handling for known owners to show full names
+            if (ownerParam === 'ukidney' && ownerDisplayName === 'UKidney') {
+                ownerDisplayName = 'UKidney Medical';
+            }
+
+            headerTitle.textContent = `${ownerDisplayName} Documents`;
+            headerTitle.classList.remove('loading-text');
+        }
+
+        if (ownerLogoConfig && ownerLogoConfig.logo) {
+            const logoImg = document.getElementById('headerLogo');
+            const logoLink = logoImg?.parentElement; // Get the <a> tag
+            console.log('🎨 Logo img element found:', !!logoImg, 'Link element found:', !!logoLink);
+            if (logoImg) {
+                logoImg.src = ownerLogoConfig.logo;
+                logoImg.alt = ownerLogoConfig.alt || `${ownerParam} logo`;
+                logoImg.style.display = 'block';
+                console.log('🎨 Owner logo set:', ownerLogoConfig.logo);
+            }
+            if (logoLink && ownerLogoConfig.link) {
+                logoLink.href = ownerLogoConfig.link;
+                console.log('🔗 Owner logo link set:', ownerLogoConfig.link);
+            }
+        } else {
+            console.log('❌ No logo config found for owner:', ownerParam);
+        }
+
+        // In owner mode, don't update document UI - let document selector handle everything
+        console.log('🎯 Owner mode active - skipping document UI update');
+        return;
+    }
+
     // Update UI based on selected document (async) - force refresh to get latest data
     await updateDocumentUI(state.selectedDocument, true);
 }
@@ -157,6 +206,9 @@ window.submitRating = submitRating;
 
     // Initialize PubMed popup functionality
     initializePubMedPopup();
+
+    // Initialize AI hint message
+    initializeAIHint();
 
     // Health check logged to console (no status bar)
     console.log('✓ Server health check - RAG-only mode active');
