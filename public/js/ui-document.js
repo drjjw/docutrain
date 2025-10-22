@@ -85,7 +85,7 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
 
         // Reset logo to generic
         const logoElement = document.querySelector('.header-logo img');
-        const logoLink = document.querySelector('.header-logo a');
+        const logoLink = document.getElementById('logoLink');
         if (logoElement && logoLink) {
             logoElement.style.display = 'none'; // Hide logo when no document
         }
@@ -196,7 +196,7 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     console.log(`🎨 Logo config retrieved:`, logoConfig);
 
     const logoElement = document.querySelector('.header-logo img');
-    const logoLink = document.querySelector('.header-logo a');
+    const logoLink = document.getElementById('logoLink');
 
     console.log(`🎨 Logo elements found:`, !!logoElement, !!logoLink);
 
