@@ -5,6 +5,7 @@ import { sendMessage } from './chat.js?v=20251019-02';
 import { submitRating } from './rating.js?v=20251019-02';
 import { initializePubMedPopup } from './pubmed-popup.js?v=20251019-02';
 import { initializeAIHint } from './ai-hint.js?v=20251021-01';
+import { checkDocumentAccess } from './access-check.js';
 
 // Configure marked for better formatting
 marked.setOptions({
@@ -201,6 +202,17 @@ window.submitRating = submitRating;
 (async () => {
     // Preload logos to prevent layout shift
     await preloadLogos();
+    
+    // Check document access before initializing
+    const urlParams = new URLSearchParams(window.location.search);
+    const docParam = urlParams.get('doc');
+    if (docParam) {
+        const hasAccess = await checkDocumentAccess(docParam);
+        if (!hasAccess) {
+            // Access denied - modal will handle redirect
+            return;
+        }
+    }
 
     await initializeDocument();
 

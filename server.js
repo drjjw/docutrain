@@ -13,6 +13,8 @@ const { createDocumentsRouter } = require('./lib/routes/documents');
 const { createHealthRouter } = require('./lib/routes/health');
 const { createRatingRouter } = require('./lib/routes/rating');
 const { createCacheRouter } = require('./lib/routes/cache');
+const { createAuthRouter } = require('./lib/routes/auth');
+const { createPermissionsRouter } = require('./lib/routes/permissions');
 const rag = require('./lib/rag');
 
 const app = express();
@@ -154,13 +156,28 @@ const routeDependencies = {
 };
 
 // Register routes
+app.use('/api/auth', createAuthRouter(supabase));
+app.use('/api/permissions', createPermissionsRouter(supabase));
 app.use('/api', createChatRouter(routeDependencies));
 app.use('/api', createRatingRouter(supabase));
 app.use('/api', createCacheRouter(embeddingCache));
 app.use('/api', createHealthRouter(supabase, documentRegistry, registryState));
+
+// Serve React app at /app route
+app.use('/app', express.static(path.join(__dirname, 'dist/app')));
+
+// Handle React Router - serve index.html for all /app routes and subroutes
+app.get('/app', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist/app/index.html'));
+});
+app.get('/app/*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist/app/index.html'));
+});
+
+// Document routes for main app
 app.use('/', createDocumentsRouter(supabase, documentRegistry, registryState, escapeHtml));
 
-// Serve static files AFTER custom routes to allow dynamic meta tag injection
+// Serve static files for main app AFTER custom routes to allow dynamic meta tag injection
 app.use(express.static('public'));
 
 // Start server

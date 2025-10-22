@@ -6,10 +6,13 @@ console.log('🔨 Building distribution files...\n');
 
 const distDir = path.join(__dirname, 'dist');
 
-// Create dist directory if it doesn't exist
+// Note: dist/app directory should already exist from `npm run build:app`
+// We only create dist if it doesn't exist, but preserve dist/app
 if (!fs.existsSync(distDir)) {
     fs.mkdirSync(distDir, { recursive: true });
     console.log('✓ Created dist/ directory');
+} else {
+    console.log('✓ dist/ directory exists (preserving dist/app from React build)');
 }
 
 // Create dist/public directory if it doesn't exist
@@ -69,6 +72,7 @@ const jsFiles = {
     'public/js/pubmed-popup.js': 'js',
     'public/js/document-selector.js': 'js',
     'public/js/ai-hint.js': 'js',
+    'public/js/access-check.js': 'js',
     'public/js/main.js': 'js'
 };
 
@@ -310,8 +314,10 @@ if (skippedCount > 0) {
     console.log(`   - ${skippedCount} optional files skipped`);
 }
 console.log(`   - PDFs excluded (RAG-only mode)`);
+console.log(`   - React app build preserved in dist/app/`);
 console.log(`   - Output: dist/\n`);
 console.log('💡 Note: .env file must be manually copied to server (not included in build)');
 console.log('💡 Run "npm install --production" in dist/ on the server');
 console.log('💡 Cache busting enabled: File hashes will change when content changes');
-console.log('💡 RAG-only: PDFs remain in development for training/embedding only\n');
+console.log('💡 RAG-only: PDFs remain in development for training/embedding only');
+console.log('💡 React app available at /app route\n');
