@@ -11,7 +11,14 @@ export function LoginPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate('/app/dashboard');
+      // Check if there's a return URL in sessionStorage (set when redirected from document access)
+      const returnUrl = sessionStorage.getItem('auth_return_url');
+      if (returnUrl) {
+        sessionStorage.removeItem('auth_return_url');
+        window.location.href = returnUrl;
+      } else {
+        navigate('/app/dashboard');
+      }
     }
   }, [user, loading, navigate]);
 

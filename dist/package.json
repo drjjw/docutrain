@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "node build.js",
+    "dev:app": "cd app-src && vite",
+    "build": "npm run build:app && node build.js",
+    "build:app": "cd app-src && vite build",
     "embed": "node scripts/chunk-and-embed.js",
     "embed:local": "node scripts/chunk-and-embed-local.js",
     "compare": "node scripts/compare-embeddings.js"
@@ -21,7 +23,12 @@
   "license": "ISC",
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
-    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/auth-helpers-react": "^0.5.0",
+    "@supabase/supabase-js": "^2.76.1",
+    "@types/node": "^24.9.1",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.0.4",
     "@xenova/transformers": "^2.17.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -30,9 +37,17 @@
     "openai": "^4.73.0",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.1",
-    "uuid": "^9.0.1"
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.4",
+    "typescript": "^5.9.3",
+    "uuid": "^9.0.1",
+    "vite": "^7.1.11"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "autoprefixer": "^10.4.21",
+    "nodemon": "^3.0.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.0"
   }
 }

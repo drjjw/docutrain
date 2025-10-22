@@ -112,16 +112,38 @@ class DocumentSelector {
                 console.log('🔍 Fetching default document: smh');
             }
             
-            const response = await fetch(apiUrl);
+            // Get JWT token from Supabase localStorage
+            let headers = {
+                'Content-Type': 'application/json',
+            };
+
+            try {
+                const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
+                const sessionData = localStorage.getItem(sessionKey);
+
+                if (sessionData) {
+                    const session = JSON.parse(sessionData);
+                    const token = session?.access_token;
+
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                        console.log('🔑 Including JWT token in document selector API request');
+                    }
+                }
+            } catch (error) {
+                console.log('⚠️ Could not get JWT token for document selector request:', error);
+            }
+
+            const response = await fetch(apiUrl, { headers });
             const data = await response.json();
             this.documents = data.documents || [];
-            
+
             // If we only fetched one document and it has show_document_selector enabled,
             // fetch all documents from the same owner for the dropdown
             if (this.documents.length === 1 && this.documents[0].showDocumentSelector && this.documents[0].ownerInfo) {
                 console.log('🔍 Document selector enabled - fetching all documents from owner:', this.documents[0].ownerInfo.slug);
                 const ownerApiUrl = `/api/documents?owner=${encodeURIComponent(this.documents[0].ownerInfo.slug)}`;
-                const ownerResponse = await fetch(ownerApiUrl);
+                const ownerResponse = await fetch(ownerApiUrl, { headers });
                 const ownerData = await ownerResponse.json();
                 this.documents = ownerData.documents || [];
                 console.log('📚 Loaded', this.documents.length, 'documents from owner');

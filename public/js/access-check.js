@@ -2,6 +2,36 @@
 import { API_URL } from './config.js';
 
 /**
+ * Get JWT token from Supabase localStorage
+ */
+function getSupabaseToken() {
+    try {
+        // Supabase stores session in localStorage with key: sb-[project-ref]-auth-token
+        const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
+        const sessionData = localStorage.getItem(sessionKey);
+
+        if (!sessionData) {
+            console.log('🔒 No Supabase session found in localStorage');
+            return null;
+        }
+
+        const session = JSON.parse(sessionData);
+        const token = session?.access_token;
+
+        if (token) {
+            console.log('🔑 Found Supabase JWT token');
+        } else {
+            console.log('🔒 No access token in Supabase session');
+        }
+
+        return token;
+    } catch (error) {
+        console.error('Error getting Supabase token:', error);
+        return null;
+    }
+}
+
+/**
  * Check if user can access the current document
  * Shows login modal if access is denied
  */
@@ -10,25 +40,44 @@ export async function checkDocumentAccess(documentSlug) {
         return true; // No document specified, allow
     }
 
+    console.log('🔒 Checking access to document:', documentSlug);
+
     try {
+        // Get JWT token from Supabase session
+        const token = getSupabaseToken();
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+
+        // Add Authorization header if token exists
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+            console.log('🔑 Sending JWT token with access check request');
+        } else {
+            console.log('⚠️ No JWT token available - checking as unauthenticated user');
+        }
+
         const response = await fetch(`${API_URL}/api/permissions/check-access/${documentSlug}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: headers,
         });
 
+        console.log('🔍 Access check response status:', response.status);
+
         const data = await response.json();
+        console.log('🔍 Access check result:', data);
 
         if (!data.has_access) {
+            console.log('🚫 Access denied for document:', documentSlug);
             // Show login modal
             showLoginModal(documentSlug);
             return false;
         }
 
+        console.log('✅ Access granted for document:', documentSlug);
         return true;
     } catch (error) {
-        console.error('Access check error:', error);
+        console.error('❌ Access check error:', error);
         // On error, allow access (fail open for public docs)
         return true;
     }
@@ -64,6 +113,8 @@ function showLoginModal(documentSlug) {
         allowEscapeKey: false,
     }).then((result) => {
         if (result.isConfirmed) {
+            // Store current URL for redirect after login
+            sessionStorage.setItem('auth_return_url', window.location.href);
             // Redirect to login page
             window.location.href = '/app/login';
         } else {

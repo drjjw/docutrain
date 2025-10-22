@@ -214,9 +214,32 @@ export async function loadDocuments(forceRefresh = false) {
             }
         }
         
-        // Fetch from API
+        // Fetch from API with authentication if available
         console.log('🔄 Fetching documents from API...');
-        const response = await fetch(apiUrl);
+
+        // Get JWT token from Supabase localStorage (same as access-check.js)
+        let headers = {
+            'Content-Type': 'application/json',
+        };
+
+        try {
+            const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
+            const sessionData = localStorage.getItem(sessionKey);
+
+            if (sessionData) {
+                const session = JSON.parse(sessionData);
+                const token = session?.access_token;
+
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                    console.log('🔑 Including JWT token in documents API request');
+                }
+            }
+        } catch (error) {
+            console.log('⚠️ Could not get JWT token for documents request:', error);
+        }
+
+        const response = await fetch(apiUrl, { headers });
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
