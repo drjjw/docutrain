@@ -11,6 +11,9 @@ dist/
 # Database dumps
 database-dumps/
 
+# PDFs (used only for training/embedding, not needed in git)
+PDFs/
+
 # Supabase local config
 supabase/.env.local
 supabase/.temp/
