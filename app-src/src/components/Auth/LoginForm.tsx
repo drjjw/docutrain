@@ -32,7 +32,7 @@ export function LoginForm() {
     try {
       setLoading(true);
       await signIn(email, password);
-      navigate('/app/dashboard');
+      window.location.href = '/app/dashboard';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {

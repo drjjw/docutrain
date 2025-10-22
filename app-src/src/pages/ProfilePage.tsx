@@ -176,7 +176,7 @@ export function ProfilePage() {
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => navigate('/app/dashboard')}
+                onClick={() => window.location.href = '/app/dashboard'}
               >
                 Back to Dashboard
               </Button>

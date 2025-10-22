@@ -15,7 +15,7 @@ export function SignupPage() {
   useEffect(() => {
     if (!loading && user) {
       console.log('SignupPage: User already authenticated, redirecting to dashboard');
-      navigate('/dashboard');
+      window.location.href = '/app/dashboard';
     }
   }, [user, loading, navigate]);
 

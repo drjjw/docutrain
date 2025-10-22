@@ -29,7 +29,7 @@ export function DashboardHeader() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate('/app/profile')}
+              onClick={() => window.location.href = '/app/profile'}
             >
               Profile
             </Button>

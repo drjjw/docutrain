@@ -198,6 +198,87 @@ elements.messageInput.addEventListener('keypress', (e) => {
 // Expose submitRating to window for rating button clicks
 window.submitRating = submitRating;
 
+// User menu functionality
+function initializeUserMenu() {
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenuDropdown = document.getElementById('userMenuDropdown');
+    const signOutBtn = document.getElementById('signOutBtn');
+
+    if (!userMenuBtn || !userMenuDropdown) return;
+
+    // Toggle dropdown
+    userMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = userMenuDropdown.classList.contains('open');
+
+        if (isOpen) {
+            closeUserMenuDropdown();
+        } else {
+            openUserMenuDropdown();
+        }
+    });
+
+    // Sign out functionality
+    if (signOutBtn) {
+        signOutBtn.addEventListener('click', async () => {
+            try {
+                // Clear Supabase session
+                const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
+                localStorage.removeItem(sessionKey);
+
+                // Close dropdown
+                closeUserMenuDropdown();
+
+                // Hide user menu
+                updateUserMenuVisibility();
+
+                // Show success message or redirect
+                console.log('👋 User signed out successfully');
+
+                // Optional: Show a brief notification or redirect to login
+                // For now, just log and let the UI update naturally
+
+            } catch (error) {
+                console.error('Error signing out:', error);
+            }
+        });
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!userMenuBtn.contains(e.target) && !userMenuDropdown.contains(e.target)) {
+            closeUserMenuDropdown();
+        }
+    });
+
+    // Close dropdown on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeUserMenuDropdown();
+        }
+    });
+}
+
+function openUserMenuDropdown() {
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenuDropdown = document.getElementById('userMenuDropdown');
+
+    if (userMenuBtn && userMenuDropdown) {
+        userMenuBtn.classList.add('open');
+        userMenuDropdown.classList.add('open');
+    }
+}
+
+function closeUserMenuDropdown() {
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenuDropdown = document.getElementById('userMenuDropdown');
+
+    if (userMenuBtn && userMenuDropdown) {
+        userMenuBtn.classList.remove('open');
+        userMenuDropdown.classList.remove('open');
+    }
+}
+
 // Initialize (async to ensure document is loaded before health check)
 (async () => {
     // Preload logos to prevent layout shift
@@ -222,6 +303,9 @@ window.submitRating = submitRating;
     // Initialize AI hint message
     initializeAIHint();
 
+    // Initialize user menu functionality
+    initializeUserMenu();
+
     // Health check logged to console (no status bar)
     console.log('✓ Server health check - RAG-only mode active');
 
@@ -238,16 +322,16 @@ window.submitRating = submitRating;
     // Focus input
     elements.messageInput.focus();
 
-    // Check authentication and show/hide dashboard link
-    updateDashboardLinkVisibility();
+    // Check authentication and show/hide user menu
+    updateUserMenuVisibility();
 })();
 
 /**
- * Check if user is authenticated and show/hide dashboard link accordingly
+ * Check if user is authenticated and show/hide user menu accordingly
  */
-function updateDashboardLinkVisibility() {
-    const dashboardLink = document.querySelector('.dashboard-link');
-    if (!dashboardLink) return;
+function updateUserMenuVisibility() {
+    const userMenuSection = document.getElementById('userMenuSection');
+    const userEmailElement = document.getElementById('userEmail');
 
     try {
         // Check for Supabase JWT token
@@ -257,20 +341,28 @@ function updateDashboardLinkVisibility() {
         if (sessionData) {
             const session = JSON.parse(sessionData);
             const token = session?.access_token;
+            const user = session?.user;
 
-            if (token) {
-                // User is authenticated, show dashboard link
-                dashboardLink.style.display = 'flex';
-                console.log('🔗 Dashboard link shown for authenticated user');
+            if (token && user) {
+                // User is authenticated, show user menu and populate email
+                if (userMenuSection) {
+                    userMenuSection.style.display = 'flex';
+                    console.log('👤 User menu shown for authenticated user');
+                }
+                if (userEmailElement && user.email) {
+                    userEmailElement.textContent = user.email;
+                }
                 return;
             }
         }
 
-        // User is not authenticated, hide dashboard link
-        dashboardLink.style.display = 'none';
-        console.log('🔗 Dashboard link hidden for unauthenticated user');
+        // User is not authenticated, hide user menu
+        if (userMenuSection) {
+            userMenuSection.style.display = 'none';
+            console.log('👤 User menu hidden for unauthenticated user');
+        }
     } catch (error) {
-        console.error('Error checking authentication for dashboard link:', error);
-        dashboardLink.style.display = 'none';
+        console.error('Error checking authentication for user menu:', error);
+        if (userMenuSection) userMenuSection.style.display = 'none';
     }
 }

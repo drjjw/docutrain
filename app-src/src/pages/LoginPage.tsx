@@ -27,7 +27,7 @@ export function LoginPage() {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) {
           console.error('No active session found');
-          navigate('/app/dashboard');
+          window.location.href = '/app/dashboard';
           return;
         }
 
@@ -40,24 +40,23 @@ export function LoginPage() {
         .then(data => {
           if (data.is_super_admin) {
             // SuperAdmins go to dashboard for admin functions
-            navigate('/app/dashboard');
+            window.location.href = '/app/dashboard';
           } else if (data.owner_groups && data.owner_groups.length > 0) {
             // Regular users go to their primary owner group
-            const primaryOwner = data.owner_groups[0];
             window.location.href = `/?owner=${primaryOwner.owner_slug}`;
           } else {
             // Fallback to dashboard if no owner groups
-            navigate('/app/dashboard');
+            window.location.href = '/app/dashboard';
           }
         })
         .catch(error => {
           console.error('Failed to fetch user permissions:', error);
           // Fallback to dashboard on error
-          navigate('/app/dashboard');
+          window.location.href = '/app/dashboard';
         });
       }).catch(error => {
         console.error('Failed to get session:', error);
-        navigate('/app/dashboard');
+        window.location.href = '/app/dashboard';
       });
     }
   }, [user, loading, navigate, redirecting]);

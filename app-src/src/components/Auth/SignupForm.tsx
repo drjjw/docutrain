@@ -46,7 +46,7 @@ export function SignupForm() {
       console.log('SignupForm: Attempting signup with email:', email);
       await signUp(email, password);
       console.log('SignupForm: Signup successful, navigating to dashboard');
-      navigate('/dashboard');
+      window.location.href = '/app/dashboard';
     } catch (err) {
       console.error('SignupForm: Signup failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to sign up');

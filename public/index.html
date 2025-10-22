@@ -35,15 +35,6 @@
             <!-- Logo Section - Left -->
             <div class="header-logo">
                 <div class="header-nav">
-                    <a href="/app/dashboard" class="dashboard-link" title="Go to Dashboard">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="14" width="7" height="7"></rect>
-                            <rect x="3" y="14" width="7" height="7"></rect>
-                        </svg>
-                        Dashboard
-                    </a>
                     <a href="#" target="_blank" rel="noopener noreferrer" id="logoLink">
                         <img id="headerLogo" src="" alt="" style="display: none;" />
                     </a>
@@ -65,6 +56,55 @@
                     </div>
                 </div>
                 <!-- <p id="headerSubtitle" class="loading-text">Loading document...</p> -->
+            </div>
+
+            <!-- User Menu Section - Right Center -->
+            <div class="header-user-menu" id="userMenuSection" style="display: none;">
+                <div class="user-menu-container">
+                    <button class="user-menu-btn" id="userMenuBtn" title="User Menu">
+                        <div class="user-avatar">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                        <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="user-menu-dropdown" id="userMenuDropdown">
+                        <div class="dropdown-header">
+                            <span class="user-email" id="userEmail">user@example.com</span>
+                        </div>
+                        <div class="dropdown-menu">
+                            <a href="/app/dashboard" class="menu-item">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="14" width="7" height="7"></rect>
+                                    <rect x="3" y="14" width="7" height="7"></rect>
+                                </svg>
+                                Dashboard
+                            </a>
+                            <a href="/app/profile" class="menu-item">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                Profile
+                            </a>
+                            <div class="menu-divider"></div>
+                            <button class="menu-item sign-out-btn" id="signOutBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                    <polyline points="16 17 21 12 16 7"></polyline>
+                                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                                </svg>
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Document Selector Section - Right -->
