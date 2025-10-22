@@ -1,9 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/UI/Button';
 
 export function DashboardHeader() {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
@@ -23,13 +25,22 @@ export function DashboardHeader() {
               {user?.email}
             </p>
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleSignOut}
-          >
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/app/profile')}
+            >
+              Profile
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleSignOut}
+            >
+              Sign Out
+            </Button>
+          </div>
         </div>
       </div>
     </header>
