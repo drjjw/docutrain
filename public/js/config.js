@@ -169,12 +169,39 @@ let docConfigCache = null;
 
 /**
  * Fetch documents from API with caching
+ * Now supports filtered loading based on URL parameters
  */
 export async function loadDocuments(forceRefresh = false) {
     try {
+        // Get URL parameters to determine what to load
+        const urlParams = new URLSearchParams(window.location.search);
+        const docParam = urlParams.get('doc');
+        const ownerParam = urlParams.get('owner');
+        
+        // Build cache key based on what we're loading
+        let cacheKey = CACHE_KEY;
+        let apiUrl = `${API_URL}/api/documents`;
+        
+        if (ownerParam) {
+            // Owner mode: load all documents for this owner
+            cacheKey = `${CACHE_KEY}-owner-${ownerParam}`;
+            apiUrl += `?owner=${encodeURIComponent(ownerParam)}`;
+            console.log('🔍 Loading documents for owner:', ownerParam);
+        } else if (docParam) {
+            // Doc mode: load only specific document(s)
+            cacheKey = `${CACHE_KEY}-doc-${docParam}`;
+            apiUrl += `?doc=${encodeURIComponent(docParam)}`;
+            console.log('🔍 Loading specific document(s):', docParam);
+        } else {
+            // Default: load default document
+            cacheKey = `${CACHE_KEY}-doc-smh`;
+            apiUrl += '?doc=smh';
+            console.log('🔍 Loading default document: smh');
+        }
+        
         // Check cache first (unless force refresh requested)
         if (!forceRefresh) {
-            const cached = localStorage.getItem(CACHE_KEY);
+            const cached = localStorage.getItem(cacheKey);
             if (cached) {
                 const { documents, timestamp } = JSON.parse(cached);
                 const age = Date.now() - timestamp;
@@ -189,7 +216,7 @@ export async function loadDocuments(forceRefresh = false) {
         
         // Fetch from API
         console.log('🔄 Fetching documents from API...');
-        const response = await fetch(`${API_URL}/api/documents`);
+        const response = await fetch(apiUrl);
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
@@ -204,7 +231,7 @@ export async function loadDocuments(forceRefresh = false) {
         });
         
         // Cache the results
-        localStorage.setItem(CACHE_KEY, JSON.stringify({
+        localStorage.setItem(cacheKey, JSON.stringify({
             documents,
             timestamp: Date.now()
         }));

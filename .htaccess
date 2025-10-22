@@ -2,14 +2,14 @@
 RewriteEngine On
 
 # Redirect non-www to www
-RewriteCond %{HTTP_HOST} !^www\. [NC]
-RewriteRule ^(.*)$ http://www.%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+#RewriteCond %{HTTP_HOST} !^www\. [NC]
+#RewriteRule ^(.*)$ http://www.%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
 # Don't proxy if directly accessing these (would create loops)
 RewriteCond %{REQUEST_URI} !^/\.well-known/
 
-# Proxy everything to Node.js on port 3457
-RewriteRule ^(.*)$ http://127.0.0.1:3457/$1 [P,L,QSA]
+# Proxy everything to Node.js on port 3456
+RewriteRule ^(.*)$ http://127.0.0.1:3456/$1 [P,L,QSA]
 
 # CORS Headers
 <IfModule mod_headers.c>

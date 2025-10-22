@@ -56,12 +56,19 @@ const jsFiles = {
     'public/js/facts.js': 'js',
     'public/js/api.js': 'js',
     'public/js/ui.js': 'js',
+    'public/js/ui-utils.js': 'js',
+    'public/js/ui-loading.js': 'js',
+    'public/js/ui-downloads.js': 'js',
+    'public/js/ui-content-styling.js': 'js',
+    'public/js/ui-messages.js': 'js',
+    'public/js/ui-document.js': 'js',
     'public/js/chat.js': 'js',
     'public/js/rating.js': 'js',
     'public/js/disclaimer.js': 'js',
     'public/js/pubmed-api.js': 'js',
     'public/js/pubmed-popup.js': 'js',
     'public/js/document-selector.js': 'js',
+    'public/js/ai-hint.js': 'js',
     'public/js/main.js': 'js'
 };
 

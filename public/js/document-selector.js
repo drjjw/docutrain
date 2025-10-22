@@ -77,16 +77,15 @@ class DocumentSelector {
     
     async loadDocuments() {
         try {
-            const response = await fetch('/api/documents');
-            const data = await response.json();
-            this.documents = data.documents || [];
-
             // Get current document from URL
             const urlParams = new URLSearchParams(window.location.search);
 
             // Check for owner parameter first - if present, enable owner mode
             const ownerParam = urlParams.get('owner');
-            console.log('📋 Document Selector - Owner param:', ownerParam, 'Current owner mode:', this.ownerMode, 'URL:', window.location.href);
+            const docParam = urlParams.get('doc');
+            
+            console.log('📋 Document Selector - Owner param:', ownerParam, 'Doc param:', docParam, 'URL:', window.location.href);
+            
             if (ownerParam && !this.ownerMode) {
                 this.ownerMode = true;
                 this.modalMode = true;
@@ -95,10 +94,58 @@ class DocumentSelector {
             }
 
             // Set current document slug - in owner mode, don't default to 'smh' since no doc is selected
-            this.currentDocSlug = this.ownerMode ? urlParams.get('doc') : (urlParams.get('doc') || 'smh');
+            this.currentDocSlug = this.ownerMode ? docParam : (docParam || 'smh');
+            
+            // First, fetch the current document to check if selector should be shown
+            let apiUrl = '/api/documents';
+            if (ownerParam) {
+                // Owner mode: fetch only documents for this owner
+                apiUrl += `?owner=${encodeURIComponent(ownerParam)}`;
+                console.log('🔍 Fetching documents for owner:', ownerParam);
+            } else if (docParam) {
+                // Doc mode: fetch only the specific document(s)
+                apiUrl += `?doc=${encodeURIComponent(docParam)}`;
+                console.log('🔍 Fetching specific document(s):', docParam);
+            } else {
+                // No parameters: fetch default document
+                apiUrl += '?doc=smh';
+                console.log('🔍 Fetching default document: smh');
+            }
+            
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            this.documents = data.documents || [];
+            
+            // If we only fetched one document and it has show_document_selector enabled,
+            // fetch all documents from the same owner for the dropdown
+            if (this.documents.length === 1 && this.documents[0].showDocumentSelector && this.documents[0].ownerInfo) {
+                console.log('🔍 Document selector enabled - fetching all documents from owner:', this.documents[0].ownerInfo.slug);
+                const ownerApiUrl = `/api/documents?owner=${encodeURIComponent(this.documents[0].ownerInfo.slug)}`;
+                const ownerResponse = await fetch(ownerApiUrl);
+                const ownerData = await ownerResponse.json();
+                this.documents = ownerData.documents || [];
+                console.log('📚 Loaded', this.documents.length, 'documents from owner');
+            }
 
-            // Check if document selector should be shown (URL parameter or owner mode) - case insensitive
-            const showSelector = this.getCaseInsensitiveParam(urlParams, 'document_selector') === 'true' || this.ownerMode;
+            // Check if document selector should be shown
+            // Priority: URL parameter (true/false) > database value > default (false)
+            const urlSelectorParam = this.getCaseInsensitiveParam(urlParams, 'document_selector');
+            let showSelector = false;
+            
+            if (urlSelectorParam !== null) {
+                // URL parameter explicitly set - it overrides everything
+                showSelector = urlSelectorParam === 'true';
+                console.log('📋 Document Selector - URL parameter override:', showSelector);
+            } else if (this.ownerMode) {
+                // Owner mode always shows selector
+                showSelector = true;
+                console.log('📋 Document Selector - Owner mode enabled');
+            } else {
+                // Check database value for current document
+                const currentDoc = this.documents.find(d => d.slug === this.currentDocSlug);
+                showSelector = currentDoc?.showDocumentSelector || false;
+                console.log('📋 Document Selector - Database value for', this.currentDocSlug, ':', showSelector);
+            }
 
             if (showSelector) {
                 console.log('🎨 Document Selector - Showing modal (showSelector:', showSelector, 'ownerMode:', this.ownerMode, ')');

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI Modules Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #cc0000;
+            padding-bottom: 12px;
+        }
+        .test-section {
+            margin: 24px 0;
+            padding: 16px;
+            background: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+            border-radius: 4px;
+        }
+        .test-section.error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+        .test-result {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+        }
+        .status {
+            font-weight: bold;
+            margin-right: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .status.pass {
+            background: #4CAF50;
+            color: white;
+        }
+        .status.fail {
+            background: #f44336;
+            color: white;
+        }
+        .function-name {
+            font-family: 'Courier New', monospace;
+            color: #1976D2;
+        }
+        .module-name {
+            color: #666;
+            font-size: 12px;
+            margin-left: auto;
+        }
+        #summary {
+            background: #e3f2fd;
+            border: 2px solid #2196F3;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 24px;
+        }
+        #summary h2 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 UI Modules Refactoring Test</h1>
+        <p>Testing all exported functions from refactored UI modules...</p>
+        
+        <div id="test-results"></div>
+        <div id="summary"></div>
+    </div>
+
+    <script type="module">
+        const results = [];
+        const testResults = document.getElementById('test-results');
+        const summaryDiv = document.getElementById('summary');
+
+        // Test function existence
+        async function testModule(moduleName, modulePath, expectedExports) {
+            const section = document.createElement('div');
+            section.className = 'test-section';
+            section.innerHTML = `<h3>Testing ${moduleName}</h3>`;
+            
+            try {
+                const module = await import(modulePath);
+                let allPassed = true;
+                
+                for (const exportName of expectedExports) {
+                    const result = document.createElement('div');
+                    result.className = 'test-result';
+                    
+                    const exists = typeof module[exportName] !== 'undefined';
+                    const status = document.createElement('span');
+                    status.className = `status ${exists ? 'pass' : 'fail'}`;
+                    status.textContent = exists ? '✓ PASS' : '✗ FAIL';
+                    
+                    const funcName = document.createElement('span');
+                    funcName.className = 'function-name';
+                    funcName.textContent = exportName;
+                    
+                    const modName = document.createElement('span');
+                    modName.className = 'module-name';
+                    modName.textContent = moduleName;
+                    
+                    result.appendChild(status);
+                    result.appendChild(funcName);
+                    result.appendChild(modName);
+                    section.appendChild(result);
+                    
+                    results.push({ module: moduleName, export: exportName, passed: exists });
+                    if (!exists) allPassed = false;
+                }
+                
+                if (!allPassed) section.classList.add('error');
+                
+            } catch (error) {
+                section.classList.add('error');
+                section.innerHTML += `<p style="color: #f44336;">❌ Error loading module: ${error.message}</p>`;
+                results.push({ module: moduleName, error: error.message, passed: false });
+            }
+            
+            testResults.appendChild(section);
+        }
+
+        // Run all tests
+        async function runTests() {
+            console.log('🧪 Starting UI modules test...');
+            
+            // Test barrel export (ui.js) - this is the main test
+            await testModule('ui.js (Barrel)', './js/ui.js', [
+                'updateDocumentUI',
+                'addMessage',
+                'updateModelInTooltip',
+                'buildResponseWithMetadata',
+                'addLoading',
+                'removeLoading',
+                'styleReferences',
+                'wrapDrugConversionContent',
+                'addDownloadsToWelcome',
+                'updateMetaTags',
+                'darkenColor',
+                'hexToRgba',
+                'equalizeContainerHeights'
+            ]);
+            
+            // Generate summary
+            const totalTests = results.length;
+            const passed = results.filter(r => r.passed).length;
+            const failed = totalTests - passed;
+            const passRate = ((passed / totalTests) * 100).toFixed(1);
+            
+            summaryDiv.innerHTML = `
+                <h2>📊 Test Summary</h2>
+                <p><strong>Total Tests:</strong> ${totalTests}</p>
+                <p><strong>Passed:</strong> <span style="color: #4CAF50;">${passed}</span></p>
+                <p><strong>Failed:</strong> <span style="color: #f44336;">${failed}</span></p>
+                <p><strong>Pass Rate:</strong> ${passRate}%</p>
+                ${failed === 0 ? '<p style="color: #4CAF50; font-weight: bold;">✅ All tests passed! Refactoring successful.</p>' : '<p style="color: #f44336; font-weight: bold;">❌ Some tests failed. Check the results above.</p>'}
+            `;
+            
+            console.log('✅ Test complete:', { totalTests, passed, failed, passRate: `${passRate}%` });
+        }
+
+        // Run tests on page load
+        runTests();
+    </script>
+</body>
+</html>
+

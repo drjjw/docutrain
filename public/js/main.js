@@ -1,6 +1,6 @@
 // Main initialization and event wiring
 import { API_URL, generateSessionId, getEmbeddingType, preloadLogos, parseDocumentSlugs } from './config.js?v=20251019-02';
-import { updateDocumentUI, updateModelInTooltip } from './ui.js?v=20251019-02';
+import { updateDocumentUI, updateModelInTooltip } from './ui.js?v=20251022-01';
 import { sendMessage } from './chat.js?v=20251019-02';
 import { submitRating } from './rating.js?v=20251019-02';
 import { initializePubMedPopup } from './pubmed-popup.js?v=20251019-02';

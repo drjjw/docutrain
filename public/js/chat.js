@@ -1,6 +1,6 @@
 // Chat logic and conversation management
 import { sendMessageToAPI } from './api.js';
-import { addMessage, addLoading, removeLoading, buildResponseWithMetadata } from './ui.js';
+import { addMessage, addLoading, removeLoading, buildResponseWithMetadata } from './ui.js?v=20251022-01';
 
 // Send a message
 export async function sendMessage(state, elements) {
