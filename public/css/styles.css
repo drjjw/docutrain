@@ -78,6 +78,50 @@ body {
     transition: opacity 0.3s ease;
 }
 
+.header-nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.dashboard-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.dashboard-link:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: white;
+}
+
+.dashboard-link svg {
+    width: 16px;
+    height: 16px;
+}
+
+#logoLink {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-decoration: none;
+    transition: opacity 0.3s ease;
+}
+
+#logoLink:hover {
+    opacity: 0.7;
+}
+
 /* Header Center - Title and Icons */
 .header-center {
     display: flex;

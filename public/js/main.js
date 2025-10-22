@@ -237,4 +237,40 @@ window.submitRating = submitRating;
 
     // Focus input
     elements.messageInput.focus();
+
+    // Check authentication and show/hide dashboard link
+    updateDashboardLinkVisibility();
 })();
+
+/**
+ * Check if user is authenticated and show/hide dashboard link accordingly
+ */
+function updateDashboardLinkVisibility() {
+    const dashboardLink = document.querySelector('.dashboard-link');
+    if (!dashboardLink) return;
+
+    try {
+        // Check for Supabase JWT token
+        const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
+        const sessionData = localStorage.getItem(sessionKey);
+
+        if (sessionData) {
+            const session = JSON.parse(sessionData);
+            const token = session?.access_token;
+
+            if (token) {
+                // User is authenticated, show dashboard link
+                dashboardLink.style.display = 'flex';
+                console.log('🔗 Dashboard link shown for authenticated user');
+                return;
+            }
+        }
+
+        // User is not authenticated, hide dashboard link
+        dashboardLink.style.display = 'none';
+        console.log('🔗 Dashboard link hidden for unauthenticated user');
+    } catch (error) {
+        console.error('Error checking authentication for dashboard link:', error);
+        dashboardLink.style.display = 'none';
+    }
+}
