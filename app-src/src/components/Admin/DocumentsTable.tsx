@@ -3,6 +3,7 @@ import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
 import { DownloadsEditor } from './DownloadsEditor';
+import { DocumentEditorModal } from './DocumentEditorModal';
 import { getDocuments, updateDocument, deleteDocument, getOwners } from '@/lib/supabase/admin';
 import type { DocumentWithOwner, Owner, DownloadLink } from '@/types/admin';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,7 +24,7 @@ export function DocumentsTable() {
   const [saving, setSaving] = useState(false);
   const [downloadsModalDoc, setDownloadsModalDoc] = useState<DocumentWithOwner | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [editorModalDoc, setEditorModalDoc] = useState<DocumentWithOwner | null>(null);
 
   useEffect(() => {
     loadData();
@@ -151,13 +152,17 @@ export function DocumentsTable() {
       );
     }
 
+    // Use different styling for title and subtitle to allow line wrapping
+    const shouldWrap = field === 'title' || field === 'subtitle';
+    const textClass = shouldWrap ? "break-words" : "truncate";
+
     return (
       <div
         className="group cursor-pointer hover:bg-gray-50 px-2 py-1 rounded"
         onClick={() => handleEdit(doc.id, field, value)}
       >
         <div className="flex items-center justify-between">
-          <span className="truncate">{renderDisplayValue(field, value)}</span>
+          <span className={textClass}>{renderDisplayValue(field, value)}</span>
           <svg
             className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2"
             fill="none"
@@ -233,6 +238,7 @@ export function DocumentsTable() {
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             rows={3}
+            placeholder="Enter message..."
             className="px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full"
           />
         );
@@ -317,13 +323,13 @@ export function DocumentsTable() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Slug
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Title
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Subtitle
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Slug
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Category
@@ -355,14 +361,14 @@ export function DocumentsTable() {
             {documents.map((doc) => (
               <React.Fragment key={doc.id}>
               <tr className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm text-gray-900 max-w-xs">
-                  {renderCell(doc, 'slug', doc.slug)}
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-900 max-w-xs">
+                <td className="px-4 py-3 text-sm text-gray-900 min-w-[300px]">
                   {renderCell(doc, 'title', doc.title)}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-900 max-w-xs">
+                <td className="px-4 py-3 text-sm text-gray-900 min-w-[300px]">
                   {renderCell(doc, 'subtitle', doc.subtitle)}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-900 max-w-xs">
+                  {renderCell(doc, 'slug', doc.slug)}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900">
                   {renderCell(doc, 'category', doc.category)}
@@ -390,9 +396,9 @@ export function DocumentsTable() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setExpandedRow(expandedRow === doc.id ? null : doc.id)}
+                      onClick={() => setEditorModalDoc(doc)}
                     >
-                      {expandedRow === doc.id ? 'Hide' : 'Show'} All
+                      Edit All
                     </Button>
                     {deleteConfirmId === doc.id ? (
                       <div className="flex gap-1">
@@ -425,110 +431,6 @@ export function DocumentsTable() {
                   </div>
                 </td>
               </tr>
-              {expandedRow === doc.id && (
-                <tr>
-                  <td colSpan={11} className="px-4 py-4 bg-gray-50">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <h4 className="font-semibold text-sm text-gray-700 mb-2">Basic Info</h4>
-                        <div className="space-y-2">
-                          <div>
-                            <label className="text-xs text-gray-500">ID</label>
-                            <div className="text-sm text-gray-900 font-mono">{doc.id}</div>
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-500">Subtitle</label>
-                            {renderCell(doc, 'subtitle', doc.subtitle)}
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-500">Category</label>
-                            {renderCell(doc, 'category', doc.category)}
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-500">Year</label>
-                            {renderCell(doc, 'year', doc.year)}
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-500">Back Link</label>
-                            {renderCell(doc, 'back_link', doc.back_link)}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-semibold text-sm text-gray-700 mb-2">File Info</h4>
-                        <div className="space-y-2">
-                          <div>
-                            <label className="text-xs text-gray-500">PDF Filename</label>
-                            {renderCell(doc, 'pdf_filename', doc.pdf_filename)}
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-500">PDF Subdirectory</label>
-                            {renderCell(doc, 'pdf_subdirectory', doc.pdf_subdirectory)}
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-500">Embedding Type</label>
-                            {renderCell(doc, 'embedding_type', doc.embedding_type)}
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-500">Cover Image</label>
-                            {renderCell(doc, 'cover', doc.cover)}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-semibold text-sm text-gray-700 mb-2">Settings</h4>
-                        <div className="space-y-2">
-                          <div>
-                            <label className="text-xs text-gray-500">Chunk Limit Override</label>
-                            {renderCell(doc, 'chunk_limit_override', doc.chunk_limit_override)}
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-500">Show Document Selector</label>
-                            {renderCell(doc, 'show_document_selector', doc.show_document_selector)}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="col-span-2">
-                        <h4 className="font-semibold text-sm text-gray-700 mb-2">Messages</h4>
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-xs text-gray-500 block mb-1">Welcome Message (Plain Text)</label>
-                            {renderCell(doc, 'welcome_message', doc.welcome_message)}
-                          </div>
-                          <div>
-                            <label className="text-xs text-gray-500 block mb-1">Intro Message (HTML - Basic tags: &lt;p&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;br&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;li&gt;, &lt;a&gt;)</label>
-                            {renderCell(doc, 'intro_message', doc.intro_message)}
-                            {doc.intro_message && (
-                              <div className="mt-2 p-3 bg-white border border-gray-200 rounded text-xs">
-                                <div className="text-gray-500 mb-1">Preview:</div>
-                                <div dangerouslySetInnerHTML={{ __html: doc.intro_message }} />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="col-span-2">
-                        <h4 className="font-semibold text-sm text-gray-700 mb-2">Metadata (Read-Only)</h4>
-                        <pre className="text-xs bg-white p-3 rounded border border-gray-200 overflow-x-auto">
-                          {JSON.stringify(doc.metadata, null, 2)}
-                        </pre>
-                      </div>
-
-                      <div className="col-span-2">
-                        <h4 className="font-semibold text-sm text-gray-700 mb-2">Timestamps</h4>
-                        <div className="flex gap-4 text-sm text-gray-600">
-                          <div>Created: {new Date(doc.created_at).toLocaleString()}</div>
-                          <div>Updated: {new Date(doc.updated_at).toLocaleString()}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              )}
               </React.Fragment>
             ))}
           </tbody>
@@ -546,6 +448,18 @@ export function DocumentsTable() {
           downloads={downloadsModalDoc.downloads || []}
           onSave={handleSaveDownloads}
           onCancel={() => setDownloadsModalDoc(null)}
+        />
+      )}
+
+      {editorModalDoc && (
+        <DocumentEditorModal
+          document={editorModalDoc}
+          owners={owners}
+          onSave={() => {
+            setEditorModalDoc(null);
+            loadData(); // Refresh the data after saving
+          }}
+          onCancel={() => setEditorModalDoc(null)}
         />
       )}
     </div>
