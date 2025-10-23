@@ -12,10 +12,29 @@ export async function sendMessageToAPI(message, conversationHistory, selectedMod
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+    // Prepare headers with authentication if available
+    const headers = { 'Content-Type': 'application/json' };
+
+    try {
+        // Get JWT token from localStorage (same pattern as other API calls)
+        const sessionData = localStorage.getItem('sb-mlxctdgnojvkgfqldaob-auth-token');
+        if (sessionData) {
+            const session = JSON.parse(sessionData);
+            const token = session?.access_token;
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+                console.log('🔑 Including JWT token in chat API request');
+            }
+        }
+    } catch (error) {
+        console.log('⚠️ Could not get JWT token for chat request:', error);
+    }
+
     try {
         const response = await fetch(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: headers,
             body: JSON.stringify({
                 message,
                 history: conversationHistory.slice(0, -1),

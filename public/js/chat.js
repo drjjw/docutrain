@@ -1,6 +1,7 @@
 // Chat logic and conversation management
 import { sendMessageToAPI } from './api.js';
 import { addMessage, addLoading, removeLoading, buildResponseWithMetadata } from './ui.js?v=20251022-01';
+import { getDocument } from './config.js?v=20251019-02';
 
 // Send a message
 export async function sendMessage(state, elements) {
@@ -15,8 +16,15 @@ export async function sendMessage(state, elements) {
     state.conversationHistory.push({ role: 'user', content: message });
     elements.messageInput.value = '';
 
-    // Show loading
-    addLoading(elements.chatContainer);
+    // Show loading (with owner-specific facts)
+    let documentOwner = null;
+    try {
+        const docConfig = await getDocument(state.selectedDocument);
+        documentOwner = docConfig?.owner || null;
+    } catch (error) {
+        console.log('Could not get document owner for loading facts:', error);
+    }
+    addLoading(elements.chatContainer, documentOwner);
 
     try {
         const response = await sendMessageToAPI(

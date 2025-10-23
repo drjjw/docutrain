@@ -1,11 +1,18 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/UI/Button';
 
 export function DashboardHeader() {
   const { user, signOut } = useAuth();
+  const { isSuperAdmin, ownerGroups } = usePermissions();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const hasAdminAccess = isSuperAdmin || (ownerGroups && ownerGroups.some(
+    og => og.role === 'owner_admin'
+  ));
 
   const handleSignOut = async () => {
     try {
@@ -26,10 +33,27 @@ export function DashboardHeader() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {/* Navigation Links */}
             <Button
-              variant="outline"
+              variant={location.pathname === '/dashboard' ? 'primary' : 'outline'}
               size="sm"
-              onClick={() => window.location.href = '/app/profile'}
+              onClick={() => navigate('/dashboard')}
+            >
+              Home
+            </Button>
+            {hasAdminAccess && (
+              <Button
+                variant={location.pathname.startsWith('/admin') ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => navigate('/admin/documents')}
+              >
+                Admin
+              </Button>
+            )}
+            <Button
+              variant={location.pathname === '/profile' ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => navigate('/profile')}
             >
               Profile
             </Button>

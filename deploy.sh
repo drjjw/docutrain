@@ -1,5 +1,5 @@
 #!/bin/bash
-node build.js && \
+npm run build && \
 rsync -avz --delete --exclude='node_modules' --exclude='.env' \
   -e "ssh -i ~/.ssh/drjjw.pub -p 7022" \
   dist/ root@162.246.254.111:/home/ukidney/bot.ukidney.com/ && \

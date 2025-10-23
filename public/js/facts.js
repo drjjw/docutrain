@@ -69,8 +69,13 @@ function getRandomPrefix() {
     return prefixes[Math.floor(Math.random() * prefixes.length)];
 }
 
-// Get a random fact with prefix
-export function getRandomFact() {
+// Get a random fact with prefix (owner-aware)
+export function getRandomFact(owner = null) {
+    // Only show fun facts for ukidney documents
+    if (owner !== 'ukidney') {
+        return null; // No fact for non-ukidney documents
+    }
+
     const fact = allFacts[Math.floor(Math.random() * allFacts.length)];
     return getRandomPrefix() + fact;
 }

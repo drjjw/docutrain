@@ -164,14 +164,14 @@ app.use('/api', createCacheRouter(embeddingCache));
 app.use('/api', createHealthRouter(supabase, documentRegistry, registryState));
 
 // Serve React app at /app route
-app.use('/app', express.static(path.join(__dirname, 'dist/app')));
+app.use('/app', express.static(path.join(__dirname, 'app')));
 
 // Handle React Router - serve index.html for all /app routes and subroutes
 app.get('/app', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist/app/index.html'));
+    res.sendFile(path.join(__dirname, 'app/index.html'));
 });
 app.get('/app/*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist/app/index.html'));
+    res.sendFile(path.join(__dirname, 'app/index.html'));
 });
 
 // Serve static files for main app BEFORE dynamic routes
