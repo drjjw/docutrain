@@ -11,7 +11,6 @@ import { getAuthErrorMessage } from '@/lib/utils/errors';
 export function ProfilePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,18 +35,7 @@ export function ProfilePage() {
     setSuccess('');
 
     try {
-      // First verify current password by attempting to sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user?.email || '',
-        password: currentPassword,
-      });
-
-      if (signInError) {
-        setError('Current password is incorrect');
-        return;
-      }
-
-      // Update password
+      // Update password directly (user is already authenticated)
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -58,7 +46,6 @@ export function ProfilePage() {
       }
 
       setSuccess('Password updated successfully!');
-      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
@@ -108,21 +95,11 @@ export function ProfilePage() {
         {/* Password Change */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Change Password</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Since you're already signed in, you can change your password without entering your current one.
+          </p>
 
           <form onSubmit={handlePasswordChange} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Current Password
-              </label>
-              <Input
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                required
-                placeholder="Enter your current password"
-              />
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 New Password
