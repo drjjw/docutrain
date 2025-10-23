@@ -15,6 +15,7 @@ const { createRatingRouter } = require('./lib/routes/rating');
 const { createCacheRouter } = require('./lib/routes/cache');
 const { createAuthRouter } = require('./lib/routes/auth');
 const { createPermissionsRouter } = require('./lib/routes/permissions');
+const { createUsersRouter } = require('./lib/routes/users');
 const rag = require('./lib/rag');
 
 const app = express();
@@ -158,20 +159,21 @@ const routeDependencies = {
 // Register routes
 app.use('/api/auth', createAuthRouter(supabase));
 app.use('/api/permissions', createPermissionsRouter(supabase));
+app.use('/api/users', createUsersRouter());
 app.use('/api', createChatRouter(routeDependencies));
 app.use('/api', createRatingRouter(supabase));
 app.use('/api', createCacheRouter(embeddingCache));
 app.use('/api', createHealthRouter(supabase, documentRegistry, registryState));
 
 // Serve React app at /app route
-app.use('/app', express.static(path.join(__dirname, 'app')));
+app.use('/app', express.static(path.join(__dirname, 'dist/app')));
 
 // Handle React Router - serve index.html for all /app routes and subroutes
 app.get('/app', (req, res) => {
-    res.sendFile(path.join(__dirname, 'app/index.html'));
+    res.sendFile(path.join(__dirname, 'dist/app/index.html'));
 });
 app.get('/app/*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'app/index.html'));
+    res.sendFile(path.join(__dirname, 'dist/app/index.html'));
 });
 
 // Serve static files for main app BEFORE dynamic routes

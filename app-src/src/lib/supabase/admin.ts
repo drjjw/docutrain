@@ -1,6 +1,6 @@
 import { supabase } from './client';
 import { getUserPermissions } from './permissions';
-import type { Document, DocumentWithOwner, Owner } from '@/types/admin';
+import type { Document, DocumentWithOwner, Owner, UserWithRoles, UserRole } from '@/types/admin';
 
 /**
  * Get all documents based on user permissions
@@ -69,6 +69,30 @@ export async function updateDocument(
 }
 
 /**
+ * Check if a slug is unique (excluding the current document if editing)
+ */
+export async function checkSlugUniqueness(slug: string, excludeDocumentId?: string): Promise<boolean> {
+  let query = supabase
+    .from('documents')
+    .select('id')
+    .eq('slug', slug);
+
+  // If we're editing an existing document, exclude it from the uniqueness check
+  if (excludeDocumentId) {
+    query = query.neq('id', excludeDocumentId);
+  }
+
+  const { data, error } = await query.limit(1);
+
+  if (error) {
+    throw new Error(`Failed to check slug uniqueness: ${error.message}`);
+  }
+
+  // If we found any results, the slug is not unique
+  return !data || data.length === 0;
+}
+
+/**
  * Delete a document
  */
 export async function deleteDocument(id: string): Promise<void> {
@@ -89,6 +113,7 @@ export async function deleteDocument(id: string): Promise<void> {
 
 /**
  * Get all owners for dropdown selection
+ * Now uses regular client with proper RLS policies
  */
 export async function getOwners(): Promise<Owner[]> {
   const { data, error } = await supabase
@@ -97,6 +122,7 @@ export async function getOwners(): Promise<Owner[]> {
     .order('name', { ascending: true });
 
   if (error) {
+    console.error('getOwners: Database error:', error);
     throw new Error(`Failed to fetch owners: ${error.message}`);
   }
 
@@ -123,5 +149,142 @@ export async function createDocument(document: Partial<Document>): Promise<Docum
   }
 
   return data as Document;
+}
+
+/**
+ * Get all users with their roles (super admin only)
+ */
+export async function getUsers(): Promise<UserWithRoles[]> {
+  // First check if we have a valid session
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    throw new Error('Session error: ' + sessionError.message);
+  }
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated - please log in to access user management');
+  }
+
+  // Check if the token is expired
+  const now = Math.floor(Date.now() / 1000);
+  if (session.expires_at && session.expires_at < now) {
+    throw new Error('Session expired - please log in again');
+  }
+
+  const response = await fetch('/api/users', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to fetch users');
+  }
+
+  return response.json();
+}
+
+/**
+ * Update user role
+ */
+export async function updateUserRole(userId: string, role: string, ownerId?: string): Promise<UserRole> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/users/${userId}/role`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ role, owner_id: ownerId }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to update user role');
+  }
+
+  return response.json();
+}
+
+/**
+ * Reset user password (sends password reset email)
+ */
+export async function resetUserPassword(email: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/users/${encodeURIComponent(email)}/reset-password`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to reset password');
+  }
+}
+
+/**
+ * Update user password directly (super admin only)
+ */
+export async function updateUserPassword(userId: string, password: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/users/${userId}/password`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ password }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to update password');
+  }
+}
+
+/**
+ * Delete a user (super admin only)
+ */
+export async function deleteUser(userId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/users/${userId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to delete user');
+  }
 }
 

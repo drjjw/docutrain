@@ -4,7 +4,7 @@ import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
 import { DownloadsEditor } from './DownloadsEditor';
 import { DocumentEditorModal } from './DocumentEditorModal';
-import { getDocuments, updateDocument, deleteDocument, getOwners } from '@/lib/supabase/admin';
+import { getDocuments, updateDocument, deleteDocument, getOwners, checkSlugUniqueness } from '@/lib/supabase/admin';
 import type { DocumentWithOwner, Owner, DownloadLink } from '@/types/admin';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -13,7 +13,11 @@ interface EditingCell {
   field: string;
 }
 
-export function DocumentsTable() {
+interface DocumentsTableProps {
+  isSuperAdmin?: boolean;
+}
+
+export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<DocumentWithOwner[]>([]);
   const [owners, setOwners] = useState<Owner[]>([]);
@@ -25,11 +29,12 @@ export function DocumentsTable() {
   const [downloadsModalDoc, setDownloadsModalDoc] = useState<DocumentWithOwner | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [editorModalDoc, setEditorModalDoc] = useState<DocumentWithOwner | null>(null);
+  const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user?.id]);
 
   const loadData = async () => {
     if (!user?.id) {
@@ -68,6 +73,22 @@ export function DocumentsTable() {
 
     try {
       setSaving(true);
+
+      // Validate slug uniqueness if we're editing the slug field
+      if (editingCell.field === 'slug') {
+        const trimmedSlug = editValue?.trim();
+        if (!trimmedSlug) {
+          setError('Slug cannot be empty');
+          return;
+        }
+
+        const isUnique = await checkSlugUniqueness(trimmedSlug, editingCell.documentId);
+        if (!isUnique) {
+          setError('This slug is already taken. Please choose a different slug.');
+          return;
+        }
+      }
+
       await updateDocument(editingCell.documentId, {
         [editingCell.field]: editValue,
       });
@@ -125,6 +146,29 @@ export function DocumentsTable() {
     }
   };
 
+  const handleCopyLink = async (doc: DocumentWithOwner) => {
+    const link = `${window.location.origin}/?doc=${doc.slug}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiedDocId(doc.id);
+      setTimeout(() => setCopiedDocId(null), 2000); // Reset after 2 seconds
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = link;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopiedDocId(doc.id);
+        setTimeout(() => setCopiedDocId(null), 2000);
+      } catch (fallbackErr) {
+        setError('Failed to copy link to clipboard');
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
   const renderCell = (doc: DocumentWithOwner, field: string, value: any) => {
     const isEditing = editingCell?.documentId === doc.id && editingCell?.field === field;
 
@@ -162,7 +206,9 @@ export function DocumentsTable() {
         onClick={() => handleEdit(doc.id, field, value)}
       >
         <div className="flex items-center justify-between">
-          <span className={textClass}>{renderDisplayValue(field, value)}</span>
+          <span className={textClass}>
+            {field === 'owner_id' ? (doc.owners?.name || value) : renderDisplayValue(field, value)}
+          </span>
           <svg
             className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2"
             fill="none"
@@ -219,6 +265,25 @@ export function DocumentsTable() {
           </select>
         );
 
+      case 'category':
+        return (
+          <select
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value || null)}
+            className="px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">None</option>
+            <option value="Guidelines">Guidelines</option>
+            <option value="Maker">Maker</option>
+            <option value="Manuals">Manuals</option>
+            <option value="Presentation">Presentation</option>
+            <option value="Recipes">Recipes</option>
+            <option value="Reviews">Reviews</option>
+            <option value="Slides">Slides</option>
+            <option value="Training">Training</option>
+          </select>
+        );
+
       case 'chunk_limit_override':
         return (
           <input
@@ -271,10 +336,6 @@ export function DocumentsTable() {
 
       case 'metadata':
         return JSON.stringify(value).substring(0, 50) + '...';
-
-      case 'owner_id':
-        const owner = owners.find(o => o.id === value);
-        return owner ? owner.name : value;
 
       case 'created_at':
       case 'updated_at':
@@ -332,11 +393,16 @@ export function DocumentsTable() {
                 Slug
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Category
+                View
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Owner
+                Category
               </th>
+              {isSuperAdmin && (
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Owner
+                </th>
+              )}
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Year
               </th>
@@ -371,11 +437,41 @@ export function DocumentsTable() {
                   {renderCell(doc, 'slug', doc.slug)}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900">
-                  {renderCell(doc, 'category', doc.category)}
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`/?doc=${doc.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline"
+                      title={`View ${doc.title || doc.slug}`}
+                    >
+                      View
+                    </a>
+                    <button
+                      onClick={() => handleCopyLink(doc)}
+                      className="text-gray-500 hover:text-gray-700 transition-colors p-1 rounded"
+                      title="Copy link to clipboard"
+                    >
+                      {copiedDocId === doc.id ? (
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900">
-                  {renderCell(doc, 'owner_id', doc.owner_id)}
+                  {renderCell(doc, 'category', doc.category)}
                 </td>
+                {isSuperAdmin && (
+                  <td className="px-4 py-3 text-sm text-gray-900">
+                    {renderCell(doc, 'owner_id', doc.owner_id)}
+                  </td>
+                )}
                 <td className="px-4 py-3 text-sm text-gray-900">
                   {renderCell(doc, 'year', doc.year)}
                 </td>

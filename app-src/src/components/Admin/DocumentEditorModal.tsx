@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/UI/Button';
 import { WysiwygEditor } from '@/components/UI/WysiwygEditor';
-import { updateDocument } from '@/lib/supabase/admin';
+import { updateDocument, checkSlugUniqueness } from '@/lib/supabase/admin';
 import type { DocumentWithOwner, Owner } from '@/types/admin';
 
 interface DocumentEditorModalProps {
@@ -14,6 +14,7 @@ interface DocumentEditorModalProps {
 export function DocumentEditorModal({ document, owners, onSave, onCancel }: DocumentEditorModalProps) {
   const [editingValues, setEditingValues] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!document) return null;
 
@@ -50,11 +51,25 @@ export function DocumentEditorModal({ document, owners, onSave, onCancel }: Docu
   const handleSave = async () => {
     try {
       setSaving(true);
+      setError(null);
+
+      // Validate slug uniqueness if slug has been changed
+      const newSlug = editingValues.slug?.trim();
+      const originalSlug = document.slug;
+
+      if (newSlug && newSlug !== originalSlug) {
+        const isUnique = await checkSlugUniqueness(newSlug, document.id);
+        if (!isUnique) {
+          setError('This slug is already taken. Please choose a different slug.');
+          return;
+        }
+      }
+
       await updateDocument(document.id, editingValues);
       onSave();
     } catch (error) {
       console.error('Failed to save document:', error);
-      alert('Failed to save changes. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to save changes. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -114,6 +129,24 @@ export function DocumentEditorModal({ document, owners, onSave, onCancel }: Docu
                   {owner.name}
                 </option>
               ))}
+            </select>
+          );
+        } else if (field === 'category') {
+          return (
+            <select
+              value={value || ''}
+              onChange={(e) => handleFieldChange(field, e.target.value || null)}
+              className={inputClasses}
+            >
+              <option value="">None</option>
+              <option value="Guidelines">Guidelines</option>
+              <option value="Maker">Maker</option>
+              <option value="Manuals">Manuals</option>
+              <option value="Presentation">Presentation</option>
+              <option value="Recipes">Recipes</option>
+              <option value="Reviews">Reviews</option>
+              <option value="Slides">Slides</option>
+              <option value="Training">Training</option>
             </select>
           );
         }
@@ -188,6 +221,18 @@ export function DocumentEditorModal({ document, owners, onSave, onCancel }: Docu
             </div>
           </div>
 
+          {/* Error message */}
+          {error && (
+            <div className="px-6 py-4 bg-red-50 border-b border-red-200">
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-red-800">{error}</p>
+              </div>
+            </div>
+          )}
+
           {/* Scrollable content area */}
           <div className="flex-1 overflow-y-auto px-6 py-6">
             <div className="space-y-8">
@@ -241,7 +286,7 @@ export function DocumentEditorModal({ document, owners, onSave, onCancel }: Docu
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                        {renderField('category', 'Category')}
+                        {renderField('category', 'Category', 'select')}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>

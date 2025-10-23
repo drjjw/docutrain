@@ -149,13 +149,13 @@ CREATE POLICY "Admins revoke access" ON user_owner_access
   FOR DELETE USING (
     -- Super admin can revoke any access
     EXISTS(
-      SELECT 1 FROM user_roles 
+      SELECT 1 FROM user_roles
       WHERE user_id = auth.uid() AND role = 'super_admin'
     )
     OR
     -- Owner admin can revoke access from their owner
     owner_id IN (
-      SELECT owner_id FROM user_roles 
+      SELECT owner_id FROM user_roles
       WHERE user_id = auth.uid() AND role = 'owner_admin'
     )
   );

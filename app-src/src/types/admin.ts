@@ -16,6 +16,16 @@ export interface Owner {
   updated_at: string;
 }
 
+export type DocumentCategory =
+  | 'Guidelines'
+  | 'Maker'
+  | 'Manuals'
+  | 'Presentation'
+  | 'Recipes'
+  | 'Reviews'
+  | 'Slides'
+  | 'Training';
+
 export interface Document {
   id: string;
   slug: string;
@@ -31,7 +41,7 @@ export interface Document {
   metadata?: Record<string, any>;
   created_at: string;
   updated_at: string;
-  category?: string;
+  category?: DocumentCategory;
   owner?: string;
   owner_id?: string;
   cover?: string;
@@ -45,5 +55,38 @@ export interface Document {
 
 export interface DocumentWithOwner extends Document {
   owners?: Owner;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  email_confirmed_at?: string;
+  phone?: string;
+  phone_confirmed_at?: string;
+  last_sign_in_at?: string;
+  created_at: string;
+  updated_at: string;
+  is_anonymous: boolean;
+  raw_app_meta_data?: Record<string, any>;
+  raw_user_meta_data?: Record<string, any>;
+}
+
+export interface UserRole {
+  id: string;
+  user_id: string;
+  role: 'registered' | 'owner_admin' | 'super_admin';
+  owner_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserWithRoles extends User {
+  roles: UserRole[];
+  owner_groups: {
+    owner_id: string;
+    owner_slug: string;
+    owner_name: string;
+    role: 'registered' | 'owner_admin' | 'super_admin';
+  }[];
 }
 

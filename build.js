@@ -317,8 +317,19 @@ otherFiles.forEach(file => {
             fs.mkdirSync(destDir, { recursive: true });
         }
         
-        fs.copyFileSync(sourcePath, destPath);
-        console.log(`✓ Copied ${file.from}`);
+        // Special handling for server.js: fix paths for dist environment
+        if (file.from === 'server.js') {
+            let serverContent = fs.readFileSync(sourcePath, 'utf8');
+            // Change dist/app paths to app (since server runs from dist/)
+            // This handles paths like 'dist/app' and 'dist/app/index.html'
+            serverContent = serverContent.replace(/'dist\/app/g, "'app");
+            serverContent = serverContent.replace(/"dist\/app/g, '"app');
+            fs.writeFileSync(destPath, serverContent);
+            console.log(`✓ Copied and patched ${file.from} (fixed paths for dist environment)`);
+        } else {
+            fs.copyFileSync(sourcePath, destPath);
+            console.log(`✓ Copied ${file.from}`);
+        }
         copiedCount++;
     } else if (!file.optional) {
         console.log(`✗ Missing required file: ${file.from}`);

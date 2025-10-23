@@ -15,6 +15,7 @@ const { createRatingRouter } = require('./lib/routes/rating');
 const { createCacheRouter } = require('./lib/routes/cache');
 const { createAuthRouter } = require('./lib/routes/auth');
 const { createPermissionsRouter } = require('./lib/routes/permissions');
+const { createUsersRouter } = require('./lib/routes/users');
 const rag = require('./lib/rag');
 
 const app = express();
@@ -158,6 +159,7 @@ const routeDependencies = {
 // Register routes
 app.use('/api/auth', createAuthRouter(supabase));
 app.use('/api/permissions', createPermissionsRouter(supabase));
+app.use('/api/users', createUsersRouter());
 app.use('/api', createChatRouter(routeDependencies));
 app.use('/api', createRatingRouter(supabase));
 app.use('/api', createCacheRouter(embeddingCache));

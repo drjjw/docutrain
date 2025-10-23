@@ -138,35 +138,40 @@ class DocumentSelector {
             const data = await response.json();
             this.documents = data.documents || [];
 
-            // If we only fetched one document and it has show_document_selector enabled,
-            // fetch all documents from the same owner for the dropdown
-            if (this.documents.length === 1 && this.documents[0].showDocumentSelector && this.documents[0].ownerInfo) {
+            // Check if document selector should be shown
+            // Priority: URL parameter (true/false) > database value > default (false)
+            const urlSelectorParam = this.getCaseInsensitiveParam(urlParams, 'document_selector');
+            let showSelector = false;
+            let shouldExpandToOwner = false;
+
+            if (urlSelectorParam !== null) {
+                // URL parameter explicitly set - it overrides everything
+                showSelector = urlSelectorParam === 'true';
+                // When URL parameter is true, always expand to show all owner documents
+                shouldExpandToOwner = showSelector;
+                console.log('📋 Document Selector - URL parameter override:', showSelector, 'expand to owner:', shouldExpandToOwner);
+            } else if (this.ownerMode) {
+                // Owner mode always shows selector
+                showSelector = true;
+                shouldExpandToOwner = true;
+                console.log('📋 Document Selector - Owner mode enabled');
+            } else {
+                // Check database value for current document
+                const currentDoc = this.documents.find(d => d.slug === this.currentDocSlug);
+                showSelector = currentDoc?.showDocumentSelector || false;
+                // Only expand to owner documents if the database setting allows it
+                shouldExpandToOwner = showSelector;
+                console.log('📋 Document Selector - Database value for', this.currentDocSlug, ':', showSelector, 'expand to owner:', shouldExpandToOwner);
+            }
+
+            // If we only fetched one document and should expand to owner documents, fetch all from the same owner
+            if (this.documents.length === 1 && shouldExpandToOwner && this.documents[0].ownerInfo) {
                 console.log('🔍 Document selector enabled - fetching all documents from owner:', this.documents[0].ownerInfo.slug);
                 const ownerApiUrl = `/api/documents?owner=${encodeURIComponent(this.documents[0].ownerInfo.slug)}`;
                 const ownerResponse = await fetch(ownerApiUrl, { headers });
                 const ownerData = await ownerResponse.json();
                 this.documents = ownerData.documents || [];
                 console.log('📚 Loaded', this.documents.length, 'documents from owner');
-            }
-
-            // Check if document selector should be shown
-            // Priority: URL parameter (true/false) > database value > default (false)
-            const urlSelectorParam = this.getCaseInsensitiveParam(urlParams, 'document_selector');
-            let showSelector = false;
-            
-            if (urlSelectorParam !== null) {
-                // URL parameter explicitly set - it overrides everything
-                showSelector = urlSelectorParam === 'true';
-                console.log('📋 Document Selector - URL parameter override:', showSelector);
-            } else if (this.ownerMode) {
-                // Owner mode always shows selector
-                showSelector = true;
-                console.log('📋 Document Selector - Owner mode enabled');
-            } else {
-                // Check database value for current document
-                const currentDoc = this.documents.find(d => d.slug === this.currentDocSlug);
-                showSelector = currentDoc?.showDocumentSelector || false;
-                console.log('📋 Document Selector - Database value for', this.currentDocSlug, ':', showSelector);
             }
 
             if (showSelector) {
