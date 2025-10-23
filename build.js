@@ -51,6 +51,12 @@ function copyWithHash(sourcePath, destDir, filename) {
 // Process CSS and JS files with hashing
 const cssFiles = {
     'public/css/styles.css': 'css',
+    'public/css/base.css': 'css',
+    'public/css/layout.css': 'css',
+    'public/css/components.css': 'css',
+    'public/css/messages.css': 'css',
+    'public/css/modals.css': 'css',
+    'public/css/responsive.css': 'css',
     'public/css/disclaimer.css': 'css'
 };
 
@@ -122,50 +128,62 @@ Object.keys(jsFiles).forEach(filePath => {
     }
 });
 
-// Step 2: Update import statements in JS files
-console.log('\n🔄 Updating import statements in JS files:');
+// Step 2: Update import statements in JS and CSS files
+console.log('\n🔄 Updating import statements in JS and CSS files:');
 Object.keys(fileContents).forEach(filePath => {
-    if (filePath.endsWith('.js')) {
+    if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
         let content = fileContents[filePath].toString();
         let updated = false;
-        
+
         // Replace import statements
         Object.keys(hashedFiles).forEach(original => {
             const hashed = hashedFiles[original];
             const originalFilename = original.split('/').pop();
             const hashedFilename = hashed.split('/').pop();
-            
-            // Update import statements: from './config.js?v=xxx' to './config.77794265.js'
-            // Pattern matches: from './config.js' OR from './config.js?v=xxx'
-            const importPattern = new RegExp(`from\\s+['"]\\.\\/([^'"?]+)(\\?[^'"]*)?['"]`, 'g');
-            // Also update dynamic imports: import('./config.js?v=xxx') to import('./config.77794265.js')
-            const dynamicImportPattern = new RegExp(`import\\(\\s*['"]\\.\\/([^'"?]+)(\\?[^'"]*)?['"]`, 'g');
-            
-            // Update static imports
-            const newContent = content.replace(importPattern, (match, importPath, queryString) => {
-                const importFile = importPath.split('/').pop();
-                if (importFile === originalFilename) {
-                    updated = true;
-                    // Replace the entire filename (with or without query string) with hashed version
-                    return match.replace(importFile + (queryString || ''), hashedFilename);
-                }
-                return match;
-            });
 
-            // Update dynamic imports
-            const newContent2 = newContent.replace(dynamicImportPattern, (match, importPath, queryString) => {
-                const importFile = importPath.split('/').pop();
-                if (importFile === originalFilename) {
-                    updated = true;
-                    // Replace the entire filename (with or without query string) with hashed version
-                    return match.replace(importFile + (queryString || ''), hashedFilename);
-                }
-                return match;
-            });
+            if (filePath.endsWith('.js')) {
+                // Update JS import statements: from './config.js?v=xxx' to './config.77794265.js'
+                const importPattern = new RegExp(`from\\s+['"]\\.\\/([^'"?]+)(\\?[^'"]*)?['"]`, 'g');
+                const dynamicImportPattern = new RegExp(`import\\(\\s*['"]\\.\\/([^'"?]+)(\\?[^'"]*)?['"]`, 'g');
 
-            content = newContent2;
+                // Update static imports
+                const newContent = content.replace(importPattern, (match, importPath, queryString) => {
+                    const importFile = importPath.split('/').pop();
+                    if (importFile === originalFilename) {
+                        updated = true;
+                        return match.replace(importFile + (queryString || ''), hashedFilename);
+                    }
+                    return match;
+                });
+
+                // Update dynamic imports
+                const newContent2 = newContent.replace(dynamicImportPattern, (match, importPath, queryString) => {
+                    const importFile = importPath.split('/').pop();
+                    if (importFile === originalFilename) {
+                        updated = true;
+                        return match.replace(importFile + (queryString || ''), hashedFilename);
+                    }
+                    return match;
+                });
+
+                content = newContent2;
+            } else if (filePath.endsWith('.css')) {
+                // Update CSS @import statements: @import url('./layout.css') to @import url('./layout.0a6322e7.css')
+                const cssImportPattern = new RegExp(`@import\\s+url\\(['"]?\\.\\/([^'")]+)(\\?[^'"]*)?['"]?\\)`, 'g');
+
+                const newContent = content.replace(cssImportPattern, (match, importPath, queryString) => {
+                    const importFile = importPath.split('/').pop();
+                    if (importFile === originalFilename) {
+                        updated = true;
+                        return match.replace(importFile + (queryString || ''), hashedFilename);
+                    }
+                    return match;
+                });
+
+                content = newContent;
+            }
         });
-        
+
         fileContents[filePath] = content;
         if (updated) {
             console.log(`✓ Updated imports in ${filePath.split('/').pop()}`);
@@ -241,18 +259,25 @@ console.log('\n📦 Copying lib directory:');
 const libSourceDir = path.join(__dirname, 'lib');
 const libDestDir = path.join(distDir, 'lib');
 if (fs.existsSync(libSourceDir)) {
-    if (!fs.existsSync(libDestDir)) {
-        fs.mkdirSync(libDestDir, { recursive: true });
-    }
-    const libFiles = fs.readdirSync(libSourceDir);
-    libFiles.forEach(file => {
-        const sourcePath = path.join(libSourceDir, file);
-        const destPath = path.join(libDestDir, file);
-        if (fs.statSync(sourcePath).isFile()) {
-            fs.copyFileSync(sourcePath, destPath);
-            console.log(`✓ Copied lib/${file}`);
+    // Function to copy directory recursively
+    function copyDirRecursive(src, dest) {
+        if (!fs.existsSync(dest)) {
+            fs.mkdirSync(dest, { recursive: true });
         }
-    });
+        const entries = fs.readdirSync(src);
+        entries.forEach(entry => {
+            const srcPath = path.join(src, entry);
+            const destPath = path.join(dest, entry);
+            const stat = fs.statSync(srcPath);
+            if (stat.isDirectory()) {
+                copyDirRecursive(srcPath, destPath);
+            } else {
+                fs.copyFileSync(srcPath, destPath);
+                console.log(`✓ Copied lib/${path.relative(libSourceDir, srcPath)}`);
+            }
+        });
+    }
+    copyDirRecursive(libSourceDir, libDestDir);
 } else {
     console.log('⊘ No lib directory found (optional)');
 }

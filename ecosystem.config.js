@@ -1,6 +1,6 @@
 module.exports = {
   apps: [{
-    name: 'doxcite-bot',
+    name: 'manual-bot',
     script: 'server.js',
     instances: 1,
     exec_mode: 'fork',
