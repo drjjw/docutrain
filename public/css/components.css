@@ -1,0 +1,377 @@
+/* ==================== COMPONENTS STYLES ==================== */
+
+/* User Menu Container */
+.user-menu-container {
+    position: relative;
+}
+
+/* User Menu Button */
+.user-menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    color: #495057;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.user-menu-btn:hover {
+    background: #e9ecef;
+    border-color: #dee2e6;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* User Avatar */
+.user-avatar {
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.user-avatar svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Chevron Icon */
+.chevron-icon {
+    width: 12px;
+    height: 12px;
+    color: #6c757d;
+    transition: transform 0.2s ease;
+}
+
+.user-menu-btn.open .chevron-icon {
+    transform: rotate(180deg);
+}
+
+/* User Menu Dropdown */
+.user-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all 0.2s ease;
+    z-index: 1000;
+}
+
+.user-menu-dropdown.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Dropdown Header */
+.dropdown-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f8f9fa;
+    background: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+}
+
+/* User Email */
+.user-email {
+    font-size: 12px;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+    padding: 8px 0;
+}
+
+/* Menu Item */
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    color: #495057;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.15s ease;
+    width: 100%;
+    border: none;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+}
+
+.menu-item:hover {
+    background: #f8f9fa;
+}
+
+.menu-item svg {
+    width: 16px;
+    height: 16px;
+    color: #6c757d;
+}
+
+/* Menu Divider */
+.menu-divider {
+    height: 1px;
+    background: #e9ecef;
+    margin: 4px 0;
+}
+
+/* Sign Out Button */
+.sign-out-btn {
+    color: #dc3545;
+}
+
+.sign-out-btn svg {
+    color: #dc3545;
+}
+
+.sign-out-btn:hover {
+    background: #f8d7da;
+}
+
+/* Model Badge */
+.model-badge {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 4px 10px;
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    font-size: 10px;
+    color: #666;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+/* Model Switch Button */
+.model-switch-btn {
+    display: inline-block;
+    margin-top: 12px;
+    margin-left: 8px;
+    padding: 4px 10px;
+    background: #f0f8ff;
+    border: 1px solid #b0d4ff;
+    border-radius: 4px;
+    font-size: 10px;
+    color: #0066cc;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0.9;
+}
+
+.model-switch-btn:hover {
+    background: #e0f0ff;
+    border-color: #80b8ff;
+    color: #004499;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,102,204,0.2);
+}
+
+.model-switch-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0,102,204,0.2);
+}
+
+/* Rating Container */
+.rating-container {
+    margin-top: 12px;
+    text-align: right;
+}
+
+.rating-container.rated {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* Rating Question */
+.rating-question {
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+    margin-right: 8px;
+    display: inline;
+    vertical-align: super;
+}
+
+.rating-container.rated .rating-question {
+    color: #333;
+    font-weight: 600;
+}
+
+/* Rating Thanks */
+.rating-thanks {
+    font-size: 12px;
+    color: #333;
+    font-weight: 600;
+}
+
+/* Rating Buttons */
+.rating-buttons {
+    display: inline-flex;
+    gap: 8px;
+    opacity: 1;
+}
+
+/* Rating Button */
+.rating-btn {
+    padding: 6px 10px;
+    border: 1px solid #e0e0e0;
+    background: white;
+    color: #cc0000;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rating-btn:hover:not(:disabled) {
+    background: #fff5f5;
+    border-color: #cc0000;
+    transform: scale(1.1);
+}
+
+.rating-btn:disabled {
+    cursor: default;
+}
+
+.rating-btn.rated {
+    background: #cc0000;
+    color: white;
+    border-color: #cc0000;
+}
+
+.rating-btn.rated:hover {
+    background: #cc0000;
+    border-color: #cc0000;
+    transform: scale(1);
+}
+
+/* About Icon in Header */
+.about-icon {
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: 1px solid #d5d5d5;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: help;
+    transition: all 0.2s ease;
+    color: #666;
+    padding: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    position: relative;
+}
+
+.about-icon:hover {
+    background: #f8f8f8;
+    border-color: #999;
+    color: #333;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    transform: scale(1.1);
+}
+
+.about-icon svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.2s ease;
+}
+
+.about-icon:hover svg {
+    transform: scale(1.1);
+}
+
+/* Question mark icon for PubMed information */
+.about-icon {
+    cursor: help;
+}
+
+#documentName {
+    font-weight: 600;
+    color: #4ade80;
+}
+
+#modelName {
+    font-weight: 600;
+    color: #60a5fa;
+}
+
+/* Loading Container */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 24px;
+}
+
+/* Loading Dots */
+.loading-dots {
+    display: flex;
+    gap: 5px;
+}
+
+.loading-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #999;
+    animation: bounce 1.4s infinite ease-in-out;
+}
+
+.loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+.loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+}
+
+/* Fun Fact Styling */
+.fun-fact {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #666;
+    font-style: italic;
+    max-width: 100%;
+    padding: 12px 16px;
+    background: #f9f9f9;
+    border-left: 3px solid #cc0000;
+    border-radius: 4px;
+    transition: opacity 0.6s ease-in-out;
+    opacity: 1;
+}
+
+.fun-fact.fade-out {
+    opacity: 0;
+}
+
+.fun-fact.fade-in {
+    opacity: 1;
+}

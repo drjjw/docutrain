@@ -174,11 +174,11 @@ app.get('/app/*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist/app/index.html'));
 });
 
-// Document routes for main app
-app.use('/', createDocumentsRouter(supabase, documentRegistry, registryState, escapeHtml));
+// Serve static files for main app BEFORE dynamic routes
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve static files for main app AFTER custom routes to allow dynamic meta tag injection
-app.use(express.static('public'));
+// Document routes for main app (after static files so dynamic meta injection still works)
+app.use('/', createDocumentsRouter(supabase, documentRegistry, registryState, escapeHtml));
 
 // Start server
 async function start() {

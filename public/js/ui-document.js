@@ -216,6 +216,13 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 const root = document.documentElement;
                 root.style.setProperty('--accent-color', logoConfig.accentColor);
 
+                // Generate RGB values for use in rgba() functions
+                const hex = logoConfig.accentColor.replace('#', '');
+                const r = parseInt(hex.substr(0, 2), 16);
+                const g = parseInt(hex.substr(2, 2), 16);
+                const b = parseInt(hex.substr(4, 2), 16);
+                root.style.setProperty('--accent-color-rgb', `${r}, ${g}, ${b}`);
+
                 // Generate hover color (darker version)
                 const hoverColor = darkenColor(logoConfig.accentColor, 0.15);
                 root.style.setProperty('--accent-color-hover', hoverColor);

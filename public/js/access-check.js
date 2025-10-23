@@ -104,11 +104,9 @@ function showLoginModal(documentSlug) {
                 </p>
             </div>
         `,
-        showCancelButton: true,
+        showCancelButton: false,
         confirmButtonText: 'Go to Login',
         confirmButtonColor: '#3b82f6',
-        cancelButtonText: 'View Public Documents',
-        cancelButtonColor: '#6b7280',
         allowOutsideClick: false,
         allowEscapeKey: false,
     }).then((result) => {
@@ -117,9 +115,6 @@ function showLoginModal(documentSlug) {
             sessionStorage.setItem('auth_return_url', window.location.href);
             // Redirect to login page
             window.location.href = '/app/login';
-        } else {
-            // Redirect to home (public documents)
-            window.location.href = '/';
         }
     });
 }

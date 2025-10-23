@@ -1,7 +1,7 @@
 # AI Hint Message Feature
 
 ## Overview
-A discrete, dismissible message that appears above the chat input box to guide users on how to interact with the AI assistant. The message reads: "Ask our AI any question related to this content" and can be permanently dismissed using a cookie.
+A discrete, dismissible message that appears above the chat input box to guide users on how to interact with the AI assistant. The message reads: "Ask our AI any question related to this content in any language!" and can be permanently dismissed using a cookie.
 
 ## Implementation Details
 
@@ -14,7 +14,7 @@ Added a new message container above the input box:
 ```html
 <!-- AI Hint Message (dismissible) -->
 <div class="ai-hint-message" id="aiHintMessage" style="display: none;">
-    <span class="ai-hint-text">Ask our AI any question related to this content</span>
+    <span class="ai-hint-text">Ask our AI any question related to this content in any language!</span>
     <button class="ai-hint-dismiss" id="aiHintDismiss" title="Dismiss">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>

@@ -1,0 +1,100 @@
+/* ==================== BASE STYLES ==================== */
+
+/* Global Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Dynamic accent color variables - set by JavaScript immediately on load */
+:root {
+    /* Accent colors will be set dynamically */
+}
+
+/* Body Styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: #f8f8f8;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+/* Typography */
+.header h1 {
+    font-size: 26px;
+    font-weight: 400;
+    font-family: 'Anton', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+    margin-bottom: 8px;
+    color: #1a1a1a;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.header p {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 16px;
+    font-weight: 400;
+    letter-spacing: 0.2px;
+}
+
+/* Welcome Title Typography - Both regular and cover versions */
+#regularWelcomeTitle, #welcomeTitle {
+    font-size: 32px;
+    font-weight: 400;
+    font-family: 'Anton', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+    text-align: left;
+    color: #1a1a1a;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+}
+
+/* PMID Link Styling */
+.pmid-link {
+    color: #0066cc;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.pmid-link:hover {
+    color: #004499;
+    text-decoration: underline;
+}
+
+/* Loading Text */
+.loading-text {
+    opacity: 1;
+    font-style: none;
+}
+
+/* Error Styles */
+.error {
+    background: #fee;
+    color: #c33;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 10px 0;
+    text-align: center;
+}
+
+/* Status Styles */
+.status {
+    text-align: center;
+    padding: 8px;
+    font-size: 11px;
+    color: #999;
+    background: #fafafa;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.status.online {
+    background: #f0fdf4;
+    color: #166534;
+    border-bottom-color: #d1fae5;
+}

@@ -1,0 +1,478 @@
+/* ==================== MODALS AND POPUPS STYLES ==================== */
+
+/* PubMed Popup Styles */
+.pubmed-popup {
+    position: fixed;
+    z-index: 10000;
+    display: none;
+    pointer-events: auto;
+}
+
+.pubmed-popup-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e0e0e0;
+    max-width: 500px;
+    min-width: 350px;
+    max-height: 80vh;
+    overflow: hidden;
+    animation: pubmed-popup-fade-in 0.2s ease-out;
+}
+
+@keyframes pubmed-popup-fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.pubmed-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f8f9fa;
+}
+
+.pubmed-popup-title {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.pubmed-popup-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.pubmed-popup-close:hover {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+.pubmed-popup-body {
+    padding: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Loading State */
+.pubmed-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #666;
+}
+
+/* Content State */
+.pubmed-content {
+    line-height: 1.5;
+}
+
+.pubmed-article-title {
+    font-weight: 600;
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+
+.pubmed-article-authors {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 8px;
+    font-style: italic;
+}
+
+.pubmed-article-meta {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.pubmed-article-abstract {
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.pubmed-article-abstract strong {
+    color: #555;
+}
+
+.pubmed-article-links {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 8px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.pubmed-doi-link,
+.pubmed-view-link {
+    color: #0066cc;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.pubmed-doi-link:hover,
+.pubmed-view-link:hover {
+    color: #004499;
+    text-decoration: underline;
+}
+
+/* Error State */
+.pubmed-error {
+    text-align: center;
+    padding: 20px;
+    color: #d32f2f;
+}
+
+.error-message {
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+/* Document Selection Modal Styling */
+.document-modal .swal2-popup {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.document-modal .swal2-html-container {
+    text-align: left !important;
+}
+
+.document-modal .swal2-html-container code {
+    background: #f8f8f8;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+/* ==================== Document Selector Styles ==================== */
+
+.document-selector-container {
+    position: relative;
+    width: 100%;
+    max-width: 280px;
+    z-index: 1000;
+}
+
+/* Header-specific document selector styling */
+.header-document-selector .document-selector-container {
+    margin-bottom: 0;
+    max-width: 240px;
+}
+
+/* Header-specific dropdown positioning - wider and right-aligned */
+.header-document-selector .document-selector-dropdown {
+    right: 0;
+    left: auto;
+    width: 350px;
+    max-width: 90vw; /* Prevent overflow on small screens */
+}
+
+.document-selector-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 16px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 15px;
+    color: #333;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.document-selector-btn:hover {
+    border-color: #4285f4;
+    box-shadow: 0 4px 8px rgba(66, 133, 244, 0.15);
+    transform: translateY(-1px);
+}
+
+.document-selector-btn:active {
+    transform: translateY(0);
+}
+
+.document-selector-btn .doc-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    color: #000;
+    flex-shrink: 0;
+}
+
+.document-selector-btn .current-doc-name {
+    flex: 1;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.document-selector-btn .chevron-icon {
+    width: 18px;
+    height: 18px;
+    margin-left: 12px;
+    color: #666;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.document-selector-btn.active .chevron-icon {
+    transform: rotate(180deg);
+}
+
+/* Dropdown */
+.document-selector-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+    z-index: 999999;
+    pointer-events: none;
+}
+
+.document-selector-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* Modal mode styling - central modal instead of dropdown */
+.document-selector-dropdown.modal {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 600px !important;
+    max-width: 90vw !important;
+    max-height: 80vh !important;
+    z-index: 9999999 !important; /* Much higher than backdrop */
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+.document-selector-dropdown.modal.active {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translate(-50%, -50%) !important;
+    pointer-events: auto !important;
+}
+
+.dropdown-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.dropdown-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+.close-dropdown {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-dropdown:hover {
+    color: #333;
+}
+
+.close-dropdown svg {
+    width: 20px;
+    height: 20px;
+}
+
+.dropdown-search {
+    position: relative;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.dropdown-search .search-icon {
+    position: absolute;
+    left: 28px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    color: #999;
+    pointer-events: none;
+}
+
+.dropdown-search input {
+    width: 100%;
+    padding: 10px 12px 10px 36px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.dropdown-search input:focus {
+    border-color: #4285f4;
+}
+
+.document-list {
+    overflow-y: auto;
+    max-height: 350px;
+    padding: 8px 0;
+}
+
+.document-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    border-left: 3px solid transparent;
+    text-align: left;
+}
+
+.document-item:hover {
+    background-color: #f5f5f5;
+    border-left-color: #4285f4;
+}
+
+.document-item.active {
+    background-color: #e8f0fe;
+    border-left-color: #4285f4;
+}
+
+.document-item .doc-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    color: #4285f4;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.document-item .doc-cover-thumb {
+    width: 32px;
+    height: 24px;
+    margin-right: 12px;
+    object-fit: cover;
+    border-radius: 3px;
+    border: 1px solid #e0e0e0;
+    flex-shrink: 0;
+}
+
+.document-item-content {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+}
+
+.document-item-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.document-item-subtitle {
+    font-size: 12px;
+    color: #666;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.document-item.active .document-item-title {
+    color: #4285f4;
+    font-weight: 600;
+}
+
+.no-documents {
+    padding: 40px 20px;
+    text-align: center;
+    color: #999;
+    font-size: 14px;
+}
+
+/* Overlay for modal mode */
+.document-selector-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.document-selector-overlay.active {
+    opacity: 1;
+    pointer-events: auto; /* Allow closing modal by clicking overlay */
+}
+
+/* Show overlay in modal mode on all screen sizes */
+.document-selector-overlay.active {
+    display: block !important;
+}

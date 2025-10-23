@@ -17,7 +17,7 @@
 │                                                          │
 └─────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────┐
-│  ⓘ Ask our AI any question related to this content  ✕  │ ← NEW!
+│  ⓘ Ask our AI any question related to this content in any language!  ✕  │ ← NEW!
 └─────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────┐
 │  [Type your message here...]              [Send]        │
@@ -29,7 +29,7 @@
 ### Desktop View
 ```
 ┌──────────────────────────────────────────────────────────┐
-│   Ask our AI any question related to this content    ✕  │
+│   Ask our AI any question related to this content in any language!    ✕  │
 └──────────────────────────────────────────────────────────┘
      ↑                                                   ↑
    Text (12px, gray)                          Dismiss button
@@ -38,7 +38,7 @@
 ### Mobile View
 ```
 ┌────────────────────────────────────────────────┐
-│ Ask our AI any question related to this... ✕  │
+│ Ask our AI any question related to this content in any... ✕  │
 └────────────────────────────────────────────────┘
    ↑                                         ↑
  Text (11px)                          Dismiss

@@ -157,6 +157,7 @@ function setDefaultAccentColors() {
     // Set neutral gray as default (will be overridden by owner-specific colors)
     // This prevents red flashing while maintaining visual consistency
     root.style.setProperty('--accent-color', '#666666');
+    root.style.setProperty('--accent-color-rgb', '102, 102, 102');
     root.style.setProperty('--accent-color-hover', '#555555');
     root.style.setProperty('--accent-color-shadow', 'rgba(102, 102, 102, 0.2)');
 }
