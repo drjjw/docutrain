@@ -1,9 +1,164 @@
 // Chat logic and conversation management
 import { sendMessageToAPI } from './api.js';
-import { addMessage, addLoading, removeLoading, buildResponseWithMetadata } from './ui.js?v=20251022-01';
+import { addMessage, addLoading, removeLoading, buildResponseWithMetadata } from './ui.js';
 import { getDocument } from './config.js?v=20251019-02';
+import { styleReferences, wrapDrugConversionContent } from './ui-content-styling.js';
 
-// Send a message
+// ============================================================================
+// STREAMING RESPONSE HANDLER
+// ============================================================================
+async function handleStreamingResponse(response, state, elements) {
+    console.log('📡 Receiving streaming response...');
+    removeLoading();
+
+    // Create a placeholder message that we'll update
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message assistant';
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    messageDiv.appendChild(contentDiv);
+    elements.chatContainer.appendChild(messageDiv);
+
+    let fullResponse = '';
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const jsonStr = line.slice(6);
+                    try {
+                        const data = JSON.parse(jsonStr);
+
+                        if (data.type === 'content' && data.chunk) {
+                            fullResponse += data.chunk;
+                            // Update the message in real-time
+                            contentDiv.innerHTML = marked.parse(fullResponse);
+                            
+                            // Apply styling to references and drug conversions
+                            wrapDrugConversionContent(contentDiv);
+                            styleReferences(contentDiv);
+                            
+                            // Auto-scroll to show new content
+                            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+                        } else if (data.type === 'done') {
+                            console.log('✅ Streaming completed');
+
+                            // Log the actual model being used and detect overrides
+                            if (data.metadata && data.metadata.model) {
+                                const actualModel = data.metadata.model;
+                                const requestedModel = state.selectedModel;
+
+                                const expectedActual = requestedModel === 'grok' ? 'grok-4-fast-non-reasoning' :
+                                                     requestedModel === 'grok-reasoning' ? 'grok-4-fast-reasoning' :
+                                                     'gemini-2.5-flash';
+
+                                const wasOverridden = expectedActual !== actualModel;
+
+                                if (wasOverridden) {
+                                    console.log('\n🔒 MODEL OVERRIDE DETECTED:');
+                                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                                    console.log(`  Requested:  ${requestedModel} (${expectedActual})`);
+                                    console.log(`  Actually used: ${actualModel}`);
+                                    console.log(`  Reason: Owner-configured safety mechanism`);
+                                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+                                } else {
+                                    console.log(`🤖 Response generated using: ${actualModel}`);
+                                }
+                            }
+
+                            console.log(`📊 Metadata:`, data.metadata);
+                        } else if (data.type === 'error') {
+                            console.error('❌ Streaming error:', data.error);
+                            contentDiv.innerHTML = `<p>Error: ${data.error}</p>`;
+                        }
+                    } catch (parseError) {
+                        // Ignore parse errors for incomplete chunks
+                    }
+                }
+            }
+        }
+
+        // Add to conversation history
+        state.conversationHistory.push({ role: 'assistant', content: fullResponse });
+
+    } catch (streamError) {
+        console.error('Stream reading error:', streamError);
+        contentDiv.innerHTML += `<p><em>Error reading stream: ${streamError.message}</em></p>`;
+    }
+}
+
+// ============================================================================
+// NON-STREAMING RESPONSE HANDLER
+// ============================================================================
+async function handleNonStreamingResponse(response, state, elements, sendMessage) {
+    let data;
+    try {
+        data = await response.json();
+    } catch (jsonError) {
+        console.error('Failed to parse response as JSON:', jsonError);
+        removeLoading();
+        addMessage('Server returned an invalid response. Please try again.', 'assistant', null, null, elements.chatContainer, null, null, null);
+        state.isLoading = false;
+        elements.sendButton.disabled = false;
+        elements.messageInput.focus();
+        return;
+    }
+
+    removeLoading();
+
+    if (response.ok) {
+        // Log the actual model being used and detect overrides
+        if (data.actualModel) {
+            const requestedModel = state.selectedModel;
+            const actualModel = data.actualModel;
+            
+            const expectedActual = requestedModel === 'grok' ? 'grok-4-fast-non-reasoning' :
+                                 requestedModel === 'grok-reasoning' ? 'grok-4-fast-reasoning' :
+                                 'gemini-2.5-flash';
+            
+            const wasOverridden = expectedActual !== actualModel;
+            
+            if (wasOverridden) {
+                console.log('\n🔒 MODEL OVERRIDE DETECTED:');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log(`  Requested:  ${requestedModel} (${expectedActual})`);
+                console.log(`  Actually used: ${actualModel}`);
+                console.log(`  Reason: Owner-configured safety mechanism`);
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+            } else {
+                console.log(`🤖 Response generated using: ${actualModel}`);
+            }
+        }
+
+        // Build response with metadata
+        const responseText = buildResponseWithMetadata(data, state.isLocalEnv);
+
+        // Get the last user message for the switch button
+        const lastUserMessage = state.conversationHistory.length > 0 &&
+            state.conversationHistory[state.conversationHistory.length - 1].role === 'user'
+            ? state.conversationHistory[state.conversationHistory.length - 1].content
+            : null;
+
+        addMessage(responseText, 'assistant', data.model, data.conversationId, elements.chatContainer, lastUserMessage, state, sendMessage);
+        state.conversationHistory.push({ role: 'assistant', content: data.response });
+    } else {
+        const errorMsg = data.error || 'Unknown error occurred';
+        const details = data.details ? ` (${data.details})` : '';
+        addMessage(`Error: ${errorMsg}${details}`, 'assistant', null, null, elements.chatContainer, null, null, null);
+    }
+}
+
+// ============================================================================
+// MAIN SEND MESSAGE FUNCTION
+// ============================================================================
 export async function sendMessage(state, elements) {
     const message = elements.messageInput.value.trim();
     if (!message || state.isLoading) return;
@@ -35,63 +190,14 @@ export async function sendMessage(state, elements) {
             state.selectedDocument
         );
 
-        let data;
-        try {
-            data = await response.json();
-        } catch (jsonError) {
-            console.error('Failed to parse response as JSON:', jsonError);
-            removeLoading();
-            addMessage('Server returned an invalid response. Please try again.', 'assistant', null, null, elements.chatContainer, null, null, null);
-            state.isLoading = false;
-            elements.sendButton.disabled = false;
-            elements.messageInput.focus();
-            return;
-        }
+        // Check if this is a streaming response
+        const contentType = response.headers.get('content-type');
+        const isStreaming = contentType && contentType.includes('text/event-stream');
 
-        removeLoading();
-
-        if (response.ok) {
-            // Log the actual model being used and detect overrides
-            // Server may override model selection based on document owner's forced_grok_model setting
-            if (data.actualModel) {
-                const requestedModel = state.selectedModel;
-                const actualModel = data.actualModel;
-                
-                // Map requested model to expected actual model
-                const expectedActual = requestedModel === 'grok' ? 'grok-4-fast-non-reasoning' :
-                                     requestedModel === 'grok-reasoning' ? 'grok-4-fast-reasoning' :
-                                     'gemini-2.5-flash';
-                
-                // Detect if override occurred
-                const wasOverridden = expectedActual !== actualModel;
-                
-                if (wasOverridden) {
-                    console.log('\n🔒 MODEL OVERRIDE DETECTED:');
-                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    console.log(`  Requested:  ${requestedModel} (${expectedActual})`);
-                    console.log(`  Actually used: ${actualModel}`);
-                    console.log(`  Reason: Owner-configured safety mechanism`);
-                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-                } else {
-                    console.log(`🤖 Response generated using: ${actualModel}`);
-                }
-            }
-
-            // Build response with metadata
-            const responseText = buildResponseWithMetadata(data, state.isLocalEnv);
-
-            // Get the last user message for the switch button
-            const lastUserMessage = state.conversationHistory.length > 0 &&
-                state.conversationHistory[state.conversationHistory.length - 1].role === 'user'
-                ? state.conversationHistory[state.conversationHistory.length - 1].content
-                : null;
-
-            addMessage(responseText, 'assistant', data.model, data.conversationId, elements.chatContainer, lastUserMessage, state, sendMessage);
-            state.conversationHistory.push({ role: 'assistant', content: data.response });
+        if (isStreaming) {
+            await handleStreamingResponse(response, state, elements);
         } else {
-            const errorMsg = data.error || 'Unknown error occurred';
-            const details = data.details ? ` (${data.details})` : '';
-            addMessage(`Error: ${errorMsg}${details}`, 'assistant', null, null, elements.chatContainer, null, null, null);
+            await handleNonStreamingResponse(response, state, elements, sendMessage);
         }
     } catch (error) {
         removeLoading();

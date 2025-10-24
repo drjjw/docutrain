@@ -30,6 +30,7 @@ export function updateModelInTooltip(selectedModel) {
 
 // Build response text with metadata (RAG-only mode)
 export function buildResponseWithMetadata(data, isLocalEnv) {
+    console.log('🔍 buildResponseWithMetadata called:', { isLocalEnv, hasMetadata: !!data.metadata, chunksUsed: data.metadata?.chunksUsed });
     let responseText = data.response;
 
     // Add metadata based on environment

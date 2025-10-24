@@ -1,8 +1,61 @@
 // API communication (RAG-only mode)
 import { API_URL, getEmbeddingType } from './config.js';
 
-// Send a message to the API (RAG-only mode)
+// 🎯 FEATURE FLAG: Enable streaming responses
+const USE_STREAMING = true; // Set to false to use non-streaming
+
+// Send a message to the API with streaming support
 export async function sendMessageToAPI(message, conversationHistory, selectedModel, sessionId, selectedDocument) {
+    if (USE_STREAMING) {
+        return sendMessageToAPIStreaming(message, conversationHistory, selectedModel, sessionId, selectedDocument);
+    } else {
+        return sendMessageToAPINonStreaming(message, conversationHistory, selectedModel, sessionId, selectedDocument);
+    }
+}
+
+// Streaming version using Server-Sent Events
+async function sendMessageToAPIStreaming(message, conversationHistory, selectedModel, sessionId, selectedDocument) {
+    const embeddingType = getEmbeddingType();
+    const endpoint = `${API_URL}/api/chat/stream?embedding=${embeddingType}`;
+
+    // Get JWT token
+    const headers = { 'Content-Type': 'application/json' };
+    try {
+        const sessionData = localStorage.getItem('sb-mlxctdgnojvkgfqldaob-auth-token');
+        if (sessionData) {
+            const session = JSON.parse(sessionData);
+            const token = session?.access_token;
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+                console.log('🔑 Including JWT token in streaming chat API request');
+            }
+        }
+    } catch (error) {
+        console.log('⚠️ Could not get JWT token for chat request:', error);
+    }
+
+    const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({
+            message,
+            history: conversationHistory.slice(0, -1),
+            model: selectedModel,
+            sessionId: sessionId,
+            doc: selectedDocument
+        }),
+        cache: 'no-store'
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response; // Return response for streaming processing
+}
+
+// Original non-streaming version (fallback)
+async function sendMessageToAPINonStreaming(message, conversationHistory, selectedModel, sessionId, selectedDocument) {
     // RAG-only mode - always use embedding type parameter
     const embeddingType = getEmbeddingType();
     const endpoint = `${API_URL}/api/chat?embedding=${embeddingType}`;

@@ -59,6 +59,13 @@ $$;
 
 COMMENT ON FUNCTION get_multi_document_chunk_limit IS 'Get the chunk limit for multi-document queries (uses document override or owner limit if all docs have same effective limit, otherwise default)';
 
+-- Add document-level forced_grok_model column
+ALTER TABLE documents
+ADD COLUMN IF NOT EXISTS forced_grok_model TEXT
+CHECK (forced_grok_model IS NULL OR forced_grok_model IN ('grok', 'grok-reasoning'));
+
+COMMENT ON COLUMN documents.forced_grok_model IS 'Document-level model override. Takes precedence over owner-level override. Values: grok, grok-reasoning, or NULL for no override.';
+
 -- Replace documents_with_owner view with secure function to fix SECURITY DEFINER lint issue
 -- The view was flagged by Supabase linter as a security risk due to accessing RLS tables
 DROP VIEW IF EXISTS documents_with_owner;
@@ -86,11 +93,12 @@ RETURNS TABLE (
     intro_message text,
     downloads jsonb,
     chunk_limit_override integer,
+    document_forced_grok_model text,
     owner_id_ref uuid,
     owner_slug text,
     owner_name text,
     default_chunk_limit integer,
-    forced_grok_model text,
+    owner_forced_grok_model text,
     owner_metadata jsonb
 )
 LANGUAGE sql
@@ -119,11 +127,12 @@ AS $$
         d.intro_message,
         d.downloads,
         d.chunk_limit_override,
+        d.forced_grok_model as document_forced_grok_model,
         o.id as owner_id_ref,
         o.slug as owner_slug,
         o.name as owner_name,
         o.default_chunk_limit,
-        o.forced_grok_model,
+        o.forced_grok_model as owner_forced_grok_model,
         o.metadata as owner_metadata
     FROM documents d
     LEFT JOIN owners o ON d.owner_id = o.id;
