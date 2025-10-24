@@ -29,11 +29,11 @@ export async function getUserPermissions(userId: string): Promise<UserPermission
 }
 
 /**
- * Get accessible owner groups for user
+ * Get accessible owner groups for user (with details including logo_url)
  */
 export async function getAccessibleOwners(userId: string) {
   const { data, error } = await supabase
-    .rpc('get_user_owner_access', { p_user_id: userId });
+    .rpc('get_user_owner_access_with_details', { p_user_id: userId });
 
   if (error) {
     throw new Error(`Failed to fetch accessible owners: ${error.message}`);

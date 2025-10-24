@@ -198,13 +198,89 @@ elements.messageInput.addEventListener('keypress', (e) => {
 // Expose submitRating to window for rating button clicks
 window.submitRating = submitRating;
 
+// Load user avatar based on owner group
+async function loadUserAvatar() {
+    try {
+        // Get JWT token from Supabase session
+        const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
+        const sessionData = localStorage.getItem(sessionKey);
+        
+        if (!sessionData) {
+            return; // Not logged in, keep default icon
+        }
+
+        const session = JSON.parse(sessionData);
+        const token = session?.access_token;
+
+        if (!token) {
+            return; // No token, keep default icon
+        }
+
+        // Fetch user permissions to get owner group info
+        const response = await fetch(`${API_URL}/api/permissions`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            console.error('Failed to fetch user permissions');
+            return;
+        }
+
+        const data = await response.json();
+        const userAvatar = document.querySelector('.user-avatar');
+        
+        if (!userAvatar) return;
+
+        // Check if user is super admin or has owner groups
+        const isSuperAdmin = data.is_super_admin;
+        const ownerGroups = data.owner_groups || [];
+
+        if (isSuperAdmin) {
+            // Super admin: keep the default user icon (already in HTML)
+            console.log('Super admin: using default user icon');
+            return;
+        }
+
+        // For ALL users with owner groups: use the first owner group's logo
+        if (ownerGroups.length > 0) {
+            const primaryOwner = ownerGroups[0];
+            
+            // Fetch accessible owners to get logo_url
+            const ownerResponse = await fetch(`${API_URL}/api/permissions/accessible-owners`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (ownerResponse.ok) {
+                const owners = await ownerResponse.json();
+                const ownerData = owners.find(o => o.owner_id === primaryOwner.owner_id);
+                
+                if (ownerData && ownerData.logo_url) {
+                    // Replace SVG icon with owner logo image
+                    userAvatar.innerHTML = `<img src="${ownerData.logo_url}" alt="${ownerData.owner_name}" class="owner-logo" />`;
+                    console.log(`Loaded owner logo for: ${ownerData.owner_name}`);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading user avatar:', error);
+        // Keep default icon on error
+    }
+}
+
 // User menu functionality
-function initializeUserMenu() {
+async function initializeUserMenu() {
     const userMenuBtn = document.getElementById('userMenuBtn');
     const userMenuDropdown = document.getElementById('userMenuDropdown');
     const signOutBtn = document.getElementById('signOutBtn');
 
     if (!userMenuBtn || !userMenuDropdown) return;
+
+    // Load user avatar/owner logo
+    await loadUserAvatar();
 
     // Toggle dropdown
     userMenuBtn.addEventListener('click', (e) => {

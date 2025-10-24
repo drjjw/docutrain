@@ -123,27 +123,20 @@ export async function getOwnerLogoConfig(owner) {
 }
 
 /**
- * Preload all logos to prevent layout shift when switching documents
+ * Preload logos for documents that will be used
+ * Only preloads logos for the current document's owner to avoid loading hundreds of logos
  */
 export async function preloadLogos() {
     try {
-        // Force refresh cache for debugging
-        const configs = await loadOwnerLogoConfigs(true);
-        console.log('🎨 Loaded owner logo configs:', Object.keys(configs));
-
         // Set default accent colors immediately to prevent flashing
         setDefaultAccentColors();
-
-        Object.values(configs).forEach(config => {
-            if (config.logo && config.logo.startsWith('https://')) {
-                // Only preload external logos from Supabase storage, local ones are served directly
-                const img = new Image();
-                img.src = config.logo;
-                console.log(`📷 Preloading logo: ${config.logo}`);
-            }
-        });
+        
+        // Note: We no longer preload ALL owner logos on page load
+        // Document logos are loaded on-demand when a document is selected
+        // User avatar logos are loaded separately via the permissions API
+        console.log('🎨 Logo preloading optimized - loading on-demand');
     } catch (error) {
-        console.warn('⚠️ Failed to preload logos:', error.message);
+        console.warn('⚠️ Failed to initialize logo system:', error.message);
         // Still set default colors even if loading fails
         setDefaultAccentColors();
     }

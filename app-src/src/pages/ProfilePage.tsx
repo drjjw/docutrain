@@ -77,14 +77,14 @@ export function ProfilePage() {
     <Dashboard>
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Profile Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg shadow-md p-8 text-white">
-          <div className="flex items-center gap-6">
-            <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-4xl font-bold border-4 border-white/30">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-2xl font-bold text-white">
               {getUserInitials()}
             </div>
             <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-2">Your Profile</h1>
-              <p className="text-blue-100 text-lg">
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">Your Profile</h1>
+              <p className="text-gray-600">
                 {user?.email}
               </p>
             </div>
