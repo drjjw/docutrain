@@ -247,11 +247,12 @@ console.log('   - PDFs remain in development for training/embedding');
 console.log('   - Production uses database-stored embeddings only');
 console.log('   - ~500MB deployment size saved\n');
 
-// Copy logos to public directory
-console.log('\n🎨 Copying logo files:');
+// Copy logos and favicon to public directory
+console.log('\n🎨 Copying logo and favicon files:');
 const logoFiles = [
     { from: 'public/logos/maker-logo-trns.png', to: 'public/logos/maker-logo-trns.png' },
-    { from: 'public/logos/ukidney-logo.svg', to: 'public/logos/ukidney-logo.svg' }
+    { from: 'public/logos/ukidney-logo.svg', to: 'public/logos/ukidney-logo.svg' },
+    { from: 'public/robot-favicon.png', to: 'public/robot-favicon.png' }
 ];
 
 // Copy lib directory (for local embeddings module)
