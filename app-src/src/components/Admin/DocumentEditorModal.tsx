@@ -7,11 +7,12 @@ import type { DocumentWithOwner, Owner } from '@/types/admin';
 interface DocumentEditorModalProps {
   document: DocumentWithOwner | null;
   owners: Owner[];
+  isSuperAdmin?: boolean;
   onSave: () => void;
   onCancel: () => void;
 }
 
-export function DocumentEditorModal({ document, owners, onSave, onCancel }: DocumentEditorModalProps) {
+export function DocumentEditorModal({ document, owners, isSuperAdmin = false, onSave, onCancel }: DocumentEditorModalProps) {
   const [editingValues, setEditingValues] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,8 +25,8 @@ export function DocumentEditorModal({ document, owners, onSave, onCancel }: Docu
       setEditingValues({
         title: document.title || '',
         subtitle: document.subtitle || '',
-        category: document.category || '',
-        year: document.year || '',
+        category: document.category,
+        year: document.year,
         back_link: document.back_link || '',
         slug: document.slug || '',
         owner_id: document.owner_id || '',
@@ -33,7 +34,7 @@ export function DocumentEditorModal({ document, owners, onSave, onCancel }: Docu
         pdf_subdirectory: document.pdf_subdirectory || '',
         embedding_type: document.embedding_type || 'openai',
         cover: document.cover || '',
-        chunk_limit_override: document.chunk_limit_override || '',
+        chunk_limit_override: document.chunk_limit_override,
         show_document_selector: document.show_document_selector || false,
         active: document.active ?? true,
         is_public: document.is_public ?? false,
@@ -96,8 +97,8 @@ export function DocumentEditorModal({ document, owners, onSave, onCancel }: Docu
         return (
           <input
             type="number"
-            value={value || ''}
-            onChange={(e) => handleFieldChange(field, e.target.value ? parseInt(e.target.value) : null)}
+            value={value ?? ''}
+            onChange={(e) => handleFieldChange(field, e.target.value === '' ? null : parseInt(e.target.value) || null)}
             min="1"
             max="200"
             className={inputClasses.replace('w-full', 'w-32')}
@@ -135,7 +136,7 @@ export function DocumentEditorModal({ document, owners, onSave, onCancel }: Docu
           return (
             <select
               value={value || ''}
-              onChange={(e) => handleFieldChange(field, e.target.value || null)}
+              onChange={(e) => handleFieldChange(field, e.target.value === '' ? null : e.target.value)}
               className={inputClasses}
             >
               <option value="">None</option>
@@ -253,10 +254,12 @@ export function DocumentEditorModal({ document, owners, onSave, onCancel }: Docu
                     <label className="block text-sm font-medium text-gray-700 mb-2">Slug</label>
                     {renderField('slug', 'Slug')}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Owner</label>
-                    {renderField('owner_id', 'Owner', 'select')}
-                  </div>
+                  {isSuperAdmin && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Owner</label>
+                      {renderField('owner_id', 'Owner', 'select')}
+                    </div>
+                  )}
                 </div>
               </div>
 

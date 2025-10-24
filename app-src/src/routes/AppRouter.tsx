@@ -3,8 +3,6 @@ import { LoginPage } from '@/pages/LoginPage';
 import { SignupPage } from '@/pages/SignupPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ProfilePage } from '@/pages/ProfilePage';
-import { AdminPage } from '@/pages/AdminPage';
-import { UsersAdminPage } from '@/pages/UsersAdminPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export function AppRouter() {
@@ -23,6 +21,14 @@ export function AppRouter() {
           }
         />
         <Route
+          path="/users"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/profile"
           element={
             <ProtectedRoute>
@@ -30,22 +36,10 @@ export function AppRouter() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/admin/documents"
-          element={
-            <ProtectedRoute>
-              <AdminPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/users"
-          element={
-            <ProtectedRoute>
-              <UsersAdminPage />
-            </ProtectedRoute>
-          }
-        />
+        {/* Redirects for old admin routes */}
+        <Route path="/admin/documents" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/admin/users" element={<Navigate to="/users" replace />} />
+        <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

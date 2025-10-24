@@ -29,11 +29,9 @@ export function UploadZone() {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Upload Document</h2>
-
+    <div className="space-y-4">
       {error && (
-        <Alert variant="error" onDismiss={reset} className="mb-4">
+        <Alert variant="error" onDismiss={reset}>
           {error}
         </Alert>
       )}
@@ -47,42 +45,61 @@ export function UploadZone() {
             onChange={handleFileChange}
             disabled={uploading}
             className="block w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4
+              file:mr-4 file:py-2.5 file:px-4
               file:rounded-lg file:border-0
               file:text-sm file:font-medium
-              file:bg-blue-50 file:text-blue-700
-              hover:file:bg-blue-100
-              file:cursor-pointer cursor-pointer"
+              file:bg-gradient-to-r file:from-blue-600 file:to-indigo-600
+              file:text-white
+              hover:file:from-blue-700 hover:file:to-indigo-700
+              file:cursor-pointer cursor-pointer
+              file:transition-all file:duration-200
+              file:shadow-sm hover:file:shadow-md"
           />
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             PDF files only, max 50MB
           </p>
         </div>
 
         {selectedFile && (
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <span className="text-sm text-gray-700 truncate">
-              {selectedFile.name}
-            </span>
+          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {selectedFile.name}
+                </p>
+                <p className="text-xs text-gray-600">
+                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+              </div>
+            </div>
             <Button
               onClick={handleUpload}
               loading={uploading}
               size="sm"
+              className="ml-3"
             >
-              Upload
+              {uploading ? 'Uploading...' : 'Upload'}
             </Button>
           </div>
         )}
 
         {uploading && progress > 0 && (
           <div className="space-y-2">
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>Uploading...</span>
-              <span>{progress}%</span>
+            <div className="flex justify-between text-sm font-medium">
+              <span className="text-gray-700">Uploading...</span>
+              <span className="text-blue-600">{progress}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
               <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2.5 rounded-full transition-all duration-300 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>
