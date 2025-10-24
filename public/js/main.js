@@ -118,12 +118,6 @@ async function initializeDocument() {
                  window.location.hostname === '127.0.0.1' ||
                  window.location.hostname === '';
 
-    console.log('🌐 Environment detection:', {
-        hostname: window.location.hostname,
-        isLocalEnv: state.isLocalEnv,
-        fullUrl: window.location.href
-    });
-
     // Add class to body for CSS targeting
     if (state.isLocalEnv) {
         document.body.classList.add('local-env');
