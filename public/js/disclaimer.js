@@ -43,13 +43,13 @@ function showDisclaimer() {
         title: '<i class="swal2-icon swal2-warning"></i> Important Disclaimer',
         html: `
             <div style="text-align: left;">
-                <p style="margin-bottom: 15px;">
+                <p style="margin-bottom: 15px; color: #333;">
                     This feature is intended <strong>for educational use only by healthcare professionals</strong>.
                 </p>
-                <p style="margin-bottom: 15px;">
+                <p style="margin-bottom: 15px; color: #333;">
                     Please verify all suggestions before considering use in patient care settings.
                 </p>
-                <p>
+                <p style="color: #333;">
                     If you agree with these terms, please acknowledge below, otherwise close this window.
                 </p>
             </div>

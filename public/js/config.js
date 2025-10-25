@@ -236,7 +236,18 @@ export async function loadDocuments(forceRefresh = false) {
         const response = await fetch(apiUrl, { headers });
         
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            
+            // Handle specific error types
+            if (response.status === 404 && errorData.error_type === 'document_not_found') {
+                console.warn('⚠️  Document not found:', errorData.error);
+                throw new Error(`Document not found: ${errorData.non_existent_slugs?.join(', ') || 'unknown'}`);
+            } else if (response.status === 403 && errorData.error_type === 'access_denied') {
+                console.warn('⚠️  Access denied to document:', errorData.error);
+                throw new Error(`Access denied: ${errorData.requested_slugs?.join(', ') || 'unknown'}`);
+            } else {
+                throw new Error(`HTTP ${response.status}: ${errorData.error || 'Unknown error'}`);
+            }
         }
         
         const data = await response.json();

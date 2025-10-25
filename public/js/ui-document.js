@@ -37,11 +37,11 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 title: 'Document Required',
                 html: `
                     <div style="text-align: left; line-height: 1.6;">
-                        <p style="margin-bottom: 16px;">Please specify a document using the URL parameter:</p>
-                        <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; font-family: monospace; margin: 12px 0;">
+                        <p style="margin-bottom: 16px; color: #333;">Please specify a document using the URL parameter:</p>
+                        <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; font-family: monospace; margin: 12px 0; color: #333;">
                             ?doc=<strong>document-slug</strong>
                         </div>
-                        <p style="margin-top: 16px; font-size: 14px; color: #666;">
+                        <p style="margin-top: 16px; font-size: 14px; color: #333;">
                             Example: <code>?doc=smh</code> or <code>?doc=maker-foh</code>
                         </p>
                     </div>

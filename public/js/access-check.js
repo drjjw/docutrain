@@ -33,7 +33,7 @@ function getSupabaseToken() {
 
 /**
  * Check if user can access the current document
- * Shows login modal if access is denied
+ * Shows appropriate modal based on error type
  */
 export async function checkDocumentAccess(documentSlug) {
     if (!documentSlug) {
@@ -69,8 +69,18 @@ export async function checkDocumentAccess(documentSlug) {
 
         if (!data.has_access) {
             console.log('🚫 Access denied for document:', documentSlug);
-            // Show login modal
-            showLoginModal(documentSlug);
+            
+            // Handle different error types
+            if (data.error_type === 'document_not_found') {
+                showDocumentNotFoundModal(documentSlug);
+            } else if (data.error_type === 'authentication_required') {
+                showLoginModal(documentSlug, data.document_info);
+            } else if (data.error_type === 'permission_denied') {
+                showPermissionDeniedModal(documentSlug, data.document_info);
+            } else {
+                // Fallback to login modal for unknown errors
+                showLoginModal(documentSlug, data.document_info);
+            }
             return false;
         }
 
@@ -84,27 +94,109 @@ export async function checkDocumentAccess(documentSlug) {
 }
 
 /**
+ * Show a modal for document not found
+ */
+function showDocumentNotFoundModal(documentSlug) {
+    Swal.fire({
+        icon: 'error',
+        title: 'Document Not Found',
+        html: `
+            <div style="text-align: left;">
+                <p style="margin-bottom: 15px; color: #333;">
+                    The document "<strong>${documentSlug}</strong>" could not be found.
+                </p>
+                <p style="margin-bottom: 15px; color: #333;">
+                    This might be because:
+                </p>
+                <ul style="margin-left: 20px; margin-bottom: 15px; color: #333;">
+                    <li>The document slug is incorrect</li>
+                    <li>The document has been removed or renamed</li>
+                    <li>The document is not yet available</li>
+                </ul>
+                <p style="font-size: 14px; color: #333;">
+                    Please check the URL or contact the administrator if you believe this is an error.
+                </p>
+            </div>
+        `,
+        showCancelButton: true,
+        cancelButtonText: 'Go Back',
+        confirmButtonText: 'Try Different Document',
+        confirmButtonColor: '#3b82f6',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Redirect to document selector or home
+            window.location.href = '/';
+        } else if (result.isDismissed) {
+            // Go back in browser history
+            window.history.back();
+        }
+    });
+}
+
+/**
+ * Show a modal for permission denied (user is logged in but no access)
+ */
+function showPermissionDeniedModal(documentSlug, documentInfo) {
+    const docTitle = documentInfo?.title || documentSlug;
+    Swal.fire({
+        icon: 'warning',
+        title: 'Access Denied',
+        html: `
+            <div style="text-align: left;">
+                <p style="margin-bottom: 15px; color: #333;">
+                    You don't have permission to access "<strong>${docTitle}</strong>".
+                </p>
+                <p style="margin-bottom: 15px; color: #333;">
+                    This document may be restricted to specific user groups or organizations.
+                </p>
+                <p style="font-size: 14px; color: #333;">
+                    If you believe you should have access, please contact the document administrator.
+                </p>
+            </div>
+        `,
+        showCancelButton: true,
+        cancelButtonText: 'Go Back',
+        confirmButtonText: 'Try Different Document',
+        confirmButtonColor: '#3b82f6',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Redirect to document selector or home
+            window.location.href = '/';
+        } else if (result.isDismissed) {
+            // Go back in browser history
+            window.history.back();
+        }
+    });
+}
+
+/**
  * Show a beautiful login modal for restricted documents
  */
-function showLoginModal(documentSlug) {
+function showLoginModal(documentSlug, documentInfo) {
+    const docTitle = documentInfo?.title || documentSlug;
     // Use SweetAlert2 which is already loaded
     Swal.fire({
         icon: 'info',
         title: 'Login Required',
         html: `
             <div style="text-align: left;">
-                <p style="margin-bottom: 15px;">
-                    This document requires authentication to access.
+                <p style="margin-bottom: 15px; color: #333;">
+                    The document "<strong>${docTitle}</strong>" requires authentication to access.
                 </p>
-                <p style="margin-bottom: 15px;">
+                <p style="margin-bottom: 15px; color: #333;">
                     <strong>Please sign in to continue</strong>
                 </p>
-                <p style="font-size: 14px; color: #666;">
+                <p style="font-size: 14px; color: #333;">
                     Don't have an account? You can create one after clicking the button below.
                 </p>
             </div>
         `,
-        showCancelButton: false,
+        showCancelButton: true,
+        cancelButtonText: 'Go Back',
         confirmButtonText: 'Go to Login',
         confirmButtonColor: '#3b82f6',
         allowOutsideClick: false,
@@ -115,6 +207,9 @@ function showLoginModal(documentSlug) {
             sessionStorage.setItem('auth_return_url', window.location.href);
             // Redirect to login page
             window.location.href = '/app/login';
+        } else if (result.isDismissed) {
+            // Go back in browser history
+            window.history.back();
         }
     });
 }
