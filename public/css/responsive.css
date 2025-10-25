@@ -354,13 +354,12 @@
     }
 }
 
-/* Mobile input adjustments */
+    /* Mobile input adjustments */
 @media (max-width: 768px) {
     .input-container {
         padding: 16px 20px;
-        /* Enhanced mobile keyboard support */
-        padding-bottom: calc(16px + env(keyboard-inset-height, 0px));
-        margin-bottom: env(keyboard-inset-height, 0px);
+        /* Enhanced mobile keyboard support - use max to avoid excessive padding */
+        padding-bottom: max(16px, env(keyboard-inset-height, 16px));
         /* Ensure input stays visible above keyboard */
         position: sticky;
         bottom: 0;

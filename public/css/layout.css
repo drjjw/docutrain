@@ -194,8 +194,7 @@
     gap: 12px;
     box-shadow: 0 -2px 8px rgba(0,0,0,0.03);
     /* Mobile keyboard support */
-    padding-bottom: calc(20px + env(keyboard-inset-height, 0px));
-    margin-bottom: env(keyboard-inset-height, 0px);
+    padding-bottom: max(20px, env(keyboard-inset-height, 20px));
 }
 
 #messageInput {
