@@ -125,70 +125,192 @@
     }
 }
 
-/* Mobile: Responsive header layout */
+/* Mobile: Responsive header layout - Ultra compact */
 @media (max-width: 768px) {
     .header {
-        padding: 20px 16px;
-        flex-direction: column;
+        padding: 8px 12px;
+        flex-direction: row;
         align-items: center;
-        gap: 12px;
+        justify-content: space-between;
+        gap: 8px;
+        min-height: 48px;
+        max-height: 48px;
+        overflow: hidden;
+        transition: all 0.3s ease;
     }
 
+    /* Hidden state for auto-hide behavior */
+    .header.hidden {
+        transform: translateY(-100%);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* Compact collapsed state */
     .header.collapsed {
-        padding: 10px 16px;
+        padding: 6px 12px;
+        min-height: 40px;
+        max-height: 40px;
     }
 
+    /* Logo - minimal size */
     .header-logo {
-        justify-content: center;
-        margin-bottom: 8px;
-        order: -1; /* Logo comes first on mobile */
+        flex: 0 0 auto;
+        order: -1;
+        margin: 0;
+        padding: 0;
     }
 
+    .header-logo img {
+        height: 32px !important;
+        width: auto;
+        max-width: 120px;
+    }
+
+    /* Center section - compact */
     .header-center {
-        margin-bottom: 8px;
+        flex: 1;
+        text-align: center;
+        margin: 0;
+        padding: 0 8px;
+        min-width: 0; /* Allow text to shrink */
     }
 
-    .header-document-selector {
-        margin-left: 0;
-        margin-top: 8px;
-        width: 100%;
+    .header-title-wrapper {
+        display: flex;
+        align-items: center;
         justify-content: center;
-        order: 1; /* Document selector comes after center content on mobile */
+        gap: 4px;
+        flex-wrap: nowrap;
     }
 
     .header h1 {
-        font-size: 24px;
-        font-weight: 400;
-        font-family: 'Anton', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        letter-spacing: 0.025em;
-        line-height: 1.2;
-        margin-bottom: 8px;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 1.1;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
     }
 
+    .header-icons {
+        flex-shrink: 0;
+    }
+
+    .about-icon {
+        width: 20px !important;
+        height: 20px !important;
+        padding: 2px;
+    }
+
+    .about-icon svg {
+        width: 12px !important;
+        height: 12px !important;
+    }
+
+    /* User menu - prevent wrapping */
+    .header-user-menu {
+        flex: 0 0 auto;
+        order: 2;
+        margin: 0;
+        padding: 0;
+    }
+
+    .user-menu-btn {
+        padding: 4px;
+        min-width: 32px;
+        height: 32px;
+    }
+
+    .user-avatar svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .chevron-icon {
+        width: 12px;
+        height: 12px;
+    }
+
+    /* Document selector - compact */
+    .header-document-selector {
+        flex: 0 0 auto;
+        order: 3;
+        margin: 0;
+        padding: 0;
+    }
+
+    .document-selector-btn {
+        padding: 4px 8px;
+        font-size: 12px;
+        height: 32px;
+        min-width: 32px;
+    }
+
+    .doc-icon {
+        width: 14px;
+        height: 14px;
+    }
+
+    .current-doc-name {
+        font-size: 12px;
+        max-width: 80px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Remove subtitle completely on mobile */
     .header p {
-        font-size: 14px;
-        color: #64748b;
-        margin-bottom: 16px;
-        font-weight: 400;
-        letter-spacing: 0.01em;
+        display: none;
     }
 
+    /* Header content - minimal */
     .header-content {
-        margin-top: 16px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: 100%;
+        margin-top: 8px;
+        padding: 0 12px;
     }
 
     .back-link {
-        display: inline-flex;
-        align-self: center;
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+
+    /* Mobile header toggle button */
+    .mobile-header-toggle {
+        position: fixed;
+        top: 8px;
+        left: 12px;
+        z-index: 1001;
+        width: 32px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 6px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+    }
+
+    .mobile-header-toggle:hover {
+        background: rgba(255, 255, 255, 1);
+        transform: scale(1.05);
+    }
+
+    .mobile-header-toggle svg {
+        width: 16px;
+        height: 16px;
+        color: #374151;
+    }
+
+    .mobile-header-toggle.show {
+        display: flex;
     }
 }
 
@@ -236,6 +358,24 @@
 @media (max-width: 768px) {
     .input-container {
         padding: 16px 20px;
+        /* Enhanced mobile keyboard support */
+        padding-bottom: calc(16px + env(keyboard-inset-height, 0px));
+        margin-bottom: env(keyboard-inset-height, 0px);
+        /* Ensure input stays visible above keyboard */
+        position: sticky;
+        bottom: 0;
+        z-index: 1000;
+    }
+    
+    /* Use dynamic viewport height for mobile */
+    .container {
+        height: 100dvh;
+    }
+    
+    /* Ensure chat container adjusts to available space */
+    .chat-container {
+        height: calc(100dvh - env(keyboard-inset-height, 0px) - 200px);
+        min-height: 200px;
     }
 }
 

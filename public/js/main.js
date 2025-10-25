@@ -31,6 +31,167 @@ const elements = {
     sendButton: document.getElementById('sendButton')
 };
 
+// Mobile keyboard handling fallback
+function initializeMobileKeyboardSupport() {
+    // Check if we're on a mobile device
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (!isMobile) return;
+
+    const inputContainer = document.querySelector('.input-container');
+    const chatContainer = document.querySelector('.chat-container');
+    
+    if (!inputContainer || !chatContainer) return;
+
+    let initialViewportHeight = window.innerHeight;
+    let keyboardHeight = 0;
+
+    // Handle viewport changes (keyboard show/hide)
+    function handleViewportChange() {
+        const currentHeight = window.innerHeight;
+        const heightDifference = initialViewportHeight - currentHeight;
+        
+        // If height decreased significantly, keyboard is likely open
+        if (heightDifference > 150) {
+            keyboardHeight = heightDifference;
+            // Adjust chat container height to prevent overlap
+            chatContainer.style.height = `calc(100vh - ${keyboardHeight}px - 200px)`;
+            chatContainer.style.minHeight = '200px';
+            
+            // Scroll to bottom to keep input visible
+            setTimeout(() => {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 100);
+        } else {
+            // Keyboard closed, reset heights
+            keyboardHeight = 0;
+            chatContainer.style.height = '';
+            chatContainer.style.minHeight = '';
+        }
+    }
+
+    // Listen for resize events
+    window.addEventListener('resize', handleViewportChange);
+    
+    // Listen for focus events on input to ensure proper scrolling
+    elements.messageInput.addEventListener('focus', () => {
+        setTimeout(() => {
+            handleViewportChange();
+            // Scroll chat to bottom when input is focused
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }, 300); // Delay to allow keyboard animation
+    });
+
+    // Listen for blur events
+    elements.messageInput.addEventListener('blur', () => {
+        setTimeout(() => {
+            handleViewportChange();
+        }, 300);
+    });
+
+    console.log('📱 Mobile keyboard support initialized');
+}
+
+// Initialize mobile keyboard support
+initializeMobileKeyboardSupport();
+
+// Mobile header auto-hide functionality
+function initializeMobileHeaderBehavior() {
+    // Only activate on mobile devices
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (!isMobile || window.innerWidth > 768) return;
+
+    const header = document.getElementById('mainHeader');
+    const chatContainer = document.querySelector('.chat-container');
+    const messageInput = document.getElementById('messageInput');
+    const headerToggle = document.getElementById('mobileHeaderToggle');
+
+    if (!header || !chatContainer || !headerToggle) return;
+
+    let lastScrollTop = 0;
+    let scrollThreshold = 50; // pixels to scroll before hiding
+    let hideTimeout;
+    let isHeaderHidden = false;
+
+    // Function to show header
+    function showHeader() {
+        header.classList.remove('hidden');
+        headerToggle.classList.remove('show');
+        isHeaderHidden = false;
+        clearTimeout(hideTimeout);
+    }
+
+    // Function to hide header
+    function hideHeader() {
+        if (!messageInput.matches(':focus')) { // Don't hide if input is focused
+            header.classList.add('hidden');
+            headerToggle.classList.add('show');
+            isHeaderHidden = true;
+        }
+    }
+
+    // Toggle button click handler
+    headerToggle.addEventListener('click', () => {
+        showHeader();
+        autoHideHeader(); // Will auto-hide after delay
+    });
+
+    // Function to auto-hide header after delay
+    function autoHideHeader() {
+        clearTimeout(hideTimeout);
+        hideTimeout = setTimeout(() => {
+            hideHeader();
+        }, 2000); // Hide after 2 seconds of inactivity
+    }
+
+    // Scroll detection for auto-hide
+    function handleScroll() {
+        const currentScrollTop = chatContainer.scrollTop;
+
+        // Show header when scrolling up significantly
+        if (currentScrollTop < lastScrollTop - scrollThreshold) {
+            showHeader();
+            autoHideHeader(); // Will auto-hide after delay
+        }
+        // Hide header when scrolling down
+        else if (currentScrollTop > lastScrollTop + scrollThreshold) {
+            hideHeader();
+        }
+
+        lastScrollTop = currentScrollTop;
+    }
+
+    // Touch events to show header temporarily
+    function handleTouchStart() {
+        showHeader();
+    }
+
+    // Input focus events
+    messageInput.addEventListener('focus', () => {
+        showHeader();
+        clearTimeout(hideTimeout); // Don't auto-hide while typing
+    });
+
+    messageInput.addEventListener('blur', () => {
+        autoHideHeader(); // Start auto-hide timer when input loses focus
+    });
+
+    // Add scroll listener to chat container
+    chatContainer.addEventListener('scroll', handleScroll, { passive: true });
+
+    // Add touch listeners to show header on interaction
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+
+    // Show header initially for a brief moment, then auto-hide
+    setTimeout(() => {
+        autoHideHeader();
+    }, 1000);
+
+    console.log('📱 Mobile header auto-hide behavior initialized');
+}
+
+// Initialize mobile header behavior
+initializeMobileHeaderBehavior();
+
 console.log('🔍 URL Detection:');
 console.log('  - Current path:', window.location.pathname);
 console.log('  - API Base URL:', API_URL);

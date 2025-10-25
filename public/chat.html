@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
     <meta name="referrer" content="origin">
     <title>AI Document Assistant</title>
     <meta name="description" content="AI-powered document assistant for medical guidelines and research papers">
@@ -34,6 +34,15 @@
     <div class="document-selector-overlay" id="documentSelectorOverlay"></div>
     
     <div class="container">
+        <!-- Mobile Header Toggle Button -->
+        <button class="mobile-header-toggle" id="mobileHeaderToggle" style="display: none;" title="Show header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+
         <div class="header" id="mainHeader">
             <!-- Logo Section - Left -->
             <div class="header-logo">
