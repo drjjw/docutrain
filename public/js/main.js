@@ -559,8 +559,17 @@ function closeUserMenuDropdown() {
     const urlParams = new URLSearchParams(window.location.search);
     const docParam = urlParams.get('doc');
     if (docParam) {
-        const hasAccess = await checkDocumentAccess(docParam);
+        // Handle multi-document URLs by parsing on + or space (URL decoding)
+        const documentSlugs = docParam.split(/[\s+]+/).map(s => s.trim()).filter(s => s);
+
+        console.log('🔒 Checking access to documents before init:', documentSlugs.join(', '));
+
+        // Check access for each document individually
+        const accessResults = await Promise.all(documentSlugs.map(slug => checkDocumentAccess(slug)));
+        const hasAccess = accessResults.every(result => result === true);
+
         if (!hasAccess) {
+            console.log('🚫 Access denied for one or more documents - aborting initialization');
             // Access denied - modal will handle redirect
             return;
         }

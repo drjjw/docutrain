@@ -189,7 +189,7 @@ app.get('/chat', async (req, res) => {
             let html = require('fs').readFileSync(chatPath, 'utf8');
             
             // Parse multiple documents (support for + separator)
-            const docSlugs = req.query.doc.split('+').map(s => s.trim()).filter(s => s);
+            const docSlugs = req.query.doc.split(/[\s+]+/).map(s => s.trim()).filter(s => s);
             
             if (docSlugs.length > 0) {
                 // Fetch document configs

@@ -370,7 +370,7 @@ body:not(.local-env) .retrieval-selector {
     align-items: center;
     justify-content: center;
     gap: 12px;
-    font-size: 13px;
+    font-size: 18px;
     color: #475569;
     font-weight: 400;
     transition: all 0.3s ease;

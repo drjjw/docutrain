@@ -5,28 +5,45 @@ const COOKIE_NAME = 'ai_hint_dismissed';
 const COOKIE_EXPIRY_DAYS = 365; // Remember dismissal for 1 year
 
 /**
+ * Get URL parameter value by name
+ * @param {string} name - Parameter name
+ * @returns {string|null} Parameter value or null if not found
+ */
+function getUrlParameter(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+}
+
+/**
  * Initialize the AI hint message functionality
  * Shows the message if it hasn't been dismissed, handles dismiss action
  */
 export function initializeAIHint() {
     const hintMessage = document.getElementById('aiHintMessage');
     const dismissButton = document.getElementById('aiHintDismiss');
-    
+
     if (!hintMessage || !dismissButton) {
         console.warn('AI hint elements not found');
         return;
     }
-    
+
+    // Check URL parameter to disable hint
+    const showHintParam = getUrlParameter('show_hint');
+    if (showHintParam === 'false') {
+        console.log('ℹ️ AI hint disabled via URL parameter ?show_hint=false');
+        return;
+    }
+
     // Check if user has previously dismissed the hint
     const isDismissed = Cookies.get(COOKIE_NAME);
-    
+
     if (!isDismissed) {
         // Show the hint message with a slight delay for better UX
         setTimeout(() => {
             hintMessage.style.display = 'flex';
         }, 500);
     }
-    
+
     // Handle dismiss button click
     dismissButton.addEventListener('click', () => {
         dismissHint(hintMessage);
@@ -51,6 +68,17 @@ function dismissHint(hintMessage) {
     Cookies.set(COOKIE_NAME, 'true', { expires: COOKIE_EXPIRY_DAYS });
     
     console.log('✓ AI hint dismissed and saved to cookie');
+}
+
+/**
+ * Public API to dismiss the AI hint programmatically
+ * Used by chat.js when user starts chatting
+ */
+export function dismissAIHint() {
+    const hintMessage = document.getElementById('aiHintMessage');
+    if (hintMessage) {
+        dismissHint(hintMessage);
+    }
 }
 
 /**

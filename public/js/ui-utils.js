@@ -37,8 +37,6 @@ export function updateMetaTags(title, description) {
     if (twitterDescription) {
         twitterDescription.setAttribute('content', description);
     }
-    
-    console.log(`📄 Meta tags updated: "${title}"`);
 }
 
 /**
@@ -97,7 +95,6 @@ export function equalizeContainerHeights() {
         // Reset heights on mobile to allow natural sizing
         coverSection.style.height = '';
         welcomeSection.style.height = '';
-        console.log(`📱 Mobile view: Heights reset to natural sizing`);
         return;
     }
     
@@ -113,8 +110,6 @@ export function equalizeContainerHeights() {
     const maxHeight = Math.max(coverHeight, welcomeHeight);
     coverSection.style.height = `${maxHeight}px`;
     welcomeSection.style.height = `${maxHeight}px`;
-    
-    console.log(`📏 Desktop: Equalized heights: cover=${coverHeight}px, welcome=${welcomeHeight}px, set to=${maxHeight}px`);
 }
 
 // Add resize listener to re-equalize on window resize

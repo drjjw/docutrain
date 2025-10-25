@@ -220,11 +220,33 @@ function showLoginModal(documentSlug, documentInfo) {
 export function initAccessCheck() {
     // Get document from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
-    const documentSlug = urlParams.get('doc');
+    const docParam = urlParams.get('doc');
 
-    if (documentSlug) {
-        console.log('🔒 Checking access to document:', documentSlug);
-        checkDocumentAccess(documentSlug);
+    if (docParam) {
+        // Handle multi-document URLs by parsing on + or space (URL decoding)
+        const documentSlugs = docParam.split(/[\s+]+/).map(s => s.trim()).filter(s => s);
+
+        console.log('🔒 Checking access to documents:', documentSlugs.join(', '));
+
+        // For multi-document URLs, check access for each document
+        if (documentSlugs.length > 1) {
+            // Check each document individually
+            Promise.all(documentSlugs.map(slug => checkDocumentAccess(slug)))
+                .then(results => {
+                    const allGranted = results.every(result => result === true);
+                    if (!allGranted) {
+                        console.log('🚫 Access denied for one or more documents in multi-doc URL');
+                    } else {
+                        console.log('✅ Access granted for all documents in multi-doc URL');
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error checking multi-document access:', error);
+                });
+        } else {
+            // Single document - check normally
+            checkDocumentAccess(documentSlugs[0]);
+        }
     }
 }
 

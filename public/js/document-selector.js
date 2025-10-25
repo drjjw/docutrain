@@ -83,9 +83,9 @@ class DocumentSelector {
             // Check for owner parameter first - if present, enable owner mode
             const ownerParam = urlParams.get('owner');
             const docParam = urlParams.get('doc');
-            
+
             console.log('📋 Document Selector - Owner param:', ownerParam, 'Doc param:', docParam, 'URL:', window.location.href);
-            
+
             if (ownerParam && !this.ownerMode) {
                 this.ownerMode = true;
                 this.modalMode = true;
@@ -93,8 +93,14 @@ class DocumentSelector {
                 console.log('🎯 Document Selector - Owner mode activated for:', ownerParam, 'Modal mode:', this.modalMode);
             }
 
-            // Set current document slug - in owner mode, don't default to 'smh' since no doc is selected
-            this.currentDocSlug = this.ownerMode ? docParam : (docParam || 'smh');
+            // Parse document slugs to handle multi-document URLs
+            const docSlugs = docParam ? docParam.split(/[\s+]+/).map(s => s.trim()).filter(s => s) : ['smh'];
+
+            // For multi-document URLs, use the first document for selector logic
+            // For owner mode, don't default to 'smh' since no doc is selected
+            this.currentDocSlug = this.ownerMode ? docParam : (docSlugs[0] || 'smh');
+
+            console.log('📋 Document Selector - Parsed slugs:', docSlugs, 'Using first slug for selector:', this.currentDocSlug);
             
             // First, fetch the current document to check if selector should be shown
             let apiUrl = '/api/documents';

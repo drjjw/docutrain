@@ -16,13 +16,11 @@ function setupScrollInterruptDetection(chatContainer) {
     // Detect user scroll via wheel/trackpad
     chatContainer.addEventListener('wheel', () => {
         userHasScrolled = true;
-        console.log('🖱️ User scroll detected - pausing auto-scroll');
     }, { passive: true });
 
     // Detect user scroll via touch (mobile/trackpad gestures)
     chatContainer.addEventListener('touchmove', () => {
         userHasScrolled = true;
-        console.log('👆 Touch scroll detected - pausing auto-scroll');
     }, { passive: true });
 
     // Detect manual scrollbar dragging or keyboard scrolling
@@ -41,7 +39,6 @@ function setupScrollInterruptDetection(chatContainer) {
             
             if (!isAtBottom && !userHasScrolled) {
                 userHasScrolled = true;
-                console.log('📜 Manual scroll detected - pausing auto-scroll');
             }
         }, 100);
     }, { passive: true });
