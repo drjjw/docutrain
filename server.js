@@ -6,7 +6,7 @@ const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 // Import modules
-const { setupMiddleware } = require('./lib/middleware');
+const { setupMiddleware, createHostnameDetectionMiddleware } = require('./lib/middleware');
 const { escapeHtml } = require('./lib/utils');
 const { createChatRouter } = require('./lib/routes/chat');
 const { createDocumentsRouter } = require('./lib/routes/documents');
@@ -59,6 +59,10 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 const middleware = setupMiddleware();
 middleware.forEach(mw => app.use(mw));
 
+// Apply hostname detection middleware (after Supabase is initialized)
+// This needs to be after basic middleware but before route handlers
+// Note: This will be initialized after Supabase client is created below
+
 // Initialize AI clients
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const xai = new OpenAI({
@@ -102,6 +106,10 @@ const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_ANON_KEY
 );
+
+// Initialize hostname detection middleware for custom domains
+// This MUST be after Supabase initialization but before routes
+app.use(createHostnameDetectionMiddleware(supabase));
 
 // Initialize document registry
 const documentRegistry = require('./lib/document-registry');

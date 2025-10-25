@@ -12,6 +12,7 @@ export interface Owner {
   logo_url?: string;
   intro_message?: string;
   default_cover?: string;
+  custom_domain?: string;
   created_at: string;
   updated_at: string;
 }
