@@ -1,5 +1,6 @@
 // UI Messages - Message rendering and display
 import { styleReferences, wrapDrugConversionContent } from './ui-content-styling.js';
+import { shouldAutoScroll } from './chat.js';
 
 // Update model name in about tooltip
 export function updateModelInTooltip(selectedModel) {
@@ -198,11 +199,14 @@ export function addMessage(content, role, model = null, conversationId = null, c
     chatContainer.appendChild(messageDiv);
 
     // Scroll to show the top of the new message (not the bottom)
-    if (role === 'assistant') {
-        messageDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-        // For user messages, scroll to bottom to show input was received
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+    // Only auto-scroll if user hasn't manually scrolled
+    if (shouldAutoScroll()) {
+        if (role === 'assistant') {
+            messageDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            // For user messages, scroll to bottom to show input was received
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
     }
 }
 

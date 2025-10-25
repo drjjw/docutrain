@@ -1,7 +1,7 @@
 // Main initialization and event wiring
 import { API_URL, generateSessionId, getEmbeddingType, preloadLogos, parseDocumentSlugs } from './config.js';
 import { updateDocumentUI, updateModelInTooltip } from './ui.js';
-import { sendMessage } from './chat.js';
+import { sendMessage, setupScrollInterruptDetection, resetAutoScroll } from './chat.js';
 import { submitRating } from './rating.js';
 import { initializePubMedPopup } from './pubmed-popup.js';
 import { initializeAIHint } from './ai-hint.js';
@@ -192,6 +192,13 @@ function initializeMobileHeaderBehavior() {
 // Initialize mobile header behavior
 initializeMobileHeaderBehavior();
 
+// Initialize scroll interrupt detection for smart auto-scrolling
+if (elements.chatContainer) {
+    setupScrollInterruptDetection(elements.chatContainer);
+    elements.chatContainer.setAttribute('data-scroll-detection-setup', 'true');
+    console.log('📜 Smart auto-scroll initialized');
+}
+
 console.log('🔍 URL Detection:');
 console.log('  - Current path:', window.location.pathname);
 console.log('  - API Base URL:', API_URL);
@@ -371,9 +378,15 @@ async function initializeDocument() {
 }
 
 // Event listeners for chat
-elements.sendButton.addEventListener('click', () => sendMessage(state, elements));
+elements.sendButton.addEventListener('click', () => {
+    resetAutoScroll(); // User is sending a message, they're ready for new content
+    sendMessage(state, elements);
+});
 elements.messageInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendMessage(state, elements);
+    if (e.key === 'Enter') {
+        resetAutoScroll(); // User is sending a message, they're ready for new content
+        sendMessage(state, elements);
+    }
 });
 
 

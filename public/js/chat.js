@@ -3,6 +3,61 @@ import { sendMessageToAPI } from './api.js';
 import { addMessage, addLoading, removeLoading, buildResponseWithMetadata } from './ui.js';
 import { getDocument } from './config.js';
 import { styleReferences, wrapDrugConversionContent } from './ui-content-styling.js';
+import { dismissAIHint } from './ai-hint.js';
+
+// ============================================================================
+// AUTO-SCROLL MANAGEMENT
+// ============================================================================
+// Track whether user has manually scrolled and wants to pause auto-scroll
+let userHasScrolled = false;
+let scrollTimeout = null;
+
+function setupScrollInterruptDetection(chatContainer) {
+    // Detect user scroll via wheel/trackpad
+    chatContainer.addEventListener('wheel', () => {
+        userHasScrolled = true;
+        console.log('🖱️ User scroll detected - pausing auto-scroll');
+    }, { passive: true });
+
+    // Detect user scroll via touch (mobile/trackpad gestures)
+    chatContainer.addEventListener('touchmove', () => {
+        userHasScrolled = true;
+        console.log('👆 Touch scroll detected - pausing auto-scroll');
+    }, { passive: true });
+
+    // Detect manual scrollbar dragging or keyboard scrolling
+    chatContainer.addEventListener('scroll', () => {
+        // Clear any existing timeout
+        if (scrollTimeout) {
+            clearTimeout(scrollTimeout);
+        }
+
+        // Set a timeout to detect if this was user-initiated
+        // (auto-scroll happens immediately, user scroll has momentum/continuation)
+        scrollTimeout = setTimeout(() => {
+            const isAtBottom = Math.abs(
+                chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight
+            ) < 50; // 50px threshold
+            
+            if (!isAtBottom && !userHasScrolled) {
+                userHasScrolled = true;
+                console.log('📜 Manual scroll detected - pausing auto-scroll');
+            }
+        }, 100);
+    }, { passive: true });
+}
+
+function shouldAutoScroll() {
+    return !userHasScrolled;
+}
+
+function resetAutoScroll() {
+    userHasScrolled = false;
+    console.log('🔄 Auto-scroll resumed for new response');
+}
+
+// Export for use in other modules
+export { setupScrollInterruptDetection, shouldAutoScroll, resetAutoScroll };
 
 // ============================================================================
 // STREAMING RESPONSE HANDLER
@@ -10,6 +65,15 @@ import { styleReferences, wrapDrugConversionContent } from './ui-content-styling
 async function handleStreamingResponse(response, state, elements) {
     console.log('📡 Receiving streaming response...');
     removeLoading();
+
+    // Reset auto-scroll for new response
+    resetAutoScroll();
+
+    // Setup scroll detection if not already done
+    if (!elements.chatContainer.hasAttribute('data-scroll-detection-setup')) {
+        setupScrollInterruptDetection(elements.chatContainer);
+        elements.chatContainer.setAttribute('data-scroll-detection-setup', 'true');
+    }
 
     // Create a placeholder message that we'll update
     const messageDiv = document.createElement('div');
@@ -46,8 +110,10 @@ async function handleStreamingResponse(response, state, elements) {
                             wrapDrugConversionContent(contentDiv);
                             styleReferences(contentDiv);
                             
-                            // Auto-scroll to show new content
-                            elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+                            // Auto-scroll to show new content (only if user hasn't scrolled)
+                            if (shouldAutoScroll()) {
+                                elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+                            }
                         } else if (data.type === 'done') {
                             console.log('✅ Streaming completed');
 
@@ -162,6 +228,9 @@ async function handleNonStreamingResponse(response, state, elements, sendMessage
 export async function sendMessage(state, elements) {
     const message = elements.messageInput.value.trim();
     if (!message || state.isLoading) return;
+
+    // Dismiss AI hint when user starts chatting (demonstrates understanding)
+    dismissAIHint();
 
     state.isLoading = true;
     elements.sendButton.disabled = true;
