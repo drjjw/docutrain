@@ -1,5 +1,5 @@
 // UI Document - Document UI management and orchestration
-import { getDocument, getOwnerLogoConfig, parseDocumentSlugs, getBackButtonURL } from './config.js?v=20251019-02';
+import { getDocument, getOwnerLogoConfig, parseDocumentSlugs, getBackButtonURL } from './config.js';
 import { updateMetaTags, darkenColor, hexToRgba, equalizeContainerHeights } from './ui-utils.js';
 import { addDownloadsToWelcome } from './ui-downloads.js';
 
@@ -206,8 +206,30 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
             logoElement.style.display = ''; // Show logo
             logoElement.src = logoConfig.logo;
             logoElement.alt = logoConfig.alt;
-            logoLink.href = logoConfig.link;
-            logoLink.title = logoConfig.alt;
+            
+            // Check if owner_link=false parameter is present to disable logo link
+            const urlParams = new URLSearchParams(window.location.search);
+            const ownerLinkDisabled = urlParams.get('owner_link') === 'false';
+            
+            if (ownerLinkDisabled) {
+                // Disable logo link functionality
+                logoLink.href = '#';
+                logoLink.title = `${logoConfig.alt} logo`;
+                logoLink.style.cursor = 'default';
+                logoLink.onclick = (e) => e.preventDefault();
+                
+                console.log('🔗 Owner logo link disabled due to owner_link=false parameter');
+            } else {
+                // Override logo link to navigate to owner's chat page
+                logoLink.href = `/chat?owner=${encodeURIComponent(config.owner)}`;
+                logoLink.title = `View all documents for ${logoConfig.alt}`;
+                
+                // Remove target="_blank" to navigate in same window
+                logoLink.removeAttribute('target');
+                logoLink.removeAttribute('rel');
+                
+                console.log('🔗 Owner logo link set to navigate to owner page:', logoLink.href);
+            }
 
             console.log(`🎨 Logo set: src=${logoConfig.logo}, alt=${logoConfig.alt}`);
 

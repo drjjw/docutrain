@@ -190,6 +190,24 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
+      <style>{`
+        .wysiwyg-preview ul {
+          list-style-type: disc;
+          margin-left: 1.5rem;
+          margin-top: 0.5rem;
+          margin-bottom: 0.5rem;
+        }
+        .wysiwyg-preview ol {
+          list-style-type: decimal;
+          margin-left: 1.5rem;
+          margin-top: 0.5rem;
+          margin-bottom: 0.5rem;
+        }
+        .wysiwyg-preview li {
+          margin-top: 0.25rem;
+          margin-bottom: 0.25rem;
+        }
+      `}</style>
       {/* Background overlay */}
       <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onCancel}></div>
 
@@ -415,7 +433,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                           </svg>
                           Preview
                         </div>
-                        <div className="prose prose-sm max-w-none text-gray-800" dangerouslySetInnerHTML={{ __html: editingValues.intro_message }} />
+                        <div className="prose prose-sm max-w-none text-gray-800 wysiwyg-preview" dangerouslySetInnerHTML={{ __html: editingValues.intro_message }} />
                       </div>
                     )}
                   </div>

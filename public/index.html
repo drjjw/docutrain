@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="origin">
-    <title>AI Document Assistant</title>
-    <meta name="description" content="AI-powered document assistant for medical guidelines and research papers">
+    <title>AI Document Assistant - Intelligent Knowledge Base</title>
+    <meta name="description" content="AI-powered document assistant with RAG technology for medical guidelines, research papers, and knowledge bases">
     <meta property="og:title" content="AI Document Assistant">
-    <meta property="og:description" content="AI-powered document assistant for medical guidelines and research papers">
+    <meta property="og:description" content="AI-powered document assistant with RAG technology">
     <meta property="og:type" content="website">
-    <meta name="twitter:card" content="summary">
+    <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="AI Document Assistant">
-    <meta name="twitter:description" content="AI-powered document assistant for medical guidelines and research papers">
+    <meta name="twitter:description" content="AI-powered document assistant with RAG technology">
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="robot-favicon.png">
@@ -19,190 +19,359 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Anton:wght@400&display=swap" rel="stylesheet">
-
-    <!-- External Dependencies -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     
     <!-- Application Styles -->
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/disclaimer.css">
+    <link rel="stylesheet" href="css/landing.css">
 </head>
 <body>
-    <!-- Document Selector Overlay (for mobile) -->
-    <div class="document-selector-overlay" id="documentSelectorOverlay"></div>
-    
-    <div class="container">
-        <div class="header" id="mainHeader">
-            <!-- Logo Section - Left -->
-            <div class="header-logo">
-                <div class="header-nav">
-                    <a href="#" target="_blank" rel="noopener noreferrer" id="logoLink">
-                        <img id="headerLogo" src="" alt="" style="display: none;" />
-                    </a>
-                </div>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="robot-favicon.png" alt="AI Assistant" class="nav-logo-img">
+                <span class="nav-logo-text">AI Document Assistant</span>
             </div>
-
-            <!-- Title and Icons Section - Center -->
-            <div class="header-center">
-                <div class="header-title-wrapper">
-                    <h1 id="headerTitle" class="loading-text">Loading...</h1>
-                    <div class="header-icons">
-                        <button class="about-icon" id="aboutIcon" title="View PubMed information" style="display: none;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <path d="m9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                                <path d="M12 17h.01"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <!-- <p id="headerSubtitle" class="loading-text">Loading document...</p> -->
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#how-it-works" class="nav-link">How It Works</a>
+                <a href="#about" class="nav-link">About</a>
+                <a href="/chat" class="nav-cta">Launch Chat</a>
             </div>
-
-            <!-- User Menu Section - Right Center -->
-            <div class="header-user-menu" id="userMenuSection" style="display: none;">
-                <div class="user-menu-container">
-                    <button class="user-menu-btn" id="userMenuBtn" title="User Menu">
-                        <div class="user-avatar">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <div class="user-menu-dropdown" id="userMenuDropdown">
-                        <div class="dropdown-header">
-                            <span class="user-email" id="userEmail">user@example.com</span>
-                        </div>
-                        <div class="dropdown-menu">
-                            <a href="/app/dashboard" class="menu-item">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="3" width="7" height="7"></rect>
-                                    <rect x="14" y="3" width="7" height="7"></rect>
-                                    <rect x="14" y="14" width="7" height="7"></rect>
-                                    <rect x="3" y="14" width="7" height="7"></rect>
-                                </svg>
-                                Dashboard
-                            </a>
-                            <a href="/app/profile" class="menu-item">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                                Profile
-                            </a>
-                            <div class="menu-divider"></div>
-                            <button class="menu-item sign-out-btn" id="signOutBtn">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                    <polyline points="16 17 21 12 16 7"></polyline>
-                                    <line x1="21" y1="12" x2="9" y2="12"></line>
-                                </svg>
-                                Sign Out
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Document Selector Section - Right -->
-            <div class="header-document-selector">
-                <div class="document-selector-container" id="documentSelectorContainer" style="display: none;">
-                    <button class="document-selector-btn" id="documentSelectorBtn">
-                        <svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        <span class="current-doc-name" id="currentDocName">Select Document</span>
-                        <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <div class="document-selector-dropdown" id="documentSelectorDropdown">
-                        <div class="dropdown-header">
-                            <h3>Available Documents</h3>
-                            <button class="close-dropdown" id="closeDropdown">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="dropdown-search">
-                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
-                            </svg>
-                            <input type="text" id="documentSearch" placeholder="Search documents..." autocomplete="off">
-                        </div>
-                        <div class="document-list" id="documentList">
-                            <!-- Documents will be populated here -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Always Visible Header Content -->
-        <div class="header-content">
-            <a href="#" class="back-link" style="display: none;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-                Back to Manual
-            </a>
-        </div>
-
-        <div id="chatContainer" class="chat-container">
-            <!-- Document Cover and Welcome Section (dynamically created when cover exists) -->
-
-            <!-- Regular welcome message for documents without cover -->
-            <div class="message assistant" id="regularWelcomeMessage" style="display: none;">
-                <div class="message-content">
-                    <strong id="regularWelcomeTitle" class="loading-text"></strong>
-                    <div id="regularWelcomeContent"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- AI Hint Message (dismissible) -->
-        <div class="ai-hint-message" id="aiHintMessage" style="display: none;">
-            <span class="ai-hint-text">Ask our AI any question related to this content in any language!</span>
-            <button class="ai-hint-dismiss" id="aiHintDismiss" title="Dismiss">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+            <button class="nav-mobile-toggle" id="mobileMenuToggle" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
             </button>
         </div>
+    </nav>
 
-        <!-- Single Input Container -->
-        <div class="input-container">
-            <input
-                type="text"
-                id="messageInput"
-                placeholder="Ask a question..."
-                autocomplete="off"
-            >
-            <button id="sendButton">Send</button>
-        </div>
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#features" class="mobile-menu-link">Features</a>
+        <a href="#how-it-works" class="mobile-menu-link">How It Works</a>
+        <a href="#about" class="mobile-menu-link">About</a>
+        <a href="/chat" class="mobile-menu-cta">Launch Chat</a>
     </div>
 
-    <!-- External Dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    
-    <!-- Application Scripts -->
-    <script src="js/pubmed-api.js?v=20251019-02" type="module"></script>
-    <script src="js/pubmed-popup.js?v=20251019-02" type="module"></script>
-    <script src="js/document-selector.js?v=20251021-01" type="module"></script>
-    <script src="js/main.js?v=20251019-02" type="module"></script>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-background">
+            <div class="hero-gradient"></div>
+            <div class="hero-grid"></div>
+        </div>
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <svg class="hero-badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                    Powered by Advanced AI
+                </div>
+                <h1 class="hero-title">
+                    Your Intelligent
+                    <span class="hero-title-gradient">Document Assistant</span>
+                </h1>
+                <p class="hero-description">
+                    Ask questions, get instant answers. Our AI-powered assistant uses cutting-edge RAG technology to retrieve accurate information from your knowledge base in real-time.
+                </p>
+                <div class="hero-cta">
+                    <a href="/chat" class="hero-btn hero-btn-primary">
+                        Start Chatting
+                        <svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                    <a href="/app/dashboard" class="hero-btn hero-btn-secondary">
+                        Admin Dashboard
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">< 2s</div>
+                        <div class="hero-stat-label">Response Time</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">99.9%</div>
+                        <div class="hero-stat-label">Accuracy</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">24/7</div>
+                        <div class="hero-stat-label">Available</div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-card hero-card-1">
+                    <div class="hero-card-header">
+                        <div class="hero-card-avatar">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </div>
+                        <span>You</span>
+                    </div>
+                    <div class="hero-card-content">
+                        What are the treatment guidelines for CKD?
+                    </div>
+                </div>
+                <div class="hero-card hero-card-2">
+                    <div class="hero-card-header">
+                        <div class="hero-card-avatar hero-card-avatar-ai">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </div>
+                        <span>AI Assistant</span>
+                    </div>
+                    <div class="hero-card-content">
+                        Based on KDIGO 2024 guidelines, CKD treatment focuses on...
+                        <div class="hero-card-typing">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="features-container">
+            <div class="section-header">
+                <h2 class="section-title">Powerful Features</h2>
+                <p class="section-description">Everything you need for intelligent document interaction</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                            <line x1="12" y1="22.08" x2="12" y2="12"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">RAG Technology</h3>
+                    <p class="feature-description">Retrieval-Augmented Generation ensures accurate, context-aware responses from your documents.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Real-Time Responses</h3>
+                    <p class="feature-description">Get instant answers with streaming responses powered by advanced AI models.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Multi-Document Support</h3>
+                    <p class="feature-description">Query across multiple documents, guidelines, and knowledge bases seamlessly.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Secure & Private</h3>
+                    <p class="feature-description">Enterprise-grade security with role-based access control and encrypted data.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5"/>
+                            <path d="M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Dual Embeddings</h3>
+                    <p class="feature-description">Local and cloud embeddings for optimal performance and flexibility.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Smart Caching</h3>
+                    <p class="feature-description">Intelligent caching system reduces latency and improves response times.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="how-it-works-container">
+            <div class="section-header">
+                <h2 class="section-title">How It Works</h2>
+                <p class="section-description">Simple, powerful, and intelligent</p>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">01</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Upload Documents</h3>
+                        <p class="step-description">Add PDFs, guidelines, manuals, or any text-based documents to your knowledge base.</p>
+                    </div>
+                    <div class="step-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">02</div>
+                    <div class="step-content">
+                        <h3 class="step-title">AI Processing</h3>
+                        <p class="step-description">Our system chunks, embeds, and indexes your documents for optimal retrieval.</p>
+                    </div>
+                    <div class="step-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">03</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Ask Questions</h3>
+                        <p class="step-description">Chat naturally with the AI assistant to get accurate, cited answers from your documents.</p>
+                    </div>
+                    <div class="step-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about" id="about">
+        <div class="about-container">
+            <div class="about-content">
+                <h2 class="about-title">Built for Knowledge Workers</h2>
+                <p class="about-description">
+                    Our AI Document Assistant leverages state-of-the-art Retrieval-Augmented Generation (RAG) technology to provide accurate, contextual answers from your document library. Whether you're working with medical guidelines, research papers, training manuals, or any knowledge base, our system delivers instant, reliable insights.
+                </p>
+                <div class="about-features">
+                    <div class="about-feature">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        <span>Dual AI models (Gemini & Grok)</span>
+                    </div>
+                    <div class="about-feature">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        <span>Local & cloud embeddings</span>
+                    </div>
+                    <div class="about-feature">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        <span>PubMed integration</span>
+                    </div>
+                    <div class="about-feature">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        <span>Role-based permissions</span>
+                    </div>
+                </div>
+                <a href="/app/dashboard" class="about-cta">
+                    Explore Admin Dashboard
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            </div>
+            <div class="about-visual">
+                <div class="about-card">
+                    <div class="about-card-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                        <span>Powered by AI</span>
+                    </div>
+                    <div class="about-card-stats">
+                        <div class="about-card-stat">
+                            <div class="about-card-stat-value">384D</div>
+                            <div class="about-card-stat-label">Local Embeddings</div>
+                        </div>
+                        <div class="about-card-stat">
+                            <div class="about-card-stat-value">1536D</div>
+                            <div class="about-card-stat-label">OpenAI Embeddings</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="cta-container">
+            <h2 class="cta-title">Ready to Get Started?</h2>
+            <p class="cta-description">Start chatting with your documents today</p>
+            <a href="/chat" class="cta-btn">
+                Launch Chat Interface
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <img src="robot-favicon.png" alt="AI Assistant" class="footer-logo">
+                    <span class="footer-brand-text">AI Document Assistant</span>
+                </div>
+                <div class="footer-links">
+                    <a href="/chat" class="footer-link">Chat</a>
+                    <a href="/app/dashboard" class="footer-link">Dashboard</a>
+                    <a href="/app/documents" class="footer-link">Documents</a>
+                    <a href="/app/profile" class="footer-link">Profile</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p class="footer-copyright">© 2025 AI Document Assistant. Powered by RAG Technology.</p>
+                <div class="footer-tech">
+                    <span class="footer-tech-badge">Gemini</span>
+                    <span class="footer-tech-badge">Grok</span>
+                    <span class="footer-tech-badge">OpenAI</span>
+                    <span class="footer-tech-badge">Supabase</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="js/landing.js"></script>
 </body>
 </html>

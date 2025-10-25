@@ -1,5 +1,5 @@
 // UI Loading - Loading indicators and fun facts rotation
-import { getRandomFact } from './facts.js?v=20251019-02';
+import { getRandomFact } from './facts.js';
 
 // Rotate facts with fade effect (owner-aware)
 let factRotationInterval = null;

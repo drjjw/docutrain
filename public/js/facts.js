@@ -60,6 +60,38 @@ export const urineFacts = [
     "Psychogenic urinary frequency results from autonomic nervous system activation – stress and anxiety trigger detrusor overactivity independent of bladder volume."
 ];
 
+export const pizzaFacts = [
+    "Americans eat approximately 3 billion pizzas per year, which is about 46 slices per person.",
+    "The world's most expensive pizza costs over $12,000 and is topped with three types of caviar, lobster, and edible gold.",
+    "October is officially National Pizza Month in the United States.",
+    "The modern pizza was invented in Naples, Italy in the late 18th century.",
+    "Pizza Margherita was named after Queen Margherita of Italy in 1889, with its red tomato, white mozzarella, and green basil representing the Italian flag.",
+    "Pepperoni is the most popular pizza topping in America, appearing on about 36% of all pizzas ordered.",
+    "The world's largest pizza was made in Rome in 2012, measuring 13,580 square feet.",
+    "Astronauts can now make pizza in space thanks to a special zero-gravity oven developed in 2017.",
+    "The first pizzeria in America, Lombardi's, opened in New York City in 1905 and is still operating today.",
+    "Hawaiians consume more pizza per capita than any other nation.",
+    "Pizza wasn't popular in America until after World War II when soldiers returning from Italy brought their craving for it home.",
+    "The word 'pizza' first appeared in a Latin text from 997 AD in southern Italy.",
+    "About 93% of Americans eat pizza at least once per month.",
+    "Thin crust is actually preferred over thick crust in most taste tests.",
+    "The first online purchase ever made was a Domino's pizza in 1994.",
+    "Pizza delivery generates about $30 billion in annual revenue in the US alone.",
+    "There are approximately 70,000 pizzerias in the United States.",
+    "Mozzarella accounts for about 80% of all Italian cheese production because of pizza's popularity.",
+    "The typical American eats 46 slices of pizza per year, which breaks down to about 23 pounds.",
+    "Saturday night is the most popular night for eating pizza in America.",
+    "Ancient Greeks, Romans, and Egyptians all ate flatbreads with toppings, which were pizza's predecessors.",
+    "The Pizza Hut logo appears on Russian rockets because the company helped fund the space program in 2001.",
+    "Children aged 3-11 prefer pizza over all other lunch and dinner options.",
+    "Pizza Hut once made a delivery to the International Space Station.",
+    "The Hawaiian pizza, despite its name, was actually invented in Canada by a Greek immigrant in 1962.",
+    "Deep-dish pizza was invented in Chicago in 1943 at Pizzeria Uno.",
+    "The most pizzas are delivered on Super Bowl Sunday, New Year's Eve, Halloween, and the night before Thanksgiving.",
+    "Blanc pizzas, which contain no tomato sauce, have been gaining popularity as gourmet options.",
+    "The average pizzeria uses about 55 pizza boxes per day."
+];
+
 // Combine all facts
 export const allFacts = [...kidneyFacts, ...urineFacts];
 
@@ -71,12 +103,18 @@ function getRandomPrefix() {
 
 // Get a random fact with prefix (owner-aware)
 export function getRandomFact(owner = null) {
-    // Only show fun facts for ukidney documents
-    if (owner !== 'ukidney') {
-        return null; // No fact for non-ukidney documents
+    let factsToUse = null;
+    
+    // Select appropriate facts based on owner
+    if (owner === 'ukidney') {
+        factsToUse = allFacts; // Medical facts for ukidney
+    } else if (owner === 'maker') {
+        factsToUse = pizzaFacts; // Pizza facts for maker
+    } else {
+        return null; // No facts for other owners
     }
 
-    const fact = allFacts[Math.floor(Math.random() * allFacts.length)];
+    const fact = factsToUse[Math.floor(Math.random() * factsToUse.length)];
     return getRandomPrefix() + fact;
 }
 

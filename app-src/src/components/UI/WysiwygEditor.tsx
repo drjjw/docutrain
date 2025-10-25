@@ -35,6 +35,24 @@ export function WysiwygEditor({ value, onChange, placeholder, className = '' }: 
 
   return (
     <div className={`border border-gray-300 rounded-md ${className}`}>
+      <style>{`
+        .wysiwyg-editor ul {
+          list-style-type: disc;
+          margin-left: 1.5rem;
+          margin-top: 0.5rem;
+          margin-bottom: 0.5rem;
+        }
+        .wysiwyg-editor ol {
+          list-style-type: decimal;
+          margin-left: 1.5rem;
+          margin-top: 0.5rem;
+          margin-bottom: 0.5rem;
+        }
+        .wysiwyg-editor li {
+          margin-top: 0.25rem;
+          margin-bottom: 0.25rem;
+        }
+      `}</style>
       {/* Toolbar */}
       <div className="flex items-center gap-1 p-2 border-b border-gray-300 bg-gray-50">
         {formatButtons.map((button) => (
@@ -70,7 +88,7 @@ export function WysiwygEditor({ value, onChange, placeholder, className = '' }: 
         innerRef={contentEditableRef}
         html={value}
         onChange={handleChange}
-        className="px-3 py-2 min-h-[80px] focus:outline-none prose prose-sm max-w-none"
+        className="wysiwyg-editor px-3 py-2 min-h-[80px] focus:outline-none prose prose-sm max-w-none"
         placeholder={placeholder}
         style={{
           minHeight: '80px',

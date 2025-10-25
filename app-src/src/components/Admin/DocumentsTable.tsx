@@ -1,17 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
 import { DownloadsEditor } from './DownloadsEditor';
 import { DocumentEditorModal } from './DocumentEditorModal';
-import { getDocuments, updateDocument, deleteDocument, getOwners, checkSlugUniqueness } from '@/lib/supabase/admin';
+import { getDocuments, updateDocument, deleteDocument, getOwners } from '@/lib/supabase/admin';
 import type { DocumentWithOwner, Owner, DownloadLink } from '@/types/admin';
 import { useAuth } from '@/hooks/useAuth';
-
-interface EditingCell {
-  documentId: string;
-  field: string;
-}
 
 interface DocumentsTableProps {
   isSuperAdmin?: boolean;
@@ -20,11 +15,11 @@ interface DocumentsTableProps {
 export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<DocumentWithOwner[]>([]);
+  const [filteredDocuments, setFilteredDocuments] = useState<DocumentWithOwner[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
-  const [editValue, setEditValue] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [downloadsModalDoc, setDownloadsModalDoc] = useState<DocumentWithOwner | null>(null);
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState<DocumentWithOwner | null>(null);
@@ -35,6 +30,25 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  // Filter documents based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredDocuments(documents);
+    } else {
+      const filtered = documents.filter(doc => {
+        const query = searchQuery.toLowerCase();
+        return (
+          doc.title?.toLowerCase().includes(query) ||
+          doc.subtitle?.toLowerCase().includes(query) ||
+          doc.slug?.toLowerCase().includes(query) ||
+          doc.category?.toLowerCase().includes(query) ||
+          doc.owners?.name?.toLowerCase().includes(query)
+        );
+      });
+      setFilteredDocuments(filtered);
+    }
+  }, [documents, searchQuery]);
 
   const loadData = async () => {
     if (!user?.id) {
@@ -55,59 +69,6 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleEdit = (documentId: string, field: string, currentValue: any) => {
-    setEditingCell({ documentId, field });
-    setEditValue(currentValue);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingCell(null);
-    setEditValue(null);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingCell) return;
-
-    try {
-      setSaving(true);
-
-      // Validate slug uniqueness if we're editing the slug field
-      if (editingCell.field === 'slug') {
-        const trimmedSlug = editValue?.trim();
-        if (!trimmedSlug) {
-          setError('Slug cannot be empty');
-          return;
-        }
-
-        const isUnique = await checkSlugUniqueness(trimmedSlug, editingCell.documentId);
-        if (!isUnique) {
-          setError('This slug is already taken. Please choose a different slug.');
-          return;
-        }
-      }
-
-      await updateDocument(editingCell.documentId, {
-        [editingCell.field]: editValue,
-      });
-
-      // Update local state
-      setDocuments(docs =>
-        docs.map(doc =>
-          doc.id === editingCell.documentId
-            ? { ...doc, [editingCell.field]: editValue }
-            : doc
-        )
-      );
-
-      setEditingCell(null);
-      setEditValue(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save changes');
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -147,7 +108,7 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
   };
 
   const handleCopyLink = async (doc: DocumentWithOwner) => {
-    const link = `${window.location.origin}/?doc=${doc.slug}`;
+    const link = `${window.location.origin}/chat?doc=${doc.slug}`;
     try {
       await navigator.clipboard.writeText(link);
       setCopiedDocId(doc.id);
@@ -169,182 +130,8 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
     }
   };
 
-  const renderCell = (doc: DocumentWithOwner, field: string, value: any) => {
-    const isEditing = editingCell?.documentId === doc.id && editingCell?.field === field;
 
-    if (isEditing) {
-      return (
-        <div className="flex items-center gap-2">
-          {renderEditInput(field, editValue, setEditValue)}
-          <Button
-            size="sm"
-            onClick={handleSaveEdit}
-            disabled={saving}
-            loading={saving}
-          >
-            Save
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleCancelEdit}
-            disabled={saving}
-          >
-            Cancel
-          </Button>
-        </div>
-      );
-    }
 
-    // Use different styling for title and subtitle to allow line wrapping
-    const shouldWrap = field === 'title' || field === 'subtitle';
-    const textClass = shouldWrap ? "break-words" : "truncate";
-
-    return (
-      <div
-        className="group cursor-pointer hover:bg-gray-50 px-2 py-1 rounded"
-        onClick={() => handleEdit(doc.id, field, value)}
-      >
-        <div className="flex items-center justify-between">
-          <span className={textClass}>
-            {field === 'owner_id' ? (doc.owners?.name || value) : renderDisplayValue(field, value)}
-          </span>
-          <svg
-            className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-        </div>
-      </div>
-    );
-  };
-
-  const renderEditInput = (field: string, value: any, onChange: (val: any) => void) => {
-    switch (field) {
-      case 'active':
-      case 'show_document_selector':
-      case 'is_public':
-      case 'requires_auth':
-        return (
-          <input
-            type="checkbox"
-            checked={value || false}
-            onChange={(e) => onChange(e.target.checked)}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          />
-        );
-
-      case 'embedding_type':
-        return (
-          <select
-            value={value || 'openai'}
-            onChange={(e) => onChange(e.target.value)}
-            className="px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="openai">OpenAI</option>
-            <option value="local">Local</option>
-          </select>
-        );
-
-      case 'owner_id':
-        return (
-          <select
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value || null)}
-            className="px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">None</option>
-            {owners.map(owner => (
-              <option key={owner.id} value={owner.id}>
-                {owner.name}
-              </option>
-            ))}
-          </select>
-        );
-
-      case 'category':
-        return (
-          <select
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value || null)}
-            className="px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">None</option>
-            <option value="Guidelines">Guidelines</option>
-            <option value="Maker">Maker</option>
-            <option value="Manuals">Manuals</option>
-            <option value="Presentation">Presentation</option>
-            <option value="Recipes">Recipes</option>
-            <option value="Reviews">Reviews</option>
-            <option value="Slides">Slides</option>
-            <option value="Training">Training</option>
-          </select>
-        );
-
-      case 'chunk_limit_override':
-        return (
-          <input
-            type="number"
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value ? parseInt(e.target.value) : null)}
-            min="1"
-            max="200"
-            className="px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-24"
-          />
-        );
-
-      case 'welcome_message':
-      case 'intro_message':
-        return (
-          <textarea
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            rows={3}
-            placeholder="Enter message..."
-            className="px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full"
-          />
-        );
-
-      default:
-        return (
-          <input
-            type="text"
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            className="px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          />
-        );
-    }
-  };
-
-  const renderDisplayValue = (field: string, value: any): string => {
-    if (value === null || value === undefined) return '—';
-
-    switch (field) {
-      case 'active':
-      case 'show_document_selector':
-      case 'is_public':
-      case 'requires_auth':
-        return value ? '✓' : '✗';
-
-      case 'downloads':
-        if (!value || !Array.isArray(value) || value.length === 0) return '0';
-        return `${value.length}`;
-
-      case 'metadata':
-        return JSON.stringify(value).substring(0, 50) + '...';
-
-      case 'created_at':
-      case 'updated_at':
-        return new Date(value).toLocaleDateString();
-
-      default:
-        return String(value);
-    }
-  };
 
   const renderStatusBadge = (value: boolean) => {
     return value ? (
@@ -401,7 +188,7 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
         {/* View Button */}
         <div className="flex flex-col items-center gap-1">
           <button
-            onClick={() => window.open(`/?doc=${doc.slug}`, '_blank')}
+            onClick={() => window.open(`/chat?doc=${doc.slug}`, '_blank')}
             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
             title="View document"
           >
@@ -438,7 +225,7 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
           <button
             onClick={() => setDownloadsModalDoc(doc)}
             className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-            title={`Downloads (${renderDisplayValue('downloads', doc.downloads)})`}
+            title={`Downloads (${doc.downloads?.length || 0})`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -494,34 +281,62 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
         </Alert>
       )}
 
+      {/* Search Bar */}
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1 max-w-md">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Search documents..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          />
+        </div>
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
       {/* Table Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h3 className="text-lg font-semibold text-gray-900">
-            Documents ({documents.length})
+            Documents ({filteredDocuments.length}{searchQuery ? ` of ${documents.length}` : ''})
           </h3>
           <div className="flex gap-2">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              {documents.filter(doc => doc.active).length} Active
+              {filteredDocuments.filter(doc => doc.active ?? false).length} Active
             </span>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {documents.filter(doc => doc.is_public).length} Public
+              {filteredDocuments.filter(doc => doc.is_public ?? false).length} Public
             </span>
           </div>
         </div>
       </div>
 
       {/* Documents Grid/List */}
-      {documents.length === 0 ? (
+      {filteredDocuments.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
             <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No documents found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {searchQuery ? 'No documents found' : 'No documents found'}
+          </h3>
           <p className="text-gray-500">
-            Get started by uploading your first document above.
+            {searchQuery ? `No documents match "${searchQuery}"` : 'Get started by uploading your first document above.'}
           </p>
         </div>
       ) : (
@@ -539,7 +354,7 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
           </div>
 
           {/* Document Rows */}
-          {documents.map((doc, index) => (
+          {filteredDocuments.map((doc) => (
             <div
               key={doc.id}
               className="bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow duration-200"
@@ -564,8 +379,8 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {renderStatusBadge(doc.active)}
-                      {renderVisibilityBadge(doc.is_public, doc.requires_auth)}
+                      {renderStatusBadge(doc.active ?? false)}
+                      {renderVisibilityBadge(doc.is_public ?? false, doc.requires_auth ?? false)}
                       {doc.category && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                           {doc.category}
@@ -610,12 +425,12 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
 
                 {/* Status */}
                 <div className="col-span-2">
-                  {renderStatusBadge(doc.active)}
+                  {renderStatusBadge(doc.active ?? false)}
                 </div>
 
                 {/* Visibility */}
                 <div className="col-span-2">
-                  {renderVisibilityBadge(doc.is_public, doc.requires_auth)}
+                  {renderVisibilityBadge(doc.is_public ?? false, doc.requires_auth ?? false)}
                 </div>
 
                 {/* Category */}

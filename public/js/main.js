@@ -1,10 +1,10 @@
 // Main initialization and event wiring
-import { API_URL, generateSessionId, getEmbeddingType, preloadLogos, parseDocumentSlugs } from './config.js?v=20251019-02';
-import { updateDocumentUI, updateModelInTooltip } from './ui.js?v=20251022-01';
-import { sendMessage } from './chat.js?v=20251019-02';
-import { submitRating } from './rating.js?v=20251019-02';
-import { initializePubMedPopup } from './pubmed-popup.js?v=20251019-02';
-import { initializeAIHint } from './ai-hint.js?v=20251021-01';
+import { API_URL, generateSessionId, getEmbeddingType, preloadLogos, parseDocumentSlugs } from './config.js';
+import { updateDocumentUI, updateModelInTooltip } from './ui.js';
+import { sendMessage } from './chat.js';
+import { submitRating } from './rating.js';
+import { initializePubMedPopup } from './pubmed-popup.js';
+import { initializeAIHint } from './ai-hint.js';
 import { checkDocumentAccess } from './access-check.js';
 
 // Configure marked for better formatting
@@ -58,7 +58,7 @@ async function initializeDocument() {
     let validatedSlugs = [];
     if (docParam) {
         try {
-            const { documentExists, getDocument } = await import('./config.js?v=20251019-02');
+            const { documentExists, getDocument } = await import('./config.js');
             const requestedSlugs = parseDocumentSlugs();
             
             console.log(`📋 Validating ${requestedSlugs.length} document(s): ${requestedSlugs.join(', ')}`);
@@ -141,7 +141,7 @@ async function initializeDocument() {
     // Handle owner parameter - show document selector modal for owner's documents
     if (ownerParam) {
         // Try to show owner's logo in owner mode
-        const { getOwnerLogoConfig } = await import('./config.js?v=20251019-02');
+        const { getOwnerLogoConfig } = await import('./config.js');
         const ownerLogoConfig = await getOwnerLogoConfig(ownerParam);
         console.log('🎨 Owner logo config for', ownerParam, ':', ownerLogoConfig);
 
@@ -171,9 +171,30 @@ async function initializeDocument() {
                 logoImg.style.display = 'block';
                 console.log('🎨 Owner logo set:', ownerLogoConfig.logo);
             }
-            if (logoLink && ownerLogoConfig.link) {
-                logoLink.href = ownerLogoConfig.link;
-                console.log('🔗 Owner logo link set:', ownerLogoConfig.link);
+            if (logoLink) {
+                // Check if owner_link=false parameter is present to disable logo link
+                const urlParams = new URLSearchParams(window.location.search);
+                const ownerLinkDisabled = urlParams.get('owner_link') === 'false';
+                
+                if (ownerLinkDisabled) {
+                    // Disable logo link functionality
+                    logoLink.href = '#';
+                    logoLink.title = `${ownerLogoConfig.alt || ownerParam} logo`;
+                    logoLink.style.cursor = 'default';
+                    logoLink.onclick = (e) => e.preventDefault();
+                    
+                    console.log('🔗 Owner logo link disabled due to owner_link=false parameter');
+                } else {
+                    // Override logo link to navigate to owner's chat page
+                    logoLink.href = `/chat?owner=${encodeURIComponent(ownerParam)}`;
+                    logoLink.title = `View all documents for ${ownerLogoConfig.alt || ownerParam}`;
+                    
+                    // Remove target="_blank" to navigate in same window
+                    logoLink.removeAttribute('target');
+                    logoLink.removeAttribute('rel');
+                    
+                    console.log('🔗 Owner logo link set to navigate to owner page:', logoLink.href);
+                }
             }
         } else {
             console.log('❌ No logo config found for owner:', ownerParam);

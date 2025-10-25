@@ -1,7 +1,7 @@
 // Chat logic and conversation management
 import { sendMessageToAPI } from './api.js';
 import { addMessage, addLoading, removeLoading, buildResponseWithMetadata } from './ui.js';
-import { getDocument } from './config.js?v=20251019-02';
+import { getDocument } from './config.js';
 import { styleReferences, wrapDrugConversionContent } from './ui-content-styling.js';
 
 // ============================================================================

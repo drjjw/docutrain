@@ -57,7 +57,8 @@ const cssFiles = {
     'public/css/messages.css': 'css',
     'public/css/modals.css': 'css',
     'public/css/responsive.css': 'css',
-    'public/css/disclaimer.css': 'css'
+    'public/css/disclaimer.css': 'css',
+    'public/css/landing.css': 'css'
 };
 
 const jsFiles = {
@@ -79,6 +80,7 @@ const jsFiles = {
     'public/js/document-selector.js': 'js',
     'public/js/ai-hint.js': 'js',
     'public/js/access-check.js': 'js',
+    'public/js/landing.js': 'js',
     'public/js/main.js': 'js'
 };
 
@@ -205,8 +207,10 @@ Object.keys(fileContents).forEach(filePath => {
     console.log(`✓ Wrote ${filePath}`);
 });
 
-// Process index.html with hashed references
+// Process HTML files with hashed references
 console.log('\n📝 Processing HTML:');
+
+// Process index.html (landing page)
 const htmlSourcePath = path.join(__dirname, 'public/index.html');
 let htmlContent = fs.readFileSync(htmlSourcePath, 'utf8');
 
@@ -225,10 +229,34 @@ Object.keys(hashedFiles).forEach(original => {
     );
 });
 
-// Write processed HTML
+// Write processed index.html
 const htmlDestPath = path.join(publicDistDir, 'index.html');
 fs.writeFileSync(htmlDestPath, htmlContent);
 console.log('✓ Processed index.html with hashed references');
+
+// Process chat.html (chat interface)
+const chatSourcePath = path.join(__dirname, 'public/chat.html');
+let chatContent = fs.readFileSync(chatSourcePath, 'utf8');
+
+// Replace CSS and JS references (handles query parameters)
+Object.keys(hashedFiles).forEach(original => {
+    const hashed = hashedFiles[original];
+    // Replace href with optional query parameters
+    chatContent = chatContent.replace(
+        new RegExp(`href="${original}(\\?[^"]*)?"`, 'g'),
+        `href="${hashed}"`
+    );
+    // Replace src with optional query parameters
+    chatContent = chatContent.replace(
+        new RegExp(`src="${original}(\\?[^"]*)?"`, 'g'),
+        `src="${hashed}"`
+    );
+});
+
+// Write processed chat.html
+const chatDestPath = path.join(publicDistDir, 'chat.html');
+fs.writeFileSync(chatDestPath, chatContent);
+console.log('✓ Processed chat.html with hashed references');
 
 // Copy other required files
 console.log('\n📦 Copying other files:');
