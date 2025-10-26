@@ -393,6 +393,7 @@ async function getDocumentsForAPI() {
             introMessage: introMessage, // New field for HTML intro
             embeddingType: doc.embedding_type,
             year: doc.year,
+            category: doc.category,
             active: doc.active,
             owner: doc.owner,
             metadata: doc.metadata || {},

@@ -4,6 +4,7 @@ module.exports = {
     script: 'server.js',
     instances: 1,
     exec_mode: 'fork',
+    cwd: '/home/brightbeanio/public_html',
     env: {
       NODE_ENV: 'production'
     },
@@ -43,7 +44,7 @@ module.exports = {
     env_production: {
       NODE_ENV: 'production',
       SUPABASE_URL: 'https://mlxctdgnojvkgfqldaob.supabase.co',
-      SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1seGN0ZGdub2p2a2dmcWxkYW9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzY4MjQsImV4cCI6MjA1MDU1MjgyNH0.XT9D1qPj4Hq5K9w7W3z1Y7q2Fj8bK9w7W3z1Y7q2Fj8b'
+      SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1seGN0ZGdub2p2a2dmcWxkYW9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NDE1MDgsImV4cCI6MjA3NjExNzUwOH0.f4434BqvCSAdr3HWdtLaGx5Yu0eW3auK7W2afHwb8nk'
     }
   }]
 };

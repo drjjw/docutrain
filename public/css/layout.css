@@ -91,6 +91,40 @@
     text-align: center;
 }
 
+/* Header Subtitle - Category | Year */
+#headerSubtitle {
+    font-size: 13px;
+    color: #666;
+    margin-top: 4px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* Subtitle Icons */
+.subtitle-icon {
+    width: 14px;
+    height: 14px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 4px;
+    color: #888;
+    flex-shrink: 0;
+}
+
+/* Subtitle Separator */
+.subtitle-separator {
+    color: #ccc;
+    font-weight: 300;
+    margin: 0 4px;
+}
+
 /* Header Title Row - Title with Icons Beside It */
 .header-title-row {
     text-align: center;

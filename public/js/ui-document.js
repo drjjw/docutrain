@@ -159,8 +159,28 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
         if (isMultiDoc) {
             subtitleElement.textContent = `Multi-document search across ${validConfigs.length} documents`;
         } else {
-            // Always show subtitle text (no more inline PMID display)
-            subtitleElement.textContent = config.subtitle;
+            // Build subtitle with Category | Year format with icons
+            console.log('🏷️ Document config for subtitle:', { category: config.category, year: config.year });
+            const subtitleParts = [];
+            
+            if (config.category) {
+                // Add category with folder icon
+                subtitleParts.push(`<svg class="subtitle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>${config.category}`);
+            }
+            if (config.year) {
+                // Add year with calendar icon
+                subtitleParts.push(`<svg class="subtitle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>${config.year}`);
+            }
+            
+            // If we have category or year, show them separated by pipe with HTML
+            if (subtitleParts.length > 0) {
+                subtitleElement.innerHTML = subtitleParts.join(' <span class="subtitle-separator">|</span> ');
+                console.log('🏷️ Subtitle set to:', subtitleParts.join(' | '));
+            } else {
+                // Fallback to original subtitle if no category/year
+                subtitleElement.textContent = config.subtitle || '';
+                console.log('🏷️ Using fallback subtitle:', config.subtitle);
+            }
         }
     }
 

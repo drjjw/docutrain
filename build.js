@@ -265,6 +265,7 @@ const otherFiles = [
     { from: 'package.json', to: 'package.json' },
     { from: 'package-lock.json', to: 'package-lock.json' },
     { from: 'ecosystem.config.js', to: 'ecosystem.config.js' },
+    { from: 'ecosystem.config.brightbean.js', to: 'ecosystem.config.brightbean.js' },
     { from: '.htaccess', to: '.htaccess', optional: true }
 ];
 

@@ -370,7 +370,7 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-gray-900 truncate">
+                        <div className="font-medium text-gray-900">
                           {doc.title || 'Untitled Document'}
                         </div>
                         <div className="text-sm text-gray-500 truncate">
@@ -408,7 +408,7 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 truncate">
+                      <div className="font-medium text-gray-900">
                         {doc.title || 'Untitled Document'}
                       </div>
                       <div className="text-sm text-gray-500 truncate">

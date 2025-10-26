@@ -11,7 +11,7 @@ export function getAPIBaseURL() {
 export const API_URL = getAPIBaseURL().replace(/\/$/, ''); // Remove trailing slash
 
 // Document configuration cache
-const CACHE_KEY = 'ukidney-documents-cache-v3'; // Increment version to force cache refresh
+const CACHE_KEY = 'ukidney-documents-cache-v4'; // Increment version to force cache refresh (v4: added category field)
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Fallback configuration if API fails
