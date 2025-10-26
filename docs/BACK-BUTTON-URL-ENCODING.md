@@ -39,19 +39,19 @@ export function getBackButtonURL() {
 
 **JavaScript:**
 ```javascript
-const backURL = 'https://ukidney.com/manuals/smh?ref=chatbot&source=test';
+const backURL = 'https://brightbean.io/manuals/smh?ref=chatbot&source=test';
 const chatURL = `?doc=smh&back-button=${encodeURIComponent(backURL)}`;
-// Result: ?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fmanuals%2Fsmh%3Fref%3Dchatbot%26source%3Dtest
+// Result: ?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fmanuals%2Fsmh%3Fref%3Dchatbot%26source%3Dtest
 ```
 
 **HTML:**
 ```html
-<a href="?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fmanuals">Link</a>
+<a href="?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fmanuals">Link</a>
 ```
 
 **Server-side (Node.js):**
 ```javascript
-const backURL = 'https://ukidney.com/manuals/smh';
+const backURL = 'https://brightbean.io/manuals/smh';
 const chatURL = `?doc=smh&back-button=${encodeURIComponent(backURL)}`;
 ```
 
@@ -59,7 +59,7 @@ const chatURL = `?doc=smh&back-button=${encodeURIComponent(backURL)}`;
 
 Simple URLs without special characters work without encoding:
 ```
-?doc=smh&back-button=https://ukidney.com/manuals/smh
+?doc=smh&back-button=https://brightbean.io/manuals/smh
 ```
 
 This works because:
@@ -71,7 +71,7 @@ This works because:
 
 **This will break:**
 ```
-?doc=smh&back-button=https://ukidney.com/page?id=123&ref=test
+?doc=smh&back-button=https://brightbean.io/page?id=123&ref=test
                                               ↑       ↑
                                     These will be interpreted as 
                                     separate query parameters!
@@ -79,12 +79,12 @@ This works because:
 
 The browser will parse this as:
 - `doc=smh`
-- `back-button=https://ukidney.com/page?id=123` (truncated!)
+- `back-button=https://brightbean.io/page?id=123` (truncated!)
 - `ref=test` (separate parameter)
 
 **Fix with encoding:**
 ```
-?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest
+?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123%26ref%3Dtest
 ```
 
 ## Real-World Examples
@@ -92,35 +92,35 @@ The browser will parse this as:
 ### Example 1: Simple Homepage Link
 ```javascript
 // ✅ Safe without encoding (no special chars)
-const url = '?doc=smh&back-button=https://ukidney.com';
+const url = '?doc=smh&back-button=https://brightbean.io';
 ```
 
 ### Example 2: Path with Slashes
 ```javascript
 // ✅ Safe without encoding (slashes are OK)
-const url = '?doc=smh&back-button=https://ukidney.com/manuals/smh';
+const url = '?doc=smh&back-button=https://brightbean.io/manuals/smh';
 ```
 
 ### Example 3: URL with Query Parameters
 ```javascript
 // ⚠️ MUST encode (contains ? and &)
-const backURL = 'https://ukidney.com/page?id=123&ref=chatbot';
+const backURL = 'https://brightbean.io/page?id=123&ref=chatbot';
 const url = `?doc=smh&back-button=${encodeURIComponent(backURL)}`;
-// Result: ?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dchatbot
+// Result: ?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123%26ref%3Dchatbot
 ```
 
 ### Example 4: URL with Hash Fragment
 ```javascript
 // ⚠️ MUST encode (contains #)
-const backURL = 'https://ukidney.com/page#section';
+const backURL = 'https://brightbean.io/page#section';
 const url = `?doc=smh&back-button=${encodeURIComponent(backURL)}`;
-// Result: ?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%23section
+// Result: ?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%23section
 ```
 
 ### Example 5: Dynamic Back URL
 ```javascript
 // ✅ Always encode when building dynamically
-const referrer = document.referrer || 'https://ukidney.com';
+const referrer = document.referrer || 'https://brightbean.io';
 const url = `?doc=smh&back-button=${encodeURIComponent(referrer)}`;
 ```
 
@@ -129,28 +129,28 @@ const url = `?doc=smh&back-button=${encodeURIComponent(referrer)}`;
 ### Test in Browser Console
 ```javascript
 // Test encoding
-const backURL = 'https://ukidney.com/page?id=123&ref=test';
+const backURL = 'https://brightbean.io/page?id=123&ref=test';
 const encoded = encodeURIComponent(backURL);
 console.log('Encoded:', encoded);
-// Encoded: https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest
+// Encoded: https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123%26ref%3Dtest
 
 // Test decoding (what our code does automatically)
 const params = new URLSearchParams(`?back-button=${encoded}`);
 const decoded = params.get('back-button');
 console.log('Decoded:', decoded);
-// Decoded: https://ukidney.com/page?id=123&ref=test
+// Decoded: https://brightbean.io/page?id=123&ref=test
 ```
 
 ### Test Cases
 
 | Input URL | Needs Encoding? | Reason |
 |-----------|----------------|---------|
-| `https://ukidney.com` | Optional | No special chars |
-| `https://ukidney.com/manuals/smh` | Optional | Slashes are safe |
-| `https://ukidney.com/page?id=123` | **Required** | Contains `?` |
-| `https://ukidney.com/page?id=123&ref=test` | **Required** | Contains `?` and `&` |
-| `https://ukidney.com/page#section` | **Required** | Contains `#` |
-| `https://ukidney.com/search?q=kidney disease` | **Required** | Contains `?` and space |
+| `https://brightbean.io` | Optional | No special chars |
+| `https://brightbean.io/manuals/smh` | Optional | Slashes are safe |
+| `https://brightbean.io/page?id=123` | **Required** | Contains `?` |
+| `https://brightbean.io/page?id=123&ref=test` | **Required** | Contains `?` and `&` |
+| `https://brightbean.io/page#section` | **Required** | Contains `#` |
+| `https://brightbean.io/search?q=kidney disease` | **Required** | Contains `?` and space |
 
 ## Implementation Recommendations
 
@@ -169,10 +169,10 @@ For simple manual URLs, encoding is optional but recommended:
 
 ```html
 <!-- ✅ Simple URL - works without encoding -->
-<a href="?doc=smh&back-button=https://ukidney.com">Chat</a>
+<a href="?doc=smh&back-button=https://brightbean.io">Chat</a>
 
 <!-- ✅ Complex URL - MUST encode -->
-<a href="?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123">Chat</a>
+<a href="?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123">Chat</a>
 ```
 
 ### 3. Server-Side Generation
@@ -181,7 +181,7 @@ When generating URLs server-side, always encode:
 ```javascript
 // Node.js / Express
 app.get('/embed-chat', (req, res) => {
-    const backURL = req.query.return_url || 'https://ukidney.com';
+    const backURL = req.query.return_url || 'https://brightbean.io';
     const chatURL = `/chat?doc=smh&back-button=${encodeURIComponent(backURL)}`;
     res.redirect(chatURL);
 });
@@ -193,19 +193,19 @@ app.get('/embed-chat', (req, res) => {
 Don't encode twice:
 ```javascript
 // ❌ WRONG: Double encoding
-const url = encodeURIComponent('https://ukidney.com');
+const url = encodeURIComponent('https://brightbean.io');
 const chatURL = `?doc=smh&back-button=${encodeURIComponent(url)}`;
-// Result: https%253A%252F%252Fukidney.com (broken!)
+// Result: https%253A%252F%252Fbrightbean.io (broken!)
 ```
 
 ### ❌ Encoding the Entire URL
 Only encode the parameter value, not the entire URL:
 ```javascript
 // ❌ WRONG: Encoding entire URL
-const chatURL = encodeURIComponent('?doc=smh&back-button=https://ukidney.com');
+const chatURL = encodeURIComponent('?doc=smh&back-button=https://brightbean.io');
 
 // ✅ CORRECT: Only encode parameter value
-const chatURL = `?doc=smh&back-button=${encodeURIComponent('https://ukidney.com')}`;
+const chatURL = `?doc=smh&back-button=${encodeURIComponent('https://brightbean.io')}`;
 ```
 
 ### ❌ Forgetting to Encode User Input
@@ -249,8 +249,8 @@ function createChatURL(docSlug, backURL) {
 }
 
 // Usage
-const url = createChatURL('smh', 'https://ukidney.com/page?id=123');
-// Result: ?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123
+const url = createChatURL('smh', 'https://brightbean.io/page?id=123');
+// Result: ?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123
 ```
 
 ## Related Documentation

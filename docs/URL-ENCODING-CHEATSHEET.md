@@ -7,7 +7,7 @@ Quick reference for encoding back button URLs.
 ### JavaScript (Browser)
 ```javascript
 // ✅ BEST: Use this for all cases
-const backURL = 'https://ukidney.com/page?id=123&ref=test';
+const backURL = 'https://brightbean.io/page?id=123&ref=test';
 const chatURL = `?doc=smh&back-button=${encodeURIComponent(backURL)}`;
 ```
 
@@ -24,23 +24,23 @@ const chatURL = `?${params.toString()}`;
 
 | URL | Needs Encoding? | Why |
 |-----|----------------|-----|
-| `https://ukidney.com` | Optional | No special chars |
-| `https://ukidney.com/manuals/smh` | Optional | Slashes are safe |
-| `https://ukidney.com/page?id=123` | **REQUIRED** | Contains `?` |
-| `https://ukidney.com/page?a=1&b=2` | **REQUIRED** | Contains `?` and `&` |
-| `https://ukidney.com/page#section` | **REQUIRED** | Contains `#` |
-| `https://ukidney.com/kidney disease` | **REQUIRED** | Contains space |
+| `https://brightbean.io` | Optional | No special chars |
+| `https://brightbean.io/manuals/smh` | Optional | Slashes are safe |
+| `https://brightbean.io/page?id=123` | **REQUIRED** | Contains `?` |
+| `https://brightbean.io/page?a=1&b=2` | **REQUIRED** | Contains `?` and `&` |
+| `https://brightbean.io/page#section` | **REQUIRED** | Contains `#` |
+| `https://brightbean.io/kidney disease` | **REQUIRED** | Contains space |
 
 ## ✅ Correct Examples
 
 ### Simple URL (No Encoding Needed)
 ```
-?doc=smh&back-button=https://ukidney.com
+?doc=smh&back-button=https://brightbean.io
 ```
 
 ### Complex URL (Must Encode)
 ```
-?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123
+?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123
 ```
 
 ### Building Dynamically
@@ -58,12 +58,12 @@ const url = `?${params}`;
 ### Mistake 1: Not Encoding Complex URLs
 ```javascript
 // ❌ WRONG - Will break!
-const url = '?doc=smh&back-button=https://ukidney.com/page?id=123&ref=test';
+const url = '?doc=smh&back-button=https://brightbean.io/page?id=123&ref=test';
 //                                                          ↑       ↑
 //                                     These will be parsed as separate parameters!
 
 // ✅ CORRECT
-const backURL = 'https://ukidney.com/page?id=123&ref=test';
+const backURL = 'https://brightbean.io/page?id=123&ref=test';
 const url = `?doc=smh&back-button=${encodeURIComponent(backURL)}`;
 ```
 
@@ -80,7 +80,7 @@ const url = `?doc=smh&back-button=${encodeURIComponent(backURL)}`;
 ### Mistake 3: Encoding Entire URL
 ```javascript
 // ❌ WRONG - Don't encode the entire URL!
-const url = encodeURIComponent('?doc=smh&back-button=https://ukidney.com');
+const url = encodeURIComponent('?doc=smh&back-button=https://brightbean.io');
 
 // ✅ CORRECT - Only encode parameter values
 const url = `?doc=smh&back-button=${encodeURIComponent(backURL)}`;
@@ -106,8 +106,8 @@ function buildChatURL(docSlug, backURL, options = {}) {
 }
 
 // Usage
-buildChatURL('smh', 'https://ukidney.com');
-buildChatURL('uhn', 'https://ukidney.com/page?id=123', { method: 'rag' });
+buildChatURL('smh', 'https://brightbean.io');
+buildChatURL('uhn', 'https://brightbean.io/page?id=123', { method: 'rag' });
 buildChatURL('smh', null); // No back button
 ```
 
@@ -132,22 +132,22 @@ const chatURL = `/chat?doc=smh&back-button=${encodeURIComponent(window.location.
 
 ### Example 2: Referrer as Back Link
 ```javascript
-const backURL = document.referrer || 'https://ukidney.com';
+const backURL = document.referrer || 'https://brightbean.io';
 const chatURL = `/chat?doc=smh&back-button=${encodeURIComponent(backURL)}`;
 ```
 
 ### Example 3: HTML Link
 ```html
 <!-- Simple URL -->
-<a href="?doc=smh&back-button=https://ukidney.com">Chat</a>
+<a href="?doc=smh&back-button=https://brightbean.io">Chat</a>
 
 <!-- Complex URL (pre-encoded) -->
-<a href="?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123">Chat</a>
+<a href="?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123">Chat</a>
 ```
 
 ### Example 4: Iframe Embed
 ```javascript
-const backURL = 'https://ukidney.com/manuals/smh';
+const backURL = 'https://brightbean.io/manuals/smh';
 const iframe = document.createElement('iframe');
 iframe.src = `/chat?doc=smh&back-button=${encodeURIComponent(backURL)}`;
 document.body.appendChild(iframe);
@@ -156,7 +156,7 @@ document.body.appendChild(iframe);
 ### Example 5: Server-Side (Node.js)
 ```javascript
 app.get('/chat-redirect', (req, res) => {
-    const backURL = req.query.return_url || 'https://ukidney.com';
+    const backURL = req.query.return_url || 'https://brightbean.io';
     const params = new URLSearchParams({
         doc: 'smh',
         'back-button': backURL
@@ -170,15 +170,15 @@ app.get('/chat-redirect', (req, res) => {
 ### Browser Console Test
 ```javascript
 // Test encoding
-const backURL = 'https://ukidney.com/page?id=123&ref=test';
+const backURL = 'https://brightbean.io/page?id=123&ref=test';
 const encoded = encodeURIComponent(backURL);
 console.log('Encoded:', encoded);
-// Encoded: https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest
+// Encoded: https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123%26ref%3Dtest
 
 // Test decoding (what URLSearchParams does)
 const params = new URLSearchParams(`?back-button=${encoded}`);
 console.log('Decoded:', params.get('back-button'));
-// Decoded: https://ukidney.com/page?id=123&ref=test
+// Decoded: https://brightbean.io/page?id=123&ref=test
 ```
 
 ### Interactive Tool

@@ -320,7 +320,8 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
         // Check if cover exists and is not empty/whitespace
         const hasValidCover = config.cover && typeof config.cover === 'string' && config.cover.trim().length > 0;
 
-        if (hasValidCover && !isMultiDoc) {
+        // Always show cover section for single documents, using placeholder if no cover available
+        if (!isMultiDoc) {
             // Create cover container if it doesn't exist
             if (!coverContainer) {
                 coverContainer = document.createElement('div');
@@ -329,6 +330,10 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 coverContainer.innerHTML = `
                     <div class="document-cover-section">
                         <img id="documentCoverImage" class="document-cover-image" alt="" loading="lazy">
+                        <div class="document-cover-overlay">
+                            <div class="document-cover-title">${config.title}</div>
+                            <div class="document-cover-meta" id="documentCoverMeta"></div>
+                        </div>
                     </div>
                     <div class="welcome-message-section">
                         <div class="message assistant" id="welcomeMessage">
@@ -363,15 +368,38 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
             // Show cover image layout and hide regular welcome
             const coverImage = coverContainer.querySelector('#documentCoverImage');
             if (coverImage) {
-                coverImage.src = config.cover.trim();
-                coverImage.alt = `${config.title} - Title Slide`;
-                
+                // Use document cover if available, otherwise use placeholder
+                const imageSrc = hasValidCover ? config.cover.trim() : '/chat-cover-place.png';
+                coverImage.src = imageSrc;
+                coverImage.alt = hasValidCover ? `${config.title} - Title Slide` : `${config.title} - Cover Placeholder`;
+
                 // Handle height adjustments after image loads
                 coverImage.onload = () => {
                     // On mobile, the height is now responsive to aspect ratio
                     // On desktop, equalize container heights
                     equalizeContainerHeights();
                 };
+            }
+
+            // Add category and year to cover overlay
+            const coverMetaElement = coverContainer.querySelector('#documentCoverMeta');
+            if (coverMetaElement) {
+                const metaParts = [];
+
+                if (config.category) {
+                    metaParts.push(config.category);
+                }
+                if (config.year) {
+                    metaParts.push(config.year);
+                }
+
+                // Join with pipe separator if we have both category and year
+                if (metaParts.length > 0) {
+                    coverMetaElement.textContent = metaParts.join(' | ');
+                    console.log('🏷️ Cover meta set to:', metaParts.join(' | '));
+                } else {
+                    coverMetaElement.textContent = '';
+                }
             }
             coverContainer.style.display = 'flex';
             regularWelcome.style.display = 'none';

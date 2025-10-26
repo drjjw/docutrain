@@ -20,18 +20,18 @@
 
 ### **1. Upload to Server**
 
-Upload these files to: `/home/ukidney/bot.ukidney.com/` (web root of bot.ukidney.com)
+Upload these files to: `/home/ukidney/brightbean.io/` (web root of brightbean.io)
 
 **Method A - SCP:**
 ```bash
-scp -r /Users/jordanweinstein/Downloads/chat/* root@bot.ukidney.com:/home/ukidney/bot.ukidney.com/
+scp -r /Users/jordanweinstein/Downloads/chat/* root@brightbean.io:/home/ukidney/brightbean.io/
 ```
 
 **Method B - RSYNC (preferred):**
 ```bash
 rsync -avz --exclude 'node_modules' \
   /Users/jordanweinstein/Downloads/chat/ \
-  root@bot.ukidney.com:/home/ukidney/bot.ukidney.com/
+  root@brightbean.io:/home/ukidney/brightbean.io/
 ```
 
 **Method C - FTP/SFTP:**
@@ -43,8 +43,8 @@ Use your FTP client (FileZilla, Transmit, etc.)
 
 SSH into your server:
 ```bash
-ssh root@bot.ukidney.com
-cd /home/ukidney/bot.ukidney.com/
+ssh root@brightbean.io
+cd /home/ukidney/brightbean.io/
 ```
 
 Install dependencies:
@@ -87,13 +87,13 @@ pm2 logs manual-bot --lines 50
 
 Edit your Nginx config:
 ```bash
-sudo nano /etc/nginx/sites-available/ukidney.com
+sudo nano /etc/nginx/sites-available/brightbean.io
 ```
 
 Add this location block:
 ```nginx
 server {
-    server_name ukidney.com www.ukidney.com;
+    server_name brightbean.io www.brightbean.io;
     
     # ... existing configuration ...
     
@@ -129,7 +129,7 @@ sudo systemctl reload nginx
 
 Test the API:
 ```bash
-curl https://ukidney.com/content/manuals/bot/api/health
+curl https://brightbean.io/content/manuals/bot/api/health
 ```
 
 Expected response:
@@ -146,14 +146,14 @@ Expected response:
 
 Test in browser:
 ```
-https://ukidney.com/content/manuals/bot/
+https://brightbean.io/content/manuals/bot/
 ```
 
 ---
 
 ### **6. Add to UKidney.com Page**
 
-Edit your ukidney.com page template and add:
+Edit your brightbean.io page template and add:
 
 ```html
 <!-- Anywhere on your page -->
@@ -166,7 +166,7 @@ Edit your ukidney.com page template and add:
     <div class="uk-modal-dialog uk-modal-body" style="width: 95vw; height: 95vh; max-width: 95vw; padding: 0;">
         <button class="uk-modal-close-default" type="button" uk-close></button>
         <iframe 
-            src="https://ukidney.com/content/manuals/bot/"
+            src="https://brightbean.io/content/manuals/bot/"
             style="width: 100%; height: 100%; border: none;">
         </iframe>
     </div>
@@ -179,12 +179,12 @@ Edit your ukidney.com page template and add:
 
 Secure the .env file:
 ```bash
-chmod 600 /home/ukidney/bot.ukidney.com/.env
+chmod 600 /home/ukidney/brightbean.io/.env
 ```
 
 Set proper ownership:
 ```bash
-sudo chown -R www-data:www-data /home/ukidney/bot.ukidney.com/
+sudo chown -R www-data:www-data /home/ukidney/brightbean.io/
 ```
 
 Configure firewall (if UFW):
@@ -198,11 +198,11 @@ sudo ufw status
 ## ✅ Post-Deployment Verification
 
 ### **Functional Tests**
-- [ ] Chatbot loads at https://ukidney.com/content/manuals/bot/
+- [ ] Chatbot loads at https://brightbean.io/content/manuals/bot/
 - [ ] Can ask questions and get responses
 - [ ] Gemini model works
 - [ ] Grok model works
-- [ ] Modal opens on ukidney.com page
+- [ ] Modal opens on brightbean.io page
 - [ ] Modal closes properly (ESC, click outside, X button)
 - [ ] Mobile responsive
 - [ ] Conversations logged to Supabase
@@ -215,7 +215,7 @@ sudo ufw status
 - [ ] Markdown formatting works
 
 ### **Analytics Tests**
-- [ ] Visit: https://ukidney.com/content/manuals/bot/api/analytics
+- [ ] Visit: https://brightbean.io/content/manuals/bot/api/analytics
 - [ ] See conversation count
 - [ ] Check Supabase dashboard
 - [ ] Verify document tracking
@@ -237,7 +237,7 @@ pm2 start manual-bot         # Start
 
 ### **Check Analytics**
 ```bash
-curl https://ukidney.com/content/manuals/bot/api/analytics?timeframe=24h | jq
+curl https://brightbean.io/content/manuals/bot/api/analytics?timeframe=24h | jq
 ```
 
 ### **Supabase Dashboard**
@@ -250,11 +250,11 @@ https://supabase.com/dashboard/project/mlxctdgnojvkgfqldaob/editor
 ### **To Update PDF:**
 ```bash
 # Upload new PDF to server
-scp "New Manual.pdf" root@bot.ukidney.com:/home/ukidney/bot.ukidney.com/
+scp "New Manual.pdf" root@brightbean.io:/home/ukidney/brightbean.io/
 
 # SSH to server
-ssh root@bot.ukidney.com
-cd /home/ukidney/bot.ukidney.com/
+ssh root@brightbean.io
+cd /home/ukidney/brightbean.io/
 
 # Update server.js with new filename
 nano server.js  # Change line 75
@@ -266,7 +266,7 @@ pm2 restart manual-bot
 ### **To Update Code:**
 ```bash
 # Upload changed files
-scp server.js root@bot.ukidney.com:/home/ukidney/bot.ukidney.com/
+scp server.js root@brightbean.io:/home/ukidney/brightbean.io/
 
 # Restart
 pm2 restart manual-bot
@@ -314,7 +314,7 @@ pm2 restart manual-bot
 - [ ] PM2 running and saved
 - [ ] Nginx configured and reloaded
 - [ ] HTTPS working
-- [ ] Modal integrated on ukidney.com
+- [ ] Modal integrated on brightbean.io
 - [ ] Tested both AI models
 - [ ] Analytics working
 - [ ] Supabase logging confirmed

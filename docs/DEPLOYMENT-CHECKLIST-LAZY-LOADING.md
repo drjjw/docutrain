@@ -59,7 +59,7 @@ rsync -avz --delete dist/ user@server:/path/to/production/dist/
 ```bash
 # On server
 cd /path/to/production/dist
-pm2 restart ecosystem.config.js
+pm2 restart ecosystem.config.brightbean.js
 
 # Verify server started
 pm2 status
@@ -125,7 +125,7 @@ If issues are detected:
 cd /path/to/production
 rm -rf dist
 mv dist-backup-YYYYMMDD-HHMMSS dist
-pm2 restart ecosystem.config.js
+pm2 restart ecosystem.config.brightbean.js
 ```
 
 ### Clear Client Caches

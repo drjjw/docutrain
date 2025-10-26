@@ -29,7 +29,7 @@ The migration will:
 - Enable the `pg_net` extension (for async HTTP requests)
 - Create trigger on `documents` table (INSERT, UPDATE, DELETE)
 - Create trigger on `owners` table (UPDATE)
-- Both triggers POST to `https://bot.ukidney.com/api/refresh-registry`
+- Both triggers POST to `https://brightbean.io/api/refresh-registry`
 
 ### Alternative: Use Supabase MCP
 
@@ -99,7 +99,7 @@ ORDER BY created_at DESC;
 
 ## What About Local Development?
 
-The trigger is set to POST to production (`https://bot.ukidney.com`), so it won't affect your local server.
+The trigger is set to POST to production (`https://brightbean.io`), so it won't affect your local server.
 
 For local testing, you have three options:
 
@@ -137,7 +137,7 @@ If you're running Supabase locally with Docker, you can use:
 ```
 
 **Recommendation**: 
-- Production trigger → `https://bot.ukidney.com/api/refresh-registry` (permanent)
+- Production trigger → `https://brightbean.io/api/refresh-registry` (permanent)
 - Local dev → Manual refresh (simplest, no extra setup)
 
 ---
@@ -175,12 +175,12 @@ SELECT * FROM pg_extension WHERE extname = 'pg_net';
 
 **Check**: Is your production server running?
 ```bash
-curl https://bot.ukidney.com/api/health
+curl https://brightbean.io/api/health
 ```
 
 **Check**: Is the endpoint accessible?
 ```bash
-curl -X POST https://bot.ukidney.com/api/refresh-registry
+curl -X POST https://brightbean.io/api/refresh-registry
 ```
 
 **Check webhook logs**:
@@ -249,12 +249,12 @@ Once the production webhook is working:
 
 **Manual Refresh** (if needed):
 ```bash
-curl -X POST https://bot.ukidney.com/api/refresh-registry
+curl -X POST https://brightbean.io/api/refresh-registry
 ```
 
 **Check Server Health**:
 ```bash
-curl https://bot.ukidney.com/api/health
+curl https://brightbean.io/api/health
 ```
 
 ---

@@ -26,7 +26,7 @@ First, test that the endpoint is accessible:
 curl -X POST http://localhost:3456/api/refresh-registry
 
 # Production testing
-curl -X POST https://bot.ukidney.com/api/refresh-registry
+curl -X POST https://brightbean.io/api/refresh-registry
 ```
 
 Expected response:
@@ -63,7 +63,7 @@ Expected response:
 
 **URL**: 
 - **Local**: `http://localhost:3456/api/refresh-registry`
-- **Production**: `https://bot.ukidney.com/api/refresh-registry`
+- **Production**: `https://brightbean.io/api/refresh-registry`
 
 **HTTP Headers** (optional but recommended):
 ```
@@ -243,7 +243,7 @@ When deploying webhook functionality:
 
 - [ ] Create webhook in Supabase for `documents` table
 - [ ] Create webhook in Supabase for `owners` table
-- [ ] Set webhook URL to production: `https://bot.ukidney.com/api/refresh-registry`
+- [ ] Set webhook URL to production: `https://brightbean.io/api/refresh-registry`
 - [ ] Test webhook by updating a document
 - [ ] Verify in server logs that cache refreshes
 - [ ] Check webhook delivery logs in Supabase

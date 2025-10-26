@@ -80,6 +80,7 @@ const jsFiles = {
     'public/js/document-selector.js': 'js',
     'public/js/ai-hint.js': 'js',
     'public/js/access-check.js': 'js',
+    'public/js/mobile-menu.js': 'js',
     'public/js/landing.js': 'js',
     'public/js/main.js': 'js'
 };
@@ -264,10 +265,19 @@ const otherFiles = [
     { from: 'server.js', to: 'server.js' },
     { from: 'package.json', to: 'package.json' },
     { from: 'package-lock.json', to: 'package-lock.json' },
-    { from: 'ecosystem.config.js', to: 'ecosystem.config.js' },
     { from: 'ecosystem.config.brightbean.js', to: 'ecosystem.config.brightbean.js' },
     { from: '.htaccess', to: '.htaccess', optional: true }
 ];
+
+// Create start.sh in dist
+const startShContent = `#!/bin/bash
+cd /home/brightbeanio/public_html
+export $(cat .env | grep -v '^#' | xargs)
+node server.js
+`;
+fs.writeFileSync(path.join(distDir, 'start.sh'), startShContent);
+fs.chmodSync(path.join(distDir, 'start.sh'), '755');
+console.log('✓ Created start.sh');
 
 // PDFs are NOT copied to production (RAG-only mode)
 // PDFs remain in development for training/embedding generation only
@@ -281,7 +291,8 @@ console.log('\n🎨 Copying logo and favicon files:');
 const logoFiles = [
     { from: 'public/logos/maker-logo-trns.png', to: 'public/logos/maker-logo-trns.png' },
     { from: 'public/logos/ukidney-logo.svg', to: 'public/logos/ukidney-logo.svg' },
-    { from: 'public/robot-favicon.png', to: 'public/robot-favicon.png' }
+    { from: 'public/robot-favicon.png', to: 'public/robot-favicon.png' },
+    { from: 'public/chat-cover-place.png', to: 'public/chat-cover-place.png' }
 ];
 
 // Copy lib directory (for local embeddings module)

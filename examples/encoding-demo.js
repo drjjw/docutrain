@@ -10,7 +10,7 @@ console.log('='.repeat(60));
 
 // Example 1: Simple URL (no encoding needed, but recommended)
 console.log('\n📝 Example 1: Simple URL');
-const simple = 'https://ukidney.com';
+const simple = 'https://brightbean.io';
 const simpleEncoded = encodeURIComponent(simple);
 const simpleURL = `?doc=smh&back-button=${simpleEncoded}`;
 console.log('Original:', simple);
@@ -19,7 +19,7 @@ console.log('Full URL:', simpleURL);
 
 // Example 2: URL with path (no encoding needed, but recommended)
 console.log('\n📝 Example 2: URL with Path');
-const withPath = 'https://ukidney.com/manuals/smh';
+const withPath = 'https://brightbean.io/manuals/smh';
 const withPathEncoded = encodeURIComponent(withPath);
 const withPathURL = `?doc=smh&back-button=${withPathEncoded}`;
 console.log('Original:', withPath);
@@ -28,7 +28,7 @@ console.log('Full URL:', withPathURL);
 
 // Example 3: URL with query parameters (MUST encode!)
 console.log('\n📝 Example 3: URL with Query Parameters (MUST ENCODE!)');
-const withQuery = 'https://ukidney.com/page?id=123&ref=test';
+const withQuery = 'https://brightbean.io/page?id=123&ref=test';
 const withQueryEncoded = encodeURIComponent(withQuery);
 const withQueryURL = `?doc=smh&back-button=${withQueryEncoded}`;
 console.log('Original:', withQuery);
@@ -38,7 +38,7 @@ console.log('⚠️  Without encoding, this would break!');
 
 // Example 4: URL with hash (MUST encode!)
 console.log('\n📝 Example 4: URL with Hash Fragment (MUST ENCODE!)');
-const withHash = 'https://ukidney.com/page#section';
+const withHash = 'https://brightbean.io/page#section';
 const withHashEncoded = encodeURIComponent(withHash);
 const withHashURL = `?doc=smh&back-button=${withHashEncoded}`;
 console.log('Original:', withHash);
@@ -47,7 +47,7 @@ console.log('Full URL:', withHashURL);
 
 // Example 5: Using URLSearchParams (automatic encoding)
 console.log('\n📝 Example 5: Using URLSearchParams (Automatic Encoding)');
-const complexURL = 'https://ukidney.com/search?q=kidney disease&sort=date';
+const complexURL = 'https://brightbean.io/search?q=kidney disease&sort=date';
 const params = new URLSearchParams();
 params.set('doc', 'smh');
 params.set('back-button', complexURL);
@@ -75,24 +75,24 @@ function buildChatURL(docSlug, backURL, options = {}) {
 }
 
 console.log('Helper function created! Usage:');
-console.log('buildChatURL("smh", "https://ukidney.com")');
-console.log('→', buildChatURL('smh', 'https://ukidney.com'));
-console.log('\nbuildChatURL("uhn", "https://ukidney.com/page?id=123", { method: "rag" })');
-console.log('→', buildChatURL('uhn', 'https://ukidney.com/page?id=123', { method: 'rag' }));
+console.log('buildChatURL("smh", "https://brightbean.io")');
+console.log('→', buildChatURL('smh', 'https://brightbean.io'));
+console.log('\nbuildChatURL("uhn", "https://brightbean.io/page?id=123", { method: "rag" })');
+console.log('→', buildChatURL('uhn', 'https://brightbean.io/page?id=123', { method: 'rag' }));
 console.log('\nbuildChatURL("smh", null)  // No back button');
 console.log('→', buildChatURL('smh', null));
 
 // Example 7: Common mistake demonstration
 console.log('\n❌ Example 7: Common Mistake - Not Encoding');
-const brokenURL = '?doc=smh&back-button=https://ukidney.com/page?id=123&ref=test';
+const brokenURL = '?doc=smh&back-button=https://brightbean.io/page?id=123&ref=test';
 console.log('Broken URL:', brokenURL);
 console.log('Problem: The ? and & in the back URL will be parsed as separate parameters!');
 console.log('This would be parsed as:');
 console.log('  - doc=smh');
-console.log('  - back-button=https://ukidney.com/page?id=123');
+console.log('  - back-button=https://brightbean.io/page?id=123');
 console.log('  - ref=test (separate parameter!)');
 console.log('\n✅ Fixed version:');
-const fixedURL = `?doc=smh&back-button=${encodeURIComponent('https://ukidney.com/page?id=123&ref=test')}`;
+const fixedURL = `?doc=smh&back-button=${encodeURIComponent('https://brightbean.io/page?id=123&ref=test')}`;
 console.log('Fixed URL:', fixedURL);
 
 // Summary

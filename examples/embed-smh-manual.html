@@ -63,7 +63,7 @@
     WebViewer({
         path: '/content/pdf/core/lib',
         licenseKey: '5sWIr8PdBc1Y2NPyyFtk',
-        initialDoc: 'https://ukidney.com/content/manuals/smh/SMH%20Nephrology%20Housestaff%20Manual.-%202023.pdf',
+        initialDoc: 'https://brightbean.io/content/manuals/smh/SMH%20Nephrology%20Housestaff%20Manual.-%202023.pdf',
     }, document.getElementById('viewer'))
     .then((instance) => {
         const { documentViewer, annotationManager } = instance.Core;
@@ -82,7 +82,7 @@
     // Listen for header collapse messages from iframe
     window.addEventListener('message', function(event) {
         // Verify origin for security
-        if (event.origin !== 'https://bot.ukidney.com') return;
+        if (event.origin !== 'https://brightbean.io') return;
         
         if (event.data.type === 'headerCollapsed') {
             // Could add parent-level handling here if needed
@@ -91,9 +91,9 @@
     });
 
     function openChatModal() {
-        // On mobile: redirect to bot.ukidney.com (can use browser back button)
+        // On mobile: redirect to brightbean.io (can use browser back button)
         if (isMobileDevice()) {
-            window.location.href = 'https://bot.ukidney.com/?method=rag&doc=smh&embedding=openai';
+            window.location.href = 'https://brightbean.io/?method=rag&doc=smh&embedding=openai';
             return;
         }
         
@@ -104,7 +104,7 @@
         
         // Load iframe src only when opening (performance optimization)
         if (!iframe.src || iframe.src === '' || iframe.src === window.location.href || iframe.src.endsWith('/')) {
-            iframe.src = 'https://bot.ukidney.com/?method=rag&doc=smh&embedding=openai';
+            iframe.src = 'https://brightbean.io/?method=rag&doc=smh&embedding=openai';
         }
         
         // Show modal with display flex first, then add active class for animation

@@ -32,11 +32,11 @@ rsync -avz --delete \
   --exclude='*.log' \
   --exclude='server.pid' \
   -e "ssh -i ~/.ssh/drjjw.pub -p 7022" \
-  dist/ root@162.246.254.111:/home/ukidney/bot.ukidney.com/
+  dist/ root@162.246.254.111:/home/ukidney/brightbean.io/
 
 # 3. Reload (zero downtime)
 ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111
-cd /home/ukidney/bot.ukidney.com
+cd /home/ukidney/brightbean.io
 pm2 reload manual-bot
 ```
 
@@ -53,13 +53,13 @@ node build.js
 # 2. Upload files (initial deploy - no --delete yet)
 rsync -avz \
   -e "ssh -i ~/.ssh/drjjw.pub -p 7022" \
-  dist/ root@162.246.254.111:/home/ukidney/bot.ukidney.com/
+  dist/ root@162.246.254.111:/home/ukidney/brightbean.io/
 
 # 3. SSH into server
 ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111
 
 # 4. Create .env file on server
-cd /home/ukidney/bot.ukidney.com
+cd /home/ukidney/brightbean.io
 nano .env
 ```
 
@@ -85,7 +85,7 @@ RAG_SIMILARITY_THRESHOLD=0.3
 npm install --production
 
 # 6. Start with PM2
-pm2 start ecosystem.config.js --env production
+pm2 start ecosystem.config.brightbean.js --env production
 pm2 save
 pm2 startup  # Follow the instructions to enable PM2 on boot
 ```
@@ -115,7 +115,7 @@ rsync -avz --delete \
   --exclude='*.log' \
   --exclude='server.pid' \
   -e "ssh -i ~/.ssh/drjjw.pub -p 7022" \
-  dist/ root@162.246.254.111:/home/ukidney/bot.ukidney.com/
+  dist/ root@162.246.254.111:/home/ukidney/brightbean.io/
 ```
 
 **Why these exclusions:**
@@ -127,7 +127,7 @@ rsync -avz --delete \
 ```bash
 # Step 3: Reload application (on server)
 ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111
-cd /home/ukidney/bot.ukidney.com
+cd /home/ukidney/brightbean.io
 
 # Option A: Zero-downtime reload (recommended)
 pm2 reload manual-bot
@@ -163,7 +163,7 @@ The app now features **auto-refresh** for documents without server restarts!
 # 2. Wait up to 2 minutes for auto-refresh
 # OR trigger immediately:
 
-curl -X POST https://bot.ukidney.com/api/refresh-registry
+curl -X POST https://brightbean.io/api/refresh-registry
 ```
 
 **Response:**
@@ -217,7 +217,7 @@ const logoFiles = [
 node build.js
 rsync -avz --delete --exclude='node_modules' --exclude='.env' \
   -e "ssh -i ~/.ssh/drjjw.pub -p 7022" \
-  dist/ root@162.246.254.111:/home/ukidney/bot.ukidney.com/
+  dist/ root@162.246.254.111:/home/ukidney/brightbean.io/
 ```
 
 #### Logo CSS (Updated for Multi-Tenant)
@@ -254,7 +254,7 @@ pm2 restart manual-bot
 pm2 stop manual-bot
 
 # Start application
-pm2 start ecosystem.config.js --env production
+pm2 start ecosystem.config.brightbean.js --env production
 
 # Delete from PM2 (full removal)
 pm2 delete manual-bot
@@ -284,7 +284,7 @@ pm2 monit
 
 ### Ecosystem Configuration
 
-`ecosystem.config.js` settings:
+`ecosystem.config.brightbean.js` settings:
 ```javascript
 {
   kill_timeout: 5000,      // Wait 5s for graceful shutdown
@@ -328,7 +328,7 @@ pm2 logs manual-bot --err --lines 50
 
 **Fix:**
 ```bash
-cd /home/ukidney/bot.ukidney.com
+cd /home/ukidney/brightbean.io
 npm install --production
 pm2 restart manual-bot
 ```
@@ -339,7 +339,7 @@ pm2 restart manual-bot
 
 **Fix:**
 ```bash
-cd /home/ukidney/bot.ukidney.com
+cd /home/ukidney/brightbean.io
 cat .env  # Verify exists and has correct values
 nano .env  # Edit if needed
 pm2 restart manual-bot
@@ -373,7 +373,7 @@ curl -H "apikey: YOUR_ANON_KEY" https://mlxctdgnojvkgfqldaob.supabase.co/rest/v1
 ```bash
 # 1. Verify new files deployed
 ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111
-cd /home/ukidney/bot.ukidney.com/public/css
+cd /home/ukidney/brightbean.io/public/css
 ls -lh styles.*  # Should see new hash
 
 # 2. Clear browser cache (Cmd+Shift+R or Ctrl+Shift+R)
@@ -386,13 +386,13 @@ cat public/index.html | grep styles
 
 ```bash
 # Server health
-curl https://bot.ukidney.com/api/health
+curl https://brightbean.io/api/health
 
 # Document registry status
-curl https://bot.ukidney.com/api/documents
+curl https://brightbean.io/api/documents
 
 # Force registry refresh
-curl -X POST https://bot.ukidney.com/api/refresh-registry
+curl -X POST https://brightbean.io/api/refresh-registry
 ```
 
 ---
@@ -416,7 +416,7 @@ pm2 reload manual-bot  # Zero downtime
 
 Only use `restart` when:
 - Debugging crashes
-- Updating ecosystem.config.js
+- Updating ecosystem.config.brightbean.js
 - Major Node.js version changes
 
 ### 3. **Test Builds Locally First**
@@ -468,7 +468,7 @@ The build process hashes files:
 # Backup current production code
 ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111
 cd /home/ukidney
-tar -czf bot.ukidney.com.backup.$(date +%Y%m%d).tar.gz bot.ukidney.com/
+tar -czf brightbean.io.backup.$(date +%Y%m%d).tar.gz brightbean.io/
 ```
 
 ---
@@ -509,20 +509,20 @@ tar -czf bot.ukidney.com.backup.$(date +%Y%m%d).tar.gz bot.ukidney.com/
 node build.js && \
 rsync -avz --delete --exclude='node_modules' --exclude='.env' \
   -e "ssh -i ~/.ssh/drjjw.pub -p 7022" \
-  dist/ root@162.246.254.111:/home/ukidney/bot.ukidney.com/ && \
+  dist/ root@162.246.254.111:/home/ukidney/brightbean.io/ && \
 ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111 \
-  "cd /home/ukidney/bot.ukidney.com && pm2 reload manual-bot"
+  "cd /home/ukidney/brightbean.io && pm2 reload manual-bot"
 
 # Quick sync (no build)
 rsync -avz --exclude='node_modules' --exclude='.env' \
   -e "ssh -i ~/.ssh/drjjw.pub -p 7022" \
-  dist/ root@162.246.254.111:/home/ukidney/bot.ukidney.com/
+  dist/ root@162.246.254.111:/home/ukidney/brightbean.io/
 
 # Update documents (no deploy)
-curl -X POST https://bot.ukidney.com/api/refresh-registry
+curl -X POST https://brightbean.io/api/refresh-registry
 
 # Check health
-curl https://bot.ukidney.com/api/health
+curl https://brightbean.io/api/health
 ```
 
 ---
@@ -537,6 +537,6 @@ curl https://bot.ukidney.com/api/health
 ---
 
 *Last tested: October 19, 2025*  
-*Server: bot.ukidney.com (162.246.254.111:7022)*  
+*Server: brightbean.io (162.246.254.111:7022)*  
 *PM2 App Name: manual-bot*
 

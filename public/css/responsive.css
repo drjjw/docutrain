@@ -119,6 +119,18 @@
         border-radius: 8px; /* Match container border radius */
         display: block;
     }
+
+    .document-cover-overlay {
+        border-radius: 0 0 8px 8px; /* Match mobile image border radius */
+    }
+
+    .document-cover-title {
+        font-size: 14px; /* Slightly smaller on mobile */
+    }
+
+    .document-cover-meta {
+        font-size: 12px; /* Smaller font size on mobile */
+    }
 }
 
 @media (max-width: 480px) {

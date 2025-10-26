@@ -23,10 +23,10 @@ const API_URL = BASE_URL;
 - API_URL: `http://localhost:3000`
 - Health Check: `http://localhost:3000/api/health`
 
-**When deployed on ukidney.com:**
-- URL: `https://ukidney.com/content/manuals/bot/`
-- API_URL: `https://ukidney.com/content/manuals/bot`
-- Health Check: `https://ukidney.com/content/manuals/bot/api/health`
+**When deployed on brightbean.io:**
+- URL: `https://brightbean.io/content/manuals/bot/`
+- API_URL: `https://brightbean.io/content/manuals/bot`
+- Health Check: `https://brightbean.io/content/manuals/bot/api/health`
 
 ---
 
@@ -35,10 +35,10 @@ const API_URL = BASE_URL;
 ### **After Deployment:**
 
 ```
-https://ukidney.com/content/manuals/bot/          → Chat interface (index.html)
-https://ukidney.com/content/manuals/bot/api/health    → Server health check
-https://ukidney.com/content/manuals/bot/api/chat      → Chat API endpoint
-https://ukidney.com/content/manuals/bot/api/analytics → Analytics
+https://brightbean.io/content/manuals/bot/          → Chat interface (index.html)
+https://brightbean.io/content/manuals/bot/api/health    → Server health check
+https://brightbean.io/content/manuals/bot/api/chat      → Chat API endpoint
+https://brightbean.io/content/manuals/bot/api/analytics → Analytics
 ```
 
 ---
@@ -47,8 +47,8 @@ https://ukidney.com/content/manuals/bot/api/analytics → Analytics
 
 ### **Before (Relative - wouldn't work):**
 ```javascript
-fetch('/api/health')              // ❌ Would call ukidney.com/api/health
-fetch('/api/chat')                // ❌ Would call ukidney.com/api/chat
+fetch('/api/health')              // ❌ Would call brightbean.io/api/health
+fetch('/api/chat')                // ❌ Would call brightbean.io/api/chat
 ```
 
 ### **After (Absolute - works everywhere):**
@@ -70,23 +70,23 @@ http://localhost:3000/
 
 ### **Scenario 2: Production (Root Domain)**
 ```
-https://chatbot.ukidney.com/
-→ API calls go to: https://chatbot.ukidney.com/api/*
+https://chatbot.brightbean.io/
+→ API calls go to: https://chatbot.brightbean.io/api/*
 ✅ Works perfectly
 ```
 
 ### **Scenario 3: Production (Subdirectory)**
 ```
-https://ukidney.com/content/manuals/bot/
-→ API calls go to: https://ukidney.com/content/manuals/bot/api/*
+https://brightbean.io/content/manuals/bot/
+→ API calls go to: https://brightbean.io/content/manuals/bot/api/*
 ✅ Works perfectly
 ```
 
 ### **Scenario 4: Inside Iframe**
 ```
-Embedded in: https://ukidney.com/page.html
-Iframe src: https://ukidney.com/content/manuals/bot/
-→ API calls go to: https://ukidney.com/content/manuals/bot/api/*
+Embedded in: https://brightbean.io/page.html
+Iframe src: https://brightbean.io/content/manuals/bot/
+→ API calls go to: https://brightbean.io/content/manuals/bot/api/*
 ✅ Works perfectly (uses iframe's location, not parent page)
 ```
 
@@ -114,12 +114,12 @@ location /content/manuals/bot/ {
 
 **How it routes:**
 ```
-https://ukidney.com/content/manuals/bot/
+https://brightbean.io/content/manuals/bot/
   → Nginx strips /content/manuals/bot/
   → Proxies to http://localhost:3000/
   → Express serves public/index.html
 
-https://ukidney.com/content/manuals/bot/api/health
+https://brightbean.io/content/manuals/bot/api/health
   → Nginx strips /content/manuals/bot/
   → Proxies to http://localhost:3000/api/health
   → Express handles the route
@@ -145,12 +145,12 @@ curl http://localhost:3000/api/health
 ### **Production Testing (After Deployment):**
 ```bash
 # Test health
-curl https://ukidney.com/content/manuals/bot/api/health
+curl https://brightbean.io/content/manuals/bot/api/health
 
 # Open in browser
-# Navigate to: https://ukidney.com/content/manuals/bot/
+# Navigate to: https://brightbean.io/content/manuals/bot/
 # Check browser console:
-# "API Base URL: https://ukidney.com/content/manuals/bot"
+# "API Base URL: https://brightbean.io/content/manuals/bot"
 ```
 
 ---
@@ -177,14 +177,14 @@ console.log('Current location:', window.location.href);
 
 **Expected in production:**
 ```
-API Base URL: https://ukidney.com/content/manuals/bot
-Current location: https://ukidney.com/content/manuals/bot/
+API Base URL: https://brightbean.io/content/manuals/bot
+Current location: https://brightbean.io/content/manuals/bot/
 ```
 
 **If you see incorrect URL**, manually set it:
 ```javascript
 // In public/index.html, replace auto-detection with:
-const API_URL = 'https://ukidney.com/content/manuals/bot';
+const API_URL = 'https://brightbean.io/content/manuals/bot';
 ```
 
 ---
@@ -199,5 +199,5 @@ const API_URL = 'https://ukidney.com/content/manuals/bot';
 ✅ Ready to deploy!
 
 Your chatbot will work correctly at:
-**https://ukidney.com/content/manuals/bot/** 🚀
+**https://brightbean.io/content/manuals/bot/** 🚀
 

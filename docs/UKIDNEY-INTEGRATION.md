@@ -1,6 +1,6 @@
 # UKidney.com Integration Guide
 
-Complete guide for embedding the Manual Assistant on ukidney.com.
+Complete guide for embedding the Manual Assistant on brightbean.io.
 
 ---
 
@@ -350,7 +350,7 @@ All will open the same modal!
 <div class="manual-modal-overlay" id="manualModalOverlay"></div>
 <div class="manual-modal-container" id="manualModalContainer">
     <button class="manual-modal-close" id="closeManualModal">&times;</button>
-    <iframe src="https://ukidney.com/content/manuals/bot/"></iframe>
+    <iframe src="https://brightbean.io/content/manuals/bot/"></iframe>
 </div>
 
 <script>
@@ -385,7 +385,7 @@ $(function() {
 - [ ] Add the modal HTML before `</body>`
 - [ ] Copy the JavaScript
 - [ ] Update iframe `src` to your chatbot URL
-- [ ] Test on ukidney.com
+- [ ] Test on brightbean.io
 
 ---
 
@@ -405,7 +405,7 @@ $(function() {
 1. **Lazy loading**: The iframe only loads when modal opens (already configured)
 2. **Multiple triggers**: Use same `uk-toggle` or jQuery selector
 3. **Preload**: Add `loading="eager"` if you want instant loading
-4. **Custom button**: Style to match your existing ukidney.com buttons
+4. **Custom button**: Style to match your existing brightbean.io buttons
 
 ---
 
@@ -442,7 +442,7 @@ Open either example file in your browser to see it working!
 
 1. Test the examples locally
 2. Choose your preferred method (UIkit or jQuery)
-3. Copy the code to ukidney.com
+3. Copy the code to brightbean.io
 4. Deploy your chatbot to a server
 5. Update the iframe `src` URL
 

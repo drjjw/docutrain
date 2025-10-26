@@ -20,47 +20,47 @@ This single line handles **both** encoded and plain text URLs automatically!
 
 ### Example 1: Plain Text URL
 ```
-Browser receives: ?doc=smh&back-button=https://ukidney.com/manuals
+Browser receives: ?doc=smh&back-button=https://brightbean.io/manuals
                                        ↓
 URLSearchParams parses it
                                        ↓
-.get('back-button') returns: "https://ukidney.com/manuals"
+.get('back-button') returns: "https://brightbean.io/manuals"
 ```
 
 ### Example 2: Encoded URL
 ```
-Browser receives: ?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fmanuals
+Browser receives: ?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fmanuals
                                        ↓
 URLSearchParams parses it
                                        ↓
-.get('back-button') returns: "https://ukidney.com/manuals"
+.get('back-button') returns: "https://brightbean.io/manuals"
                                        ↑
                             Same result! Auto-decoded!
 ```
 
 ### Example 3: Complex URL (Encoded - Works!)
 ```
-Browser receives: ?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest
+Browser receives: ?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123%26ref%3Dtest
                                        ↓
 URLSearchParams parses it
                                        ↓
-.get('back-button') returns: "https://ukidney.com/page?id=123&ref=test"
+.get('back-button') returns: "https://brightbean.io/page?id=123&ref=test"
                                        ↑
                             Fully decoded with query params intact!
 ```
 
 ### Example 4: Complex URL (NOT Encoded - BROKEN!)
 ```
-Browser receives: ?doc=smh&back-button=https://ukidney.com/page?id=123&ref=test
+Browser receives: ?doc=smh&back-button=https://brightbean.io/page?id=123&ref=test
                                                                 ↑       ↑
                                                     Browser sees these as URL syntax!
                                        ↓
 URLSearchParams parses it as:
   - doc = "smh"
-  - back-button = "https://ukidney.com/page?id=123"  ❌ Truncated!
+  - back-button = "https://brightbean.io/page?id=123"  ❌ Truncated!
   - ref = "test"  ❌ Separate parameter!
                                        ↓
-.get('back-button') returns: "https://ukidney.com/page?id=123"
+.get('back-button') returns: "https://brightbean.io/page?id=123"
                                        ↑
                             BROKEN! Missing &ref=test
 ```
@@ -83,7 +83,7 @@ Encoding is **not about detection** - it's about **preventing the browser from p
 
 **Without Encoding (BROKEN):**
 ```
-?doc=smh&back-button=https://ukidney.com/page?id=123&ref=test
+?doc=smh&back-button=https://brightbean.io/page?id=123&ref=test
          └─────────┬─────────┘                  ↑   └──┬──┘
               Parameter 1                       |   Parameter 3
                                                 |
@@ -92,7 +92,7 @@ Encoding is **not about detection** - it's about **preventing the browser from p
 
 **With Encoding (WORKS):**
 ```
-?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest
+?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123%26ref%3Dtest
          └──────────────────────────┬──────────────────────────────────────┘
                             Single parameter value
                             (Browser sees %3F and %26 as data, not syntax)
@@ -103,14 +103,14 @@ Encoding is **not about detection** - it's about **preventing the browser from p
 ### Step 1: User Creates URL (Your Code)
 ```javascript
 // You encode when building the URL
-const backURL = 'https://ukidney.com/page?id=123&ref=test';
+const backURL = 'https://brightbean.io/page?id=123&ref=test';
 const chatURL = `?doc=smh&back-button=${encodeURIComponent(backURL)}`;
-// Result: ?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest
+// Result: ?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123%26ref%3Dtest
 ```
 
 ### Step 2: Browser Receives URL
 ```
-User navigates to: ?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest
+User navigates to: ?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123%26ref%3Dtest
 Browser stores in: window.location.search
 ```
 
@@ -123,7 +123,7 @@ export function getBackButtonURL() {
     //     ↑ This automatically decodes %3A to :, %2F to /, etc.
 }
 
-// Returns: "https://ukidney.com/page?id=123&ref=test"
+// Returns: "https://brightbean.io/page?id=123&ref=test"
 // ✅ Perfect! Original URL restored!
 ```
 
@@ -135,7 +135,7 @@ if (backButtonURL) {
     backLink.href = backButtonURL;  // Uses decoded URL
     backLink.style.display = '';
 }
-// ✅ Back button links to: https://ukidney.com/page?id=123&ref=test
+// ✅ Back button links to: https://brightbean.io/page?id=123&ref=test
 ```
 
 ## No Detection Code Needed!
@@ -189,21 +189,21 @@ Both work in our implementation:
 
 ```javascript
 // Test 1: Plain text (simple URL)
-window.location.href = '?doc=smh&back-button=https://ukidney.com';
-// ✅ Works! Returns: "https://ukidney.com"
+window.location.href = '?doc=smh&back-button=https://brightbean.io';
+// ✅ Works! Returns: "https://brightbean.io"
 
 // Test 2: Encoded (simple URL)
-window.location.href = '?doc=smh&back-button=https%3A%2F%2Fukidney.com';
-// ✅ Works! Returns: "https://ukidney.com"
+window.location.href = '?doc=smh&back-button=https%3A%2F%2Fbrightbean.io';
+// ✅ Works! Returns: "https://brightbean.io"
 
 // Test 3: Plain text (complex URL)
-window.location.href = '?doc=smh&back-button=https://ukidney.com/page?id=123';
-// ❌ BROKEN! Returns: "https://ukidney.com/page?id=123"
+window.location.href = '?doc=smh&back-button=https://brightbean.io/page?id=123';
+// ❌ BROKEN! Returns: "https://brightbean.io/page?id=123"
 // But "ref=test" becomes a separate parameter!
 
 // Test 4: Encoded (complex URL)
-window.location.href = '?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest';
-// ✅ Works! Returns: "https://ukidney.com/page?id=123&ref=test"
+window.location.href = '?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123%26ref%3Dtest';
+// ✅ Works! Returns: "https://brightbean.io/page?id=123&ref=test"
 ```
 
 ## Summary

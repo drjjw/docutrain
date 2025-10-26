@@ -6,7 +6,7 @@ This document describes the organization of the project directory.
 
 - `server.js` - Main server entry point
 - `build.js` - Build script for production
-- `ecosystem.config.js` - PM2 configuration
+- `ecosystem.config.brightbean.js` - PM2 configuration
 - `package.json` / `package-lock.json` - Node.js dependencies
 - `.env` / `.env.local` - Environment configuration
 - `.gitignore` - Git ignore rules
@@ -84,4 +84,18 @@ Supabase configuration and schema
 
 ### `/node_modules`
 Node.js dependencies (managed by npm)
+
+## Build Process
+
+### Build Script (`build.js`)
+The build script handles production builds for both the main application and React admin app:
+
+- **Main App**: Copies `/lib/` to `/dist/lib/`, copies and patches `/server.js` to `/dist/server.js`, hashes and copies `/public/` files to `/dist/public/`
+- **React App**: Runs `npm run build` in `/app-src/` to output to `/dist/app/`
+- **Full Build**: Run `npm run build` to update both apps and patch paths
+
+### Important Notes
+- **New Files**: When adding new files to the project, ensure they are properly captured and incorporated into the build script. Files in `/lib/`, `/public/`, and `/app-src/` should be automatically included, but verify the build output in `/dist/` after running `npm run build`
+- **Path Patching**: The build script automatically patches server paths from `dist/app/` (development) to `app/` (production) when copying to `/dist/`
+- **Static Files**: Files in `/public/` are hashed and copied to `/dist/public/` for cache busting
 

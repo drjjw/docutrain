@@ -93,7 +93,7 @@
 
 /* Header Subtitle - Category | Year */
 #headerSubtitle {
-    font-size: 13px;
+    font-size: 16px;
     color: #666;
     margin-top: 4px;
     font-weight: 500;
@@ -310,6 +310,7 @@
     display: flex;
     align-items: center; /* Center image vertically when container is taller */
     justify-content: center;
+    position: relative; /* Allow absolute positioning of overlay */
 }
 
 .document-cover-image {
@@ -318,6 +319,41 @@
     object-fit: fill; /* Maintain aspect ratio */
     display: block;
     border-radius: 0;
+}
+
+.document-cover-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 20%; /* Lower 20% of the image */
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.3));
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 10px;
+    border-radius: 0 0 12px 12px; /* Match container border radius */
+}
+
+.document-cover-title {
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    margin-bottom: 8px;
+}
+
+.document-cover-meta {
+    color: white;
+    font-size: 14px;
+    font-weight: 400;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    line-height: 1.2;
+    opacity: 0.9;
 }
 
 .welcome-message-section {

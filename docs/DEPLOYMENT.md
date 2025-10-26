@@ -1,18 +1,18 @@
-# Deployment Guide for ukidney.com
+# Deployment Guide for brightbean.io
 
 ## 🚀 Deployment Location
 
-**Target URL**: `https://bot.ukidney.com/`
+**Target URL**: `https://brightbean.io/`
 
 ---
 
 ## 📦 **Files to Upload**
 
-Upload these files to your server at `/home/ukidney/bot.ukidney.com/` (web root of bot.ukidney.com):
+Upload these files to your server at `/home/ukidney/brightbean.io/` (web root of brightbean.io):
 
 ### **Required Files:**
 ```
-/home/ukidney/bot.ukidney.com/ (web root of bot.ukidney.com)
+/home/ukidney/brightbean.io/ (web root of brightbean.io)
 ├── server.js                                   # Node.js server
 ├── package.json                                # Dependencies
 ├── package-lock.json                           # Locked dependencies
@@ -54,12 +54,12 @@ node --version  # Should be v18 or higher
 ### **Step 2: Upload Files**
 ```bash
 # Upload all files to the server
-scp -r /Users/jordanweinstein/Downloads/chat/* root@bot.ukidney.com:/home/ukidney/bot.ukidney.com/
+scp -r /Users/jordanweinstein/Downloads/chat/* root@brightbean.io:/home/ukidney/brightbean.io/
 ```
 
 ### **Step 3: Install Dependencies**
 ```bash
-cd /home/ukidney/bot.ukidney.com/
+cd /home/ukidney/brightbean.io/
 npm install --production
 ```
 
@@ -103,7 +103,7 @@ Get your API keys from:
 npm install -g pm2
 
 # Start the application with ecosystem config (includes graceful restart)
-pm2 start ecosystem.config.js --env production
+pm2 start ecosystem.config.brightbean.js --env production
 
 # Save PM2 configuration
 pm2 save
@@ -112,7 +112,7 @@ pm2 save
 pm2 startup
 ```
 
-**Note**: The `ecosystem.config.js` file provides:
+**Note**: The `ecosystem.config.brightbean.js` file provides:
 - **Graceful shutdown**: Waits for active requests to complete (5 second timeout)
 - **Health checks**: Automatic monitoring every 30 seconds
 - **Zero-downtime restarts**: New process starts before old one stops
@@ -123,7 +123,7 @@ pm2 startup
 Add this to your Nginx configuration:
 
 ```nginx
-# In your ukidney.com nginx config
+# In your brightbean.io nginx config
 location /content/manuals/bot/ {
     proxy_pass http://localhost:3456/;
     proxy_http_version 1.1;
@@ -165,22 +165,22 @@ The chatbot supports multiple URL parameters for customization:
 
 **Basic document selection:**
 ```
-https://bot.ukidney.com/?doc=uhn
+https://brightbean.io/?doc=uhn
 ```
 
 **Select model:**
 ```
-https://bot.ukidney.com/?model=grok
+https://brightbean.io/?model=grok
 ```
 
 **Use RAG mode with local embeddings:**
 ```
-https://bot.ukidney.com/?method=rag&embedding=local
+https://brightbean.io/?method=rag&embedding=local
 ```
 
 **Full configuration:**
 ```
-https://bot.ukidney.com/?doc=uhn&model=grok&method=rag&embedding=local
+https://brightbean.io/?doc=uhn&model=grok&method=rag&embedding=local
 ```
 
 ### **Search Modes Explained**
@@ -220,7 +220,7 @@ If using `embedding=local`, the server will:
 
 **First-time setup** (optional, speeds up first request):
 ```bash
-cd /home/ukidney/bot.ukidney.com/
+cd /home/ukidney/brightbean.io/
 npm run embed:local
 ```
 
@@ -232,7 +232,7 @@ This pre-downloads the model and generates embeddings (~5-10 minutes).
 
 ### **UIkit Modal (Recommended)**
 
-Add this to any page on ukidney.com:
+Add this to any page on brightbean.io:
 
 ```html
 <!-- Trigger Button (add anywhere on your page) -->
@@ -245,7 +245,7 @@ Add this to any page on ukidney.com:
     <div class="uk-modal-dialog uk-modal-body" style="width: 95vw; height: 95vh; max-width: 95vw; padding: 0;">
         <button class="uk-modal-close-default" type="button" uk-close></button>
         <iframe
-            src="https://bot.ukidney.com/"
+            src="https://brightbean.io/"
             style="width: 100%; height: 100%; border: none;"
             title="UKidney Manual Assistant"
             allow="clipboard-write">
@@ -288,7 +288,7 @@ Add this to any page on ukidney.com:
 <div class="manual-modal-container" id="manualModalContainer">
     <button class="manual-modal-close" id="closeManualModal">&times;</button>
     <iframe
-        src="https://bot.ukidney.com/"
+        src="https://brightbean.io/"
         style="width: 100%; height: 100%; border: none; border-radius: 8px;">
     </iframe>
 </div>
@@ -322,7 +322,7 @@ Before deploying:
 
 - [ ] ✅ `.env` file permissions set to 600
 - [ ] ✅ `.env` excluded from git (already in `.gitignore`)
-- [ ] ✅ HTTPS enabled on ukidney.com
+- [ ] ✅ HTTPS enabled on brightbean.io
 - [ ] ✅ Firewall configured (only port 80/443 public)
 - [ ] ✅ PM2 running with correct user
 - [ ] ✅ Regular backups enabled
@@ -335,13 +335,13 @@ Before deploying:
 Update your local `.env` temporarily:
 ```env
 PORT=3456
-BASE_URL=https://bot.ukidney.com/
+BASE_URL=https://brightbean.io/
 ```
 
 ### **2. Test on Server**
 ```bash
 # SSH to server
-cd /home/ukidney/bot.ukidney.com/
+cd /home/ukidney/brightbean.io/
 npm start
 
 # Test from browser
@@ -350,7 +350,7 @@ curl http://localhost:3456/api/health
 
 ### **3. Test Through Nginx**
 ```bash
-curl https://bot.ukidney.com/api/health
+curl https://brightbean.io/api/health
 ```
 
 ### **4. Test Modal Integration**
@@ -374,7 +374,7 @@ tail -f /var/log/nginx/access.log | grep "manuals/bot"
 
 ### **Analytics:**
 ```bash
-curl https://bot.ukidney.com/api/analytics?timeframe=24h
+curl https://brightbean.io/api/analytics?timeframe=24h
 ```
 
 ### **Database:**
@@ -387,7 +387,7 @@ https://supabase.com/dashboard/project/mlxctdgnojvkgfqldaob
 
 ### **Update PDF:**
 ```bash
-cd /home/ukidney/bot.ukidney.com/
+cd /home/ukidney/brightbean.io/
 # Upload new PDF (keep same filename or update server.js)
 pm2 reload manual-bot  # Graceful reload with zero downtime
 ```
@@ -448,13 +448,13 @@ pm2 monit  # Real-time monitoring
 
 ## 📋 **Quick Deploy Checklist**
 
-- [ ] Upload files to `/home/ukidney/bot.ukidney.com/`
+- [ ] Upload files to `/home/ukidney/brightbean.io/`
 - [ ] Run `npm install --production`
 - [ ] Configure `.env` file
-- [ ] Start with PM2: `pm2 start ecosystem.config.js --env production`
+- [ ] Start with PM2: `pm2 start ecosystem.config.brightbean.js --env production`
 - [ ] Configure Nginx reverse proxy
-- [ ] Test: `curl https://bot.ukidney.com/api/health`
-- [ ] Add modal code to ukidney.com page
+- [ ] Test: `curl https://brightbean.io/api/health`
+- [ ] Add modal code to brightbean.io page
 - [ ] Test modal from live site
 - [ ] Monitor logs and analytics
 
@@ -462,9 +462,9 @@ pm2 monit  # Real-time monitoring
 
 ## 🎯 **Final URLs**
 
-- **Chatbot**: https://bot.ukidney.com/
-- **Health Check**: https://bot.ukidney.com/api/health
-- **Analytics**: https://bot.ukidney.com/api/analytics
+- **Chatbot**: https://brightbean.io/
+- **Health Check**: https://brightbean.io/api/health
+- **Analytics**: https://brightbean.io/api/analytics
 - **Supabase Dashboard**: https://supabase.com/dashboard/project/mlxctdgnojvkgfqldaob
 
 ---

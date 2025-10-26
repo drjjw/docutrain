@@ -79,7 +79,7 @@ This ensures each document contributes equally to the context, preventing one hi
 
 ### Valid Multi-Document Query
 ```
-https://ukidney.com/chat?doc=smh+uhn&model=grok
+https://brightbean.io/chat?doc=smh+uhn&model=grok
 ```
 Searches both SMH and UHN manuals, returns 5 chunks from each (10 total).
 

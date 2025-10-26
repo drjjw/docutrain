@@ -1,8 +1,8 @@
-# Domain Switching Guide: doxcite.com ↔ bot.ukidney.com
+# Domain Switching Guide: doxcite.com ↔ brightbean.io
 
 This guide explains how to switch between two configurations:
 - **doxcite.com** on port 3457 with PM2 process `doxcite-bot`
-- **bot.ukidney.com** on port 3456 with PM2 process `manual-bot`
+- **brightbean.io** on port 3456 with PM2 process `manual-bot`
 
 ## Current Configuration (doxcite.com on 3457)
 
@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3457;
 
 ### PM2 Configuration
 ```javascript
-// ecosystem.config.js
+// ecosystem.config.brightbean.js
 {
   name: 'doxcite-bot',
   // ... other config
@@ -47,7 +47,7 @@ PORT=3457
 
 ---
 
-## Switching to bot.ukidney.com Configuration
+## Switching to brightbean.io Configuration
 
 ### 1. Update Server Port
 ```bash
@@ -59,7 +59,7 @@ const PORT = process.env.PORT || 3456;
 
 ### 2. Update PM2 Process Name
 ```bash
-# Change ecosystem.config.js from:
+# Change ecosystem.config.brightbean.js from:
 name: 'doxcite-bot',
 # To:
 name: 'manual-bot',
@@ -81,8 +81,8 @@ If you want to switch the domain as well:
 
 # And change the ServerName:
 <VirtualHost *:80>
-    ServerName bot.ukidney.com
-    ServerAlias www.bot.ukidney.com
+    ServerName brightbean.io
+    ServerAlias www.brightbean.io
 
     ProxyPass / http://127.0.0.1:3456/
     ProxyPassReverse / http://127.0.0.1:3456/
@@ -105,8 +105,8 @@ If you want to switch the domain as well:
 # 1. Update server.js
 sed -i 's/3457/3456/g' server.js
 
-# 2. Update ecosystem.config.js
-sed -i "s/'doxcite-bot'/'manual-bot'/g" ecosystem.config.js
+# 2. Update ecosystem.config.brightbean.js
+sed -i "s/'doxcite-bot'/'manual-bot'/g" ecosystem.config.brightbean.js
 
 # 3. Update .env on server
 ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111 "echo 'PORT=3457' > /home/doxcite/public_html/.env"
@@ -115,13 +115,13 @@ ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111 "echo 'PORT=3457' > /home/d
 ./deploy2.sh
 ```
 
-### To bot.ukidney.com (3456):
+### To brightbean.io (3456):
 ```bash
 # 1. Update server.js
 sed -i 's/3456/3457/g' server.js
 
-# 2. Update ecosystem.config.js
-sed -i "s/'manual-bot'/'doxcite-bot'/g" ecosystem.config.js
+# 2. Update ecosystem.config.brightbean.js
+sed -i "s/'manual-bot'/'doxcite-bot'/g" ecosystem.config.brightbean.js
 
 # 3. Update .env on server
 ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111 "echo 'PORT=3456' > /home/doxcite/public_html/.env"
@@ -139,18 +139,18 @@ ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111 "echo 'PORT=3456' > /home/d
 # SSH to server and check:
 pm2 list
 netstat -tlnp | grep -E "(3456|3457)"
-curl http://127.0.0.1:3456/api/ready  # For bot.ukidney.com
+curl http://127.0.0.1:3456/api/ready  # For brightbean.io
 curl http://127.0.0.1:3457/api/ready  # For doxcite.com
 ```
 
 ### Test External Access
 ```bash
 # Test via IP
-curl -I http://162.246.254.111:3456/  # bot.ukidney.com
+curl -I http://162.246.254.111:3456/  # brightbean.io
 curl -I http://162.246.254.111:3457/  # doxcite.com
 
 # Test via domain (after DNS setup)
-curl -I http://bot.ukidney.com/
+curl -I http://brightbean.io/
 curl -I http://doxcite.com/
 ```
 
@@ -165,7 +165,7 @@ sudo a2ensite doxcite.conf
 sudo a2dissite bot-ukidney.conf
 sudo systemctl reload apache2
 
-# For bot.ukidney.com
+# For brightbean.io
 sudo a2ensite bot-ukidney.conf
 sudo a2dissite doxcite.conf
 sudo systemctl reload apache2
@@ -218,6 +218,6 @@ cat /home/doxcite/public_html/.env
 
 ## Current Status
 - ✅ **doxcite.com**: Port 3457, PM2: `doxcite-bot`
-- ✅ **bot.ukidney.com**: Port 3456, PM2: `manual-bot`
+- ✅ **brightbean.io**: Port 3456, PM2: `manual-bot`
 
 Both can run simultaneously if you have different PM2 process names and ports.

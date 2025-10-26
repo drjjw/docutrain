@@ -30,7 +30,7 @@ This document describes the optimization of the uKidney chatbot deployment proce
 - **Impact**: 10x+ faster startup, regardless of document count
 
 ### 2. PM2 Graceful Restarts
-- **Configuration**: `ecosystem.config.js` with optimized timeouts
+- **Configuration**: `ecosystem.config.brightbean.js` with optimized timeouts
 - **Behavior**: New process starts before old process stops
 - **Result**: Zero-downtime deployments
 
@@ -60,26 +60,26 @@ node build.js
 
 # Upload to server (choose one method)
 # Option A: SCP
-scp -r dist/* root@bot.ukidney.com:/home/ukidney/bot.ukidney.com/
+scp -r dist/* root@brightbean.io:/home/ukidney/brightbean.io/
 
 # Option B: RSYNC (recommended for updates)
-rsync -avz --delete dist/ root@bot.ukidney.com:/home/ukidney/bot.ukidney.com/
+rsync -avz --delete dist/ root@brightbean.io:/home/ukidney/brightbean.io/
 
 # Don't forget .env file
-scp .env root@bot.ukidney.com:/home/ukidney/bot.ukidney.com/
+scp .env root@brightbean.io:/home/ukidney/brightbean.io/
 ```
 
 ### Step 2: Initial Deployment
 ```bash
 # On production server
-cd /home/ukidney/bot.ukidney.com/
+cd /home/ukidney/brightbean.io/
 
 # Install dependencies
 npm install --production
 
 # Start with ecosystem config
 pm2 delete manual-bot 2>/dev/null || true
-pm2 start ecosystem.config.js --env production
+pm2 start ecosystem.config.brightbean.js --env production
 pm2 save
 ```
 
@@ -116,7 +116,7 @@ Total: ~2.5-5 seconds (vs 2-5+ minutes before)
 
 ## 🔧 Configuration Files
 
-### ecosystem.config.js
+### ecosystem.config.brightbean.js
 ```javascript
 module.exports = {
   apps: [{
@@ -227,7 +227,7 @@ pm2 logs manual-bot
 netstat -tulpn | grep :3456
 
 # Manual test
-cd /home/ukidney/bot.ukidney.com/
+cd /home/ukidney/brightbean.io/
 node server.js
 ```
 
@@ -239,7 +239,7 @@ node server.js
 #### 503 Errors During Deployment
 - Use `pm2 reload` instead of `pm2 restart`
 - Check readiness endpoint: `curl /api/ready`
-- Increase timeouts in ecosystem.config.js if needed
+- Increase timeouts in ecosystem.config.brightbean.js if needed
 
 #### Memory Issues
 ```bash
@@ -257,7 +257,7 @@ pm2 restart manual-bot
 
 # Delete and restart fresh
 pm2 delete manual-bot
-pm2 start ecosystem.config.js --env production
+pm2 start ecosystem.config.brightbean.js --env production
 
 # Check PM2 status
 pm2 status
@@ -270,7 +270,7 @@ pm2 jlist
 
 ### For High-Traffic Sites
 ```javascript
-// ecosystem.config.js optimizations
+// ecosystem.config.brightbean.js optimizations
 instances: 'max',  // Cluster mode
 exec_mode: 'cluster',
 max_memory_restart: '1G',

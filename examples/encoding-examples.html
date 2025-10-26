@@ -156,16 +156,16 @@
         
         <div class="input-group">
             <label for="backURL">Enter your back button URL:</label>
-            <input type="text" id="backURL" placeholder="https://ukidney.com/page?id=123&ref=test" value="https://ukidney.com">
+            <input type="text" id="backURL" placeholder="https://brightbean.io/page?id=123&ref=test" value="https://brightbean.io">
         </div>
 
         <div class="example-buttons">
             <strong>Try these examples:</strong><br>
-            <button onclick="setExample('https://ukidney.com')">Simple URL</button>
-            <button onclick="setExample('https://ukidney.com/manuals/smh')">URL with Path</button>
-            <button onclick="setExample('https://ukidney.com/page?id=123')">URL with Query</button>
-            <button onclick="setExample('https://ukidney.com/page?id=123&ref=test')">Complex URL</button>
-            <button onclick="setExample('https://ukidney.com/page#section')">URL with Hash</button>
+            <button onclick="setExample('https://brightbean.io')">Simple URL</button>
+            <button onclick="setExample('https://brightbean.io/manuals/smh')">URL with Path</button>
+            <button onclick="setExample('https://brightbean.io/page?id=123')">URL with Query</button>
+            <button onclick="setExample('https://brightbean.io/page?id=123&ref=test')">Complex URL</button>
+            <button onclick="setExample('https://brightbean.io/page#section')">URL with Hash</button>
         </div>
 
         <button onclick="encodeURL()">🔒 Encode URL</button>
@@ -197,15 +197,15 @@
         <h3>Method 1: Using encodeURIComponent() (Recommended)</h3>
         <div class="code-example">
 <code>// Encode a single URL
-const backURL = 'https://ukidney.com/page?id=123&ref=test';
+const backURL = 'https://brightbean.io/page?id=123&ref=test';
 const encoded = encodeURIComponent(backURL);
 console.log(encoded);
-// Output: https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest
+// Output: https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123%26ref%3Dtest
 
 // Build the full chat URL
 const chatURL = `?doc=smh&back-button=${encodeURIComponent(backURL)}`;
 console.log(chatURL);
-// Output: ?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest</code>
+// Output: ?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123%26ref%3Dtest</code>
         </div>
 
         <h3>Method 2: Using URLSearchParams (Automatic Encoding)</h3>
@@ -213,11 +213,11 @@ console.log(chatURL);
 <code>// URLSearchParams automatically encodes values
 const params = new URLSearchParams();
 params.set('doc', 'smh');
-params.set('back-button', 'https://ukidney.com/page?id=123&ref=test');
+params.set('back-button', 'https://brightbean.io/page?id=123&ref=test');
 
 const chatURL = `?${params.toString()}`;
 console.log(chatURL);
-// Output: ?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest</code>
+// Output: ?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123%26ref%3Dtest</code>
         </div>
 
         <h3>Method 3: Helper Function (Best Practice)</h3>
@@ -233,8 +233,8 @@ function buildChatURL(docSlug, backURL) {
 }
 
 // Usage
-const url1 = buildChatURL('smh', 'https://ukidney.com');
-const url2 = buildChatURL('uhn', 'https://ukidney.com/page?id=123');
+const url1 = buildChatURL('smh', 'https://brightbean.io');
+const url2 = buildChatURL('uhn', 'https://brightbean.io/page?id=123');
 const url3 = buildChatURL('smh', null); // No back button</code>
         </div>
 
@@ -254,21 +254,21 @@ const currentURL = window.location.href;
 const chatURL = `/chat?doc=smh&back-button=${encodeURIComponent(currentURL)}`;
 
 // Or use referrer
-const referrer = document.referrer || 'https://ukidney.com';
+const referrer = document.referrer || 'https://brightbean.io';
 const chatURL = `/chat?doc=smh&back-button=${encodeURIComponent(referrer)}`;</code>
         </div>
 
         <h3>2. Embedding in HTML</h3>
         <div class="code-example">
 <code>&lt;!-- Simple URL (no encoding needed) --&gt;
-&lt;iframe src="/chat?doc=smh&back-button=https://ukidney.com"&gt;&lt;/iframe&gt;
+&lt;iframe src="/chat?doc=smh&back-button=https://brightbean.io"&gt;&lt;/iframe&gt;
 
 &lt;!-- Complex URL (must be encoded) --&gt;
-&lt;iframe src="/chat?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123"&gt;&lt;/iframe&gt;
+&lt;iframe src="/chat?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123"&gt;&lt;/iframe&gt;
 
 &lt;!-- Generate dynamically with JavaScript --&gt;
 &lt;script&gt;
-const backURL = 'https://ukidney.com/page?id=123';
+const backURL = 'https://brightbean.io/page?id=123';
 const iframe = document.createElement('iframe');
 iframe.src = `/chat?doc=smh&back-button=${encodeURIComponent(backURL)}`;
 document.body.appendChild(iframe);
@@ -279,7 +279,7 @@ document.body.appendChild(iframe);
         <div class="code-example">
 <code>// Express route that generates chat URLs
 app.get('/embed-chat', (req, res) => {
-    const backURL = req.query.return_url || 'https://ukidney.com';
+    const backURL = req.query.return_url || 'https://brightbean.io';
     const docSlug = req.query.doc || 'smh';
     
     // Build URL with proper encoding
@@ -385,14 +385,14 @@ app.get('/embed-chat', (req, res) => {
         function copyCode(method) {
             const codes = [
                 // Method 1
-                `const backURL = 'https://ukidney.com/page?id=123&ref=test';
+                `const backURL = 'https://brightbean.io/page?id=123&ref=test';
 const encoded = encodeURIComponent(backURL);
 const chatURL = \`?doc=smh&back-button=\${encodeURIComponent(backURL)}\`;`,
                 
                 // Method 2
                 `const params = new URLSearchParams();
 params.set('doc', 'smh');
-params.set('back-button', 'https://ukidney.com/page?id=123&ref=test');
+params.set('back-button', 'https://brightbean.io/page?id=123&ref=test');
 const chatURL = \`?\${params.toString()}\`;`,
                 
                 // Method 3
@@ -405,7 +405,7 @@ const chatURL = \`?\${params.toString()}\`;`,
     return \`?\${params.toString()}\`;
 }
 
-const url = buildChatURL('smh', 'https://ukidney.com/page?id=123');`
+const url = buildChatURL('smh', 'https://brightbean.io/page?id=123');`
             ];
 
             navigator.clipboard.writeText(codes[method]).then(() => {

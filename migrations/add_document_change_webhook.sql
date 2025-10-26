@@ -17,7 +17,7 @@ CREATE OR REPLACE FUNCTION trigger_refresh_registry()
 RETURNS TRIGGER AS $$
 BEGIN
   PERFORM net.http_post(
-    url := 'https://bot.ukidney.com/api/refresh-registry',
+    url := 'https://brightbean.io/api/refresh-registry',
     headers := '{"Content-Type": "application/json"}'::jsonb,
     body := '{}'::jsonb,
     timeout_milliseconds := 5000

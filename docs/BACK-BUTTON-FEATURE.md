@@ -20,14 +20,14 @@ The back button in the mobile view is now fully configurable via URL parameter, 
 
 ### Examples
 
-**Show back button to ukidney.com:**
+**Show back button to brightbean.io:**
 ```
-https://your-domain.com/chat?doc=smh&back-button=https://ukidney.com
+https://your-domain.com/chat?doc=smh&back-button=https://brightbean.io
 ```
 
 **Show back button to a specific manual page:**
 ```
-https://your-domain.com/chat?doc=uhn&back-button=https://ukidney.com/nephrology-publications/nephrology-manuals/uhn-manual
+https://your-domain.com/chat?doc=uhn&back-button=https://brightbean.io/nephrology-publications/nephrology-manuals/uhn-manual
 ```
 
 **No back button (standalone mode):**
@@ -41,9 +41,9 @@ For URLs with special characters (like `?`, `&`, `#`), you **must** encode the b
 
 ```javascript
 // ✅ CORRECT: Encode complex URLs
-const backURL = 'https://ukidney.com/page?id=123&ref=test';
+const backURL = 'https://brightbean.io/page?id=123&ref=test';
 const chatURL = `?doc=smh&back-button=${encodeURIComponent(backURL)}`;
-// Result: ?doc=smh&back-button=https%3A%2F%2Fukidney.com%2Fpage%3Fid%3D123%26ref%3Dtest
+// Result: ?doc=smh&back-button=https%3A%2F%2Fbrightbean.io%2Fpage%3Fid%3D123%26ref%3Dtest
 ```
 
 See [BACK-BUTTON-URL-ENCODING.md](BACK-BUTTON-URL-ENCODING.md) for complete encoding guidelines.
@@ -93,10 +93,10 @@ Create different back navigation for different embedding contexts:
 
 ```html
 <!-- Embedded in manual page -->
-<iframe src="chat?doc=smh&back-button=https://ukidney.com/manuals/smh"></iframe>
+<iframe src="chat?doc=smh&back-button=https://brightbean.io/manuals/smh"></iframe>
 
 <!-- Embedded in guidelines page -->
-<iframe src="chat?doc=ckd-dc-2025&back-button=https://ukidney.com/guidelines"></iframe>
+<iframe src="chat?doc=ckd-dc-2025&back-button=https://brightbean.io/guidelines"></iframe>
 ```
 
 ### 2. Standalone Deployment
@@ -112,7 +112,7 @@ Create custom navigation based on user journey:
 
 ```javascript
 // From homepage
-const chatURL = `chat?doc=smh&back-button=${encodeURIComponent('https://ukidney.com')}`;
+const chatURL = `chat?doc=smh&back-button=${encodeURIComponent('https://brightbean.io')}`;
 
 // From specific article
 const chatURL = `chat?doc=smh&back-button=${encodeURIComponent(document.referrer)}`;
@@ -131,7 +131,7 @@ const chatURL = `chat?doc=smh&back-button=${encodeURIComponent(document.referrer
 ### Before (Hardcoded)
 ```javascript
 // In config.js - hardcoded per document
-backLink: 'https://ukidney.com/nephrology-publications/...'
+backLink: 'https://brightbean.io/nephrology-publications/...'
 
 // In ui.js - used document's backLink
 backLink.href = config.backLink;
@@ -160,10 +160,10 @@ if (backButtonURL) {
 
 1. **With back button:**
    ```
-   http://localhost:3456?doc=smh&back-button=https://ukidney.com
+   http://localhost:3456?doc=smh&back-button=https://brightbean.io
    ```
    ✓ Back button should be visible in mobile view
-   ✓ Clicking should navigate to https://ukidney.com
+   ✓ Clicking should navigate to https://brightbean.io
 
 2. **Without back button:**
    ```

@@ -25,7 +25,7 @@ node server.js &
 Or use PM2 properly:
 ```bash
 pm2 delete all
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.brightbean.js
 pm2 save
 ```
 

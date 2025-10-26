@@ -63,10 +63,10 @@ Controls whether to show a back button in the mobile view and where it should li
 **Examples:**
 ```
 # Show back button linking to a specific page
-http://localhost:3456?doc=smh&back-button=https://ukidney.com/manuals
+http://localhost:3456?doc=smh&back-button=https://brightbean.io/manuals
 
 # Show back button linking to homepage
-http://localhost:3456?doc=uhn&back-button=https://ukidney.com
+http://localhost:3456?doc=uhn&back-button=https://brightbean.io
 
 # No back button (parameter omitted)
 http://localhost:3456?doc=smh
@@ -83,7 +83,7 @@ You can combine parameters using `&`:
 
 ```
 http://localhost:3456?doc=uhn&method=rag
-http://localhost:3456?doc=smh&method=rag&back-button=https://ukidney.com
+http://localhost:3456?doc=smh&method=rag&back-button=https://brightbean.io
 http://localhost:3456?doc=ckd-dc-2025&method=rag&back-button=https://example.com/guidelines
 ```
 
@@ -116,8 +116,8 @@ Create iframes with pre-configured settings:
 Share links with specific configurations:
 
 ```
-https://ukidney.com/chat?doc=uhn&method=rag
-https://ukidney.com/chat?doc=smh
+https://brightbean.io/chat?doc=uhn&method=rag
+https://brightbean.io/chat?doc=smh
 ```
 
 ### 3. Testing Locally

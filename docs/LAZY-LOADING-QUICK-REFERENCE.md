@@ -82,7 +82,7 @@ Performance is **constant** regardless of total document count!
 
 3. Restart server:
    ```bash
-   pm2 restart ecosystem.config.js
+   pm2 restart ecosystem.config.brightbean.js
    ```
 
 4. Clear browser cache (localStorage):

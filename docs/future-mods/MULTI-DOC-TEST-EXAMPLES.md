@@ -6,7 +6,7 @@ Based on the current document registry, here are examples of valid multi-documen
 
 ### Example 1: SMH + UHN Manuals
 ```
-https://ukidney.com/chat?doc=smh+uhn&model=grok
+https://brightbean.io/chat?doc=smh+uhn&model=grok
 ```
 - ✅ Both documents: owner=ukidney, embedding=openai
 - Returns 5 chunks from SMH Manual + 5 chunks from UHN Manual = 10 total
@@ -14,7 +14,7 @@ https://ukidney.com/chat?doc=smh+uhn&model=grok
 
 ### Example 2: Multiple KDIGO Guidelines
 ```
-https://ukidney.com/chat?doc=kdigo-ckd-2024+kdigo-bp-2021+kdigo-gd-2021
+https://brightbean.io/chat?doc=kdigo-ckd-2024+kdigo-bp-2021+kdigo-gd-2021
 ```
 - ✅ All documents: owner=ukidney, embedding=openai  
 - Returns 15 chunks total (5 from each guideline)
@@ -22,7 +22,7 @@ https://ukidney.com/chat?doc=kdigo-ckd-2024+kdigo-bp-2021+kdigo-gd-2021
 
 ### Example 3: AJKD Core Curriculum Topics
 ```
-https://ukidney.com/chat?doc=ajkd-cc-anca-associated-vasculitis+ajkd-cc-iga-nephropathy+ajkd-cc-membranous-nephropathy
+https://brightbean.io/chat?doc=ajkd-cc-anca-associated-vasculitis+ajkd-cc-iga-nephropathy+ajkd-cc-membranous-nephropathy
 ```
 - ✅ All documents: owner=ukidney, embedding=openai
 - Returns 15 chunks total
@@ -30,7 +30,7 @@ https://ukidney.com/chat?doc=ajkd-cc-anca-associated-vasculitis+ajkd-cc-iga-neph
 
 ### Example 4: Transplant Resources (Local Embeddings)
 ```
-https://ukidney.com/chat?doc=smh-tx+ckd-dc-2025&embedding=local
+https://brightbean.io/chat?doc=smh-tx+ckd-dc-2025&embedding=local
 ```
 - ✅ Both documents: owner=ukidney, embedding=local
 - Returns 10 chunks total
@@ -42,25 +42,25 @@ These will return helpful error messages:
 
 ### Error Example 1: Different Owners
 ```
-https://ukidney.com/chat?doc=smh+maker-foh
+https://brightbean.io/chat?doc=smh+maker-foh
 ```
 ❌ **Error**: "Cannot combine documents from different owners: ukidney, maker"
 
 ### Error Example 2: Different Embedding Types
 ```
-https://ukidney.com/chat?doc=smh+ckd-dc-2025
+https://brightbean.io/chat?doc=smh+ckd-dc-2025
 ```
 ❌ **Error**: "Cannot combine documents with different embedding types: openai, local"
 
 ### Error Example 3: Too Many Documents
 ```
-https://ukidney.com/chat?doc=doc1+doc2+doc3+doc4+doc5+doc6
+https://brightbean.io/chat?doc=doc1+doc2+doc3+doc4+doc5+doc6
 ```
 ❌ **Error**: "Maximum 5 documents can be searched simultaneously. You specified 6."
 
 ### Error Example 4: Invalid Document Slug
 ```
-https://ukidney.com/chat?doc=smh+invalid-doc-name
+https://brightbean.io/chat?doc=smh+invalid-doc-name
 ```
 ❌ **Error**: "The following document(s) are not available: invalid-doc-name"
 
