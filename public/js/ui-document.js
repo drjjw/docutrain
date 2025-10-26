@@ -211,8 +211,9 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     if (sendButton) sendButton.disabled = false;
 
     // Update header logo based on document owner
-    console.log(`🎨 Updating logo for owner: ${config.owner}`);
-    const logoConfig = await getOwnerLogoConfig(config.owner);
+    const ownerSlug = config.ownerInfo?.slug || config.owner;
+    console.log(`🎨 Updating logo for owner: ${ownerSlug}`);
+    const logoConfig = await getOwnerLogoConfig(ownerSlug);
     console.log(`🎨 Logo config retrieved:`, logoConfig);
 
     const logoElement = document.querySelector('.header-logo img');
@@ -241,7 +242,7 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 console.log('🔗 Owner logo link disabled due to owner_link=false parameter');
             } else {
                 // Override logo link to navigate to owner's chat page
-                logoLink.href = `/chat?owner=${encodeURIComponent(config.owner)}`;
+                logoLink.href = `/chat?owner=${encodeURIComponent(ownerSlug)}`;
                 logoLink.title = `View all documents for ${logoConfig.alt}`;
                 
                 // Remove target="_blank" to navigate in same window
@@ -273,18 +274,18 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 const shadowColor = hexToRgba(logoConfig.accentColor, 0.2);
                 root.style.setProperty('--accent-color-shadow', shadowColor);
 
-                console.log(`🎨 Header logo and accent color updated for owner: ${config.owner} (${logoConfig.alt}) - ${logoConfig.accentColor}`);
+                console.log(`🎨 Header logo and accent color updated for owner: ${ownerSlug} (${logoConfig.alt}) - ${logoConfig.accentColor}`);
             }
         } else {
             // Hide logo for unrecognized owners (multi-tenant behavior)
             logoElement.style.display = 'none';
-            console.log(`🎨 Header logo hidden for owner: ${config.owner} (no logo configured)`);
+            console.log(`🎨 Header logo hidden for owner: ${ownerSlug} (no logo configured)`);
         }
     }
 
     // Update submit button theme based on document owner
     if (sendButton) {
-        if (config.owner === 'maker') {
+        if (ownerSlug === 'maker') {
             sendButton.classList.add('maker-theme');
             console.log(`🎨 Submit button updated to maker theme (yellow)`);
         } else {

@@ -1,0 +1,116 @@
+{
+  "documents": [
+    {
+      "slug": "bloomberg-sen-2025-09-30",
+      "title": "Bloomberg Sen Statement",
+      "subtitle": "September 30, 2025",
+      "year": "2025",
+      "backLink": null,
+      "welcomeMessage": "Bloomberg Sen Statement - September 30, 2025",
+      "pdfFilename": "20250930_R.SWEINSTEIN.PDF",
+      "pdfSubdirectory": "bloombergsen",
+      "embeddingTypes": "both",
+      "metadata": {
+        "source": "Bloomberg Sen",
+        "statement_date": "2025-09-30",
+        "type": "financial_statement"
+      }
+    },
+    {
+      "slug": "bloomberg-sen-2025-06-30",
+      "title": "Bloomberg Sen Statement",
+      "subtitle": "June 30, 2025",
+      "year": "2025",
+      "backLink": null,
+      "welcomeMessage": "Bloomberg Sen Statement - June 30, 2025",
+      "pdfFilename": "20250630_R.SWEINSTEIN.PDF",
+      "pdfSubdirectory": "bloombergsen",
+      "embeddingTypes": "both",
+      "metadata": {
+        "source": "Bloomberg Sen",
+        "statement_date": "2025-06-30",
+        "type": "financial_statement"
+      }
+    },
+    {
+      "slug": "bloomberg-sen-2025-03-31",
+      "title": "Bloomberg Sen Statement",
+      "subtitle": "March 31, 2025",
+      "year": "2025",
+      "backLink": null,
+      "welcomeMessage": "Bloomberg Sen Statement - March 31, 2025",
+      "pdfFilename": "20250331_R.SWEINSTEIN.PDF",
+      "pdfSubdirectory": "bloombergsen",
+      "embeddingTypes": "both",
+      "metadata": {
+        "source": "Bloomberg Sen",
+        "statement_date": "2025-03-31",
+        "type": "financial_statement"
+      }
+    },
+    {
+      "slug": "bloomberg-sen-2024-12-31",
+      "title": "Bloomberg Sen Statement",
+      "subtitle": "December 31, 2024",
+      "year": "2024",
+      "backLink": null,
+      "welcomeMessage": "Bloomberg Sen Statement - December 31, 2024",
+      "pdfFilename": "20241231_R.SWEINSTEIN.PDF",
+      "pdfSubdirectory": "bloombergsen",
+      "embeddingTypes": "both",
+      "metadata": {
+        "source": "Bloomberg Sen",
+        "statement_date": "2024-12-31",
+        "type": "financial_statement"
+      }
+    },
+    {
+      "slug": "bloomberg-sen-2024-09-30",
+      "title": "Bloomberg Sen Statement",
+      "subtitle": "September 30, 2024",
+      "year": "2024",
+      "backLink": null,
+      "welcomeMessage": "Bloomberg Sen Statement - September 30, 2024",
+      "pdfFilename": "20240930_R.SWEINSTEIN.PDF",
+      "pdfSubdirectory": "bloombergsen",
+      "embeddingTypes": "both",
+      "metadata": {
+        "source": "Bloomberg Sen",
+        "statement_date": "2024-09-30",
+        "type": "financial_statement"
+      }
+    },
+    {
+      "slug": "bloomberg-sen-2024-06-30-quarterly",
+      "title": "Bloomberg Sen Quarterly Statements",
+      "subtitle": "June 30, 2024",
+      "year": "2024",
+      "backLink": null,
+      "welcomeMessage": "Bloomberg Sen Quarterly Statements - June 30, 2024",
+      "pdfFilename": "Quarterly Statements_20240630_R.SWEINSTEIN.PDF",
+      "pdfSubdirectory": "bloombergsen",
+      "embeddingTypes": "both",
+      "metadata": {
+        "source": "Bloomberg Sen",
+        "statement_date": "2024-06-30",
+        "type": "quarterly_statements"
+      }
+    },
+    {
+      "slug": "bloomberg-sen-2024-03-31",
+      "title": "Bloomberg Sen Statement",
+      "subtitle": "March 31, 2024",
+      "year": "2024",
+      "backLink": null,
+      "welcomeMessage": "Bloomberg Sen Statement - March 31, 2024",
+      "pdfFilename": "20240331_R.JWEINSTE.PDF",
+      "pdfSubdirectory": "bloombergsen",
+      "embeddingTypes": "both",
+      "metadata": {
+        "source": "Bloomberg Sen",
+        "statement_date": "2024-03-31",
+        "type": "financial_statement"
+      }
+    }
+  ]
+}

@@ -113,7 +113,7 @@ async function loadDocuments(forceRefresh = false) {
                 downloads,
                 chunk_limit_override,
                 show_document_selector,
-                owners (
+                owners!documents_owner_id_fkey (
                     intro_message,
                     slug,
                     name,
