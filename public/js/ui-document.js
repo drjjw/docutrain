@@ -366,8 +366,10 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 coverImage.src = config.cover.trim();
                 coverImage.alt = `${config.title} - Title Slide`;
                 
-                // Equalize heights after image loads
+                // Handle height adjustments after image loads
                 coverImage.onload = () => {
+                    // On mobile, the height is now responsive to aspect ratio
+                    // On desktop, equalize container heights
                     equalizeContainerHeights();
                 };
             }
