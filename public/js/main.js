@@ -6,6 +6,7 @@ import { submitRating } from './rating.js';
 import { initializePubMedPopup } from './pubmed-popup.js';
 import { initializeAIHint } from './ai-hint.js';
 import { checkDocumentAccess } from './access-check.js';
+import mobileMenu from './mobile-menu.js';
 
 // Configure marked for better formatting
 marked.setOptions({
@@ -500,8 +501,8 @@ async function initializeUserMenu() {
                 // Close dropdown
                 closeUserMenuDropdown();
 
-                // Hide user menu
-                updateUserMenuVisibility();
+                // Hide user menu and update mobile menu
+                await updateUserMenuVisibility();
 
                 // Show success message or redirect
                 console.log('👋 User signed out successfully');
@@ -586,6 +587,9 @@ function closeUserMenuDropdown() {
     // Initialize user menu functionality
     initializeUserMenu();
 
+    // Initialize mobile menu and update visibility
+    await mobileMenu.updateVisibility();
+
     // Health check logged to console (no status bar)
     console.log('✓ Server health check - RAG-only mode active');
 
@@ -609,7 +613,7 @@ function closeUserMenuDropdown() {
 /**
  * Check if user is authenticated and show/hide user menu accordingly
  */
-function updateUserMenuVisibility() {
+async function updateUserMenuVisibility() {
     const userMenuSection = document.getElementById('userMenuSection');
     const userEmailElement = document.getElementById('userEmail');
 
@@ -632,6 +636,9 @@ function updateUserMenuVisibility() {
                 if (userEmailElement && user.email) {
                     userEmailElement.textContent = user.email;
                 }
+                
+                // Update mobile menu visibility
+                await mobileMenu.updateVisibility();
                 return;
             }
         }
@@ -641,6 +648,9 @@ function updateUserMenuVisibility() {
             userMenuSection.style.display = 'none';
             console.log('👤 User menu hidden for unauthenticated user');
         }
+        
+        // Update mobile menu visibility
+        await mobileMenu.updateVisibility();
     } catch (error) {
         console.error('Error checking authentication for user menu:', error);
         if (userMenuSection) userMenuSection.style.display = 'none';

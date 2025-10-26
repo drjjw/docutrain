@@ -33,6 +33,90 @@
     <!-- Document Selector Overlay (for mobile) -->
     <div class="document-selector-overlay" id="documentSelectorOverlay"></div>
     
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay">
+        <div class="mobile-menu-panel" id="mobileMenuPanel">
+            <!-- Mobile Menu Header -->
+            <div class="mobile-menu-header">
+                <h2>Menu</h2>
+                <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Document Selector Section (shown when document selector is enabled) -->
+            <div class="mobile-menu-section" id="mobileMenuDocSection" style="display: none;">
+                <div class="mobile-menu-section-header">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <h3>Documents</h3>
+                </div>
+                <div class="mobile-menu-search">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" id="mobileMenuDocSearch" placeholder="Search documents..." autocomplete="off">
+                </div>
+                <div class="mobile-menu-doc-list" id="mobileMenuDocList">
+                    <!-- Documents will be populated here -->
+                </div>
+            </div>
+
+            <!-- User Menu Section (shown when user is authenticated) -->
+            <div class="mobile-menu-section" id="mobileMenuUserSection" style="display: none;">
+                <div class="mobile-menu-section-header">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <h3>Account</h3>
+                </div>
+                <div class="mobile-menu-user-info">
+                    <div class="mobile-menu-user-avatar" id="mobileMenuUserAvatar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <span class="mobile-menu-user-email" id="mobileMenuUserEmail">user@example.com</span>
+                </div>
+                <div class="mobile-menu-links">
+                    <a href="/app/dashboard" class="mobile-menu-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        Dashboard
+                    </a>
+                    <a href="/app/profile" class="mobile-menu-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        Profile
+                    </a>
+                    <div class="mobile-menu-divider"></div>
+                    <button class="mobile-menu-link mobile-menu-signout" id="mobileMenuSignOut">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="container">
         <!-- Mobile Header Toggle Button -->
         <button class="mobile-header-toggle" id="mobileHeaderToggle" style="display: none;" title="Show header">
@@ -118,6 +202,13 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Mobile Menu Toggle (shown on mobile when doc selector or user menu is enabled) -->
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" style="display: none;" aria-label="Open menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
 
             <!-- Document Selector Section - Right -->
             <div class="header-document-selector">
@@ -212,6 +303,7 @@
     <script src="js/pubmed-api.js" type="module"></script>
     <script src="js/pubmed-popup.js" type="module"></script>
     <script src="js/document-selector.js" type="module"></script>
+    <script src="js/mobile-menu.js" type="module"></script>
     <script src="js/main.js" type="module"></script>
 </body>
 </html>
