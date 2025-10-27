@@ -38,14 +38,18 @@ export async function initializePage(state, elements) {
     const step2Start = performance.now();
     debugLog.normal('\n[STEP 2/10] 🔒 Checking document access...');
     const docParam = urlParams.get('doc');
+    const passcodeParam = urlParams.get('passcode');
     if (docParam) {
         // Handle multi-document URLs by parsing on + or space (URL decoding)
         const documentSlugs = docParam.split(/[\s+]+/).map(s => s.trim()).filter(s => s);
 
         debugLog.verbose(`  → Checking access for ${documentSlugs.length} document(s): ${documentSlugs.join(', ')}`);
+        if (passcodeParam) {
+            debugLog.verbose(`  → Passcode provided in URL`);
+        }
 
-        // Check access for each document individually
-        const accessResults = await Promise.all(documentSlugs.map(slug => checkDocumentAccess(slug)));
+        // Check access for each document individually (passcode applies to all if provided)
+        const accessResults = await Promise.all(documentSlugs.map(slug => checkDocumentAccess(slug, passcodeParam)));
         const hasAccess = accessResults.every(result => result === true);
 
         if (!hasAccess) {

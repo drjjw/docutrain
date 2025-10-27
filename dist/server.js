@@ -55,6 +55,9 @@ const gracefulShutdown = (signal) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
+// Trust proxy (so Express can properly detect HTTPS from X-Forwarded headers)
+app.set('trust proxy', true);
+
 // Apply middleware
 const middleware = setupMiddleware();
 middleware.forEach(mw => app.use(mw));

@@ -44,8 +44,11 @@ function getSupabaseToken() {
 /**
  * Check if user can access the current document
  * Shows appropriate modal based on error type
+ * @param {string} documentSlug - The document slug to check
+ * @param {string} passcode - Optional passcode to validate
+ * @returns {Promise<boolean>} - True if access granted, false otherwise
  */
-export async function checkDocumentAccess(documentSlug) {
+export async function checkDocumentAccess(documentSlug, passcode = null) {
     if (!documentSlug) {
         return true; // No document specified, allow
     }
@@ -67,9 +70,17 @@ export async function checkDocumentAccess(documentSlug) {
             log.verbose('⚠️ No JWT token available - checking as unauthenticated user');
         }
 
+        // Build request body with optional passcode
+        const body = {};
+        if (passcode) {
+            body.passcode = passcode;
+            log.verbose('🔐 Sending passcode with access check request');
+        }
+
         const response = await fetch(`${API_URL}/api/permissions/check-access/${documentSlug}`, {
             method: 'POST',
             headers: headers,
+            body: JSON.stringify(body),
         });
 
         log.verbose('🔍 Access check response status:', response.status);
@@ -81,7 +92,13 @@ export async function checkDocumentAccess(documentSlug) {
             log.verbose('🚫 Access denied for document:', documentSlug);
             
             // Handle different error types
-            if (data.error_type === 'document_not_found') {
+            if (data.error_type === 'passcode_required') {
+                showPasscodeModal(documentSlug, data.document_info);
+            } else if (data.error_type === 'passcode_incorrect') {
+                // Incorrect passcode - this should only happen during validation in the modal
+                // Return false to trigger validation error in the modal
+                return false;
+            } else if (data.error_type === 'document_not_found') {
                 showDocumentNotFoundModal(documentSlug);
             } else if (data.error_type === 'authentication_required') {
                 showLoginModal(documentSlug, data.document_info);
@@ -184,6 +201,82 @@ function showPermissionDeniedModal(documentSlug, documentInfo) {
 }
 
 /**
+ * Show a passcode modal for passcode-protected documents
+ */
+function showPasscodeModal(documentSlug, documentInfo) {
+    const docTitle = documentInfo?.title || documentSlug;
+    
+    Swal.fire({
+        icon: 'info',
+        title: 'Passcode Required',
+        html: `
+            <div style="text-align: left;">
+                <p style="margin-bottom: 15px; color: #333;">
+                    The document "<strong>${docTitle}</strong>" requires a passcode to access.
+                </p>
+                <p style="margin-bottom: 15px; color: #333;">
+                    <strong>Please enter the passcode:</strong>
+                </p>
+            </div>
+        `,
+        input: 'password',
+        inputPlaceholder: 'Enter passcode',
+        inputAttributes: {
+            autocapitalize: 'off',
+            autocorrect: 'off',
+            autocomplete: 'off'
+        },
+        showCancelButton: true,
+        cancelButtonText: 'Go Back',
+        confirmButtonText: 'Submit',
+        confirmButtonColor: '#3b82f6',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        inputValidator: (value) => {
+            if (!value) {
+                return 'Please enter a passcode';
+            }
+        },
+        preConfirm: async (passcode) => {
+            // Show loading state
+            Swal.showLoading();
+            
+            try {
+                // Re-check access with passcode
+                const result = await checkDocumentAccess(documentSlug, passcode);
+                
+                if (result) {
+                    // Access granted - return the passcode so we can add it to URL
+                    return passcode;
+                } else {
+                    // Access denied - show error
+                    Swal.showValidationMessage('Incorrect passcode. Please try again.');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Passcode validation error:', error);
+                Swal.showValidationMessage('Error validating passcode. Please try again.');
+                return false;
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            // Access granted - add passcode to URL and reload
+            const passcode = result.value;
+            log.verbose('✅ Passcode accepted, adding to URL and reloading page');
+            
+            // Add passcode to URL parameters
+            const url = new URL(window.location.href);
+            url.searchParams.set('passcode', passcode);
+            window.location.href = url.toString();
+        } else if (result.isDismissed) {
+            // Go back in browser history
+            window.history.back();
+        }
+    });
+}
+
+/**
  * Show a beautiful login modal for restricted documents
  */
 function showLoginModal(documentSlug, documentInfo) {
@@ -234,20 +327,24 @@ function showLoginModal(documentSlug, documentInfo) {
  * Initialize access check on page load
  */
 export function initAccessCheck() {
-    // Get document from URL parameters
+    // Get document and passcode from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const docParam = urlParams.get('doc');
+    const passcodeParam = urlParams.get('passcode');
 
     if (docParam) {
         // Handle multi-document URLs by parsing on + or space (URL decoding)
         const documentSlugs = docParam.split(/[\s+]+/).map(s => s.trim()).filter(s => s);
 
         log.verbose('🔒 Checking access to documents:', documentSlugs.join(', '));
+        if (passcodeParam) {
+            log.verbose('🔐 Passcode found in URL parameters');
+        }
 
         // For multi-document URLs, check access for each document
         if (documentSlugs.length > 1) {
-            // Check each document individually
-            Promise.all(documentSlugs.map(slug => checkDocumentAccess(slug)))
+            // Check each document individually (passcode applies to all if provided)
+            Promise.all(documentSlugs.map(slug => checkDocumentAccess(slug, passcodeParam)))
                 .then(results => {
                     const allGranted = results.every(result => result === true);
                     if (!allGranted) {
@@ -260,8 +357,8 @@ export function initAccessCheck() {
                     console.error('❌ Error checking multi-document access:', error);
                 });
         } else {
-            // Single document - check normally
-            checkDocumentAccess(documentSlugs[0]);
+            // Single document - check normally with optional passcode
+            checkDocumentAccess(documentSlugs[0], passcodeParam);
         }
     }
 }

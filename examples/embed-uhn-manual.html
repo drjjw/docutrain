@@ -40,7 +40,7 @@
                 <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
         </button>
-        <iframe
+        <iframe 
             id="chat-iframe"
             src=""
             class="chat-iframe"
@@ -72,6 +72,7 @@
 
     // Chat Modal Functions
     let chatModalOpen = false;
+    let iframeLoaded = false;
 
     // Detect if user is on mobile device
     function isMobileDevice() {
@@ -82,7 +83,7 @@
     // Listen for header collapse messages from iframe
     window.addEventListener('message', function(event) {
         // Verify origin for security
-        if (event.origin !== 'https://brightbean.io') return;
+        if (event.origin !== 'https://www.brightbean.io') return;
         
         if (event.data.type === 'headerCollapsed') {
             // Could add parent-level handling here if needed
@@ -93,7 +94,7 @@
     function openChatModal() {
         // On mobile: redirect to brightbean.io (can use browser back button)
         if (isMobileDevice()) {
-            window.location.href = 'https://brightbean.io/?method=rag&doc=uhn&embedding=openai';
+            window.location.href = 'https://www.brightbean.io/chat?doc=uhn';
             return;
         }
 
@@ -102,9 +103,10 @@
         const iframe = document.getElementById('chat-iframe');
         const body = document.body;
 
-        // Load iframe src only when opening (performance optimization)
-        if (!iframe.src || iframe.src === '' || iframe.src === window.location.href || iframe.src.endsWith('/')) {
-            iframe.src = 'https://brightbean.io/?method=rag&doc=uhn&embedding=openai';
+        // Set iframe src IMMEDIATELY to prevent flash of parent domain
+        if (!iframeLoaded) {
+            iframe.src = 'https://www.brightbean.io/chat?doc=uhn';
+            iframeLoaded = true;
         }
 
         // Show modal with display flex first, then add active class for animation
@@ -112,7 +114,7 @@
         setTimeout(() => {
             modal.classList.add('active');
         }, 10);
-
+        
         body.classList.add('chat-modal-open');
         chatModalOpen = true;
 
@@ -263,16 +265,33 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    /* Show container once modal is active */
+    .chat-modal-overlay.active .chat-modal-container {
+        opacity: 1;
     }
 
-    /* Chat Iframe */
+    /* Chat Iframe - hidden until modal is fully visible */
     .chat-iframe {
         width: 100%;
         height: 100%;
         border: none;
         flex: 1;
-        background: #ffffff;
+        background: #ffffff !important;
         display: block;
+        opacity: 0;
+        transition: opacity 0.2s ease 0.3s;
+        /* Prevent any content from showing until src is set */
+        visibility: hidden;
+    }
+    
+    /* Show iframe after backdrop animation completes */
+    .chat-modal-overlay.active .chat-iframe {
+        opacity: 1;
+        visibility: visible;
     }
 
     /* Close Button */

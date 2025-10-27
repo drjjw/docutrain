@@ -122,6 +122,9 @@ class DocumentSelector {
 
             log.verbose('📋 Document Selector - Parsed slugs:', docSlugs, 'Using first slug for selector:', this.currentDocSlug);
             
+            // Get passcode from URL if present
+            const passcodeParam = urlParams.get('passcode');
+            
             // First, fetch the current document to check if selector should be shown
             let apiUrl = '/api/documents';
             if (ownerParam) {
@@ -136,6 +139,12 @@ class DocumentSelector {
                 // No parameters: fetch default document
                 apiUrl += '?doc=smh';
                 log.verbose('🔍 Fetching default document: smh');
+            }
+            
+            // Add passcode parameter if present
+            if (passcodeParam) {
+                apiUrl += `&passcode=${encodeURIComponent(passcodeParam)}`;
+                log.verbose('🔐 Including passcode in document fetch');
             }
             
             // Get JWT token from Supabase localStorage
@@ -193,7 +202,11 @@ class DocumentSelector {
             // If we only fetched one document and should expand to owner documents, fetch all from the same owner
             if (this.documents.length === 1 && shouldExpandToOwner && this.documents[0].ownerInfo) {
                 log.verbose('🔍 Document selector enabled - fetching all documents from owner:', this.documents[0].ownerInfo.slug);
-                const ownerApiUrl = `/api/documents?owner=${encodeURIComponent(this.documents[0].ownerInfo.slug)}`;
+                let ownerApiUrl = `/api/documents?owner=${encodeURIComponent(this.documents[0].ownerInfo.slug)}`;
+                // Add passcode if present
+                if (passcodeParam) {
+                    ownerApiUrl += `&passcode=${encodeURIComponent(passcodeParam)}`;
+                }
                 const ownerResponse = await fetch(ownerApiUrl, { headers });
                 const ownerData = await ownerResponse.json();
                 this.documents = ownerData.documents || [];

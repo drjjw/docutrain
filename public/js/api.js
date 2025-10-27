@@ -34,16 +34,28 @@ async function sendMessageToAPIStreaming(message, conversationHistory, selectedM
         console.log('⚠️ Could not get JWT token for chat request:', error);
     }
 
+    // Get passcode from URL if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const passcode = urlParams.get('passcode');
+    
+    const requestBody = {
+        message,
+        history: conversationHistory.slice(0, -1),
+        model: selectedModel,
+        sessionId: sessionId,
+        doc: selectedDocument
+    };
+    
+    // Add passcode if present
+    if (passcode) {
+        requestBody.passcode = passcode;
+        console.log('🔐 Including passcode in chat API request');
+    }
+
     const response = await fetch(endpoint, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify({
-            message,
-            history: conversationHistory.slice(0, -1),
-            model: selectedModel,
-            sessionId: sessionId,
-            doc: selectedDocument
-        }),
+        body: JSON.stringify(requestBody),
         cache: 'no-store'
     });
 
@@ -85,16 +97,28 @@ async function sendMessageToAPINonStreaming(message, conversationHistory, select
     }
 
     try {
+        // Get passcode from URL if present
+        const urlParams = new URLSearchParams(window.location.search);
+        const passcode = urlParams.get('passcode');
+        
+        const requestBody = {
+            message,
+            history: conversationHistory.slice(0, -1),
+            model: selectedModel,
+            sessionId: sessionId,
+            doc: selectedDocument
+        };
+        
+        // Add passcode if present
+        if (passcode) {
+            requestBody.passcode = passcode;
+            console.log('🔐 Including passcode in chat API request');
+        }
+        
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify({
-                message,
-                history: conversationHistory.slice(0, -1),
-                model: selectedModel,
-                sessionId: sessionId,
-                doc: selectedDocument
-            }),
+            body: JSON.stringify(requestBody),
             signal: controller.signal,
             // Disable any caching to ensure fresh requests
             cache: 'no-store'

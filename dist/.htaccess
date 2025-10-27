@@ -1,9 +1,13 @@
 # UKidney Manual Assistant - Proxy to Node.js
 RewriteEngine On
 
-# Redirect non-www to www
+# First, force HTTPS
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# Then, redirect non-www to www (with HTTPS)
 RewriteCond %{HTTP_HOST} !^www\. [NC]
-RewriteRule ^(.*)$ http://www.%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+RewriteRule ^(.*)$ https://www.%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
 # Don't proxy if directly accessing these (would create loops)
 RewriteCond %{REQUEST_URI} !^/\.well-known/

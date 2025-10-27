@@ -185,6 +185,7 @@ export async function loadDocuments(forceRefresh = false) {
         const urlParams = new URLSearchParams(window.location.search);
         const docParam = urlParams.get('doc');
         const ownerParam = urlParams.get('owner');
+        const passcodeParam = urlParams.get('passcode');
         
         // Build cache key based on what we're loading
         let cacheKey = CACHE_KEY;
@@ -205,6 +206,13 @@ export async function loadDocuments(forceRefresh = false) {
             cacheKey = `${CACHE_KEY}-doc-smh`;
             apiUrl += '?doc=smh';
             log.verbose('      │  → Loading default document: smh');
+        }
+        
+        // Add passcode to API URL if present (for passcode-protected documents)
+        if (passcodeParam) {
+            apiUrl += apiUrl.includes('?') ? '&' : '?';
+            apiUrl += `passcode=${encodeURIComponent(passcodeParam)}`;
+            log.verbose('      │  → Including passcode in document fetch');
         }
         
         // Check cache first (unless force refresh requested)
