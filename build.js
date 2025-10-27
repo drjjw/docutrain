@@ -81,6 +81,12 @@ const jsFiles = {
     'public/js/ai-hint.js': 'js',
     'public/js/access-check.js': 'js',
     'public/js/mobile-menu.js': 'js',
+    'public/js/debug-logger.js': 'js',
+    'public/js/mobile-keyboard.js': 'js',
+    'public/js/mobile-header.js': 'js',
+    'public/js/user-auth.js': 'js',
+    'public/js/document-init.js': 'js',
+    'public/js/page-loader.js': 'js',
     'public/js/landing.js': 'js',
     'public/js/main.js': 'js'
 };

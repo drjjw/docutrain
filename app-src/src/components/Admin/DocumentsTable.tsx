@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
-import { DownloadsEditor } from './DownloadsEditor';
 import { DocumentEditorModal } from './DocumentEditorModal';
-import { getDocuments, updateDocument, deleteDocument, getOwners } from '@/lib/supabase/admin';
-import type { DocumentWithOwner, Owner, DownloadLink } from '@/types/admin';
+import { getDocuments, deleteDocument, getOwners } from '@/lib/supabase/admin';
+import type { DocumentWithOwner, Owner } from '@/types/admin';
 import { useAuth } from '@/hooks/useAuth';
 
 interface DocumentsTableProps {
@@ -21,34 +20,82 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [downloadsModalDoc, setDownloadsModalDoc] = useState<DocumentWithOwner | null>(null);
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState<DocumentWithOwner | null>(null);
   const [editorModalDoc, setEditorModalDoc] = useState<DocumentWithOwner | null>(null);
   const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
+
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [visibilityFilter, setVisibilityFilter] = useState<'all' | 'public' | 'passcode' | 'registered' | 'owner_restricted' | 'owner_admin_only'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [ownerFilter, setOwnerFilter] = useState<string>('all');
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Filter documents based on search query
+  // Filter documents based on search query and filters
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredDocuments(documents);
-    } else {
-      const filtered = documents.filter(doc => {
-        const query = searchQuery.toLowerCase();
-        return (
-          doc.title?.toLowerCase().includes(query) ||
-          doc.subtitle?.toLowerCase().includes(query) ||
-          doc.slug?.toLowerCase().includes(query) ||
-          doc.category?.toLowerCase().includes(query) ||
-          doc.owners?.name?.toLowerCase().includes(query)
-        );
-      });
-      setFilteredDocuments(filtered);
+    let filtered = documents;
+
+    // Apply search query filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(doc => (
+        doc.title?.toLowerCase().includes(query) ||
+        doc.subtitle?.toLowerCase().includes(query) ||
+        doc.slug?.toLowerCase().includes(query) ||
+        doc.category?.toLowerCase().includes(query) ||
+        doc.owners?.name?.toLowerCase().includes(query)
+      ));
     }
-  }, [documents, searchQuery]);
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(doc => {
+        const isActive = doc.active ?? false;
+        return statusFilter === 'active' ? isActive : !isActive;
+      });
+    }
+
+    // Apply visibility filter
+    if (visibilityFilter !== 'all') {
+      filtered = filtered.filter(doc => {
+        const accessLevel = doc.access_level || 'public';
+        return accessLevel === visibilityFilter;
+      });
+    }
+
+    // Apply category filter
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(doc => doc.category === categoryFilter);
+    }
+
+    // Apply owner filter (super admin only)
+    if (isSuperAdmin && ownerFilter !== 'all') {
+      filtered = filtered.filter(doc => doc.owner_id === ownerFilter);
+    }
+
+    setFilteredDocuments(filtered);
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [documents, searchQuery, statusFilter, visibilityFilter, categoryFilter, ownerFilter, isSuperAdmin]);
+
+  // Calculate paginated documents
+  const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDocuments = filteredDocuments.slice(startIndex, endIndex);
+
+  // Reset page when items per page changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [itemsPerPage]);
 
   const loadData = async () => {
     if (!user?.id) {
@@ -69,28 +116,6 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSaveDownloads = async (downloads: DownloadLink[]) => {
-    if (!downloadsModalDoc) return;
-
-    try {
-      setSaving(true);
-      await updateDocument(downloadsModalDoc.id, { downloads });
-
-      // Update local state
-      setDocuments(docs =>
-        docs.map(doc =>
-          doc.id === downloadsModalDoc.id ? { ...doc, downloads } : doc
-        )
-      );
-
-      setDownloadsModalDoc(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save downloads');
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -151,34 +176,59 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
     );
   };
 
-  const renderVisibilityBadge = (isPublic: boolean, requiresAuth: boolean) => {
-    if (isPublic) {
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
-          </svg>
-          Public
-        </span>
-      );
-    } else if (!requiresAuth) {
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-          Restricted
-        </span>
-      );
-    } else {
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-          Private
-        </span>
-      );
+  const renderVisibilityBadge = (accessLevel: string = 'public') => {
+    switch (accessLevel) {
+      case 'public':
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
+            </svg>
+            Public
+          </span>
+        );
+      case 'passcode':
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
+            Passcode
+          </span>
+        );
+      case 'registered':
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Registered
+          </span>
+        );
+      case 'owner_restricted':
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            Owner Restricted
+          </span>
+        );
+      case 'owner_admin_only':
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            Owner Admins Only
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            Unknown
+          </span>
+        );
     }
   };
 
@@ -218,20 +268,6 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
             )}
           </button>
           <span className="text-xs text-gray-500">Copy</span>
-        </div>
-
-        {/* Downloads Button */}
-        <div className="flex flex-col items-center gap-1">
-          <button
-            onClick={() => setDownloadsModalDoc(doc)}
-            className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-            title={`Downloads (${doc.downloads?.length || 0})`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </button>
-          <span className="text-xs text-gray-500">DLs</span>
         </div>
 
         {/* Edit All Button */}
@@ -281,9 +317,10 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
         </Alert>
       )}
 
-      {/* Search Bar */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
+      {/* Search and Filters */}
+      <div className="flex flex-wrap items-center gap-4">
+        {/* Search Bar */}
+        <div className="relative flex-1 min-w-0 max-w-md">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -297,12 +334,105 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           />
         </div>
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery('')}
-            className="text-sm text-gray-500 hover:text-gray-700"
+
+        {/* Status Filter */}
+        <div className="relative">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+            className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           >
-            Clear
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Visibility Filter */}
+        <div className="relative">
+          <select
+            value={visibilityFilter}
+            onChange={(e) => setVisibilityFilter(e.target.value as 'all' | 'public' | 'passcode' | 'registered' | 'owner_restricted' | 'owner_admin_only')}
+            className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="all">All Access Levels</option>
+            <option value="public">Public</option>
+            <option value="passcode">Passcode</option>
+            <option value="registered">Registered</option>
+            <option value="owner_restricted">Owner Restricted</option>
+            <option value="owner_admin_only">Owner Admins Only</option>
+          </select>
+          <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Category Filter */}
+        <div className="relative">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="all">All Categories</option>
+            <option value="Guidelines">Guidelines</option>
+            <option value="Maker">Maker</option>
+            <option value="Manuals">Manuals</option>
+            <option value="Presentation">Presentation</option>
+            <option value="Recipes">Recipes</option>
+            <option value="Reviews">Reviews</option>
+            <option value="Slides">Slides</option>
+            <option value="Training">Training</option>
+          </select>
+          <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Owner Filter (Super Admin only) */}
+        {isSuperAdmin && (
+          <div className="relative">
+            <select
+              value={ownerFilter}
+              onChange={(e) => setOwnerFilter(e.target.value)}
+              className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">All Owners</option>
+              {owners.map(owner => (
+                <option key={owner.id} value={owner.id}>{owner.name}</option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        )}
+
+        {/* Clear Filters */}
+        {(searchQuery || statusFilter !== 'all' || visibilityFilter !== 'all' || categoryFilter !== 'all' || ownerFilter !== 'all') && (
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              setStatusFilter('all');
+              setVisibilityFilter('all');
+              setCategoryFilter('all');
+              setOwnerFilter('all');
+              setCurrentPage(1);
+            }}
+            className="text-sm text-gray-500 hover:text-gray-700 whitespace-nowrap"
+          >
+            Clear All Filters
           </button>
         )}
       </div>
@@ -311,21 +441,36 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h3 className="text-lg font-semibold text-gray-900">
-            Documents ({filteredDocuments.length}{searchQuery ? ` of ${documents.length}` : ''})
+            Documents ({paginatedDocuments.length} of {filteredDocuments.length}{filteredDocuments.length !== documents.length ? ` total` : ''})
           </h3>
           <div className="flex gap-2">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
               {filteredDocuments.filter(doc => doc.active ?? false).length} Active
             </span>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {filteredDocuments.filter(doc => doc.is_public ?? false).length} Public
+              {filteredDocuments.filter(doc => (doc.access_level || 'public') === 'public').length} Public
             </span>
           </div>
+        </div>
+        {/* Items per page selector */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">Show:</span>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+            className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+          <span className="text-sm text-gray-600">per page</span>
         </div>
       </div>
 
       {/* Documents Grid/List */}
-      {filteredDocuments.length === 0 ? (
+      {paginatedDocuments.length === 0 ? (
         <div className="text-center py-16">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
             <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -354,7 +499,7 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
           </div>
 
           {/* Document Rows */}
-          {filteredDocuments.map((doc) => (
+          {paginatedDocuments.map((doc) => (
             <div
               key={doc.id}
               className="bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow duration-200"
@@ -380,7 +525,7 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
                     </div>
                     <div className="flex flex-wrap gap-2 mt-2">
                       {renderStatusBadge(doc.active ?? false)}
-                      {renderVisibilityBadge(doc.is_public ?? false, doc.requires_auth ?? false)}
+                      {renderVisibilityBadge(doc.access_level || 'public')}
                       {doc.category && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                           {doc.category}
@@ -430,7 +575,7 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
 
                 {/* Visibility */}
                 <div className="col-span-2">
-                  {renderVisibilityBadge(doc.is_public ?? false, doc.requires_auth ?? false)}
+                  {renderVisibilityBadge(doc.access_level || 'public')}
                 </div>
 
                 {/* Category */}
@@ -460,6 +605,71 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {filteredDocuments.length > 0 && totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-b-lg">
+          <div className="flex items-center gap-2 text-sm text-gray-700">
+            <span>Page {currentPage} of {totalPages}</span>
+            <span className="text-gray-500">
+              ({startIndex + 1}-{Math.min(endIndex, filteredDocuments.length)} of {filteredDocuments.length} documents)
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Previous
+            </button>
+
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`relative inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                      currentPage === pageNum
+                        ? 'text-blue-600 bg-blue-50 border border-blue-300'
+                        : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
         </div>
       )}
 
@@ -532,14 +742,6 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
             </div>
           </div>
         </div>
-      )}
-
-      {downloadsModalDoc && (
-        <DownloadsEditor
-          downloads={downloadsModalDoc.downloads || []}
-          onSave={handleSaveDownloads}
-          onCancel={() => setDownloadsModalDoc(null)}
-        />
       )}
 
       {editorModalDoc && (

@@ -26,6 +26,13 @@ export type DocumentCategory =
   | 'Slides'
   | 'Training';
 
+export type DocumentAccessLevel =
+  | 'public'
+  | 'passcode'
+  | 'registered'
+  | 'owner_restricted'
+  | 'owner_admin_only';
+
 export interface Document {
   id: string;
   slug: string;
@@ -49,8 +56,8 @@ export interface Document {
   downloads?: DownloadLink[];
   chunk_limit_override?: number;
   show_document_selector?: boolean;
-  is_public?: boolean;
-  requires_auth?: boolean;
+  access_level?: DocumentAccessLevel;
+  passcode?: string;
 }
 
 export interface DocumentWithOwner extends Document {

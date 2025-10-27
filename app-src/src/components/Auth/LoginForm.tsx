@@ -16,26 +16,31 @@ export function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent multiple submissions
+    if (loading) return;
+
     setError(null);
+    setLoading(true);
 
     // Validation
     if (!email || !password) {
       setError('Please enter both email and password');
+      setLoading(false);
       return;
     }
 
     if (!validateEmail(email)) {
       setError('Please enter a valid email address');
+      setLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
       await signIn(email, password);
       window.location.href = '/app/dashboard';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');
-    } finally {
       setLoading(false);
     }
   };

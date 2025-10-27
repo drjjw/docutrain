@@ -10,6 +10,16 @@
  * - Animate.css (loaded via CDN in index.html)
  */
 
+// Helper to safely use debugLog (fallback to console if not available yet)
+const log = {
+    verbose: (...args) => window.debugLog ? window.debugLog.verbose(...args) : console.log(...args),
+    normal: (...args) => window.debugLog ? window.debugLog.normal(...args) : console.log(...args),
+    quiet: (...args) => window.debugLog ? window.debugLog.quiet(...args) : console.log(...args),
+    always: (...args) => console.log(...args),
+    warn: (...args) => console.warn(...args),
+    error: (...args) => console.error(...args)
+};
+
 const COOKIE_NAME = '_ukidney_disclaimer_agree';
 // Session cookie - expires when browser closes (no expiry date set)
 
@@ -19,13 +29,13 @@ const COOKIE_NAME = '_ukidney_disclaimer_agree';
 export function showDisclaimerIfNeeded() {
     // Check if running in an iframe (parent handles disclaimer)
     if (window.self !== window.top) {
-        console.log('🖼️  Running in iframe - disclaimer handled by parent');
+        log.verbose('🖼️  Running in iframe - disclaimer handled by parent');
         return;
     }
 
     // Check if user has already agreed
     if (Cookies.get(COOKIE_NAME)) {
-        console.log('✅ Disclaimer already accepted');
+        log.verbose('✅ Disclaimer already accepted');
         return;
     }
 
@@ -81,10 +91,10 @@ function showDisclaimer() {
                 path: '/'
                 // No expires property = session cookie
             });
-            console.log('✅ User accepted disclaimer (session only)');
+            log.verbose('✅ User accepted disclaimer (session only)');
         } else if (result.isDismissed) {
             // User declined - redirect to goodbye page
-            console.log('❌ User declined disclaimer');
+            log.verbose('❌ User declined disclaimer');
             window.location.href = "/goodbye";
         }
     });
@@ -95,7 +105,7 @@ function showDisclaimer() {
  */
 export function clearDisclaimerCookie() {
     Cookies.remove(COOKIE_NAME, { path: '/' });
-    console.log('🗑️  Disclaimer cookie cleared');
+    log.verbose('🗑️  Disclaimer cookie cleared');
 }
 
 /**

@@ -6,6 +6,16 @@
 
 import { API_URL } from './config.js';
 
+// Helper to safely use debugLog (fallback to console if not available yet)
+const log = {
+    verbose: (...args) => window.debugLog ? window.debugLog.verbose(...args) : console.log(...args),
+    normal: (...args) => window.debugLog ? window.debugLog.normal(...args) : console.log(...args),
+    quiet: (...args) => window.debugLog ? window.debugLog.quiet(...args) : console.log(...args),
+    always: (...args) => console.log(...args),
+    warn: (...args) => console.warn(...args),
+    error: (...args) => console.error(...args)
+};
+
 class MobileMenu {
     constructor() {
         // DOM elements
@@ -61,7 +71,7 @@ class MobileMenu {
             }
         });
         
-        console.log('📱 Mobile menu initialized');
+        log.verbose('📱 Mobile menu initialized');
     }
     
     /**
@@ -135,7 +145,7 @@ class MobileMenu {
             
             // First, try to get data from the existing document selector if it's loaded
             if (window.documentSelector && window.documentSelector.documents && window.documentSelector.documents.length > 0) {
-                console.log('📱 Mobile menu using data from document selector:', window.documentSelector.documents.length, 'documents');
+                log.verbose('📱 Mobile menu using data from document selector:', window.documentSelector.documents.length, 'documents');
                 this.documents = window.documentSelector.documents;
                 this.currentOwner = window.documentSelector.currentOwner;
                 this.currentDocSlug = window.documentSelector.currentDocSlug;
@@ -199,7 +209,7 @@ class MobileMenu {
             const data = await response.json();
             
             this.documents = data.documents || [];
-            console.log(`📚 Loaded ${this.documents.length} documents for mobile menu`);
+            log.verbose(`📚 Loaded ${this.documents.length} documents for mobile menu`);
         } catch (error) {
             console.error('Error loading documents for mobile menu:', error);
             this.documents = [];
@@ -222,15 +232,15 @@ class MobileMenu {
                 
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
-                    console.log('📱 Auth token added to headers (length:', token.length, ')');
+                    log.verbose('📱 Auth token added to headers (length:', token.length, ')');
                 } else {
-                    console.log('📱 No access_token found in session data');
+                    log.verbose('📱 No access_token found in session data');
                 }
             } else {
-                console.log('📱 No session data found in localStorage');
+                log.verbose('📱 No session data found in localStorage');
             }
         } catch (error) {
-            console.log('⚠️ Could not get JWT token:', error);
+            log.verbose('⚠️ Could not get JWT token:', error);
         }
         
         return headers;
@@ -266,7 +276,7 @@ class MobileMenu {
     async open() {
         // Refresh document data from document selector if available
         if (window.documentSelector && window.documentSelector.documents && window.documentSelector.documents.length > 0) {
-            console.log('📱 Refreshing mobile menu data from document selector');
+            log.verbose('📱 Refreshing mobile menu data from document selector');
             this.documents = window.documentSelector.documents;
             this.currentOwner = window.documentSelector.currentOwner;
             this.currentDocSlug = window.documentSelector.currentDocSlug;
@@ -295,7 +305,7 @@ class MobileMenu {
         this.toggle?.classList.add('active');
         document.body.classList.add('mobile-menu-open');
         
-        console.log('📱 Mobile menu opened with', this.documents.length, 'documents');
+        log.verbose('📱 Mobile menu opened with', this.documents.length, 'documents');
     }
     
     /**
@@ -312,7 +322,7 @@ class MobileMenu {
             this.docSearch.value = '';
         }
         
-        console.log('📱 Mobile menu closed');
+        log.verbose('📱 Mobile menu closed');
     }
     
     /**
@@ -413,7 +423,7 @@ class MobileMenu {
             
             // Check if we have an auth token before making the request
             if (!headers['Authorization']) {
-                console.log('📱 No auth token available, skipping avatar load');
+                log.verbose('📱 No auth token available, skipping avatar load');
                 return;
             }
             
@@ -421,10 +431,10 @@ class MobileMenu {
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.log('📱 Could not fetch user permissions for avatar');
-                console.log('   Status:', response.status, response.statusText);
-                console.log('   Response:', errorText);
-                console.log('   Headers sent:', headers);
+                log.verbose('📱 Could not fetch user permissions for avatar');
+                log.verbose('   Status:', response.status, response.statusText);
+                log.verbose('   Response:', errorText);
+                log.verbose('   Headers sent:', headers);
                 return;
             }
             
@@ -443,13 +453,13 @@ class MobileMenu {
                     
                     if (ownerData && ownerData.logo_url) {
                         this.userAvatar.innerHTML = `<img src="${ownerData.logo_url}" alt="${ownerData.owner_name}" class="owner-logo" />`;
-                        console.log('📱 Loaded owner logo for mobile menu avatar');
+                        log.verbose('📱 Loaded owner logo for mobile menu avatar');
                     }
                 }
             }
         } catch (error) {
             // Silently fail - this is not critical functionality
-            console.log('📱 Could not load user avatar for mobile menu:', error.message);
+            log.verbose('📱 Could not load user avatar for mobile menu:', error.message);
         }
     }
     
@@ -469,7 +479,7 @@ class MobileMenu {
             this.isAuthenticated = false;
             await this.updateVisibility();
             
-            console.log('👋 User signed out from mobile menu');
+            log.verbose('👋 User signed out from mobile menu');
         } catch (error) {
             console.error('Error signing out:', error);
         }

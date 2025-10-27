@@ -205,6 +205,24 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Function to get owner info for any document (used for login branding)
+CREATE OR REPLACE FUNCTION get_document_owner_info(p_document_slug TEXT)
+RETURNS TABLE(owner_id UUID, owner_name TEXT, owner_slug TEXT, owner_logo_url TEXT)
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    o.id,
+    o.name,
+    o.slug,
+    o.logo_url
+  FROM documents d
+  JOIN owners o ON o.id = d.owner_id
+  WHERE d.slug = p_document_slug
+  AND d.active = true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Updated_at trigger for user_roles
 CREATE TRIGGER update_user_roles_updated_at
   BEFORE UPDATE ON user_roles

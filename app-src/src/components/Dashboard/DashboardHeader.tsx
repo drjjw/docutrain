@@ -40,8 +40,13 @@ export function DashboardHeader() {
   const handleSignOut = async () => {
     try {
       await signOut();
+      // Use window.location.href to force navigation to logout page
+      // This bypasses any React routing issues after auth state changes
+      window.location.href = '/app/logout';
     } catch (error) {
       console.error('Sign out error:', error);
+      // If sign out fails, redirect to login
+      window.location.href = '/app/login';
     }
   };
 

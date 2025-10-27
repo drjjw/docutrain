@@ -1,38 +1,42 @@
-# RAG Chatbot API Reference
+# Chat Application API Reference
 
-This document provides a comprehensive reference for all available API endpoints in the RAG-only chatbot application.
+This document provides a comprehensive reference for all available API endpoints in the modular chat application.
 
 ## Quick Overview
 
 **Core Functionality:**
-- **Chat API**: `/api/chat` - RAG-based AI conversation endpoint
-- **Document Management**: `/api/documents`, `/api/refresh-registry` - Document registry access and updates
-- **Health Monitoring**: `/api/health`, `/api/ready` - System status and readiness checks
-- **Analytics**: `/api/analytics` - Usage statistics and performance metrics
-- **Cache Management**: `/api/cache/stats`, `/api/cache/clear` - Embedding cache control
+- **Chat API**: `/api/chat`, `/api/chat/stream` - RAG-based AI conversation with streaming support
+- **Authentication**: `/api/auth/*` - JWT token verification and user management
+- **Permissions**: `/api/permissions/*` - Role-based access control and document permissions
+- **Health Monitoring**: `/api/health`, `/api/ready`, `/api/version`, `/api/analytics` - System monitoring
+- **Cache Management**: `/api/cache/*` - Embedding cache statistics and management
 - **User Feedback**: `/api/rate` - Conversation rating system
+- **Admin**: `/api/users/*` - Super admin user management
 
-**Total Endpoints**: 12 API routes
-**Mode**: RAG-only (database retrieval)
-**Primary Models**: Gemini, Grok, Grok-Reasoning
+**Total Endpoints**: 25+ API routes
+**Architecture**: Modular Express.js with route separation
+**Primary Models**: Gemini-2.5-flash, Grok-4-fast, Grok-4-fast-reasoning
 **Supported Embeddings**: OpenAI (1536D), Local (384D)
-**Document Count**: 117+ medical documents
+**Multi-document Support**: Search across multiple documents simultaneously
+**Authentication**: Supabase JWT with role-based permissions
 
 ## Table of Contents
 
 - [Core Chat Endpoints](#core-chat-endpoints)
-- [Document Management](#document-management)
-- [Health and Monitoring](#health-and-monitoring)
-- [Analytics and Statistics](#analytics-and-statistics)
+- [Authentication](#authentication)
+- [Permissions & Access Control](#permissions--access-control)
+- [Health & Monitoring](#health--monitoring)
+- [Analytics](#analytics)
 - [Cache Management](#cache-management)
 - [Rating System](#rating-system)
-- [System Administration](#system-administration)
+- [User Management (Admin)](#user-management-admin)
+- [Document Routes (Frontend)](#document-routes-frontend)
 
 ## Core Chat Endpoints
 
 ### POST `/api/chat`
 
-RAG-based chat endpoint for conversational AI interactions. This is the only chat endpoint in RAG-only mode.
+Main RAG chat endpoint with multi-document support and detailed performance metrics.
 
 **Query Parameters:**
 - `embedding` - Embedding type: `openai` (default) or `local`
@@ -42,9 +46,9 @@ RAG-based chat endpoint for conversational AI interactions. This is the only cha
 {
   "message": "string (required)",
   "history": "array (optional, conversation history)",
-  "model": "gemini | grok | grok-reasoning (default: grok)",
-  "doc": "string (document slug, required)",
-  "sessionId": "string (optional, UUID)"
+  "model": "gemini | grok | grok-reasoning (default: gemini)",
+  "doc": "string (document slug or multi-doc with + separator, required)",
+  "sessionId": "string (optional, UUID auto-generated if missing)"
 }
 ```
 
@@ -53,32 +57,36 @@ RAG-based chat endpoint for conversational AI interactions. This is the only cha
 {
   "response": "string",
   "model": "string",
-  "actualModel": "string (full model name)",
+  "actualModel": "gemini-2.5-flash | grok-4-fast-non-reasoning | grok-4-fast-reasoning",
   "sessionId": "string (UUID)",
   "conversationId": "string (UUID)",
   "metadata": {
-    "document": "string (filename)",
-    "documentType": "string (slug)",
+    "document": "string (filename or combined filenames)",
+    "documentType": "string or array (slug(s))",
+    "documentSlugs": "array of strings",
     "documentTitle": "string",
+    "isMultiDocument": "boolean",
     "responseTime": "number (ms)",
-    "retrievalMethod": "rag",
+    "retrievalMethod": "rag | rag-multi",
     "chunksUsed": "number",
     "retrievalTime": "number (ms)",
     "embedding_type": "openai | local",
-    "embedding_dimensions": "number (1536 or 384)",
+    "embedding_dimensions": "1536 | 384",
     "chunkSimilarities": [
       {
         "index": "number",
-        "similarity": "number"
+        "similarity": "number",
+        "source": "string (document slug)"
       }
     ]
   }
 }
 ```
 
-**Example Request:**
+**Example Requests:**
 ```bash
-curl -X POST http://localhost:3000/api/chat?embedding=openai \
+# Single document chat
+curl -X POST http://localhost:3456/api/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "What are the indications for dialysis?",
@@ -86,54 +94,178 @@ curl -X POST http://localhost:3000/api/chat?embedding=openai \
     "doc": "smh",
     "history": []
   }'
+
+# Multi-document search
+curl -X POST http://localhost:3456/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Compare CKD guidelines",
+    "model": "gemini",
+    "doc": "kdigo-ckd-2024+smh",
+    "history": []
+  }'
+
+# With local embeddings
+curl -X POST "http://localhost:3456/api/chat?embedding=local" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "What is diabetic nephropathy?",
+    "doc": "ckd-dc-2025"
+  }'
 ```
 
-## Document Management
+### POST `/api/chat/stream`
 
-### GET `/api/documents`
+Streaming version of the chat endpoint using Server-Sent Events (SSE).
 
-Retrieve the complete document registry with all available documents.
+**Same parameters as `/api/chat`**
+
+**Response Format:** Server-Sent Events
+```
+data: {"chunk": "AI response chunk", "type": "content"}\n\n
+data: {"type": "done", "metadata": {...}}\n\n
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:3456/api/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Explain chronic kidney disease",
+    "model": "grok",
+    "doc": "smh"
+  }'
+```
+
+## Authentication
+
+### POST `/api/auth/verify`
+
+Verify JWT token and return user info.
+
+**Request Body:**
+```json
+{
+  "token": "string (Supabase JWT token)"
+}
+```
 
 **Response:**
 ```json
 {
-  "documents": [
+  "user": {
+    "id": "string",
+    "email": "string",
+    "user_metadata": {}
+  }
+}
+```
+
+### GET `/api/auth/user`
+
+Get current authenticated user info.
+
+**Headers:**
+- `Authorization: Bearer <token>`
+
+**Response:** Same as verify endpoint
+
+## Permissions & Access Control
+
+### GET `/api/permissions`
+
+Get current user's permissions and owner access groups.
+
+**Headers:**
+- `Authorization: Bearer <token>`
+
+**Response:**
+```json
+{
+  "permissions": [
     {
-      "slug": "ckd-dc-2025",
-      "title": "Chronic Kidney Disease in Diabetes: A Clinical Practice Guideline",
-      "subtitle": "string",
-      "backLink": "string (URL)",
-      "welcomeMessage": "string",
-      "embeddingType": "openai | local",
-      "active": true,
-      "metadata": {
-        "pages": "number",
-        "characters": "number",
-        "tokens": "number"
-      }
+      "user_id": "string",
+      "owner_id": "string",
+      "owner_slug": "string",
+      "owner_name": "string",
+      "role": "owner_admin | member"
+    }
+  ],
+  "is_super_admin": false,
+  "owner_groups": [
+    {
+      "owner_id": "string",
+      "owner_slug": "string",
+      "owner_name": "string",
+      "role": "string"
     }
   ]
 }
 ```
 
-### POST `/api/refresh-registry`
+### GET `/api/permissions/accessible-owners`
 
-Force refresh the document registry cache. Useful when document metadata is updated in the database.
+Get list of owner groups user can access with details.
+
+**Headers:**
+- `Authorization: Bearer <token>`
+
+### GET `/api/permissions/accessible-documents`
+
+Get list of documents user can access (including private ones).
+
+**Headers:**
+- `Authorization: Bearer <token>`
+
+### POST `/api/permissions/check-access/:slug`
+
+Check if user can access a specific document.
+
+**Parameters:**
+- `slug` - Document slug
+
+**Headers:**
+- `Authorization: Bearer <token>` (optional)
 
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Document registry cache cleared and refreshed",
-  "documentCount": 117
+  "has_access": true,
+  "document_exists": true,
+  "error_type": null,
+  "message": null,
+  "document_info": {
+    "title": "string",
+    "access_level": "public | private",
+    "requires_passcode": false
+  }
 }
 ```
 
-## Health and Monitoring
+### POST `/api/permissions/grant-owner-access` (Admin only)
+
+Grant user access to owner group.
+
+**Headers:**
+- `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "target_user_id": "string",
+  "owner_id": "string"
+}
+```
+
+### DELETE `/api/permissions/revoke-owner-access/:access_id` (Admin only)
+
+Revoke user's access to owner group.
+
+## Health & Monitoring
 
 ### GET `/api/health`
 
-Comprehensive health check endpoint with system status.
+Health check with document registry status.
 
 **Query Parameters:**
 - `doc` - Document slug to check (optional)
@@ -142,55 +274,45 @@ Comprehensive health check endpoint with system status.
 ```json
 {
   "status": "ok",
-  "lazyLoadingEnabled": true,
-  "currentDocument": "Chronic Kidney Disease in Diabetes: A Clinical Practice Guideline",
-  "currentDocumentType": "ckd-dc-2025",
-  "currentDocumentLoaded": true,
-  "loadedDocuments": ["array of loaded document slugs"],
-  "availableDocuments": ["array of all available document slugs"],
-  "totalAvailableDocuments": 117,
-  "requestedDoc": "ckd-dc-2025",
-  "documentDetails": {
-    "ckd-dc-2025": {
-      "loaded": true,
-      "title": "Chronic Kidney Disease in Diabetes: A Clinical Practice Guideline",
-      "name": "PIIS1499267125000206.pdf",
-      "year": "2025",
-      "pages": 28,
-      "characters": 133567,
-      "embeddingType": "local"
-    }
-  }
+  "mode": "rag-only",
+  "currentDocument": "Document Title",
+  "currentDocumentType": "slug",
+  "availableDocuments": ["array of slugs"],
+  "totalAvailableDocuments": 150,
+  "requestedDoc": "slug"
 }
 ```
 
 ### GET `/api/ready`
 
-Readiness check for load balancers and health monitoring systems.
+Readiness check for load balancers.
 
-**Response (Ready):**
+**Response:**
 ```json
 {
   "status": "ready",
-  "message": "System is ready to serve requests",
-  "uptime": "number (seconds)",
-  "memory": {
-    "used": "number (MB)",
-    "total": "number (MB)",
-    "percentage": "number (%)"
-  }
+  "message": "Server is fully ready to serve requests",
+  "availableDocuments": 150
 }
 ```
 
-**Response (Not Ready):**
+### GET `/api/version`
+
+Server version and architecture info.
+
+**Response:**
 ```json
 {
-  "status": "not_ready",
-  "message": "Document registry not loaded yet"
+  "version": "2.0.0-refactored",
+  "architecture": "modular",
+  "serverFile": "server.js (326 lines)",
+  "modules": ["array of module names"],
+  "refactoredDate": "2025-10-20",
+  "totalModules": 8
 }
 ```
 
-## Analytics and Statistics
+## Analytics
 
 ### GET `/api/analytics`
 
@@ -208,18 +330,30 @@ Get conversation analytics and usage statistics.
     "grok": 61
   },
   "byDocument": {
-    "ckd-dc-2025": {
+    "doc-slug": {
       "count": 45,
       "version": "2025",
-      "avgResponseTime": 1250
+      "avgResponseTime": 1250,
+      "totalTime": 56250
     }
   },
   "avgResponseTime": {
     "gemini": 1180,
     "grok": 1320
   },
+  "errors": 2,
+  "uniqueSessions": 89,
+  "uniqueDocuments": 12,
   "timeframe": "24h",
-  "generatedAt": "2025-10-19T01:15:00.000Z"
+  "recentQuestions": [
+    {
+      "question": "What is CKD?",
+      "model": "grok",
+      "document": "kdigo-ckd-2024",
+      "timestamp": "2025-10-27T...",
+      "responseTime": 1250
+    }
+  ]
 }
 ```
 
@@ -227,7 +361,7 @@ Get conversation analytics and usage statistics.
 
 ### GET `/api/cache/stats`
 
-Get detailed statistics about the embedding cache.
+Get embedding cache statistics.
 
 **Response:**
 ```json
@@ -251,15 +385,13 @@ Get detailed statistics about the embedding cache.
 
 ### POST `/api/cache/clear`
 
-Clear the entire embedding cache. Use with caution as this will force regeneration of all cached embeddings.
+Clear the embedding cache.
 
 **Response:**
 ```json
 {
   "success": true,
-  "message": "Embedding cache cleared",
-  "entriesRemoved": 1250,
-  "sizeFreed": "45.2MB"
+  "message": "Embedding cache cleared"
 }
 ```
 
@@ -267,7 +399,7 @@ Clear the entire embedding cache. Use with caution as this will force regenerati
 
 ### POST `/api/rate`
 
-Submit a rating for a conversation (thumbs up/down feedback).
+Submit conversation rating.
 
 **Request Body:**
 ```json
@@ -281,26 +413,88 @@ Submit a rating for a conversation (thumbs up/down feedback).
 ```json
 {
   "success": true,
-  "message": "Rating recorded successfully",
-  "conversationId": "string",
-  "rating": "thumbs_up",
-  "timestamp": "2025-10-19T01:15:00.000Z"
+  "message": "Rating submitted successfully"
 }
 ```
 
-## System Administration
+## User Management (Admin)
+
+### GET `/api/users` (Super Admin Only)
+
+Get all users with roles and permissions.
+
+**Headers:**
+- `Authorization: Bearer <super-admin-token>`
+
+**Response:** Array of user objects with roles and owner access
+
+### PUT `/api/users/:userId/role` (Super Admin Only)
+
+Update user role and owner assignment.
+
+**Headers:**
+- `Authorization: Bearer <super-admin-token>`
+
+**Request Body:**
+```json
+{
+  "role": "owner_admin | member | super_admin",
+  "owner_id": "string (optional)"
+}
+```
+
+### POST `/api/users/:email/reset-password` (Super Admin Only)
+
+Send password reset email.
+
+**Headers:**
+- `Authorization: Bearer <super-admin-token>`
+
+### PUT `/api/users/:userId/password` (Super Admin Only)
+
+Update user password directly.
+
+**Headers:**
+- `Authorization: Bearer <super-admin-token>`
+
+**Request Body:**
+```json
+{
+  "password": "string (min 6 chars)"
+}
+```
+
+### DELETE `/api/users/:userId` (Super Admin Only)
+
+Delete user account.
+
+**Headers:**
+- `Authorization: Bearer <super-admin-token>`
+
+## Document Routes (Frontend)
 
 ### GET `/`
 
-Serve the main application interface (index.html).
+Root route - redirects to `/chat` with doc parameter or serves landing page.
 
-### GET `/index.php`
+### GET `/chat`
 
-Legacy Joomla/Apache compatibility - serves index.html.
+Chat interface with dynamic meta tags.
 
-### GET `*.php`
+**Query Parameters:**
+- `doc` - Document slug or multi-doc with `+` separator
 
-Catch-all for any PHP file requests - serves index.html.
+### GET `/goodbye`
+
+Goodbye page for declined disclaimer.
+
+### GET `/app`
+
+React admin app (serves index.html).
+
+### GET `/app/*`
+
+React Router - serves index.html for all admin routes.
 
 ## Error Responses
 
@@ -309,144 +503,85 @@ All endpoints follow consistent error response format:
 ```json
 {
   "error": "Error message description",
-  "details": "Additional error information (optional)",
-  "code": "ERROR_CODE (optional)"
+  "details": "Additional error information (optional)"
 }
 ```
 
-## Rate Limiting
+## Authentication & Authorization
 
-- **Chat endpoints**: Limited to prevent abuse
-- **Analytics endpoints**: Limited to prevent excessive queries
-- **Cache operations**: Limited to prevent accidental data loss
+- **JWT Tokens**: Supabase JWT tokens required for authenticated endpoints
+- **Header**: `Authorization: Bearer <token>`
+- **Role-based Access**: owner_admin, member, super_admin roles
+- **Document Access**: Public documents accessible without auth, private require appropriate permissions
 
-## Authentication
+## Key Features
 
-Currently, all endpoints are publicly accessible. For production deployment, consider adding authentication middleware.
-
-## WebSocket Support
-
-The application supports real-time updates via WebSocket connections for:
-- Chat streaming responses
-- Document loading progress
-- System status updates
-
-## Database Integration
-
-All endpoints interact with Supabase PostgreSQL database for:
-- Conversation storage and retrieval
-- Document metadata management
-- User rating collection
-- Analytics data aggregation
-
-## Caching Strategy
-
-- **Document Registry**: 5-minute cache with manual refresh capability
-- **Embeddings**: Persistent cache with LRU eviction
-- **API Responses**: Short-term caching for health checks
-
-## Monitoring and Logging
-
-- All API calls are logged with request/response details
-- Performance metrics are tracked for optimization
-- Error handling includes detailed stack traces for debugging
-
-## Development Endpoints
-
-The following endpoints are primarily for development and testing:
-
-- `POST /api/refresh-registry` - Force document registry refresh
-- `POST /api/cache/clear` - Clear embedding cache
-- `GET /api/cache/stats` - Cache statistics (debugging)
+- **Multi-document Search**: Use `+` separator (e.g., `doc=smh+kdigo-ckd-2024`)
+- **Embedding Types**: OpenAI (1536D) or Local (384D) embeddings
+- **Streaming Responses**: Real-time AI responses via Server-Sent Events
+- **Performance Monitoring**: Detailed timing breakdowns and analytics
+- **Access Control**: Owner-based document permissions with RLS
 
 ## Common Usage Patterns
 
-### Document Updates Workflow
-
-When updating document metadata in the database:
-
+### Basic Chat Request
 ```bash
-# 1. Update document in database (via Supabase dashboard or SQL)
-# 2. Force refresh the document registry
-curl -X POST http://localhost:3456/api/refresh-registry
-
-# 3. Verify the changes took effect
-curl "http://localhost:3456/api/health?doc=ckd-dc-2025"
-```
-
-### Cache Management
-
-```bash
-# Check cache statistics
-curl http://localhost:3456/api/cache/stats
-
-# Clear cache if needed (forces regeneration)
-curl -X POST http://localhost:3456/api/cache/clear
-```
-
-### Chat API Usage
-
-```bash
-# Basic chat request
 curl -X POST http://localhost:3456/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "message": "What is CKD?",
-    "document": "ckd-dc-2025",
-    "model": "grok",
-    "embeddingType": "local"
+    "message": "What are dialysis indications?",
+    "doc": "smh",
+    "model": "grok"
   }'
+```
 
-# RAG-enhanced chat
-curl -X POST http://localhost:3456/api/chat-rag \
+### Multi-document Search
+```bash
+curl -X POST http://localhost:3456/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "message": "Explain diabetic nephropathy",
-    "document": "ckd-dc-2025",
-    "model": "gemini",
-    "topK": 5
+    "message": "Compare CKD guidelines",
+    "doc": "kdigo-ckd-2024+smh",
+    "model": "gemini"
   }'
 ```
 
-### Analytics Monitoring
-
+### Streaming Chat
 ```bash
-# Get 24-hour analytics
-curl "http://localhost:3456/api/analytics?timeframe=24h"
-
-# Get weekly analytics
-curl "http://localhost:3456/api/analytics?timeframe=7d"
+curl -X POST http://localhost:3456/api/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Explain chronic kidney disease",
+    "doc": "smh"
+  }'
 ```
 
-## WebSocket Integration
+### Check Document Access
+```bash
+curl -X POST http://localhost:3456/api/permissions/check-access/kdigo-ckd-2024 \
+  -H "Authorization: Bearer <token>"
+```
 
-The application supports WebSocket connections for real-time features:
-
-- **Chat streaming**: Real-time token streaming during AI responses
-- **Document loading**: Progress updates during lazy document loading
-- **System notifications**: Health status and system alerts
-
-## File Upload and Static Assets
-
-- **Static files**: Served from `/public` directory
-- **PDF documents**: Served from `/PDFs` directory structure
-- **CSS/JS assets**: Cache-busted with content hashes
+### Get Analytics
+```bash
+curl "http://localhost:3456/api/analytics?timeframe=24h"
+```
 
 ## Environment Variables
 
-Key environment variables affecting API behavior:
-
 - `PORT`: Server port (default: 3456)
-- `NODE_ENV`: Environment mode (development/production)
 - `SUPABASE_URL`: Supabase project URL
 - `SUPABASE_ANON_KEY`: Supabase anonymous key
+- `SUPABASE_SERVICE_ROLE_KEY`: Service role key (admin operations)
+- `GEMINI_API_KEY`: Google Gemini API key
+- `XAI_API_KEY`: xAI/Grok API key
+- `OPENAI_API_KEY`: OpenAI API key (optional)
 
 ## Production Considerations
 
-- Enable authentication for sensitive endpoints
-- Implement rate limiting based on usage patterns
-- Monitor cache hit rates and adjust cache sizes accordingly
-- Set up proper logging and alerting for API failures
-- Consider API versioning for future changes
+- Implement proper rate limiting for chat endpoints
+- Monitor embedding cache performance
+- Set up proper CORS policies
 - Enable HTTPS in production
-- Set up proper CORS policies for cross-origin requests
+- Consider API versioning for future changes
+- Monitor database performance with complex queries

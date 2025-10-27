@@ -1,6 +1,16 @@
 // Access check for private documents
 import { API_URL } from './config.js';
 
+// Helper to safely use debugLog (fallback to console if not available yet)
+const log = {
+    verbose: (...args) => window.debugLog ? window.debugLog.verbose(...args) : console.log(...args),
+    normal: (...args) => window.debugLog ? window.debugLog.normal(...args) : console.log(...args),
+    quiet: (...args) => window.debugLog ? window.debugLog.quiet(...args) : console.log(...args),
+    always: (...args) => console.log(...args),
+    warn: (...args) => console.warn(...args),
+    error: (...args) => console.error(...args)
+};
+
 /**
  * Get JWT token from Supabase localStorage
  */
@@ -11,7 +21,7 @@ function getSupabaseToken() {
         const sessionData = localStorage.getItem(sessionKey);
 
         if (!sessionData) {
-            console.log('🔒 No Supabase session found in localStorage');
+            log.verbose('🔒 No Supabase session found in localStorage');
             return null;
         }
 
@@ -19,9 +29,9 @@ function getSupabaseToken() {
         const token = session?.access_token;
 
         if (token) {
-            console.log('🔑 Found Supabase JWT token');
+            log.verbose('🔑 Found Supabase JWT token');
         } else {
-            console.log('🔒 No access token in Supabase session');
+            log.verbose('🔒 No access token in Supabase session');
         }
 
         return token;
@@ -40,7 +50,7 @@ export async function checkDocumentAccess(documentSlug) {
         return true; // No document specified, allow
     }
 
-    console.log('🔒 Checking access to document:', documentSlug);
+    log.verbose('🔒 Checking access to document:', documentSlug);
 
     try {
         // Get JWT token from Supabase session
@@ -52,9 +62,9 @@ export async function checkDocumentAccess(documentSlug) {
         // Add Authorization header if token exists
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
-            console.log('🔑 Sending JWT token with access check request');
+            log.verbose('🔑 Sending JWT token with access check request');
         } else {
-            console.log('⚠️ No JWT token available - checking as unauthenticated user');
+            log.verbose('⚠️ No JWT token available - checking as unauthenticated user');
         }
 
         const response = await fetch(`${API_URL}/api/permissions/check-access/${documentSlug}`, {
@@ -62,13 +72,13 @@ export async function checkDocumentAccess(documentSlug) {
             headers: headers,
         });
 
-        console.log('🔍 Access check response status:', response.status);
+        log.verbose('🔍 Access check response status:', response.status);
 
         const data = await response.json();
-        console.log('🔍 Access check result:', data);
+        log.verbose('🔍 Access check result:', data);
 
         if (!data.has_access) {
-            console.log('🚫 Access denied for document:', documentSlug);
+            log.verbose('🚫 Access denied for document:', documentSlug);
             
             // Handle different error types
             if (data.error_type === 'document_not_found') {
@@ -84,7 +94,7 @@ export async function checkDocumentAccess(documentSlug) {
             return false;
         }
 
-        console.log('✅ Access granted for document:', documentSlug);
+        log.verbose('✅ Access granted for document:', documentSlug);
         return true;
     } catch (error) {
         console.error('❌ Access check error:', error);
@@ -205,6 +215,12 @@ function showLoginModal(documentSlug, documentInfo) {
         if (result.isConfirmed) {
             // Store current URL for redirect after login
             sessionStorage.setItem('auth_return_url', window.location.href);
+
+            // Store owner info for login branding if available
+            if (documentInfo?.owner) {
+                sessionStorage.setItem('auth_owner_info', JSON.stringify(documentInfo.owner));
+            }
+
             // Redirect to login page
             window.location.href = '/app/login';
         } else if (result.isDismissed) {
@@ -226,7 +242,7 @@ export function initAccessCheck() {
         // Handle multi-document URLs by parsing on + or space (URL decoding)
         const documentSlugs = docParam.split(/[\s+]+/).map(s => s.trim()).filter(s => s);
 
-        console.log('🔒 Checking access to documents:', documentSlugs.join(', '));
+        log.verbose('🔒 Checking access to documents:', documentSlugs.join(', '));
 
         // For multi-document URLs, check access for each document
         if (documentSlugs.length > 1) {
@@ -235,9 +251,9 @@ export function initAccessCheck() {
                 .then(results => {
                     const allGranted = results.every(result => result === true);
                     if (!allGranted) {
-                        console.log('🚫 Access denied for one or more documents in multi-doc URL');
+                        log.verbose('🚫 Access denied for one or more documents in multi-doc URL');
                     } else {
-                        console.log('✅ Access granted for all documents in multi-doc URL');
+                        log.verbose('✅ Access granted for all documents in multi-doc URL');
                     }
                 })
                 .catch(error => {

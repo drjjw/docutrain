@@ -106,7 +106,17 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN QUERY
-    SELECT * FROM (
+    SELECT
+        id,
+        document_slug,
+        document_name,
+        chunk_index,
+        content,
+        metadata,
+        similarity,
+        text_rank,
+        combined_score
+    FROM (
         SELECT
             dc.id,
             dc.document_slug,
@@ -116,18 +126,18 @@ BEGIN
             dc.metadata,
             (1 - (dc.embedding <=> query_embedding)) AS similarity,
             ts_rank(dc.content_tsv, plainto_tsquery('english', query_text)) AS text_rank,
-            (0.7 * (1 - (dc.embedding <=> query_embedding)) + 
+            (0.7 * (1 - (dc.embedding <=> query_embedding)) +
              0.3 * ts_rank(dc.content_tsv, plainto_tsquery('english', query_text))) AS combined_score,
             ROW_NUMBER() OVER (
-                PARTITION BY dc.document_slug 
-                ORDER BY (0.7 * (1 - (dc.embedding <=> query_embedding)) + 
+                PARTITION BY dc.document_slug
+                ORDER BY (0.7 * (1 - (dc.embedding <=> query_embedding)) +
                          0.3 * ts_rank(dc.content_tsv, plainto_tsquery('english', query_text))) DESC
             ) as rn
         FROM document_chunks dc
         WHERE dc.document_slug = ANY(doc_slugs)
             AND (
                 (1 - (dc.embedding <=> query_embedding)) > match_threshold
-                OR 
+                OR
                 dc.content_tsv @@ plainto_tsquery('english', query_text)
             )
     ) subquery
@@ -212,7 +222,17 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN QUERY
-    SELECT * FROM (
+    SELECT
+        subquery.id,
+        subquery.document_slug,
+        subquery.document_name,
+        subquery.chunk_index,
+        subquery.content,
+        subquery.metadata,
+        subquery.similarity,
+        subquery.text_rank,
+        subquery.combined_score
+    FROM (
         SELECT
             dc.id,
             dc.document_slug,
@@ -222,23 +242,23 @@ BEGIN
             dc.metadata,
             (1 - (dc.embedding <=> query_embedding)) AS similarity,
             ts_rank(dc.content_tsv, plainto_tsquery('english', query_text)) AS text_rank,
-            (0.7 * (1 - (dc.embedding <=> query_embedding)) + 
+            (0.7 * (1 - (dc.embedding <=> query_embedding)) +
              0.3 * ts_rank(dc.content_tsv, plainto_tsquery('english', query_text))) AS combined_score,
             ROW_NUMBER() OVER (
-                PARTITION BY dc.document_slug 
-                ORDER BY (0.7 * (1 - (dc.embedding <=> query_embedding)) + 
+                PARTITION BY dc.document_slug
+                ORDER BY (0.7 * (1 - (dc.embedding <=> query_embedding)) +
                          0.3 * ts_rank(dc.content_tsv, plainto_tsquery('english', query_text))) DESC
             ) as rn
         FROM document_chunks_local dc
         WHERE dc.document_slug = ANY(doc_slugs)
             AND (
                 (1 - (dc.embedding <=> query_embedding)) > match_threshold
-                OR 
+                OR
                 dc.content_tsv @@ plainto_tsquery('english', query_text)
             )
     ) subquery
-    WHERE rn <= match_count_per_doc
-    ORDER BY combined_score DESC;
+    WHERE subquery.rn <= match_count_per_doc
+    ORDER BY subquery.combined_score DESC;
 END;
 $$;
 

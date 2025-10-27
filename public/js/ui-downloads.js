@@ -1,5 +1,15 @@
 // UI Downloads - Downloads section management for welcome messages
 
+// Helper to safely use debugLog (fallback to console if not available yet)
+const log = {
+    verbose: (...args) => window.debugLog ? window.debugLog.verbose(...args) : console.log(...args),
+    normal: (...args) => window.debugLog ? window.debugLog.normal(...args) : console.log(...args),
+    quiet: (...args) => window.debugLog ? window.debugLog.quiet(...args) : console.log(...args),
+    always: (...args) => console.log(...args),
+    warn: (...args) => console.warn(...args),
+    error: (...args) => console.error(...args)
+};
+
 /**
  * Add downloads section to welcome message
  * @param {HTMLElement} container - The container element to add downloads to
@@ -33,7 +43,7 @@ export function addDownloadsToWelcome(container, validConfigs) {
     
     // If no downloads, return early
     if (allDownloads.length === 0) {
-        console.log('📥 No downloads available for current document(s)');
+        log.verbose('📥 No downloads available for current document(s)');
         return;
     }
     
@@ -72,7 +82,7 @@ export function addDownloadsToWelcome(container, validConfigs) {
             e.preventDefault();
             
             try {
-                console.log(`📥 Starting download: ${filename}`);
+                log.verbose(`📥 Starting download: ${filename}`);
                 
                 // Show downloading state
                 const actionDiv = button.querySelector('.download-action');
@@ -109,7 +119,7 @@ export function addDownloadsToWelcome(container, validConfigs) {
                 // Reset button state
                 actionDiv.innerHTML = originalHTML;
                 
-                console.log(`✅ Download complete: ${filename}`);
+                log.verbose(`✅ Download complete: ${filename}`);
             } catch (error) {
                 console.error(`❌ Download failed: ${filename}`, error);
                 
@@ -160,6 +170,6 @@ export function addDownloadsToWelcome(container, validConfigs) {
     downloadsSection.appendChild(downloadsList);
     container.appendChild(downloadsSection);
     
-    console.log(`📥 Added ${allDownloads.length} download(s) to welcome message`);
+    log.verbose(`📥 Added ${allDownloads.length} download(s) to welcome message`);
 }
 

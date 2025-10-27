@@ -32,3 +32,12 @@ CREATE POLICY "Super admins manage owners" ON owners
       WHERE user_id = auth.uid() AND role = 'super_admin'
     )
   );
+
+-- Allow reading owner info for any active document (for login branding)
+CREATE POLICY "Read owners for active documents" ON owners
+  FOR SELECT USING (
+    id IN (
+      SELECT owner_id FROM documents
+      WHERE active = true
+    )
+  );

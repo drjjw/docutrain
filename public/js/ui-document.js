@@ -3,20 +3,35 @@ import { getDocument, getOwnerLogoConfig, parseDocumentSlugs, getBackButtonURL }
 import { updateMetaTags, darkenColor, hexToRgba, equalizeContainerHeights } from './ui-utils.js';
 import { addDownloadsToWelcome } from './ui-downloads.js';
 
+// Helper to safely use debugLog (fallback to console if not available yet)
+const log = {
+    verbose: (...args) => window.debugLog ? window.debugLog.verbose(...args) : log.verbose(...args),
+    normal: (...args) => window.debugLog ? window.debugLog.normal(...args) : log.verbose(...args),
+    quiet: (...args) => window.debugLog ? window.debugLog.quiet(...args) : log.verbose(...args),
+    always: (...args) => log.verbose(...args),
+    warn: (...args) => console.warn(...args),
+    error: (...args) => console.error(...args)
+};
+
 // Track if document modal has been shown to prevent multiple displays
 let documentModalShown = false;
 
 // Update document UI based on selected document (now async with registry)
 export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
-    console.log(`🚀 updateDocumentUI called with: ${selectedDocument}`);
+    const uiStart = performance.now();
+    log.verbose('    ┌─ updateDocumentUI() started');
+    log.verbose(`    │  → Document: ${selectedDocument || 'none'}`);
+    log.verbose(`    │  → Force refresh: ${forceRefresh}`);
 
     // Get sendButton element for use throughout function
+    const buttonStart = performance.now();
     let sendButton = document.getElementById('sendButton');
+    log.verbose(`    │  → Send button found: ${!!sendButton} (${(performance.now() - buttonStart).toFixed(2)}ms)`);
 
     // Skip document modal for goodbye route
     const isGoodbyeRoute = window.location.pathname === '/goodbye';
     if (isGoodbyeRoute) {
-        console.log('👋 Goodbye route detected - skipping document modal');
+        log.verbose('👋 Goodbye route detected - skipping document modal');
         return;
     }
 
@@ -104,24 +119,32 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     }
 
     // Handle multi-document case: selectedDocument can be "slug1+slug2" or just "slug"
+    const parseStart = performance.now();
     const documentSlugs = selectedDocument && selectedDocument.includes('+') ? selectedDocument.split('+').map(s => s.trim()) : selectedDocument ? [selectedDocument] : [];
     const isMultiDoc = documentSlugs.length > 1;
+    log.verbose(`    │  → Parsed ${documentSlugs.length} slug(s): ${documentSlugs.join(', ')} (${(performance.now() - parseStart).toFixed(2)}ms)`);
     
     // Fetch all document configs
+    const fetchStart = performance.now();
+    log.verbose('    │  → Fetching document configs...');
     const configs = await Promise.all(
         documentSlugs.map(slug => getDocument(slug, forceRefresh))
     );
+    log.verbose(`    │     Configs fetched (${(performance.now() - fetchStart).toFixed(2)}ms)`);
     
     // Filter out null configs
     const validConfigs = configs.filter(c => c !== null);
+    log.verbose(`    │  → Valid configs: ${validConfigs.length}/${configs.length}`);
     
-    if (validConfigs.length === 0) {
-        console.error(`No documents found for: ${selectedDocument || 'null'}`);
+    if (validConfigs.length === 0 && !isMultiDoc) {
+        console.error(`    │  ❌ No documents found for: ${selectedDocument || 'null'}`);
+        log.verbose(`    └─ updateDocumentUI() aborted in ${(performance.now() - uiStart).toFixed(2)}ms`);
         return;
     }
     
     // Use first document as primary for most properties
     const config = validConfigs[0];
+    log.verbose(`    │  → Primary config: ${config.slug} - ${config.title}`);
     
     // Build combined title
     const combinedTitle = validConfigs.map(c => c.title).join(' + ');
@@ -160,7 +183,7 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
             subtitleElement.textContent = `Multi-document search across ${validConfigs.length} documents`;
         } else {
             // Build subtitle with Category | Year format with icons
-            console.log('🏷️ Document config for subtitle:', { category: config.category, year: config.year });
+            log.verbose('🏷️ Document config for subtitle:', { category: config.category, year: config.year });
             const subtitleParts = [];
             
             if (config.category) {
@@ -175,11 +198,11 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
             // If we have category or year, show them separated by pipe with HTML
             if (subtitleParts.length > 0) {
                 subtitleElement.innerHTML = subtitleParts.join(' <span class="subtitle-separator">|</span> ');
-                console.log('🏷️ Subtitle set to:', subtitleParts.join(' | '));
+                log.verbose('🏷️ Subtitle set to:', subtitleParts.join(' | '));
             } else {
                 // Fallback to original subtitle if no category/year
                 subtitleElement.textContent = config.subtitle || '';
-                console.log('🏷️ Using fallback subtitle:', config.subtitle);
+                log.verbose('🏷️ Using fallback subtitle:', config.subtitle);
             }
         }
     }
@@ -211,15 +234,17 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     if (sendButton) sendButton.disabled = false;
 
     // Update header logo based on document owner
+    const logoStart = performance.now();
     const ownerSlug = config.ownerInfo?.slug || config.owner;
-    console.log(`🎨 Updating logo for owner: ${ownerSlug}`);
+    log.verbose(`    │  → Updating logo for owner: ${ownerSlug}`);
+    
+    const logoConfigStart = performance.now();
     const logoConfig = await getOwnerLogoConfig(ownerSlug);
-    console.log(`🎨 Logo config retrieved:`, logoConfig);
+    log.verbose(`    │     Logo config retrieved (${(performance.now() - logoConfigStart).toFixed(2)}ms):`, logoConfig);
 
     const logoElement = document.querySelector('.header-logo img');
     const logoLink = document.getElementById('logoLink');
-
-    console.log(`🎨 Logo elements found:`, !!logoElement, !!logoLink);
+    log.verbose(`    │     Logo elements found: img=${!!logoElement}, link=${!!logoLink}`);
 
     if (logoElement && logoLink) {
         if (logoConfig) {
@@ -239,7 +264,7 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 logoLink.style.cursor = 'default';
                 logoLink.onclick = (e) => e.preventDefault();
                 
-                console.log('🔗 Owner logo link disabled due to owner_link=false parameter');
+                log.verbose('🔗 Owner logo link disabled due to owner_link=false parameter');
             } else {
                 // Override logo link to navigate to owner's chat page
                 logoLink.href = `/chat?owner=${encodeURIComponent(ownerSlug)}`;
@@ -249,10 +274,10 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 logoLink.removeAttribute('target');
                 logoLink.removeAttribute('rel');
                 
-                console.log('🔗 Owner logo link set to navigate to owner page:', logoLink.href);
+                log.verbose('🔗 Owner logo link set to navigate to owner page:', logoLink.href);
             }
 
-            console.log(`🎨 Logo set: src=${logoConfig.logo}, alt=${logoConfig.alt}`);
+            log.verbose(`🎨 Logo set: src=${logoConfig.logo}, alt=${logoConfig.alt}`);
 
             // Update accent colors dynamically using CSS variables
             if (logoConfig.accentColor) {
@@ -274,12 +299,12 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 const shadowColor = hexToRgba(logoConfig.accentColor, 0.2);
                 root.style.setProperty('--accent-color-shadow', shadowColor);
 
-                console.log(`🎨 Header logo and accent color updated for owner: ${ownerSlug} (${logoConfig.alt}) - ${logoConfig.accentColor}`);
+                log.verbose(`🎨 Header logo and accent color updated for owner: ${ownerSlug} (${logoConfig.alt}) - ${logoConfig.accentColor}`);
             }
         } else {
             // Hide logo for unrecognized owners (multi-tenant behavior)
             logoElement.style.display = 'none';
-            console.log(`🎨 Header logo hidden for owner: ${ownerSlug} (no logo configured)`);
+            log.verbose(`🎨 Header logo hidden for owner: ${ownerSlug} (no logo configured)`);
         }
     }
 
@@ -287,14 +312,18 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     if (sendButton) {
         if (ownerSlug === 'maker') {
             sendButton.classList.add('maker-theme');
-            console.log(`🎨 Submit button updated to maker theme (yellow)`);
+            log.verbose(`🎨 Submit button updated to maker theme (yellow)`);
         } else {
             sendButton.classList.remove('maker-theme');
-            console.log(`🎨 Submit button updated to dynamic accent theme`);
+            log.verbose(`🎨 Submit button updated to dynamic accent theme`);
         }
     }
 
+    log.verbose(`    │     Logo processing complete (${(performance.now() - logoStart).toFixed(2)}ms)`);
+
     // Update document cover and welcome message display
+    const coverStart = performance.now();
+    log.verbose('    │  → Processing document cover and welcome message...');
     let coverContainer = document.getElementById('documentCoverContainer');
     const regularWelcome = document.getElementById('regularWelcomeMessage');
     const chatContainer = document.getElementById('chatContainer');
@@ -371,14 +400,27 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
             if (coverImage) {
                 // Use document cover if available, otherwise use placeholder
                 const imageSrc = hasValidCover ? config.cover.trim() : '/chat-cover-place.png';
+                const imageLoadStart = performance.now();
+                log.verbose(`    │     Loading cover image: ${imageSrc}`);
+                
                 coverImage.src = imageSrc;
                 coverImage.alt = hasValidCover ? `${config.title} - Title Slide` : `${config.title} - Cover Placeholder`;
 
                 // Handle height adjustments after image loads
                 coverImage.onload = () => {
+                    const imageLoadTime = performance.now() - imageLoadStart;
+                    log.verbose(`    │     ✓ Cover image loaded (${imageLoadTime.toFixed(2)}ms)`);
+                    
                     // On mobile, the height is now responsive to aspect ratio
                     // On desktop, equalize container heights
+                    const equalizeStart = performance.now();
                     equalizeContainerHeights();
+                    log.verbose(`    │     Container heights equalized (${(performance.now() - equalizeStart).toFixed(2)}ms)`);
+                };
+                
+                coverImage.onerror = () => {
+                    const imageLoadTime = performance.now() - imageLoadStart;
+                    console.error(`    │     ❌ Cover image failed to load (${imageLoadTime.toFixed(2)}ms): ${imageSrc}`);
                 };
             }
 
@@ -397,44 +439,113 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 // Join with pipe separator if we have both category and year
                 if (metaParts.length > 0) {
                     coverMetaElement.textContent = metaParts.join(' | ');
-                    console.log('🏷️ Cover meta set to:', metaParts.join(' | '));
+                    log.verbose('🏷️ Cover meta set to:', metaParts.join(' | '));
                 } else {
                     coverMetaElement.textContent = '';
                 }
             }
             coverContainer.style.display = 'flex';
             regularWelcome.style.display = 'none';
-            console.log(`🖼️  Cover image layout displayed: ${config.cover}`);
+            log.verbose(`    │     Cover image layout displayed: ${config.cover}`);
         } else {
-            // Remove cover container if it exists
+            // Multi-document search - create a grid of document covers
+            log.verbose(`    │     Creating multi-document cover grid for ${validConfigs.length} documents`);
+
+            // Remove existing cover container if it exists
             if (coverContainer) {
                 coverContainer.remove();
             }
-            
-            // Show regular welcome only if there's an intro message
-            if (introMessage) {
-                const regularWelcomeTitleElement = document.getElementById('regularWelcomeTitle');
-                const regularWelcomeContent = document.getElementById('regularWelcomeContent');
-                
-                if (regularWelcomeTitleElement) {
-                    regularWelcomeTitleElement.innerHTML = combinedWelcome;
-                }
-                if (regularWelcomeContent) {
-                    regularWelcomeContent.innerHTML = introMessage;
-                    // Add downloads section to regular welcome
-                    addDownloadsToWelcome(regularWelcomeContent, validConfigs);
-                }
-                
-                regularWelcome.style.display = 'block';
-                console.log(`📝 Regular welcome displayed with intro message`);
+
+            // Create multi-document cover grid container
+            const multiDocContainer = document.createElement('div');
+            multiDocContainer.id = 'multiDocumentCoverContainer';
+            multiDocContainer.className = 'multi-document-cover-grid';
+
+            // Build HTML string step by step to avoid template literal issues
+            let html = `
+                <div class="multi-doc-covers-header">
+                    <h3>Multi-Document Search</h3>
+                    <p>Searching across ${validConfigs.length} documents</p>
+                </div>
+                <div class="multi-doc-covers-grid">`;
+
+            // Add each document cover
+            if (validConfigs.length > 0) {
+                validConfigs.forEach((docConfig, index) => {
+                    const hasValidCover = docConfig.cover && typeof docConfig.cover === 'string' && docConfig.cover.trim().length > 0;
+                    const imageSrc = hasValidCover ? docConfig.cover.trim() : '/chat-cover-place.png';
+                    const metaParts = [];
+                    if (docConfig.category) metaParts.push(docConfig.category);
+                    if (docConfig.year) metaParts.push(docConfig.year);
+                    const metaText = metaParts.length > 0 ? metaParts.join(' | ') : '';
+                    const altText = `${docConfig.title} - ${hasValidCover ? 'Title Slide' : 'Cover Placeholder'}`;
+
+                    html += `
+                        <div class="multi-doc-cover-item" data-doc-slug="${docConfig.slug}">
+                            <div class="multi-doc-cover-image-container">
+                                <img src="${imageSrc}" alt="${altText}" class="multi-doc-cover-image" loading="lazy">
+                                <div class="multi-doc-cover-overlay">
+                                    <div class="multi-doc-cover-title">${docConfig.title}</div>
+                                    <div class="multi-doc-cover-meta">${metaText}</div>
+                                </div>
+                            </div>
+                        </div>`;
+                });
             } else {
-                // No intro message - hide welcome entirely
-                regularWelcome.style.display = 'none';
-                console.log(`🖼️  No intro message - welcome hidden. Cover: "${config.cover}", isMultiDoc: ${isMultiDoc}`);
+                // Show placeholder for missing documents
+                html += `
+                    <div class="multi-doc-cover-item">
+                        <div class="multi-doc-cover-image-container">
+                            <img src="/chat-cover-place.png" alt="Document not found" class="multi-doc-cover-image" loading="lazy">
+                            <div class="multi-doc-cover-overlay">
+                                <div class="multi-doc-cover-title">Document Not Found</div>
+                                <div class="multi-doc-cover-meta">Please check document slug</div>
+                            </div>
+                        </div>
+                    </div>`;
             }
+
+            html += `
+                </div>
+                <div class="multi-doc-welcome-section">
+                    <div class="message assistant">
+                        <div class="message-content">
+                            <strong>${combinedWelcome}</strong>`;
+
+            if (introMessage) {
+                html += `<div class="multi-doc-intro-content">${introMessage}</div>`;
+            }
+
+            html += `
+                        </div>
+                    </div>
+                </div>`;
+
+            multiDocContainer.innerHTML = html;
+
+            // Insert before regular welcome message
+            if (chatContainer && regularWelcome && multiDocContainer) {
+                chatContainer.insertBefore(multiDocContainer, regularWelcome);
+                log.verbose(`    │     Multi-document container inserted successfully`);
+            } else {
+                log.error(`    │     ❌ Failed to insert multi-document container - chatContainer: ${!!chatContainer}, regularWelcome: ${!!regularWelcome}, multiDocContainer: ${!!multiDocContainer}`);
+            }
+
+            // Add downloads section to multi-doc welcome if it exists
+            const welcomeContent = multiDocContainer.querySelector('.message-content');
+            if (welcomeContent) {
+                addDownloadsToWelcome(welcomeContent, validConfigs);
+            }
+
+            // Hide regular welcome since we're showing multi-doc covers
+            regularWelcome.style.display = 'none';
+
+            log.verbose(`    │     Multi-document cover grid displayed with ${validConfigs.length} covers`);
         }
+        log.verbose(`    │     Cover/welcome processing complete (${(performance.now() - coverStart).toFixed(2)}ms)`);
     }
 
-    console.log(`📄 Document set to: ${selectedDocument ? selectedDocument.toUpperCase() : 'NONE'} - ${config.welcomeMessage}`);
+    log.verbose(`    │  ✓ Document set to: ${selectedDocument ? selectedDocument.toUpperCase() : 'NONE'} - ${config.welcomeMessage}`);
+    log.verbose(`    └─ updateDocumentUI() completed in ${(performance.now() - uiStart).toFixed(2)}ms`);
 }
 

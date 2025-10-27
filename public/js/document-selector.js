@@ -4,6 +4,16 @@
  * Only shown when URL parameter document_selector=true
  */
 
+// Helper to safely use debugLog (fallback to console if not available yet)
+const log = {
+    verbose: (...args) => window.debugLog ? window.debugLog.verbose(...args) : console.log(...args),
+    normal: (...args) => window.debugLog ? window.debugLog.normal(...args) : console.log(...args),
+    quiet: (...args) => window.debugLog ? window.debugLog.quiet(...args) : console.log(...args),
+    always: (...args) => console.log(...args),
+    warn: (...args) => console.warn(...args),
+    error: (...args) => console.error(...args)
+};
+
 class DocumentSelector {
     constructor() {
         this.container = document.getElementById('documentSelectorContainer');
@@ -70,6 +80,16 @@ class DocumentSelector {
                 this.close();
             }
         });
+
+        // Close dropdown when clicking outside (but not in owner mode)
+        document.addEventListener('click', (e) => {
+            if (this.isOpen && !this.ownerMode && !this.modalMode) {
+                // Check if click is outside the dropdown container
+                if (this.container && !this.container.contains(e.target)) {
+                    this.close();
+                }
+            }
+        });
         
         // Load documents and check if selector should be shown
         this.loadDocuments();
@@ -84,13 +104,13 @@ class DocumentSelector {
             const ownerParam = urlParams.get('owner');
             const docParam = urlParams.get('doc');
 
-            console.log('📋 Document Selector - Owner param:', ownerParam, 'Doc param:', docParam, 'URL:', window.location.href);
+            log.verbose('📋 Document Selector - Owner param:', ownerParam, 'Doc param:', docParam, 'URL:', window.location.href);
 
             if (ownerParam && !this.ownerMode) {
                 this.ownerMode = true;
                 this.modalMode = true;
                 this.currentOwner = ownerParam;
-                console.log('🎯 Document Selector - Owner mode activated for:', ownerParam, 'Modal mode:', this.modalMode);
+                log.verbose('🎯 Document Selector - Owner mode activated for:', ownerParam, 'Modal mode:', this.modalMode);
             }
 
             // Parse document slugs to handle multi-document URLs
@@ -100,22 +120,22 @@ class DocumentSelector {
             // For owner mode, don't default to 'smh' since no doc is selected
             this.currentDocSlug = this.ownerMode ? docParam : (docSlugs[0] || 'smh');
 
-            console.log('📋 Document Selector - Parsed slugs:', docSlugs, 'Using first slug for selector:', this.currentDocSlug);
+            log.verbose('📋 Document Selector - Parsed slugs:', docSlugs, 'Using first slug for selector:', this.currentDocSlug);
             
             // First, fetch the current document to check if selector should be shown
             let apiUrl = '/api/documents';
             if (ownerParam) {
                 // Owner mode: fetch only documents for this owner
                 apiUrl += `?owner=${encodeURIComponent(ownerParam)}`;
-                console.log('🔍 Fetching documents for owner:', ownerParam);
+                log.verbose('🔍 Fetching documents for owner:', ownerParam);
             } else if (docParam) {
                 // Doc mode: fetch only the specific document(s)
                 apiUrl += `?doc=${encodeURIComponent(docParam)}`;
-                console.log('🔍 Fetching specific document(s):', docParam);
+                log.verbose('🔍 Fetching specific document(s):', docParam);
             } else {
                 // No parameters: fetch default document
                 apiUrl += '?doc=smh';
-                console.log('🔍 Fetching default document: smh');
+                log.verbose('🔍 Fetching default document: smh');
             }
             
             // Get JWT token from Supabase localStorage
@@ -133,11 +153,11 @@ class DocumentSelector {
 
                     if (token) {
                         headers['Authorization'] = `Bearer ${token}`;
-                        console.log('🔑 Including JWT token in document selector API request');
+                        log.verbose('🔑 Including JWT token in document selector API request');
                     }
                 }
             } catch (error) {
-                console.log('⚠️ Could not get JWT token for document selector request:', error);
+                log.verbose('⚠️ Could not get JWT token for document selector request:', error);
             }
 
             const response = await fetch(apiUrl, { headers });
@@ -155,36 +175,36 @@ class DocumentSelector {
                 showSelector = urlSelectorParam === 'true';
                 // When URL parameter is true, always expand to show all owner documents
                 shouldExpandToOwner = showSelector;
-                console.log('📋 Document Selector - URL parameter override:', showSelector, 'expand to owner:', shouldExpandToOwner);
+                log.verbose('📋 Document Selector - URL parameter override:', showSelector, 'expand to owner:', shouldExpandToOwner);
             } else if (this.ownerMode) {
                 // Owner mode always shows selector
                 showSelector = true;
                 shouldExpandToOwner = true;
-                console.log('📋 Document Selector - Owner mode enabled');
+                log.verbose('📋 Document Selector - Owner mode enabled');
             } else {
                 // Check database value for current document
                 const currentDoc = this.documents.find(d => d.slug === this.currentDocSlug);
                 showSelector = currentDoc?.showDocumentSelector || false;
                 // Only expand to owner documents if the database setting allows it
                 shouldExpandToOwner = showSelector;
-                console.log('📋 Document Selector - Database value for', this.currentDocSlug, ':', showSelector, 'expand to owner:', shouldExpandToOwner);
+                log.verbose('📋 Document Selector - Database value for', this.currentDocSlug, ':', showSelector, 'expand to owner:', shouldExpandToOwner);
             }
 
             // If we only fetched one document and should expand to owner documents, fetch all from the same owner
             if (this.documents.length === 1 && shouldExpandToOwner && this.documents[0].ownerInfo) {
-                console.log('🔍 Document selector enabled - fetching all documents from owner:', this.documents[0].ownerInfo.slug);
+                log.verbose('🔍 Document selector enabled - fetching all documents from owner:', this.documents[0].ownerInfo.slug);
                 const ownerApiUrl = `/api/documents?owner=${encodeURIComponent(this.documents[0].ownerInfo.slug)}`;
                 const ownerResponse = await fetch(ownerApiUrl, { headers });
                 const ownerData = await ownerResponse.json();
                 this.documents = ownerData.documents || [];
-                console.log('📚 Loaded', this.documents.length, 'documents from owner');
+                log.verbose('📚 Loaded', this.documents.length, 'documents from owner');
             }
 
             if (showSelector) {
-                console.log('🎨 Document Selector - Showing modal (showSelector:', showSelector, 'ownerMode:', this.ownerMode, ')');
+                log.verbose('🎨 Document Selector - Showing modal (showSelector:', showSelector, 'ownerMode:', this.ownerMode, ')');
                 // If in owner mode, use the owner from owner mode
                 if (this.ownerMode) {
-                    console.log('📂 Document Selector - Owner mode: showing documents for owner:', this.currentOwner);
+                    log.verbose('📂 Document Selector - Owner mode: showing documents for owner:', this.currentOwner);
                     this.show(); // Show the container
                     this.open(); // Open the dropdown
                     this.renderDocuments();
@@ -196,7 +216,7 @@ class DocumentSelector {
                             displayName = 'UKidney Medical';
                         }
                         this.currentDocName.textContent = `${displayName} Documents`;
-                        console.log('🏷️ Document Selector - Set title to:', this.currentDocName.textContent);
+                        log.verbose('🏷️ Document Selector - Set title to:', this.currentDocName.textContent);
                     }
                 } else {
                     // Find current document to get owner info for filtering
@@ -220,10 +240,10 @@ class DocumentSelector {
     }
     
     show() {
-        console.log('🔍 Document Selector - show() called, container exists:', !!this.container, 'modalMode:', this.modalMode);
+        log.verbose('🔍 Document Selector - show() called, container exists:', !!this.container, 'modalMode:', this.modalMode);
         if (this.container) {
             this.container.style.display = 'block';
-            console.log('✅ Document Selector - Container shown, display:', this.container.style.display);
+            log.verbose('✅ Document Selector - Container shown, display:', this.container.style.display);
         } else {
             console.error('❌ Document Selector - Container not found!');
         }
@@ -255,7 +275,7 @@ class DocumentSelector {
 
                 // Move to body
                 document.body.appendChild(this.dropdown);
-                console.log('🎭 Moved dropdown to body for modal mode');
+                log.verbose('🎭 Moved dropdown to body for modal mode');
             }
 
             // Show overlay and style dropdown as central modal
@@ -271,13 +291,13 @@ class DocumentSelector {
                 this.closeBtn.style.display = 'none';
             }
 
-            console.log('🎭 Document Selector - Opened in modal mode');
-            console.log('🎭 Modal classes:', this.dropdown?.className);
-            console.log('🎭 Modal computed style z-index:', window.getComputedStyle(this.dropdown).zIndex);
-            console.log('🎭 Modal computed position:', window.getComputedStyle(this.dropdown).position);
-            console.log('🎭 Modal computed top:', window.getComputedStyle(this.dropdown).top);
-            console.log('🎭 Modal computed left:', window.getComputedStyle(this.dropdown).left);
-            console.log('🎭 Modal computed transform:', window.getComputedStyle(this.dropdown).transform);
+            log.verbose('🎭 Document Selector - Opened in modal mode');
+            log.verbose('🎭 Modal classes:', this.dropdown?.className);
+            log.verbose('🎭 Modal computed style z-index:', window.getComputedStyle(this.dropdown).zIndex);
+            log.verbose('🎭 Modal computed position:', window.getComputedStyle(this.dropdown).position);
+            log.verbose('🎭 Modal computed top:', window.getComputedStyle(this.dropdown).top);
+            log.verbose('🎭 Modal computed left:', window.getComputedStyle(this.dropdown).left);
+            log.verbose('🎭 Modal computed transform:', window.getComputedStyle(this.dropdown).transform);
         } else {
             // Normal dropdown mode
             this.btn?.classList.add('active');
@@ -303,7 +323,7 @@ class DocumentSelector {
                 } else {
                     this.originalParent.appendChild(this.dropdown);
                 }
-                console.log('🎭 Restored dropdown to original position');
+                log.verbose('🎭 Restored dropdown to original position');
             }
 
             // Show the button again if we're closing the modal
@@ -314,7 +334,7 @@ class DocumentSelector {
             if (this.closeBtn && !this.ownerMode) {
                 this.closeBtn.style.display = 'block';
             }
-            console.log('🎭 Document Selector - Closed modal mode');
+            log.verbose('🎭 Document Selector - Closed modal mode');
         } else {
             // Normal dropdown mode
             this.btn?.classList.remove('active');
@@ -452,11 +472,11 @@ class DocumentSelector {
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('🏗️ Initializing document selector...');
+        log.verbose('🏗️ Initializing document selector...');
         window.documentSelector = new DocumentSelector();
     });
 } else {
-    console.log('🏗️ Initializing document selector (already loaded)...');
+    log.verbose('🏗️ Initializing document selector (already loaded)...');
     window.documentSelector = new DocumentSelector();
 }
 

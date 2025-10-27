@@ -1,5 +1,15 @@
 // Configuration and constants
 
+// Helper to safely use debugLog (fallback to console if not available yet)
+const log = {
+    verbose: (...args) => window.debugLog ? window.debugLog.verbose(...args) : console.log(...args),
+    normal: (...args) => window.debugLog ? window.debugLog.normal(...args) : console.log(...args),
+    quiet: (...args) => window.debugLog ? window.debugLog.quiet(...args) : console.log(...args),
+    always: (...args) => console.log(...args),
+    warn: (...args) => console.warn(...args),
+    error: (...args) => console.error(...args)
+};
+
 // Base URL configuration - auto-detect or use window location
 export function getAPIBaseURL() {
     // Get the directory the chatbot is loaded from
@@ -166,6 +176,10 @@ let docConfigCache = null;
  * Now supports filtered loading based on URL parameters
  */
 export async function loadDocuments(forceRefresh = false) {
+    const loadStart = performance.now();
+    log.verbose('      ┌─ loadDocuments() started');
+    log.verbose(`      │  → Force refresh: ${forceRefresh}`);
+    
     try {
         // Get URL parameters to determine what to load
         const urlParams = new URLSearchParams(window.location.search);
@@ -180,42 +194,51 @@ export async function loadDocuments(forceRefresh = false) {
             // Owner mode: load all documents for this owner
             cacheKey = `${CACHE_KEY}-owner-${ownerParam}`;
             apiUrl += `?owner=${encodeURIComponent(ownerParam)}`;
-            console.log('🔍 Loading documents for owner:', ownerParam);
+            log.verbose('      │  → Loading documents for owner:', ownerParam);
         } else if (docParam) {
             // Doc mode: load only specific document(s)
             cacheKey = `${CACHE_KEY}-doc-${docParam}`;
             apiUrl += `?doc=${encodeURIComponent(docParam)}`;
-            console.log('🔍 Loading specific document(s):', docParam);
+            log.verbose('      │  → Loading specific document(s):', docParam);
         } else {
             // Default: load default document
             cacheKey = `${CACHE_KEY}-doc-smh`;
             apiUrl += '?doc=smh';
-            console.log('🔍 Loading default document: smh');
+            log.verbose('      │  → Loading default document: smh');
         }
         
         // Check cache first (unless force refresh requested)
         if (!forceRefresh) {
+            const cacheCheckStart = performance.now();
             const cached = localStorage.getItem(cacheKey);
             if (cached) {
                 const { documents, timestamp } = JSON.parse(cached);
                 const age = Date.now() - timestamp;
 
                 if (age < CACHE_TTL) {
-                    console.log('📦 Using cached documents');
+                    log.verbose(`      │  ✓ Using cached documents (age: ${(age/1000).toFixed(1)}s, ${(performance.now() - cacheCheckStart).toFixed(2)}ms)`);
                     docConfigCache = documents;
+                    log.verbose(`      └─ loadDocuments() completed (from cache) in ${(performance.now() - loadStart).toFixed(2)}ms`);
                     return documents;
+                } else {
+                    log.verbose(`      │  → Cache expired (age: ${(age/1000).toFixed(1)}s > ${CACHE_TTL/1000}s)`);
                 }
+            } else {
+                log.verbose(`      │  → No cache found for key: ${cacheKey}`);
             }
+        } else {
+            log.verbose('      │  → Skipping cache due to force refresh');
         }
         
         // Fetch from API with authentication if available
-        console.log('🔄 Fetching documents from API...');
+        log.verbose('      │  → Fetching documents from API...');
 
         // Get JWT token from Supabase localStorage (same as access-check.js)
         let headers = {
             'Content-Type': 'application/json',
         };
 
+        const authStart = performance.now();
         try {
             const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
             const sessionData = localStorage.getItem(sessionKey);
@@ -226,14 +249,21 @@ export async function loadDocuments(forceRefresh = false) {
 
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
-                    console.log('🔑 Including JWT token in documents API request');
+                    log.verbose(`      │     Including JWT token (${(performance.now() - authStart).toFixed(2)}ms)`);
+                } else {
+                    log.verbose(`      │     No token in session (${(performance.now() - authStart).toFixed(2)}ms)`);
                 }
+            } else {
+                log.verbose(`      │     No session data found (${(performance.now() - authStart).toFixed(2)}ms)`);
             }
         } catch (error) {
-            console.log('⚠️ Could not get JWT token for documents request:', error);
+            log.verbose(`      │     Could not get JWT token: ${error.message} (${(performance.now() - authStart).toFixed(2)}ms)`);
         }
 
+        const fetchStart = performance.now();
+        log.verbose(`      │     Fetching from: ${apiUrl}`);
         const response = await fetch(apiUrl, { headers });
+        log.verbose(`      │     Response received: ${response.status} (${(performance.now() - fetchStart).toFixed(2)}ms)`);
         
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -250,28 +280,37 @@ export async function loadDocuments(forceRefresh = false) {
             }
         }
         
+        const parseStart = performance.now();
         const data = await response.json();
+        log.verbose(`      │     JSON parsed (${(performance.now() - parseStart).toFixed(2)}ms)`);
+        
+        const processStart = performance.now();
         const documents = {};
         
         // Convert array to object keyed by slug
         data.documents.forEach(doc => {
             documents[doc.slug] = doc;
         });
+        log.verbose(`      │     Processed ${data.documents.length} documents (${(performance.now() - processStart).toFixed(2)}ms)`);
         
         // Cache the results
+        const cacheStart = performance.now();
         localStorage.setItem(cacheKey, JSON.stringify({
             documents,
             timestamp: Date.now()
         }));
+        log.verbose(`      │     Cached to localStorage (${(performance.now() - cacheStart).toFixed(2)}ms)`);
         
         docConfigCache = documents;
-        console.log(`✓ Loaded ${data.documents.length} documents from registry`);
+        log.verbose(`      │  ✓ Loaded ${data.documents.length} documents from registry`);
+        log.verbose(`      └─ loadDocuments() completed (from API) in ${(performance.now() - loadStart).toFixed(2)}ms`);
 
         return documents;
     } catch (error) {
-        console.warn('⚠️  Failed to load documents from API:', error.message);
-        console.log('   Using fallback configuration');
+        log.warn(`      │  ⚠️  Failed to load documents from API: ${error.message}`);
+        log.verbose('      │     Using fallback configuration');
         docConfigCache = fallbackDocConfig;
+        log.verbose(`      └─ loadDocuments() completed (fallback) in ${(performance.now() - loadStart).toFixed(2)}ms`);
         return fallbackDocConfig;
     }
 }

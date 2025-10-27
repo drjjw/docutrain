@@ -131,6 +131,48 @@
     .document-cover-meta {
         font-size: 12px; /* Smaller font size on mobile */
     }
+
+    /* Multi-document cover grid responsive styles */
+    .multi-document-cover-grid {
+        margin: 15px 16px;
+        padding: 0;
+        gap: 15px;
+    }
+
+    .multi-doc-covers-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .multi-doc-cover-item {
+        border-radius: 10px;
+    }
+
+    .multi-doc-cover-image-container {
+        height: 140px;
+    }
+
+    .multi-doc-cover-overlay {
+        padding: 10px;
+    }
+
+    .multi-doc-cover-title {
+        font-size: 13px;
+        margin-bottom: 3px;
+    }
+
+    .multi-doc-cover-meta {
+        font-size: 11px;
+    }
+
+    .multi-doc-covers-header h3 {
+        font-size: 20px;
+    }
+
+    .multi-doc-covers-header p {
+        font-size: 14px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -167,6 +209,37 @@
     .document-cover-image {
         height: auto; /* Let image determine height based on aspect ratio */
         border-radius: 6px; /* Match container border radius */
+    }
+
+    /* Multi-document cover grid responsive styles for small screens */
+    .multi-doc-covers-grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+    }
+
+    .multi-doc-cover-image-container {
+        height: 120px;
+    }
+
+    .multi-doc-cover-overlay {
+        padding: 8px;
+    }
+
+    .multi-doc-cover-title {
+        font-size: 12px;
+        margin-bottom: 2px;
+    }
+
+    .multi-doc-cover-meta {
+        font-size: 10px;
+    }
+
+    .multi-doc-covers-header h3 {
+        font-size: 18px;
+    }
+
+    .multi-doc-covers-header p {
+        font-size: 13px;
     }
 }
 
@@ -486,9 +559,10 @@
 /* Mobile adjustments for AI hint */
 @media (max-width: 768px) {
     .ai-hint-message {
-        padding: 8px 16px;
-        font-size: 12px;
-        border-radius: 0 0 6px 6px;
+        padding: 12px 20px;
+        font-size: 14px;
+        border-radius: 0 0 8px 8px;
+        gap: 12px;
     }
 
     .ai-hint-dismiss svg {

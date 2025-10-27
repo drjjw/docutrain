@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/UI/Button';
+import { Toggle } from '@/components/UI/Toggle';
 import { WysiwygEditor } from '@/components/UI/WysiwygEditor';
+import { FileUploadManager } from './FileUploadManager';
 import { updateDocument, checkSlugUniqueness } from '@/lib/supabase/admin';
-import type { DocumentWithOwner, Owner } from '@/types/admin';
+import type { DocumentWithOwner, Owner, DocumentAccessLevel } from '@/types/admin';
 
 interface DocumentEditorModalProps {
   document: DocumentWithOwner | null;
@@ -37,10 +39,11 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         chunk_limit_override: document.chunk_limit_override,
         show_document_selector: document.show_document_selector || false,
         active: document.active ?? true,
-        is_public: document.is_public ?? false,
-        requires_auth: document.requires_auth ?? false,
+        access_level: document.access_level || 'public',
+        passcode: document.passcode || '',
         welcome_message: document.welcome_message || '',
         intro_message: document.intro_message || '',
+        downloads: document.downloads || [],
       });
     }
   }, [document]);
@@ -76,7 +79,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
     }
   };
 
-  const renderField = (field: string, label: string, type: 'text' | 'textarea' | 'number' | 'select' | 'checkbox' | 'wysiwyg' = 'text') => {
+  const renderField = (field: string, label: string, type: 'text' | 'textarea' | 'number' | 'select' | 'checkbox' | 'toggle' | 'wysiwyg' = 'text', options?: { description?: string }) => {
     const value = editingValues[field];
 
     const inputClasses = "px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full";
@@ -163,6 +166,17 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
           </div>
+        );
+
+      case 'toggle':
+        return (
+          <Toggle
+            checked={value || false}
+            onChange={(checked) => handleFieldChange(field, checked)}
+            label={label}
+            description={options?.description}
+            size="md"
+          />
         );
 
       case 'wysiwyg':
@@ -370,33 +384,209 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                   </div>
                 </div>
                 <div className="px-6 py-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Chunk Limit Override</label>
-                      {renderField('chunk_limit_override', 'Chunk Limit Override', 'number')}
+                  {/* Document Status */}
+                  <div className="mb-6">
+                    <h5 className="text-sm font-medium text-gray-900 mb-4 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Status
+                    </h5>
+                    <div className="space-y-4">
+                      {renderField('active', 'Active Document', 'toggle', {
+                        description: 'When enabled, this document is available for users to access'
+                      })}
                     </div>
+                  </div>
+
+                  {/* Access Level - Full Width */}
+                  <div className="mb-6">
+                        <h5 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                          Access Level
+                        </h5>
+                        
+                        {/* Compact Grid Layout */}
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          {/* Public */}
+                          <label className={`relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                            editingValues.access_level === 'public' 
+                              ? 'border-blue-500 bg-blue-50 shadow-sm' 
+                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          }`}>
+                            <input
+                              type="radio"
+                              name="access_level"
+                              value="public"
+                              checked={editingValues.access_level === 'public'}
+                              onChange={(e) => handleFieldChange('access_level', e.target.value)}
+                              className="sr-only"
+                            />
+                            <div className="flex items-center gap-2 mb-1">
+                              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
+                              </svg>
+                              <span className="font-medium text-gray-900">Public</span>
+                            </div>
+                            <span className="text-xs text-gray-600">No login required</span>
+                          </label>
+
+                          {/* Passcode */}
+                          <label className={`relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                            editingValues.access_level === 'passcode' 
+                              ? 'border-purple-500 bg-purple-50 shadow-sm' 
+                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          }`}>
+                            <input
+                              type="radio"
+                              name="access_level"
+                              value="passcode"
+                              checked={editingValues.access_level === 'passcode'}
+                              onChange={(e) => handleFieldChange('access_level', e.target.value)}
+                              className="sr-only"
+                            />
+                            <div className="flex items-center gap-2 mb-1">
+                              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                              </svg>
+                              <span className="font-medium text-gray-900">Passcode</span>
+                            </div>
+                            <span className="text-xs text-gray-600">URL with passcode</span>
+                            <span className="text-xs text-purple-600 mt-0.5">(Coming soon)</span>
+                          </label>
+
+                          {/* Registered */}
+                          <label className={`relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                            editingValues.access_level === 'registered' 
+                              ? 'border-green-500 bg-green-50 shadow-sm' 
+                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          }`}>
+                            <input
+                              type="radio"
+                              name="access_level"
+                              value="registered"
+                              checked={editingValues.access_level === 'registered'}
+                              onChange={(e) => handleFieldChange('access_level', e.target.value)}
+                              className="sr-only"
+                            />
+                            <div className="flex items-center gap-2 mb-1">
+                              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                              <span className="font-medium text-gray-900">Registered</span>
+                            </div>
+                            <span className="text-xs text-gray-600">Any logged-in user</span>
+                          </label>
+
+                          {/* Owner Restricted */}
+                          <label className={`relative flex flex-col p-4 border-2 rounded-lg transition-all ${
+                            !editingValues.owner_id 
+                              ? 'opacity-50 cursor-not-allowed border-gray-200 bg-gray-50' 
+                              : editingValues.access_level === 'owner_restricted'
+                                ? 'border-yellow-500 bg-yellow-50 shadow-sm cursor-pointer'
+                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 cursor-pointer'
+                          }`}>
+                            <input
+                              type="radio"
+                              name="access_level"
+                              value="owner_restricted"
+                              checked={editingValues.access_level === 'owner_restricted'}
+                              onChange={(e) => handleFieldChange('access_level', e.target.value)}
+                              disabled={!editingValues.owner_id}
+                              className="sr-only"
+                            />
+                            <div className="flex items-center gap-2 mb-1">
+                              <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                              <span className="font-medium text-gray-900">Owner Group</span>
+                            </div>
+                            <span className="text-xs text-gray-600">Group members only</span>
+                          </label>
+
+                          {/* Owner Admins Only */}
+                          <label className={`relative flex flex-col p-4 border-2 rounded-lg transition-all col-span-2 ${
+                            !editingValues.owner_id 
+                              ? 'opacity-50 cursor-not-allowed border-gray-200 bg-gray-50' 
+                              : editingValues.access_level === 'owner_admin_only'
+                                ? 'border-red-500 bg-red-50 shadow-sm cursor-pointer'
+                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 cursor-pointer'
+                          }`}>
+                            <input
+                              type="radio"
+                              name="access_level"
+                              value="owner_admin_only"
+                              checked={editingValues.access_level === 'owner_admin_only'}
+                              onChange={(e) => handleFieldChange('access_level', e.target.value)}
+                              disabled={!editingValues.owner_id}
+                              className="sr-only"
+                            />
+                            <div className="flex items-center gap-2 mb-1">
+                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                              </svg>
+                              <span className="font-medium text-gray-900">Owner Admins Only</span>
+                            </div>
+                            <span className="text-xs text-gray-600">Administrators of {editingValues.owner_id ? (owners.find(o => o.id === editingValues.owner_id)?.name || 'owner group') : 'owner group'} only</span>
+                          </label>
+                        </div>
+
+                        {/* Warning for owner-restricted options */}
+                        {!editingValues.owner_id && (
+                          <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
+                            <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            <div>
+                              <div className="font-medium text-amber-900">Owner Required</div>
+                              <div className="text-amber-700 mt-0.5">Select an owner above to enable owner-based access levels</div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Passcode Input Field */}
+                        {editingValues.access_level === 'passcode' && (
+                          <div className="mt-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Passcode</label>
+                            <input
+                              type="text"
+                              value={editingValues.passcode || ''}
+                              onChange={(e) => handleFieldChange('passcode', e.target.value)}
+                              placeholder="Enter passcode..."
+                              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 w-full"
+                            />
+                            <p className="text-xs text-gray-600 mt-2">Users will need to append <code className="px-1 py-0.5 bg-white rounded text-purple-600">?passcode=VALUE</code> to the URL</p>
+                          </div>
+                        )}
+                      </div>
+
+                  {/* Configuration Settings */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Show Document Selector</label>
-                      <div className="flex items-center h-10">
-                        {renderField('show_document_selector', 'Show Document Selector', 'checkbox')}
+                      <h5 className="text-sm font-medium text-gray-900 mb-4 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Configuration
+                      </h5>
+                      <div className="space-y-4">
+                        {renderField('show_document_selector', 'Document Selector', 'toggle', {
+                          description: 'Show a document selection interface in the chat interface'
+                        })}
                       </div>
                     </div>
+
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Document Status</label>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-600">Active:</span>
-                          {renderField('active', 'Active', 'checkbox')}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-600">Public:</span>
-                          {renderField('is_public', 'Public', 'checkbox')}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-600">Requires Auth:</span>
-                          {renderField('requires_auth', 'Requires Auth', 'checkbox')}
-                        </div>
+                      <label className="block text-sm font-medium text-gray-700 mb-3">Chunk Limit Override</label>
+                      <div className="max-w-xs">
+                        {renderField('chunk_limit_override', 'Chunk Limit Override', 'number')}
                       </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Override the default maximum number of chunks to process (leave empty for default)
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -449,6 +639,30 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+
+              {/* Downloads Card */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="px-6 py-4 bg-gradient-to-r from-cyan-50 to-blue-50 border-b border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyan-100 rounded-lg">
+                      <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900">Downloadable Files</h4>
+                      <p className="text-xs text-gray-600 mt-0.5">Upload files to Supabase storage or add external URLs</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="px-6 py-4">
+                  <FileUploadManager
+                    downloads={editingValues.downloads || []}
+                    onChange={(downloads) => handleFieldChange('downloads', downloads)}
+                    documentId={document.id}
+                  />
                 </div>
               </div>
 
