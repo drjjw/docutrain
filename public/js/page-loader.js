@@ -27,12 +27,18 @@ export async function initializePage(state, elements) {
     debugLog.verbose(`📍 Location: ${window.location.href}`);
     debugLog.verbose(`🐛 Debug Level: ${debugParam || 'normal (default)'}`);
     
-    // Step 1: Preload logos
+    // Step 1: Preload logos and owner configs in parallel
     const step1Start = performance.now();
-    debugLog.normal('\n[STEP 1/10] 🎨 Preloading logos...');
-    await preloadLogos();
+    debugLog.normal('\n[STEP 1/10] 🎨 Preloading logos and owner configs...');
+
+    // Start both operations in parallel for better performance
+    const logoPromise = preloadLogos();
+    const ownerConfigPromise = import('./config.js').then(({ loadOwnerLogoConfigs }) => loadOwnerLogoConfigs());
+
+    await Promise.all([logoPromise, ownerConfigPromise]);
+
     const step1Time = performance.now() - step1Start;
-    debugLog.normal(`✓ Logos preloaded in ${step1Time.toFixed(2)}ms`);
+    debugLog.normal(`✓ Logos and owner configs preloaded in ${step1Time.toFixed(2)}ms`);
     
     // Step 2: Check document access
     const step2Start = performance.now();

@@ -133,10 +133,16 @@ export async function initializeDocument(state) {
         debugLog.verbose('  │  → Processing owner parameter...');
         
         // Try to show owner's logo in owner mode
-        const { getOwnerLogoConfig } = await import('./config.js');
+        const { getOwnerLogoConfig, loadOwnerLogoConfigs } = await import('./config.js');
+
+        // First ensure owner configs are loaded (should be preloaded but fallback)
+        const preloadStart = performance.now();
+        await loadOwnerLogoConfigs();
+        debugLog.verbose(`  │     Owner configs preloaded (${(performance.now() - preloadStart).toFixed(2)}ms)`);
+
         const logoConfigStart = performance.now();
         const ownerLogoConfig = await getOwnerLogoConfig(ownerParam);
-        debugLog.verbose(`  │     Owner logo config loaded (${(performance.now() - logoConfigStart).toFixed(2)}ms)`);
+        debugLog.verbose(`  │     Owner logo config retrieved (${(performance.now() - logoConfigStart).toFixed(2)}ms)`);
         debugLog.verbose(`  │     Config:`, ownerLogoConfig);
 
         // In owner mode, update header to show owner name
