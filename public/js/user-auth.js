@@ -112,9 +112,24 @@ export async function initializeUserMenu() {
     if (signOutBtn) {
         signOutBtn.addEventListener('click', async () => {
             try {
-                // Clear Supabase session
-                const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
-                localStorage.removeItem(sessionKey);
+                console.log('👋 Starting sign out process...');
+                
+                // Clear ALL Supabase auth keys from localStorage
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('sb-')) {
+                        keysToRemove.push(key);
+                    }
+                }
+                keysToRemove.forEach(key => {
+                    localStorage.removeItem(key);
+                    console.log('🗑️ Removed localStorage key:', key);
+                });
+
+                // Clear session storage
+                sessionStorage.clear();
+                console.log('🗑️ Cleared sessionStorage');
 
                 // Close dropdown
                 closeUserMenuDropdown();
@@ -122,12 +137,14 @@ export async function initializeUserMenu() {
                 // Hide user menu and update mobile menu
                 await updateUserMenuVisibility();
 
-                // Redirect to logout page
-                console.log('👋 User signed out successfully, redirecting to logout page');
-                window.location.href = '/logout.html';
+                // Redirect to login page with logout message (same as React admin app)
+                console.log('👋 User signed out successfully, redirecting to login page');
+                window.location.href = '/app/login?logout=true';
 
             } catch (error) {
-                console.error('Error signing out:', error);
+                console.error('❌ Error signing out:', error);
+                // Even if there's an error, redirect to login page
+                window.location.href = '/app/login?logout=true';
             }
         });
     }

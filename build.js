@@ -296,6 +296,7 @@ console.log('   - ~500MB deployment size saved\n');
 console.log('\n🎨 Copying logo and favicon files:');
 const logoFiles = [
     { from: 'public/docutrain-logo.svg', to: 'public/docutrain-logo.svg' },
+    { from: 'public/docutrain-icon.png', to: 'public/docutrain-icon.png' },
     { from: 'public/logos/maker-logo-trns.png', to: 'public/logos/maker-logo-trns.png' },
     { from: 'public/logos/ukidney-logo.svg', to: 'public/logos/ukidney-logo.svg' },
     { from: 'public/robot-favicon.png', to: 'public/robot-favicon.png' },

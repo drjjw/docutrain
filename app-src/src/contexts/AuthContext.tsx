@@ -31,6 +31,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('🟢 AuthContext: onAuthStateChange triggered', { event: _event, hasSession: !!session });
       setSession(session);
       setUser(session?.user ?? null);
     });
@@ -68,13 +69,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const signOut = async () => {
+    console.log('🟡 AuthContext: signOut called');
     try {
       await authService.signOut();
-      setSession(null);
-      setUser(null);
+      console.log('🟡 AuthContext: authService.signOut completed');
     } catch (error) {
-      throw new Error(getAuthErrorMessage(error as Error));
+      console.error('🔴 AuthContext: signOut error (will clear local state anyway):', error);
+      // Don't throw - we still want to clear local state even if Supabase signOut fails
     }
+    
+    // Always clear local state, even if Supabase signOut failed
+    setSession(null);
+    setUser(null);
+    console.log('🟡 AuthContext: Session and user cleared locally');
   };
 
   const value: AuthContextType = {

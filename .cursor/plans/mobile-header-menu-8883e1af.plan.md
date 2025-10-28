@@ -95,7 +95,7 @@ Redesign the mobile chat header for better space utilization by consolidating do
 2. **Menu sections:** Show as separate sections with clear dividers (option 2b)
 3. **Hamburger position:** Right side of header for easy thumb access
 4. **Menu width:** 85% of screen width to allow partial backdrop visibility
-5. **Animation:** Slide in from right with smooth 300ms transition
+5. **Animation:** Slide in from right with smooth 300ms transitiondbfff
 
 ### To-dos
 

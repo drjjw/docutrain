@@ -46,11 +46,32 @@ export async function signIn({ email, password }: SignInData) {
  * Sign out the current user
  */
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
-
-  if (error) {
-    throw new Error(error.message);
+  try {
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.warn('Supabase signOut error (will clear local storage anyway):', error);
+    }
+  } catch (error) {
+    console.warn('Supabase signOut exception (will clear local storage anyway):', error);
   }
+  
+  // Always clear local storage, even if Supabase signOut failed
+  // This handles cases where the session is already expired/invalid
+  // Clear all possible Supabase auth keys
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('sb-')) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach(key => localStorage.removeItem(key));
+  
+  // Also clear session storage
+  sessionStorage.clear();
+  
+  console.log('🟡 Cleared local/session storage keys:', keysToRemove);
 }
 
 /**

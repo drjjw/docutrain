@@ -1,5 +1,5 @@
 // UI Document - Document UI management and orchestration
-import { getDocument, getOwnerLogoConfig, parseDocumentSlugs, getBackButtonURL } from './config.js';
+import { getDocument, getOwnerLogoConfig, parseDocumentSlugs, getBackButtonURL, API_URL } from './config.js';
 import { updateMetaTags, darkenColor, hexToRgba, equalizeContainerHeights } from './ui-utils.js';
 import { addDownloadsToWelcome } from './ui-downloads.js';
 
@@ -48,39 +48,156 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
 
             // SweetAlert2 is loaded globally
             // Show modal explaining document selection is required
+
+            // First, fetch available owners for autocomplete
+            let availableOwners = [];
+            try {
+                const response = await fetch(`${API_URL}/api/owners`);
+                if (response.ok) {
+                    const data = await response.json();
+                    availableOwners = Object.keys(data.owners || {});
+                }
+            } catch (error) {
+                console.warn('Failed to fetch owners for autocomplete:', error);
+            }
+
             Swal.fire({
-                title: 'Document Required',
+                title: 'Document or Owner Required',
                 html: `
+                    <style>
+                        .doc-modal-row {
+                            display: flex;
+                            gap: 8px;
+                        }
+                        @media (max-width: 600px) {
+                            .doc-modal-row {
+                                flex-direction: column;
+                            }
+                        }
+                    </style>
                     <div style="text-align: left; line-height: 1.6;">
-                        <p style="margin-bottom: 16px; color: #333;">Please specify a document using the URL parameter:</p>
-                        <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; font-family: monospace; margin: 12px 0; color: #333;">
-                            ?doc=<strong>document-slug</strong>
+                        <div style="margin-top: 20px;">
+                            <label for="documentSlugInput" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Enter document slug:</label>
+                            <div class="doc-modal-row">
+                                <input
+                                    id="documentSlugInput"
+                                    type="text"
+                                    placeholder="e.g., smh, maker-foh"
+                                    style="flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;"
+                                    autofocus
+                                >
+                                <button
+                                    id="loadDocumentBtn"
+                                    style="flex: 1; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; white-space: nowrap;"
+                                    onmouseover="this.style.background='#0056b3'"
+                                    onmouseout="this.style.background='#007bff'"
+                                >
+                                    Load Document
+                                </button>
+                            </div>
                         </div>
-                        <p style="margin-top: 16px; font-size: 14px; color: #333;">
-                            Example: <code>?doc=smh</code> or <code>?doc=maker-foh</code>
-                        </p>
+                        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #eee;">
+                            <label for="ownerSlugInput" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Or enter owner group:</label>
+                            <div class="doc-modal-row">
+                                <input
+                                    id="ownerSlugInput"
+                                    type="text"
+                                    placeholder="e.g., ukidney, maker"
+                                    style="flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;"
+                                >
+                                <button
+                                    id="loadOwnerBtn"
+                                    style="flex: 1; padding: 12px; background: #28a745; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; white-space: nowrap;"
+                                    onmouseover="this.style.background='#218838'"
+                                    onmouseout="this.style.background='#28a745'"
+                                >
+                                    Load Owner
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 `,
-                icon: 'info',
+                imageUrl: '/app/assets/docutrain-icon-BAjKzxZF.png',
+                imageWidth: 100,
+                imageAlt: 'DocuTrain',
                 showConfirmButton: false,
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 customClass: {
                     popup: 'document-modal'
+                },
+                didOpen: () => {
+                    const slugInput = document.getElementById('documentSlugInput');
+                    const ownerInput = document.getElementById('ownerSlugInput');
+                    
+                    // Clear owner input when typing in document input
+                    slugInput.addEventListener('input', () => {
+                        if (slugInput.value.trim()) {
+                            ownerInput.value = '';
+                        }
+                    });
+                    
+                    // Clear document input when typing in owner input
+                    ownerInput.addEventListener('input', () => {
+                        if (ownerInput.value.trim()) {
+                            slugInput.value = '';
+                        }
+                    });
+                    
+                    // Handle Load Document button
+                    document.getElementById('loadDocumentBtn').addEventListener('click', () => {
+                        const slug = slugInput.value.trim();
+                        
+                        if (!slug) {
+                            Swal.showValidationMessage('Please enter a document slug');
+                            return;
+                        }
+                        
+                        window.location.href = `/chat?doc=${encodeURIComponent(slug)}`;
+                    });
+                    
+                    // Handle Load Owner button
+                    document.getElementById('loadOwnerBtn').addEventListener('click', () => {
+                        const owner = ownerInput.value.trim();
+                        
+                        if (!owner) {
+                            Swal.showValidationMessage('Please enter an owner group');
+                            return;
+                        }
+                        
+                        window.location.href = `/chat?owner=${encodeURIComponent(owner)}`;
+                    });
+                    
+                    // Allow Enter key in document input to trigger Load Document
+                    slugInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            document.getElementById('loadDocumentBtn').click();
+                        }
+                    });
+                    
+                    // Allow Enter key in owner input to trigger Load Owner
+                    ownerInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            document.getElementById('loadOwnerBtn').click();
+                        }
+                    });
                 }
             });
         }
 
         // Set minimal generic interface
-        document.getElementById('headerTitle').textContent = 'Document Assistant';
-        document.getElementById('welcomeTitle').textContent = 'Document Required';
+        const headerTitle = document.getElementById('headerTitle');
+        const welcomeTitle = document.getElementById('welcomeTitle');
+        
+        if (headerTitle) headerTitle.textContent = 'Document Assistant';
+        if (welcomeTitle) welcomeTitle.textContent = 'Document Required';
         
         // Reset meta tags to defaults
         updateMetaTags('AI Document Assistant', 'AI-powered document assistant for medical guidelines and research papers');
 
         // Hide interface elements that require a document
         const subtitleElement = document.getElementById('headerSubtitle');
-        subtitleElement.textContent = 'Please specify a document';
+        if (subtitleElement) subtitleElement.textContent = 'Please specify a document';
 
         const backLink = document.querySelector('.back-link');
         if (backLink) {
