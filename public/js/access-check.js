@@ -281,11 +281,27 @@ function showPasscodeModal(documentSlug, documentInfo) {
  */
 function showLoginModal(documentSlug, documentInfo) {
     const docTitle = documentInfo?.title || documentSlug;
+    const ownerLogo = documentInfo?.owner?.logo_url;
+    const ownerName = documentInfo?.owner?.name;
+    
+    // Build logo HTML if available
+    let logoHtml = '';
+    if (ownerLogo) {
+        logoHtml = `
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="${ownerLogo}" 
+                     alt="${ownerName || 'Owner'} logo" 
+                     style="max-width: 150px; max-height: 80px; object-fit: contain;" />
+            </div>
+        `;
+    }
+    
     // Use SweetAlert2 which is already loaded
     Swal.fire({
-        icon: 'info',
+        icon: ownerLogo ? undefined : 'info', // Hide icon if we have a logo
         title: 'Login Required',
         html: `
+            ${logoHtml}
             <div style="text-align: left;">
                 <p style="margin-bottom: 15px; color: #333;">
                     The document "<strong>${docTitle}</strong>" requires authentication to access.

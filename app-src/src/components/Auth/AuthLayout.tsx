@@ -1,4 +1,5 @@
 import React from 'react';
+import { docutrainIconUrl } from '@/assets';
 
 interface OwnerInfo {
   id: string;
@@ -15,20 +16,22 @@ interface AuthLayoutProps {
 }
 
 export function AuthLayout({ children, title, subtitle, ownerInfo }: AuthLayoutProps) {
+  // Use owner logo if available, otherwise use Docutrain icon
+  const logoUrl = ownerInfo?.logo_url || docutrainIconUrl;
+  const logoAlt = ownerInfo ? `${ownerInfo.name} logo` : 'Docutrain';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Owner Logo */}
-          {ownerInfo?.logo_url && (
-            <div className="text-center mb-6">
-              <img
-                src={ownerInfo.logo_url}
-                alt={`${ownerInfo.name} logo`}
-                className="h-12 w-auto mx-auto"
-              />
-            </div>
-          )}
+          {/* Logo - Owner logo or Docutrain logo */}
+          <div className="text-center mb-6">
+            <img
+              src={logoUrl}
+              alt={logoAlt}
+              className="h-16 w-auto mx-auto"
+            />
+          </div>
 
           {/* Header */}
           <div className="text-center mb-8">
@@ -44,7 +47,7 @@ export function AuthLayout({ children, title, subtitle, ownerInfo }: AuthLayoutP
 
         {/* Footer */}
         <div className="text-center mt-6 text-sm text-gray-600">
-          <p>AI Document Assistant</p>
+          <p>DocuTrain</p>
         </div>
       </div>
     </div>
