@@ -337,10 +337,10 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
 
                 {/* File & Technical Details Card */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="px-6 py-4 bg-gradient-to-r from-purple-50 to-violet-50 border-b border-gray-200">
+                  <div className="px-6 py-4 bg-gradient-to-r from-docutrain-light/10 to-docutrain-lighter/10 border-b border-gray-200">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-100 rounded-lg">
-                        <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="p-2 bg-docutrain-light/20 rounded-lg">
+                        <svg className="w-5 h-5 text-docutrain-medium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                         </svg>
                       </div>
@@ -435,8 +435,8 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
 
                           {/* Passcode */}
                           <label className={`relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                            editingValues.access_level === 'passcode' 
-                              ? 'border-purple-500 bg-purple-50 shadow-sm' 
+                            editingValues.access_level === 'passcode'
+                              ? 'border-docutrain-medium bg-docutrain-light/10 shadow-sm' 
                               : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                           }`}>
                             <input
@@ -448,13 +448,13 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                               className="sr-only"
                             />
                             <div className="flex items-center gap-2 mb-1">
-                              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-5 h-5 text-docutrain-medium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                               </svg>
                               <span className="font-medium text-gray-900">Passcode</span>
                             </div>
                             <span className="text-xs text-gray-600">URL with passcode</span>
-                            <span className="text-xs text-purple-600 mt-0.5">(Coming soon)</span>
+                            <span className="text-xs text-docutrain-medium mt-0.5">(Coming soon)</span>
                           </label>
 
                           {/* Registered */}
@@ -548,16 +548,16 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
 
                         {/* Passcode Input Field */}
                         {editingValues.access_level === 'passcode' && (
-                          <div className="mt-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                          <div className="mt-3 p-4 bg-docutrain-light/10 border border-docutrain-light/30 rounded-lg">
                             <label className="block text-sm font-medium text-gray-700 mb-2">Passcode</label>
                             <input
                               type="text"
                               value={editingValues.passcode || ''}
                               onChange={(e) => handleFieldChange('passcode', e.target.value)}
                               placeholder="Enter passcode..."
-                              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 w-full"
+                              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-docutrain-medium focus:border-docutrain-medium w-full"
                             />
-                            <p className="text-xs text-gray-600 mt-2">Users will need to append <code className="px-1 py-0.5 bg-white rounded text-purple-600">?passcode=VALUE</code> to the URL</p>
+                            <p className="text-xs text-gray-600 mt-2">Users will need to append <code className="px-1 py-0.5 bg-white rounded text-docutrain-medium">?passcode=VALUE</code> to the URL</p>
                           </div>
                         )}
                       </div>

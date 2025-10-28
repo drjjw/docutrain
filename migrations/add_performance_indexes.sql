@@ -70,3 +70,4 @@ WHERE mean_time > 100  -- queries taking more than 100ms on average
 ORDER BY mean_time DESC
 LIMIT 20;
 */
+

@@ -271,13 +271,13 @@ const otherFiles = [
     { from: 'server.js', to: 'server.js' },
     { from: 'package.json', to: 'package.json' },
     { from: 'package-lock.json', to: 'package-lock.json' },
-    { from: 'ecosystem.config.brightbean.js', to: 'ecosystem.config.brightbean.js' },
+    { from: 'docutrainio-bot.js', to: 'docutrainio-bot.js' },
     { from: '.htaccess', to: '.htaccess', optional: true }
 ];
 
 // Create start.sh in dist
 const startShContent = `#!/bin/bash
-cd /home/brightbeanio/public_html
+cd /home/docutrainio/public_html
 export $(cat .env | grep -v '^#' | xargs)
 node server.js
 `;
@@ -295,6 +295,7 @@ console.log('   - ~500MB deployment size saved\n');
 // Copy logos and favicon to public directory
 console.log('\n🎨 Copying logo and favicon files:');
 const logoFiles = [
+    { from: 'public/docutrain-logo.svg', to: 'public/docutrain-logo.svg' },
     { from: 'public/logos/maker-logo-trns.png', to: 'public/logos/maker-logo-trns.png' },
     { from: 'public/logos/ukidney-logo.svg', to: 'public/logos/ukidney-logo.svg' },
     { from: 'public/robot-favicon.png', to: 'public/robot-favicon.png' },

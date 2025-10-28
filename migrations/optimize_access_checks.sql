@@ -15,31 +15,31 @@ CREATE OR REPLACE FUNCTION user_has_multiple_document_access(
   has_access BOOLEAN
 ) AS $$
 DECLARE
+  current_slug TEXT;
   doc_record RECORD;
+  access_result BOOLEAN;
 BEGIN
   -- For each requested document slug
-  FOREACH doc_record IN
+  FOREACH current_slug IN ARRAY p_document_slugs LOOP
+    -- Get document info
     SELECT
-      d.slug,
       d.id,
       d.owner_id,
-      d.access_level,
-      d.passcode
+      d.access_level
+    INTO doc_record
     FROM documents d
-    WHERE d.slug = ANY(p_document_slugs)
-    AND d.active = true
-  LOOP
-    -- Check access for this document
-    DECLARE
-      access_result BOOLEAN := false;
-      is_super_admin BOOLEAN := false;
-      is_owner_member BOOLEAN := false;
-      is_owner_admin BOOLEAN := false;
-    BEGIN
+    WHERE d.slug = current_slug
+    AND d.active = true;
+
+    -- Default to no access
+    access_result := false;
+
+    -- If document exists
+    IF FOUND THEN
       -- PUBLIC: Anyone can access
       IF doc_record.access_level = 'public' THEN
         access_result := true;
-      -- PASSCODE: For now, treat as public (passcode validation not yet implemented)
+      -- PASSCODE: For now, treat as public
       ELSIF doc_record.access_level = 'passcode' THEN
         access_result := true;
       -- REGISTERED: Any logged-in user can access
@@ -50,70 +50,49 @@ BEGIN
         access_result := false;
       ELSE
         -- Check if user is super admin (can access everything)
-        SELECT EXISTS(
+        IF EXISTS(
           SELECT 1 FROM user_roles
           WHERE user_id = p_user_id
           AND role = 'super_admin'
-        ) INTO is_super_admin;
-
-        IF is_super_admin THEN
+        ) THEN
           access_result := true;
         -- Document has no owner but requires owner access → deny
         ELSIF doc_record.owner_id IS NULL THEN
           access_result := false;
         -- OWNER_RESTRICTED: Check if user is member of owner group
         ELSIF doc_record.access_level = 'owner_restricted' THEN
-          SELECT EXISTS(
-            -- Check user_owner_access table (regular members)
+          IF EXISTS(
             SELECT 1 FROM user_owner_access
             WHERE user_id = p_user_id AND owner_id = doc_record.owner_id
             UNION
-            -- Check user_roles table (owner admins and registered users)
             SELECT 1 FROM user_roles
             WHERE user_id = p_user_id
             AND owner_id = doc_record.owner_id
             AND role IN ('owner_admin', 'registered')
-          ) INTO is_owner_member;
-
-          access_result := is_owner_member;
+          ) THEN
+            access_result := true;
+          END IF;
         -- OWNER_ADMIN_ONLY: Check if user is owner admin
         ELSIF doc_record.access_level = 'owner_admin_only' THEN
-          SELECT EXISTS(
+          IF EXISTS(
             SELECT 1 FROM user_roles
             WHERE user_id = p_user_id
             AND owner_id = doc_record.owner_id
             AND role = 'owner_admin'
-          ) INTO is_owner_admin;
-
-          access_result := is_owner_admin;
+          ) THEN
+            access_result := true;
+          END IF;
         END IF;
       END IF;
+    END IF;
 
-      -- Return result for this document
-      document_slug := doc_record.slug;
-      has_access := access_result;
-      RETURN NEXT;
-    END;
+    -- Return result for this document
+    document_slug := current_slug;
+    has_access := access_result;
+    RETURN NEXT;
   END LOOP;
 
-  -- Handle documents that don't exist in database
-  DECLARE
-    existing_slugs TEXT[];
-  BEGIN
-    SELECT array_agg(slug)
-    INTO existing_slugs
-    FROM documents
-    WHERE slug = ANY(p_document_slugs);
-
-    -- For non-existent documents, return false
-    FOR i IN 1..array_length(p_document_slugs, 1) LOOP
-      IF NOT (p_document_slugs[i] = ANY(existing_slugs)) THEN
-        document_slug := p_document_slugs[i];
-        has_access := false;
-        RETURN NEXT;
-      END IF;
-    END LOOP;
-  END;
+  RETURN;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

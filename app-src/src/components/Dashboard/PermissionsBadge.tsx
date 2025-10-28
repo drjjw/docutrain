@@ -14,7 +14,7 @@ export function PermissionsBadge({ role, ownerName }: PermissionsBadgeProps) {
     },
     owner_admin: {
       label: 'Admin',
-      className: 'bg-purple-100 text-purple-800',
+      className: 'bg-docutrain-light/20 text-docutrain-dark',
     },
     super_admin: {
       label: 'Super Admin',

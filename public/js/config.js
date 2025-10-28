@@ -30,7 +30,7 @@ const fallbackDocConfig = {
         slug: 'smh',
         title: 'Nephrology Manual',
         subtitle: 'St. Michael\'s Hospital · Interactive search and consultation',
-        backLink: 'https://brightbean.io/nephrology-publications/nephrology-manuals/st-michael-s-hospital-nephrology-manual',
+        backLink: null,
         welcomeMessage: 'SMH Housestaff Manual',
         embeddingType: 'openai',
         active: true,
@@ -41,7 +41,7 @@ const fallbackDocConfig = {
         slug: 'uhn',
         title: 'Nephrology Manual',
         subtitle: 'University Health Network · Interactive search and consultation',
-        backLink: 'https://brightbean.io/nephrology-publications/nephrology-manuals/university-health-network-nephrology-manual',
+        backLink: null,
         welcomeMessage: 'UHN Nephrology Manual',
         embeddingType: 'openai',
         active: true,
@@ -52,7 +52,7 @@ const fallbackDocConfig = {
         slug: 'ckd-dc-2025',
         title: 'CKD in Diabetes Guidelines',
         subtitle: 'Diabetes Canada Clinical Practice Guideline 2025 · Interactive search and consultation',
-        backLink: 'https://brightbean.io/nephrology-publications/nephrology-manuals/ckd-diabetes-guidelines-2025',
+        backLink: null,
         welcomeMessage: 'CKD in Diabetes: Clinical Practice Guideline 2025',
         embeddingType: 'local',
         active: true,
@@ -69,7 +69,7 @@ const OWNER_LOGO_CACHE_TTL = 10 * 60 * 1000; // 10 minutes (longer than document
 /**
  * Fetch owner logo configurations from API
  */
-async function loadOwnerLogoConfigs(forceRefresh = false) {
+export async function loadOwnerLogoConfigs(forceRefresh = false) {
     try {
         // Check for force refresh from URL parameter (for development)
         const urlParams = new URLSearchParams(window.location.search);

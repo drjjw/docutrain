@@ -1,41 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/UI/Button';
-import { getAccessibleOwners } from '@/lib/supabase/permissions';
+import { docutrainLogoUrl } from '@/assets';
 
 export function DashboardHeader() {
-  const { user, signOut } = useAuth();
-  const { isSuperAdmin, ownerGroups } = usePermissions();
+  const { signOut } = useAuth();
+  const { isSuperAdmin } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
-  const [ownerLogoUrl, setOwnerLogoUrl] = useState<string | null>(null);
-
-  const hasAdminAccess = isSuperAdmin || (ownerGroups && ownerGroups.some(
-    og => og.role === 'owner_admin'
-  ));
-
-  // Fetch owner logo for all users with owner groups (except super admins)
-  useEffect(() => {
-    const fetchOwnerLogo = async () => {
-      if (!user || isSuperAdmin || ownerGroups.length === 0) {
-        setOwnerLogoUrl(null);
-        return;
-      }
-
-      try {
-        const owners = await getAccessibleOwners(user.id);
-        if (owners.length > 0 && owners[0].logo_url) {
-          setOwnerLogoUrl(owners[0].logo_url);
-        }
-      } catch (error) {
-        console.error('Failed to fetch owner logo:', error);
-      }
-    };
-
-    fetchOwnerLogo();
-  }, [user?.id, isSuperAdmin, ownerGroups.length]);
 
   const handleSignOut = async () => {
     try {
@@ -54,27 +28,11 @@ export function DashboardHeader() {
     <header className="bg-white border-b border-gray-200 shadow-sm">
       <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            {ownerLogoUrl ? (
-              <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-200">
-                <img 
-                  src={ownerLogoUrl} 
-                  alt="Owner logo" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ) : (
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
-                {user?.email?.substring(0, 2).toUpperCase() || '?'}
-              </div>
-            )}
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Admin Portal</h1>
-              <p className="text-xs text-gray-600">
-                {user?.email}
-              </p>
-            </div>
-          </div>
+          <img
+            src={docutrainLogoUrl}
+            alt="DocuTrain Logo"
+            className="w-[250px]"
+          />
           <div className="flex items-center gap-2">
             {/* Navigation Links */}
             <Button

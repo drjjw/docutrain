@@ -1,17 +1,17 @@
 module.exports = {
   apps: [{
-    name: 'brightbean-bot',
+    name: 'docutrainio-bot',
     script: 'server.js',
     instances: 1,
     exec_mode: 'fork',
-    cwd: '/home/brightbeanio/public_html',
+    cwd: '/home/docutrainio/public_html',
     env_file: '.env',
     env: {
       NODE_ENV: 'production'
     },
     // Graceful shutdown configuration
     kill_timeout: 5000, // Wait 5 seconds for graceful shutdown
-    wait_ready: true,    // Wait for ready signal before considering app up
+    wait_ready: false,    // Don't wait for ready signal - let server start normally
     listen_timeout: 15000, // Wait 15 seconds for app to listen (RAG-only is faster)
 
     // Restart policies
@@ -49,4 +49,3 @@ module.exports = {
     }
   }]
 };
-

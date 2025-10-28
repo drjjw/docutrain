@@ -1,10 +1,10 @@
 /* ==================== LANDING PAGE STYLES ==================== */
 
 :root {
-    --primary: #6366f1;
-    --primary-dark: #4f46e5;
-    --primary-light: #818cf8;
-    --secondary: #8b5cf6;
+    --primary: #0066CC;
+    --primary-dark: #003399;
+    --primary-light: #3399FF;
+    --secondary: #0066CC;
     --accent: #ec4899;
     --success: #10b981;
     --warning: #f59e0b;
@@ -84,8 +84,7 @@ body {
 }
 
 .nav-logo-img {
-    width: 32px;
-    height: 32px;
+    width: 250px;
 }
 
 .nav-logo-text {
@@ -201,7 +200,7 @@ body {
 .hero-gradient {
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background: linear-gradient(135deg, #003399 0%, #0066CC 50%, #3399FF 100%);
     opacity: 0.03;
 }
 
