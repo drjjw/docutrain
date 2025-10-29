@@ -12,7 +12,33 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
   
   let query = supabase
     .from('documents')
-    .select('*, owners(*)')
+    .select(`
+      id,
+      slug,
+      title,
+      subtitle,
+      back_link,
+      welcome_message,
+      pdf_filename,
+      pdf_subdirectory,
+      embedding_type,
+      year,
+      active,
+      metadata,
+      created_at,
+      updated_at,
+      category,
+      owner,
+      owner_id,
+      cover,
+      intro_message,
+      downloads,
+      chunk_limit_override,
+      show_document_selector,
+      access_level,
+      passcode,
+      owners(*)
+    `)
     .order('created_at', { ascending: false });
 
   // If not super admin, filter by owner groups
@@ -45,6 +71,12 @@ export async function updateDocument(
 ): Promise<Document> {
   // Remove read-only fields
   const { created_at, updated_at, ...safeUpdates } = updates as any;
+
+  // Convert empty strings to null for UUID fields (owner_id)
+  // This prevents "invalid input syntax for type uuid" errors
+  if ('owner_id' in safeUpdates && safeUpdates.owner_id === '') {
+    safeUpdates.owner_id = null;
+  }
 
   const { data, error } = await supabase
     .from('documents')
