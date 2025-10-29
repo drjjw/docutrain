@@ -122,3 +122,4 @@ Future enhancements could include:
 - Image optimization (compression)
 - Drag-and-drop directly onto preview area
 
+

@@ -6,7 +6,7 @@ import { useUpload } from '@/hooks/useUpload';
 export function UploadZone() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const { upload, uploading, progress, error, reset } = useUpload();
+  const { upload, uploading, progress, error, success, uploadedDocument, reset } = useUpload();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -33,6 +33,20 @@ export function UploadZone() {
       {error && (
         <Alert variant="error" onDismiss={reset}>
           {error}
+        </Alert>
+      )}
+
+      {success && uploadedDocument && (
+        <Alert variant="success" onDismiss={reset}>
+          <div className="space-y-1">
+            <p className="font-medium">Upload successful!</p>
+            <p className="text-sm">
+              <strong>{uploadedDocument.title}</strong> has been uploaded and processing will begin shortly.
+            </p>
+            <p className="text-sm text-green-700">
+              Check "Your Uploaded Documents" below to track the processing status.
+            </p>
+          </div>
         </Alert>
       )}
 

@@ -20,7 +20,7 @@ const { createProcessingRouter } = require('./lib/routes/processing');
 const rag = require('./lib/rag');
 
 const app = express();
-const PORT = process.env.PORT || 3456;
+const PORT = process.env.PORT || 3458;
 
 // Graceful shutdown handling
 let server;

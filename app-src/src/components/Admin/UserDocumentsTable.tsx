@@ -20,26 +20,14 @@ export function UserDocumentsTable() {
   const [documents, setDocuments] = useState<UserDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadDocuments();
-    
-    // Set up polling for documents in processing state
-    const pollInterval = setInterval(() => {
-      const hasProcessing = documents.some(doc => doc.status === 'processing');
-      if (hasProcessing) {
-        loadDocuments();
-      }
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(pollInterval);
-  }, [documents]);
+  const [retryingDocId, setRetryingDocId] = useState<string | null>(null);
 
   const loadDocuments = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         setError('Not authenticated');
+        setLoading(false);
         return;
       }
 
@@ -60,6 +48,76 @@ export function UserDocumentsTable() {
       setError(err instanceof Error ? err.message : 'Failed to load documents');
     } finally {
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDocuments();
+    
+    // Set up realtime subscription for document changes
+    const channel = supabase
+      .channel('user_documents_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_documents',
+          filter: user ? `user_id=eq.${user.id}` : undefined,
+        },
+        (payload) => {
+          console.log('📡 Realtime update received:', payload);
+          loadDocuments();
+        }
+      )
+      .subscribe();
+    
+    // Set up polling for documents in processing state
+    const pollInterval = setInterval(() => {
+      if (documents.some(doc => doc.status === 'processing')) {
+        loadDocuments();
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => {
+      clearInterval(pollInterval);
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]); // Only depend on user.id, not documents array
+
+  const handleRetryProcessing = async (documentId: string) => {
+    try {
+      setRetryingDocId(documentId);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        alert('Not authenticated');
+        return;
+      }
+
+      const response = await fetch('/api/process-document', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+        body: JSON.stringify({
+          user_document_id: documentId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to trigger processing');
+      }
+
+      // Reload documents to show updated status
+      await loadDocuments();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to retry processing');
+    } finally {
+      setRetryingDocId(null);
     }
   };
 
@@ -154,6 +212,9 @@ export function UserDocumentsTable() {
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Last Updated
             </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -176,6 +237,29 @@ export function UserDocumentsTable() {
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {formatDate(doc.updated_at)}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {(doc.status === 'pending' || doc.status === 'error') && (
+                  <button
+                    onClick={() => handleRetryProcessing(doc.id)}
+                    disabled={retryingDocId === doc.id}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {retryingDocId === doc.id ? (
+                      <>
+                        <Spinner size="sm" />
+                        Retrying...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Retry Processing
+                      </>
+                    )}
+                  </button>
+                )}
               </td>
             </tr>
           ))}
