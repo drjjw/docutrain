@@ -86,6 +86,8 @@ const jsFiles = {
     'public/js/mobile-header.js': 'js',
     'public/js/user-auth.js': 'js',
     'public/js/document-init.js': 'js',
+    'public/js/document-ownership.js': 'js',
+    'public/js/inline-editor.js': 'js',
     'public/js/page-loader.js': 'js',
     'public/js/landing.js': 'js',
     'public/js/main.js': 'js'

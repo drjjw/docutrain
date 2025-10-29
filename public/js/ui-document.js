@@ -663,6 +663,117 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
     }
 
     log.verbose(`    │  ✓ Document set to: ${selectedDocument ? selectedDocument.toUpperCase() : 'NONE'} - ${config.welcomeMessage}`);
+    
+    // Initialize inline editors if user has edit permissions (single document only)
+    console.log(`🔧 [INLINE EDITOR] Checking conditions: isMultiDoc=${isMultiDoc}, validConfigs.length=${validConfigs.length}`);
+    log.verbose(`    │  → Checking if inline editors should be initialized: isMultiDoc=${isMultiDoc}, validConfigs.length=${validConfigs.length}`);
+    if (!isMultiDoc && validConfigs.length === 1) {
+        console.log(`🔧 [INLINE EDITOR] Conditions met - initializing for ${config.slug}`);
+        log.verbose(`    │  → Conditions met - calling initializeInlineEditors for ${config.slug}`);
+        await initializeInlineEditors(config.slug, config);
+    } else {
+        console.log(`🔧 [INLINE EDITOR] Skipping - isMultiDoc: ${isMultiDoc}, validConfigs.length: ${validConfigs.length}`);
+        log.verbose(`    │  → Skipping inline editors - isMultiDoc: ${isMultiDoc}, validConfigs.length: ${validConfigs.length}`);
+    }
+    
     log.verbose(`    └─ updateDocumentUI() completed in ${(performance.now() - uiStart).toFixed(2)}ms`);
+}
+
+/**
+ * Initialize inline editors for document fields
+ * Only shows edit controls if user has edit permissions
+ */
+async function initializeInlineEditors(documentSlug, documentConfig) {
+    console.log(`🔧 [INLINE EDITOR] Starting initialization for ${documentSlug}`);
+    log.verbose(`    │  → Starting inline editor initialization for ${documentSlug}`);
+    try {
+        // Dynamic import to avoid circular dependencies
+        console.log(`🔧 [INLINE EDITOR] Importing modules...`);
+        log.verbose(`    │  → Importing document-ownership.js...`);
+        const { canEditDocument } = await import('./document-ownership.js');
+        console.log(`🔧 [INLINE EDITOR] document-ownership imported`);
+        log.verbose(`    │  → Importing inline-editor.js...`);
+        const { initInlineEditor } = await import('./inline-editor.js');
+        console.log(`🔧 [INLINE EDITOR] inline-editor imported`);
+        
+        // Check if user can edit this document
+        console.log(`🔧 [INLINE EDITOR] Checking permissions for ${documentSlug}...`);
+        log.verbose(`    │  → Checking edit permissions for ${documentSlug}...`);
+        const canEdit = await canEditDocument(documentSlug);
+        
+        console.log(`🔧 [INLINE EDITOR] Permission result: ${canEdit}`);
+        log.verbose(`    │  → Edit permission result: ${canEdit}`);
+        
+        if (!canEdit) {
+            log.verbose('    │  → User does not have edit permissions - skipping inline editors');
+            return;
+        }
+        
+        log.verbose(`    │  → Initializing inline editors for ${documentSlug}`);
+        
+        // Initialize editors for different fields
+        const headerTitle = document.getElementById('headerTitle');
+        if (headerTitle) {
+            initInlineEditor(headerTitle, {
+                field: 'title',
+                documentSlug: documentSlug,
+                type: 'text',
+                originalValue: documentConfig.title
+            });
+        }
+        
+        const headerSubtitle = document.getElementById('headerSubtitle');
+        if (headerSubtitle) {
+            // For subtitle, we need to extract text content (ignore HTML icons)
+            const subtitleText = headerSubtitle.textContent || documentConfig.subtitle || '';
+            initInlineEditor(headerSubtitle, {
+                field: 'subtitle',
+                documentSlug: documentSlug,
+                type: 'text',
+                originalValue: subtitleText
+            });
+        }
+        
+        // Welcome message editor
+        const welcomeTitle = document.getElementById('welcomeTitle');
+        if (welcomeTitle) {
+            initInlineEditor(welcomeTitle, {
+                field: 'welcome_message',
+                documentSlug: documentSlug,
+                type: 'wysiwyg',
+                originalValue: documentConfig.welcomeMessage
+            });
+        }
+        
+        // Intro message editor
+        const welcomeIntroContent = document.getElementById('welcomeIntroContent');
+        if (welcomeIntroContent) {
+            initInlineEditor(welcomeIntroContent, {
+                field: 'intro_message',
+                documentSlug: documentSlug,
+                type: 'wysiwyg',
+                originalValue: documentConfig.introMessage || ''
+            });
+        }
+        
+        // Also check for cover overlay title (if exists)
+        const coverTitle = document.querySelector('.document-cover-title');
+        if (coverTitle) {
+            initInlineEditor(coverTitle, {
+                field: 'title',
+                documentSlug: documentSlug,
+                type: 'text',
+                originalValue: documentConfig.title
+            });
+        }
+        
+        log.verbose(`    │  ✓ Inline editors initialized`);
+        
+    } catch (error) {
+        console.error('❌ Failed to initialize inline editors:', error);
+        log.error(`    │  ❌ Error initializing inline editors: ${error.message}`);
+        log.error(`    │  ❌ Stack: ${error.stack}`);
+        // Don't block document UI if editor initialization fails
+    }
 }
 
