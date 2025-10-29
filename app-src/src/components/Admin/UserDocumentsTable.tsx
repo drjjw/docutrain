@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
 import { supabase } from '@/lib/supabase/client';
@@ -15,15 +15,24 @@ interface UserDocument {
   updated_at: string;
 }
 
-export function UserDocumentsTable() {
+export interface UserDocumentsTableRef {
+  refresh: () => Promise<void>;
+}
+
+export const UserDocumentsTable = forwardRef<UserDocumentsTableRef>((props, ref) => {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<UserDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryingDocId, setRetryingDocId] = useState<string | null>(null);
+  const documentsRef = useRef<UserDocument[]>([]);
 
-  const loadDocuments = async () => {
+  const loadDocuments = async (isInitialLoad = false) => {
     try {
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         setError('Not authenticated');
@@ -43,16 +52,24 @@ export function UserDocumentsTable() {
 
       const result = await response.json();
       setDocuments(result.documents || []);
+      documentsRef.current = result.documents || []; // Keep ref in sync
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load documents');
     } finally {
-      setLoading(false);
+      if (isInitialLoad) {
+        setLoading(false);
+      }
     }
   };
 
+  // Expose refresh function via ref (doesn't set loading state)
+  useImperativeHandle(ref, () => ({
+    refresh: () => loadDocuments(false),
+  }));
+
   useEffect(() => {
-    loadDocuments();
+    loadDocuments(true);
     
     // Set up realtime subscription for document changes
     const channel = supabase
@@ -67,15 +84,17 @@ export function UserDocumentsTable() {
         },
         (payload) => {
           console.log('📡 Realtime update received:', payload);
-          loadDocuments();
+          loadDocuments(false);
         }
       )
       .subscribe();
     
     // Set up polling for documents in processing state
+    // Use ref to check current state without stale closure issues
     const pollInterval = setInterval(() => {
-      if (documents.some(doc => doc.status === 'processing')) {
-        loadDocuments();
+      if (documentsRef.current.some(doc => doc.status === 'processing')) {
+        console.log('🔄 Polling: Found processing documents, refreshing...');
+        loadDocuments(false);
       }
     }, 5000); // Poll every 5 seconds
 
@@ -113,7 +132,7 @@ export function UserDocumentsTable() {
       }
 
       // Reload documents to show updated status
-      await loadDocuments();
+      await loadDocuments(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to retry processing');
     } finally {
@@ -267,5 +286,5 @@ export function UserDocumentsTable() {
       </table>
     </div>
   );
-}
+});
 

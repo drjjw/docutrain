@@ -3,7 +3,11 @@ import { Button } from '@/components/UI/Button';
 import { Alert } from '@/components/UI/Alert';
 import { useUpload } from '@/hooks/useUpload';
 
-export function UploadZone() {
+interface UploadZoneProps {
+  onUploadSuccess?: () => void;
+}
+
+export function UploadZone({ onUploadSuccess }: UploadZoneProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { upload, uploading, progress, error, success, uploadedDocument, reset } = useUpload();
@@ -24,6 +28,10 @@ export function UploadZone() {
       setSelectedFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
+      }
+      // Call the success callback to refresh the documents list
+      if (onUploadSuccess) {
+        onUploadSuccess();
       }
     }
   };

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Dashboard } from '@/components/Dashboard/Dashboard';
 import { UploadZone } from '@/components/Upload/UploadZone';
 import { DocumentsTable } from '@/components/Admin/DocumentsTable';
-import { UserDocumentsTable } from '@/components/Admin/UserDocumentsTable';
+import { UserDocumentsTable, UserDocumentsTableRef } from '@/components/Admin/UserDocumentsTable';
 import { UsersTable } from '@/components/Admin/UsersTable';
 import { PermissionsBadge } from '@/components/Dashboard/PermissionsBadge';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +17,7 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<'documents' | 'users'>('documents');
+  const userDocumentsTableRef = useRef<UserDocumentsTableRef>(null);
 
   const hasAdminAccess = isSuperAdmin || (ownerGroups && ownerGroups.some(
     og => og.role === 'owner_admin'
@@ -156,7 +157,12 @@ export function DashboardPage() {
                 </p>
               </div>
               <div className="p-6">
-                <UploadZone />
+                <UploadZone onUploadSuccess={() => {
+                  // Refresh the user documents table after successful upload
+                  setTimeout(() => {
+                    userDocumentsTableRef.current?.refresh();
+                  }, 500); // Small delay to ensure database commit
+                }} />
               </div>
             </div>
 
@@ -169,7 +175,7 @@ export function DashboardPage() {
                 </p>
               </div>
               <div className="p-6">
-                <UserDocumentsTable />
+                <UserDocumentsTable ref={userDocumentsTableRef} />
               </div>
             </div>
 
