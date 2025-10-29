@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Password</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        .email-header {
+            background: #ffffff;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        .logo {
+            max-width: 200px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        .email-content {
+            padding: 40px 30px;
+        }
+        .email-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin: 0 0 16px 0;
+            text-align: center;
+        }
+        .email-text {
+            font-size: 16px;
+            color: #555555;
+            margin: 0 0 24px 0;
+            text-align: center;
+        }
+        .button-container {
+            text-align: center;
+            margin: 32px 0;
+        }
+        .reset-button {
+            display: inline-block;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
+        }
+        .reset-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+        }
+        .email-footer {
+            padding: 30px;
+            background-color: #f9f9f9;
+            text-align: center;
+            border-top: 1px solid #e5e5e5;
+        }
+        .footer-text {
+            font-size: 14px;
+            color: #888888;
+            margin: 0 0 8px 0;
+        }
+        .footer-link {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .security-note {
+            background-color: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 16px;
+            margin: 24px 0;
+            border-radius: 4px;
+        }
+        .security-note-text {
+            font-size: 14px;
+            color: #555555;
+            margin: 0;
+        }
+        .link-fallback {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e5e5;
+        }
+        .link-fallback-text {
+            font-size: 14px;
+            color: #888888;
+            margin: 0 0 8px 0;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header with Logo -->
+        <div class="email-header">
+            <img src="https://www.docutrain.io/docutrain-logo.png" alt="DocuTrain Logo" class="logo">
+        </div>
+        
+        <!-- Main Content -->
+        <div class="email-content">
+            <h2 class="email-title">Reset Your Password</h2>
+            
+            <p class="email-text">
+                We received a request to reset the password for your account. Click the button below to create a new password:
+            </p>
+            
+            <div class="button-container">
+                <a href="{{ .ConfirmationURL }}" class="reset-button">Reset Password</a>
+            </div>
+            
+            <div class="security-note">
+                <p class="security-note-text">
+                    <strong>Security Notice:</strong> This link will expire in 1 hour for your security. If you didn't request this password reset, please ignore this email or contact support if you have concerns.
+                </p>
+            </div>
+            
+            <div class="link-fallback">
+                <p class="link-fallback-text">
+                    If the button doesn't work, copy and paste this link into your browser:<br>
+                    <a href="{{ .ConfirmationURL }}" class="footer-link">{{ .ConfirmationURL }}</a>
+                </p>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="email-footer">
+            <p class="footer-text">
+                This email was sent by DocuTrain.<br>
+                If you have any questions, please contact our support team.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+

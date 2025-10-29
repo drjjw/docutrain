@@ -100,3 +100,18 @@ export async function getSession() {
   return session;
 }
 
+/**
+ * Send password reset email
+ */
+export async function resetPassword(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/app/reset-password`,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { success: true };
+}
+
