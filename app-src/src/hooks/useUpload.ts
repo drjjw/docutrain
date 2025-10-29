@@ -4,6 +4,7 @@ import { createDocument } from '@/lib/supabase/database';
 import { getFileValidationError } from '@/lib/utils/validation';
 import { getUploadErrorMessage } from '@/lib/utils/errors';
 import { useAuth } from './useAuth';
+import { supabase } from '@/lib/supabase/client';
 
 export function useUpload() {
   const { user } = useAuth();
@@ -44,6 +45,34 @@ export function useUpload() {
         file_size: file.size,
         mime_type: file.type,
       });
+
+      setProgress(85);
+
+      // Trigger processing
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const response = await fetch('/api/process-document', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              user_document_id: document.id,
+            }),
+          });
+
+          if (!response.ok) {
+            console.error('Failed to trigger processing:', await response.text());
+            // Don't fail the upload if processing trigger fails
+            // User can manually retry later
+          }
+        }
+      } catch (processingError) {
+        console.error('Error triggering processing:', processingError);
+        // Don't fail the upload if processing trigger fails
+      }
 
       setProgress(100);
       

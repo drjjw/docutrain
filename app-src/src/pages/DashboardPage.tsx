@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Dashboard } from '@/components/Dashboard/Dashboard';
 import { UploadZone } from '@/components/Upload/UploadZone';
 import { DocumentsTable } from '@/components/Admin/DocumentsTable';
+import { UserDocumentsTable } from '@/components/Admin/UserDocumentsTable';
 import { UsersTable } from '@/components/Admin/UsersTable';
 import { PermissionsBadge } from '@/components/Dashboard/PermissionsBadge';
 import { useAuth } from '@/hooks/useAuth';
@@ -156,6 +157,19 @@ export function DashboardPage() {
               </div>
               <div className="p-6">
                 <UploadZone />
+              </div>
+            </div>
+
+            {/* User Uploaded Documents - Processing Status */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                <h2 className="text-lg font-semibold text-gray-900">Your Uploaded Documents</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Track the processing status of your uploaded PDFs
+                </p>
+              </div>
+              <div className="p-6">
+                <UserDocumentsTable />
               </div>
             </div>
 

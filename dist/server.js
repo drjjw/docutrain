@@ -16,6 +16,7 @@ const { createCacheRouter } = require('./lib/routes/cache');
 const { createAuthRouter } = require('./lib/routes/auth');
 const { createPermissionsRouter } = require('./lib/routes/permissions');
 const { createUsersRouter } = require('./lib/routes/users');
+const { createProcessingRouter } = require('./lib/routes/processing');
 const rag = require('./lib/rag');
 
 const app = express();
@@ -163,6 +164,7 @@ const routeDependencies = {
 app.use('/api/auth', createAuthRouter(supabase));
 app.use('/api/permissions', createPermissionsRouter(supabase));
 app.use('/api/users', createUsersRouter());
+app.use('/api', createProcessingRouter(supabase, openaiClient));
 app.use('/api', createChatRouter(routeDependencies));
 app.use('/api', createRatingRouter(supabase));
 app.use('/api', createCacheRouter(embeddingCache));
@@ -270,7 +272,9 @@ app.use('/', createDocumentsRouter(supabase, documentRegistry, registryState, es
 // Start server
 async function start() {
     const startupStart = Date.now();
-    console.log('🔄 Starting RAG-only server...');
+    const runningFrom = __dirname.endsWith('/dist') ? 'PRODUCTION (dist/)' : 'DEVELOPMENT (root)';
+    console.log(`🔄 Starting RAG-only server from ${runningFrom}...`);
+    console.log(`📁 Working directory: ${__dirname}`);
 
     try {
         // Phase 1: Load document registry
