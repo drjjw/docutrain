@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
@@ -23,6 +23,11 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState<DocumentWithOwner | null>(null);
   const [editorModalDoc, setEditorModalDoc] = useState<DocumentWithOwner | null>(null);
   const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
+
+  // Debug editorModalDoc changes
+  React.useEffect(() => {
+    console.log('DocumentsTable: editorModalDoc changed:', editorModalDoc?.id || 'null');
+  }, [editorModalDoc]);
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
@@ -98,6 +103,7 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
   }, [itemsPerPage]);
 
   const loadData = async () => {
+    console.log('DocumentsTable: loadData called');
     if (!user?.id) {
       setLoading(false);
       return;
@@ -112,7 +118,9 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
       ]);
       setDocuments(docs);
       setOwners(ownersList);
+      console.log('DocumentsTable: loadData completed, documents loaded:', docs.length);
     } catch (err) {
+      console.error('DocumentsTable: loadData error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);

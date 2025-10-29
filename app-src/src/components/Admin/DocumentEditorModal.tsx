@@ -3,6 +3,7 @@ import { Button } from '@/components/UI/Button';
 import { Toggle } from '@/components/UI/Toggle';
 import { WysiwygEditor } from '@/components/UI/WysiwygEditor';
 import { FileUploadManager } from './FileUploadManager';
+import { CoverImageUploader } from './CoverImageUploader';
 import { updateDocument, checkSlugUniqueness } from '@/lib/supabase/admin';
 import type { DocumentWithOwner, Owner, DocumentAccessLevel } from '@/types/admin';
 
@@ -19,7 +20,27 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!document) return null;
+  console.log('DocumentEditorModal rendering - document:', document?.id, 'editingValues.downloads:', editingValues.downloads?.length);
+
+  // Debug component lifecycle
+  React.useEffect(() => {
+    console.log('DocumentEditorModal mounted for document:', document?.id);
+    
+    return () => {
+      console.log('DocumentEditorModal unmounting for document:', document?.id);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (error) {
+      console.log('DocumentEditorModal: Error state changed:', error);
+    }
+  }, [error]);
+
+  if (!document) {
+    console.log('DocumentEditorModal: No document provided, returning null');
+    return null;
+  }
 
   // Initialize editing values when document changes
   React.useEffect(() => {
@@ -49,10 +70,12 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   }, [document]);
 
   const handleFieldChange = (field: string, value: any) => {
+    console.log('DocumentEditorModal: Field change:', field, value);
     setEditingValues(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSave = async () => {
+    console.log('DocumentEditorModal: handleSave called');
     try {
       setSaving(true);
       setError(null);
@@ -202,8 +225,9 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
     }
   };
 
+
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div className="fixed inset-0 z-50">
       <style>{`
         .wysiwyg-preview ul {
           list-style-type: disc;
@@ -356,15 +380,17 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                       <label className="block text-sm font-medium text-gray-700 mb-2">PDF Subdirectory</label>
                       {renderField('pdf_subdirectory', 'PDF Subdirectory')}
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Embedding Type</label>
-                        {renderField('embedding_type', 'Embedding Type', 'select')}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Cover Image</label>
-                        {renderField('cover', 'Cover Image')}
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Embedding Type</label>
+                      {renderField('embedding_type', 'Embedding Type', 'select')}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Cover Image</label>
+                      <CoverImageUploader
+                        coverUrl={editingValues.cover || ''}
+                        onChange={(url) => handleFieldChange('cover', url)}
+                        documentId={document.id}
+                      />
                     </div>
                   </div>
                 </div>

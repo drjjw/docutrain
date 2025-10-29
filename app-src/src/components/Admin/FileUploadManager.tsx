@@ -17,9 +17,29 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Debug component lifecycle
+  React.useEffect(() => {
+    console.log('FileUploadManager mounted for document:', documentId);
+    console.log('Initial downloads:', downloads);
+    
+    return () => {
+      console.log('FileUploadManager unmounting for document:', documentId);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    console.log('FileUploadManager downloads changed:', downloads);
+  }, [downloads]);
+
+  React.useEffect(() => {
+    console.log('FileUploadManager uploading state changed:', uploading);
+  }, [uploading]);
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    console.log('Starting file upload:', file.name);
 
     try {
       setUploading(true);
@@ -30,6 +50,8 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const filePath = `${documentId}/${timestamp}-${sanitizedFileName}`;
 
+      console.log('Uploading to path:', filePath);
+
       // Upload to Supabase storage
       const { data, error } = await supabase.storage
         .from(DOWNLOADS_BUCKET)
@@ -39,13 +61,18 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
         });
 
       if (error) {
+        console.error('Supabase upload error:', error);
         throw new Error(`Upload failed: ${error.message}`);
       }
+
+      console.log('Upload successful, data:', data);
 
       // Get public URL
       const { data: urlData } = supabase.storage
         .from(DOWNLOADS_BUCKET)
         .getPublicUrl(filePath);
+
+      console.log('Public URL:', urlData.publicUrl);
 
       // Add to downloads array
       const newDownload: DownloadLink = {
@@ -53,12 +80,19 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
         title: file.name,
       };
 
+      console.log('Adding new download:', newDownload);
+      console.log('Current downloads before update:', downloads);
+
       onChange([...downloads, newDownload]);
+
+      console.log('Downloads updated, resetting file input');
 
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+
+      console.log('File upload completed successfully');
     } catch (error) {
       console.error('Upload error:', error);
       setUploadError(error instanceof Error ? error.message : 'Failed to upload file');
@@ -122,6 +156,8 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
       return false;
     }
   };
+
+  console.log('FileUploadManager rendering - uploading:', uploading, 'downloads:', downloads.length);
 
   return (
     <div className="space-y-4">
