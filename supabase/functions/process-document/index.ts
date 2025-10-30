@@ -240,6 +240,109 @@ async function generateAbstract(chunks: Array<{ content: string }>, documentTitl
 }
 
 /**
+ * Generate keywords for word cloud from chunks using OpenAI
+ * Returns an array of keyword objects with term and weight
+ */
+async function generateKeywords(chunks: Array<{ content: string }>, documentTitle: string): Promise<Array<{ term: string; weight: number }> | null> {
+  console.log('🔑 NEW CODE: generateKeywords() called - AI keyword extraction feature is active!');
+  console.log(`   Document: ${documentTitle}`);
+  console.log(`   Total chunks available: ${chunks.length}`);
+  
+  try {
+    // Take the first 30 chunks (or all if less than 30) to get a good overview
+    const chunksForKeywords = chunks.slice(0, Math.min(30, chunks.length));
+    
+    // Combine chunk content
+    const combinedText = chunksForKeywords
+      .map(chunk => chunk.content)
+      .join('\n\n');
+    
+    // Truncate if too long (to stay within token limits)
+    const maxChars = 20000; // ~5000 tokens
+    const textForKeywords = combinedText.length > maxChars 
+      ? combinedText.substring(0, maxChars) + '...'
+      : combinedText;
+    
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert at analyzing document content and extracting key terms and concepts. Identify the most important keywords, phrases, and concepts that would be useful for a word cloud visualization. Focus on domain-specific terms, key concepts, and important topics.'
+        },
+        {
+          role: 'user',
+          content: `Analyze the following document content and extract 20-30 key terms, phrases, and concepts that best represent this document. For each term, assign a weight from 0.1 to 1.0 based on its importance (1.0 = most important, 0.1 = less important but still relevant).\n\nDocument title: "${documentTitle}"\n\nContent:\n${textForKeywords}\n\nReturn your response as a JSON object with a "keywords" property containing an array of objects, each with "term" (string) and "weight" (number) properties. Example format:\n{"keywords": [{"term": "kidney disease", "weight": 0.95}, {"term": "chronic kidney disease", "weight": 0.90}, {"term": "treatment", "weight": 0.75}]}\n\nProvide ONLY the JSON object, no additional commentary.`
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 500,
+      response_format: { type: "json_object" }
+    });
+    
+    const content = response.choices[0]?.message?.content?.trim();
+    if (!content) {
+      return null;
+    }
+    
+    // Parse JSON response - GPT may wrap it in an object
+    let parsed: any;
+    try {
+      parsed = JSON.parse(content);
+    } catch (parseError) {
+      console.error('Failed to parse keywords JSON:', parseError);
+      return null;
+    }
+    
+    // Handle both direct array and wrapped object responses
+    let keywords: any[] | null = null;
+    if (Array.isArray(parsed)) {
+      keywords = parsed;
+    } else if (parsed.keywords && Array.isArray(parsed.keywords)) {
+      keywords = parsed.keywords;
+    } else if (parsed.terms && Array.isArray(parsed.terms)) {
+      keywords = parsed.terms;
+    } else {
+      // Try to find any array in the response
+      const keys = Object.keys(parsed);
+      for (const key of keys) {
+        if (Array.isArray(parsed[key])) {
+          keywords = parsed[key];
+          break;
+        }
+      }
+    }
+    
+    if (!keywords || !Array.isArray(keywords)) {
+      console.error('Keywords not found in expected format');
+      return null;
+    }
+    
+    // Validate and clean keywords
+    const validKeywords = keywords
+      .filter((k: any) => k && typeof k === 'object' && k.term && typeof k.term === 'string')
+      .map((k: any) => ({
+        term: k.term.trim(),
+        weight: typeof k.weight === 'number' ? Math.max(0.1, Math.min(1.0, k.weight)) : 0.5
+      }))
+      .filter((k: any) => k.term.length > 0)
+      .slice(0, 30); // Limit to 30 keywords
+    
+    if (validKeywords.length === 0) {
+      return null;
+    }
+    
+    console.log(`   ✓ Generated ${validKeywords.length} keywords`);
+    return validKeywords;
+    
+  } catch (error) {
+    console.error('Failed to generate keywords:', error);
+    // Return null on error - don't fail the whole process
+    return null;
+  }
+}
+
+/**
  * Process embeddings in batches
  */
 async function processEmbeddingsBatch(chunks: Array<{ content: string }>, startIdx: number, batchSize: number) {
@@ -363,8 +466,12 @@ async function processUserDocument(userDocId: string) {
     // 4. Chunk text
     const chunks = chunkText(text, CHUNK_SIZE, CHUNK_OVERLAP, pages);
     
-    // 5. Generate AI abstract from chunks
-    const abstract = await generateAbstract(chunks, userDoc.title);
+    // 5. Generate AI abstract and keywords from chunks
+    // Generate abstract and keywords in parallel (both use same model and chunks)
+    const [abstract, keywords] = await Promise.all([
+      generateAbstract(chunks, userDoc.title),
+      generateKeywords(chunks, userDoc.title)
+    ]);
     
     // 6. Generate document slug and create documents record with abstract
     documentSlug = generateSlug(userDoc.title);
@@ -393,7 +500,8 @@ async function processUserDocument(userDocId: string) {
           user_id: userDoc.user_id,
           uploaded_at: userDoc.created_at,
           file_size: userDoc.file_size,
-          has_ai_abstract: abstract ? true : false
+          has_ai_abstract: abstract ? true : false,
+          keywords: keywords || null
         }
       });
     

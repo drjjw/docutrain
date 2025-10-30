@@ -146,20 +146,4 @@
     outline-offset: 2px;
 }
 
-/* Dark Mode Support (Optional) */
-@media (prefers-color-scheme: dark) {
-    .swal2-popup {
-        background-color: #2d3748;
-        color: #e2e8f0;
-    }
-    
-    .swal2-html-container {
-        color: #e2e8f0;
-    }
-    
-    .swal2-title {
-        color: #e2e8f0 !important;
-    }
-}
-
 
