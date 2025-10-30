@@ -201,14 +201,18 @@ export function DashboardPage() {
               </div>
               <div className="p-6">
                 <UploadZone onUploadSuccess={() => {
-                  // Refresh the user documents table after successful upload
+                  // Immediately show the processing section (upload always creates active doc)
+                  setHasActiveDocuments(true);
+                  // Refresh immediately to catch the "processing" status
+                  // Then refresh again after a short delay to catch any rapid Edge Function completions
+                  userDocumentsTableRef.current?.refresh();
                   setTimeout(() => {
                     userDocumentsTableRef.current?.refresh();
-                    // Check for active documents after refresh (upload always creates active doc)
-                    setTimeout(() => {
-                      setHasActiveDocuments(true);
-                    }, 1000);
-                  }, 500); // Small delay to ensure database commit
+                  }, 500);
+                  // Final refresh after longer delay to catch Edge Function completion
+                  setTimeout(() => {
+                    userDocumentsTableRef.current?.refresh();
+                  }, 2000);
                 }} />
               </div>
             </div>
