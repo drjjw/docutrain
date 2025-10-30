@@ -64,17 +64,15 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
 
 /**
  * Update a document
- * @param id - Document ID (not used for API call, but kept for backward compatibility)
- * @param updates - Document updates including slug (slug is required for the API call)
+ * @param id - Document ID (used for the API call)
+ * @param updates - Document updates
  */
 export async function updateDocument(
   id: string,
   updates: Partial<Document>
 ): Promise<Document> {
-  // Get the slug from updates or require it to be provided
-  const slug = updates.slug;
-  if (!slug) {
-    throw new Error('Document slug is required for updates. Please provide slug in the updates object.');
+  if (!id) {
+    throw new Error('Document ID is required for updates');
   }
 
   // Get current session for authentication
@@ -103,8 +101,8 @@ export async function updateDocument(
     safeUpdates.owner_id = null;
   }
 
-  // Use server API endpoint which handles authentication and permissions properly
-  const response = await fetch(`/api/documents/${slug}`, {
+  // Use document ID for the API call (API route now supports both ID and slug)
+  const response = await fetch(`/api/documents/${id}`, {
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${session.access_token}`,

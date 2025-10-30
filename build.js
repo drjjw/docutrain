@@ -58,7 +58,8 @@ const cssFiles = {
     'public/css/modals.css': 'css',
     'public/css/responsive.css': 'css',
     'public/css/disclaimer.css': 'css',
-    'public/css/landing.css': 'css'
+    'public/css/landing.css': 'css',
+    'public/css/keywords.css': 'css'
 };
 
 const jsFiles = {
@@ -72,6 +73,7 @@ const jsFiles = {
     'public/js/ui-content-styling.js': 'js',
     'public/js/ui-messages.js': 'js',
     'public/js/ui-document.js': 'js',
+    'public/js/ui-keywords.js': 'js',
     'public/js/chat.js': 'js',
     'public/js/rating.js': 'js',
     'public/js/disclaimer.js': 'js',

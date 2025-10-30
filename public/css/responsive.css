@@ -173,6 +173,21 @@
     .multi-doc-covers-header p {
         font-size: 14px;
     }
+
+    /* Downloads/Keywords Container - Mobile */
+    .downloads-keywords-container {
+        flex-direction: column !important;
+        gap: 15px;
+        margin: 15px 16px !important;
+        padding: 0;
+        width: auto !important;
+    }
+
+    .downloads-keywords-container > .downloads-section,
+    .downloads-keywords-container > .document-keywords {
+        flex: 1 1 100% !important;
+        min-width: 100% !important;
+    }
 }
 
 @media (max-width: 480px) {
@@ -209,6 +224,17 @@
     .document-cover-image {
         height: auto; /* Let image determine height based on aspect ratio */
         border-radius: 6px; /* Match container border radius */
+    }
+
+    /* Downloads/Keywords Container - Small Mobile */
+    .downloads-keywords-container {
+        margin: 10px 12px !important;
+        gap: 10px;
+    }
+
+    .downloads-keywords-container .downloads-section,
+    .downloads-keywords-container .document-keywords {
+        padding: 15px;
     }
 
     /* Multi-document cover grid responsive styles for small screens */
@@ -615,8 +641,17 @@
         padding-top: 16px;
     }
 
-    .downloads-header {
+    /* Unified header styling for mobile */
+    .downloads-header,
+    .document-keywords-header {
         font-size: 13px;
+        margin-bottom: 12px;
+    }
+    
+    .downloads-header svg,
+    .document-keywords-header svg {
+        width: 16px;
+        height: 16px;
     }
 
     .download-button {

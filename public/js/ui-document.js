@@ -1,7 +1,8 @@
 // UI Document - Document UI management and orchestration
 import { getDocument, getOwnerLogoConfig, parseDocumentSlugs, getBackButtonURL, API_URL } from './config.js';
-import { updateMetaTags, darkenColor, hexToRgba, equalizeContainerHeights } from './ui-utils.js';
+import { updateMetaTags, darkenColor, hexToRgba, equalizeContainerHeights, equalizeDownloadsKeywordsHeights } from './ui-utils.js';
 import { addDownloadsToWelcome } from './ui-downloads.js';
+import { addKeywordsDisplay } from './ui-keywords.js';
 
 // Helper to safely use debugLog (fallback to console if not available yet)
 const log = {
@@ -503,14 +504,71 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
 
             // Update intro content with HTML
             const welcomeIntroContent = coverContainer.querySelector('#welcomeIntroContent');
+            const messageContent = coverContainer.querySelector('.message-content');
+            
+            // Display intro message from database, but filter out any keyword HTML that shouldn't be there
             if (welcomeIntroContent && introMessage) {
-                welcomeIntroContent.innerHTML = introMessage;
+                // Use DOM to safely remove keyword elements if they exist in the intro message
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = introMessage;
+                
+                // Remove any keyword-related elements (these should only be in downloads/keywords container)
+                const keywordElements = tempDiv.querySelectorAll('.document-keywords, .keywords-header, .keywords-wordcloud');
+                keywordElements.forEach(el => el.remove());
+                
+                welcomeIntroContent.innerHTML = tempDiv.innerHTML;
             } else if (welcomeIntroContent) {
                 welcomeIntroContent.innerHTML = '';
             }
             
-            // Add downloads section to welcome message
-            addDownloadsToWelcome(welcomeIntroContent || coverContainer.querySelector('.message-content'), validConfigs);
+            // Create downloads/keywords container below cover+welcome section
+            let downloadsKeywordsContainer = document.getElementById('downloadsKeywordsContainer');
+            if (!downloadsKeywordsContainer) {
+                downloadsKeywordsContainer = document.createElement('div');
+                downloadsKeywordsContainer.id = 'downloadsKeywordsContainer';
+                downloadsKeywordsContainer.className = 'downloads-keywords-container';
+                // Insert after cover container
+                if (coverContainer && coverContainer.nextSibling) {
+                    chatContainer.insertBefore(downloadsKeywordsContainer, coverContainer.nextSibling);
+                } else {
+                    chatContainer.appendChild(downloadsKeywordsContainer);
+                }
+            } else {
+                // Clear existing content
+                downloadsKeywordsContainer.innerHTML = '';
+            }
+            
+            // Add downloads section to new container
+            addDownloadsToWelcome(downloadsKeywordsContainer, validConfigs);
+            
+            // Add keywords display if available - append to new container
+            // IMPORTANT: Do this AFTER setting intro content to ensure clean separation
+            console.log('🔑 Keywords check:', { 
+                hasKeywords: !!config.keywords, 
+                keywordsCount: config.keywords?.length || 0,
+                keywords: config.keywords 
+            });
+            addKeywordsDisplay(downloadsKeywordsContainer, config.keywords);
+            
+            
+            // Show/hide container based on content
+            const hasDownloads = downloadsKeywordsContainer.querySelector('.downloads-section');
+            const hasKeywords = downloadsKeywordsContainer.querySelector('.document-keywords');
+            if (hasDownloads || hasKeywords) {
+                downloadsKeywordsContainer.style.display = 'flex';
+                // Equalize heights after a brief delay to ensure DOM is fully rendered
+                setTimeout(() => {
+                    equalizeDownloadsKeywordsHeights();
+                }, 100);
+            } else {
+                downloadsKeywordsContainer.style.display = 'none';
+            }
+            
+            // Clean up any downloads/keywords that might have been left in welcome message (legacy cleanup)
+            const existingDownloadsInWelcome = messageContent?.querySelector('.downloads-section');
+            const existingKeywordsInWelcome = messageContent?.querySelector('.document-keywords');
+            if (existingDownloadsInWelcome) existingDownloadsInWelcome.remove();
+            if (existingKeywordsInWelcome) existingKeywordsInWelcome.remove();
 
             // Show cover image layout and hide regular welcome
             const coverImage = coverContainer.querySelector('#documentCoverImage');
@@ -648,10 +706,51 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 log.error(`    │     ❌ Failed to insert multi-document container - chatContainer: ${!!chatContainer}, regularWelcome: ${!!regularWelcome}, multiDocContainer: ${!!multiDocContainer}`);
             }
 
-            // Add downloads section to multi-doc welcome if it exists
+            // Create downloads/keywords container below multi-doc section
+            let downloadsKeywordsContainer = document.getElementById('downloadsKeywordsContainer');
+            if (!downloadsKeywordsContainer) {
+                downloadsKeywordsContainer = document.createElement('div');
+                downloadsKeywordsContainer.id = 'downloadsKeywordsContainer';
+                downloadsKeywordsContainer.className = 'downloads-keywords-container';
+                // Insert after multi-doc container
+                if (multiDocContainer && multiDocContainer.nextSibling) {
+                    chatContainer.insertBefore(downloadsKeywordsContainer, multiDocContainer.nextSibling);
+                } else {
+                    chatContainer.appendChild(downloadsKeywordsContainer);
+                }
+            } else {
+                // Clear existing content
+                downloadsKeywordsContainer.innerHTML = '';
+            }
+            
+            // Add downloads section to new container
+            addDownloadsToWelcome(downloadsKeywordsContainer, validConfigs);
+            
+            // Add keywords from first document if available (for multi-doc, show first doc's keywords)
+            if (validConfigs.length > 0 && validConfigs[0].keywords) {
+                addKeywordsDisplay(downloadsKeywordsContainer, validConfigs[0].keywords);
+            }
+            
+            // Show/hide container based on content
+            const hasDownloads = downloadsKeywordsContainer.querySelector('.downloads-section');
+            const hasKeywords = downloadsKeywordsContainer.querySelector('.document-keywords');
+            if (hasDownloads || hasKeywords) {
+                downloadsKeywordsContainer.style.display = 'flex';
+                // Equalize heights after a brief delay to ensure DOM is fully rendered
+                setTimeout(() => {
+                    equalizeDownloadsKeywordsHeights();
+                }, 100);
+            } else {
+                downloadsKeywordsContainer.style.display = 'none';
+            }
+            
+            // Clean up any downloads/keywords that might have been left in welcome message (legacy cleanup)
             const welcomeContent = multiDocContainer.querySelector('.message-content');
             if (welcomeContent) {
-                addDownloadsToWelcome(welcomeContent, validConfigs);
+                const existingDownloadsInWelcome = welcomeContent.querySelector('.downloads-section');
+                const existingKeywordsInWelcome = welcomeContent.querySelector('.document-keywords');
+                if (existingDownloadsInWelcome) existingDownloadsInWelcome.remove();
+                if (existingKeywordsInWelcome) existingKeywordsInWelcome.remove();
             }
 
             // Hide regular welcome since we're showing multi-doc covers

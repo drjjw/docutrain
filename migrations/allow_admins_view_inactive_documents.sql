@@ -32,3 +32,5 @@ CREATE POLICY "Super admins and owner admins can view all documents" ON document
 COMMENT ON POLICY "Super admins and owner admins can view all documents" ON documents IS 
   'Allows super admins and owner admins to view all documents including inactive ones for admin dashboard management';
 
+
+

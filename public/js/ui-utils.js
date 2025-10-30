@@ -112,12 +112,53 @@ export function equalizeContainerHeights() {
     welcomeSection.style.height = `${maxHeight}px`;
 }
 
+// Function to equalize heights of downloads and keywords containers
+export function equalizeDownloadsKeywordsHeights() {
+    const container = document.getElementById('downloadsKeywordsContainer');
+    if (!container) return;
+    
+    // Only equalize when both are present (side-by-side)
+    const downloadsSection = container.querySelector('.downloads-section');
+    const keywordsSection = container.querySelector('.document-keywords');
+    
+    if (!downloadsSection || !keywordsSection) {
+        // If only one is present, reset heights
+        if (downloadsSection) downloadsSection.style.height = '';
+        if (keywordsSection) keywordsSection.style.height = '';
+        return;
+    }
+    
+    // Only equalize on desktop (> 768px) - mobile uses vertical stacking
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+        downloadsSection.style.height = '';
+        keywordsSection.style.height = '';
+        return;
+    }
+    
+    // Desktop: Reset any previously set heights to get natural heights
+    downloadsSection.style.height = '';
+    keywordsSection.style.height = '';
+    
+    // Get natural heights
+    const downloadsHeight = downloadsSection.offsetHeight;
+    const keywordsHeight = keywordsSection.offsetHeight;
+    
+    // Set both to the maximum height
+    const maxHeight = Math.max(downloadsHeight, keywordsHeight);
+    if (maxHeight > 0) {
+        downloadsSection.style.height = `${maxHeight}px`;
+        keywordsSection.style.height = `${maxHeight}px`;
+    }
+}
+
 // Add resize listener to re-equalize on window resize
 let resizeTimeout;
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
         equalizeContainerHeights();
+        equalizeDownloadsKeywordsHeights();
     }, 250); // Debounce resize events
 });
 

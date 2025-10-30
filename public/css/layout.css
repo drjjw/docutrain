@@ -599,28 +599,99 @@ body:not(.local-env) .retrieval-selector {
     height: 14px;
 }
 
-/* Downloads Section - Inside Welcome Message */
+/* Downloads/Keywords Container - Below Cover+Welcome */
+.downloads-keywords-container {
+    display: flex;
+    flex-direction: row;
+    gap: 10px; /* Reduced gap for flush appearance */
+    margin: 20px -20px; /* Negative margin to counteract parent padding */
+    padding: 0 20px; /* Add back padding for content */
+    width: calc(100% + 40px); /* Account for negative margins */
+    box-sizing: border-box;
+    flex-wrap: nowrap; /* Prevent wrapping to keep side-by-side */
+    align-items: stretch; /* Equalize heights */
+}
+
+/* Default: When both downloads and keywords are present, each takes exactly 50% */
+.downloads-keywords-container > .downloads-section:not(:only-child),
+.downloads-keywords-container > .document-keywords:not(:only-child) {
+    flex: 0 0 calc(50% - 5px); /* Exactly 50% minus half the gap, no grow/shrink */
+    min-width: calc(50% - 5px);
+    max-width: calc(50% - 5px);
+    height: 100%; /* Fill container height */
+    display: flex;
+    flex-direction: column; /* Stack content vertically inside */
+}
+
+/* When only one is present, it takes 100% width */
+.downloads-keywords-container > .downloads-section:only-child,
+.downloads-keywords-container > .document-keywords:only-child {
+    flex: 1 1 100%;
+    min-width: 100%;
+}
+
+/* Downloads Section - In new container */
+.downloads-keywords-container .downloads-section {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    /* Ensure content fills available height */
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Keywords in new container */
+.downloads-keywords-container .document-keywords {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    /* Ensure content fills available height */
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Legacy: Downloads Section - Inside Welcome Message (kept for backwards compatibility) */
 .downloads-section {
     margin-top: 20px;
     padding-top: 20px;
     border-top: 1px solid #e0e0e0;
 }
 
-.downloads-header {
+/* Unified header styling for downloads and keywords */
+.downloads-keywords-container .downloads-header,
+.downloads-keywords-container .document-keywords-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
+    margin-top: 0;
+    padding: 0;
     font-size: 14px;
     font-weight: 600;
-    color: #555;
+    color: var(--text-color-secondary, #666);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    /* Ensure headers have proper spacing from container top */
+    padding-top: 0;
 }
 
-.downloads-header svg {
+.downloads-header svg,
+.document-keywords-header svg {
     width: 18px;
     height: 18px;
     color: var(--accent-color, #007bff);
     flex-shrink: 0;
+    stroke-width: 2;
+    opacity: 1;
 }
 
 .downloads-list {

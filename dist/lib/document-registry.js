@@ -383,6 +383,10 @@ async function getDocumentsForAPI() {
         }
         // Otherwise remains null (no intro message)
         
+        // Extract keywords from metadata if available
+        const keywords = doc.metadata?.keywords || null;
+        console.log(`🔑 [DEBUG] Document ${doc.slug}: keywords=${keywords ? keywords.length : 'null'}`);
+        
         return {
             slug: doc.slug,
             title: doc.title,
@@ -397,6 +401,7 @@ async function getDocumentsForAPI() {
             active: doc.active,
             owner: doc.owner,
             metadata: doc.metadata || {},
+            keywords: keywords, // Extract keywords for easy access
             downloads: doc.downloads || [], // Download URLs for the document
             showDocumentSelector: doc.show_document_selector || false, // Controls document selector visibility
             ownerInfo: ownerInfo ? {

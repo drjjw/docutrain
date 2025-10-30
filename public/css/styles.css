@@ -18,3 +18,6 @@
 
 /* Responsive styles - media queries and mobile adjustments */
 @import url('./responsive.css');
+
+/* Keywords display styles */
+@import url('./keywords.css');
