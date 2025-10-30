@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
+import { Toggle } from '@/components/UI/Toggle';
 import { DocumentEditorModal } from './DocumentEditorModal';
-import { getDocuments, deleteDocument, getOwners } from '@/lib/supabase/admin';
+import { getDocuments, deleteDocument, getOwners, updateDocument } from '@/lib/supabase/admin';
 import type { DocumentWithOwner, Owner } from '@/types/admin';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -11,7 +12,12 @@ interface DocumentsTableProps {
   isSuperAdmin?: boolean;
 }
 
-export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
+export interface DocumentsTableRef {
+  refresh: () => Promise<void>;
+}
+
+export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>((props, ref) => {
+  const { isSuperAdmin = false } = props;
   const { user } = useAuth();
   const [documents, setDocuments] = useState<DocumentWithOwner[]>([]);
   const [filteredDocuments, setFilteredDocuments] = useState<DocumentWithOwner[]>([]);
@@ -23,6 +29,7 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState<DocumentWithOwner | null>(null);
   const [editorModalDoc, setEditorModalDoc] = useState<DocumentWithOwner | null>(null);
   const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
+  const [updatingDocIds, setUpdatingDocIds] = useState<Set<string>>(new Set());
 
   // Debug editorModalDoc changes
   React.useEffect(() => {
@@ -102,15 +109,19 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
     setCurrentPage(1);
   }, [itemsPerPage]);
 
-  const loadData = async () => {
+  const loadData = async (showLoading = true) => {
     console.log('DocumentsTable: loadData called');
     if (!user?.id) {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
       return;
     }
 
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       setError(null);
       const [docs, ownersList] = await Promise.all([
         getDocuments(user.id),
@@ -123,9 +134,16 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
       console.error('DocumentsTable: loadData error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
+
+  // Expose refresh method via ref
+  useImperativeHandle(ref, () => ({
+    refresh: () => loadData(false),
+  }));
 
   const handleDelete = async (doc: DocumentWithOwner) => {
     try {
@@ -163,24 +181,52 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
     }
   };
 
+  const handleToggleActive = async (doc: DocumentWithOwner, newActive: boolean) => {
+    // Optimistically update the UI
+    setUpdatingDocIds(prev => new Set(prev).add(doc.id));
+    
+    try {
+      // Include slug in updates as required by the API endpoint
+      await updateDocument(doc.id, { active: newActive, slug: doc.slug });
+      
+      // Update the document in state
+      setDocuments(prevDocs => 
+        prevDocs.map(d => 
+          d.id === doc.id ? { ...d, active: newActive } : d
+        )
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update document status');
+      // Revert the optimistic update on error - the document state will naturally revert
+      // since we're not updating it on error
+    } finally {
+      setUpdatingDocIds(prev => {
+        const next = new Set(prev);
+        next.delete(doc.id);
+        return next;
+      });
+    }
+  };
 
 
 
-  const renderStatusBadge = (value: boolean) => {
-    return value ? (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-        <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 8 8">
-          <circle cx="4" cy="4" r="3" />
-        </svg>
-        Active
-      </span>
-    ) : (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-        <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 8 8">
-          <circle cx="4" cy="4" r="3" />
-        </svg>
-        Inactive
-      </span>
+
+  const renderStatusToggle = (doc: DocumentWithOwner) => {
+    const isUpdating = updatingDocIds.has(doc.id);
+    const isActive = doc.active ?? false;
+    
+    return (
+      <div className="flex items-center gap-2">
+        <Toggle
+          checked={isActive}
+          onChange={(checked) => handleToggleActive(doc, checked)}
+          disabled={isUpdating}
+          size="sm"
+        />
+        <span className={`text-xs font-medium ${isActive ? 'text-green-700' : 'text-gray-600'}`}>
+          {isActive ? 'Active' : 'Inactive'}
+        </span>
+      </div>
     );
   };
 
@@ -575,7 +621,9 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {renderStatusBadge(doc.active ?? false)}
+                      <div className="flex items-center gap-2">
+                        {renderStatusToggle(doc)}
+                      </div>
                       {renderVisibilityBadge(doc.access_level || 'public')}
                       {doc.category && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
@@ -621,7 +669,7 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
 
                 {/* Status */}
                 <div className="col-span-2">
-                  {renderStatusBadge(doc.active ?? false)}
+                  {renderStatusToggle(doc)}
                 </div>
 
                 {/* Visibility */}
@@ -809,5 +857,7 @@ export function DocumentsTable({ isSuperAdmin = false }: DocumentsTableProps) {
       )}
     </div>
   );
-}
+});
+
+DocumentsTable.displayName = 'DocumentsTable';
 

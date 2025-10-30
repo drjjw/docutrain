@@ -64,11 +64,36 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
 
 /**
  * Update a document
+ * @param id - Document ID (not used for API call, but kept for backward compatibility)
+ * @param updates - Document updates including slug (slug is required for the API call)
  */
 export async function updateDocument(
   id: string,
   updates: Partial<Document>
 ): Promise<Document> {
+  // Get the slug from updates or require it to be provided
+  const slug = updates.slug;
+  if (!slug) {
+    throw new Error('Document slug is required for updates. Please provide slug in the updates object.');
+  }
+
+  // Get current session for authentication
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    throw new Error('Session error: ' + sessionError.message);
+  }
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated - please log in to update documents');
+  }
+
+  // Check if the token is expired
+  const now = Math.floor(Date.now() / 1000);
+  if (session.expires_at && session.expires_at < now) {
+    throw new Error('Session expired - please log in again');
+  }
+
   // Remove read-only fields
   const { created_at, updated_at, ...safeUpdates } = updates as any;
 
@@ -78,19 +103,22 @@ export async function updateDocument(
     safeUpdates.owner_id = null;
   }
 
-  const { data, error } = await supabase
-    .from('documents')
-    .update({
-      ...safeUpdates,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .select()
-    .single();
+  // Use server API endpoint which handles authentication and permissions properly
+  const response = await fetch(`/api/documents/${slug}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(safeUpdates),
+  });
 
-  if (error) {
-    throw new Error(`Failed to update document: ${error.message}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to update document');
   }
+
+  const data = await response.json();
 
   // Clear localStorage cache for documents
   if (typeof window !== 'undefined') {

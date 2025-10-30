@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Dashboard } from '@/components/Dashboard/Dashboard';
 import { UploadZone } from '@/components/Upload/UploadZone';
-import { DocumentsTable } from '@/components/Admin/DocumentsTable';
+import { DocumentsTable, DocumentsTableRef } from '@/components/Admin/DocumentsTable';
 import { UserDocumentsTable, UserDocumentsTableRef } from '@/components/Admin/UserDocumentsTable';
 import { UsersTable } from '@/components/Admin/UsersTable';
 import { PermissionsBadge } from '@/components/Dashboard/PermissionsBadge';
@@ -18,10 +18,53 @@ export function DashboardPage() {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<'documents' | 'users'>('documents');
   const userDocumentsTableRef = useRef<UserDocumentsTableRef>(null);
+  const documentsTableRef = useRef<DocumentsTableRef>(null);
+  const [hasActiveDocuments, setHasActiveDocuments] = useState(false);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const prevHasActiveRef = useRef<boolean>(false);
 
   const hasAdminAccess = isSuperAdmin || (ownerGroups && ownerGroups.some(
     og => og.role === 'owner_admin'
   ));
+
+  // Check for active documents on mount (after table has loaded)
+  React.useEffect(() => {
+    const checkActiveDocuments = () => {
+      if (userDocumentsTableRef.current) {
+        const hasActive = userDocumentsTableRef.current.hasActiveDocuments();
+        setHasActiveDocuments(hasActive);
+      }
+    };
+
+    // Check after a delay to ensure table component has loaded and ref is set
+    const timeoutId = setTimeout(checkActiveDocuments, 2000);
+
+    return () => clearTimeout(timeoutId);
+  }, []); // Only run on mount
+
+  // Handler for status changes from UserDocumentsTable
+  const handleStatusChange = React.useCallback(() => {
+    if (userDocumentsTableRef.current && documentsTableRef.current) {
+      const hasActive = userDocumentsTableRef.current.hasActiveDocuments();
+      const prevHasActive = prevHasActiveRef.current;
+      prevHasActiveRef.current = hasActive;
+      setHasActiveDocuments(hasActive);
+      
+      // Refresh DocumentsTable when a document completes processing
+      // (transitioned from having active documents to having none, or status changed when none active)
+      if (!hasActive || (prevHasActive && !hasActive)) {
+        // Clear any pending refresh to debounce
+        if (refreshTimeoutRef.current) {
+          clearTimeout(refreshTimeoutRef.current);
+        }
+        
+        // Delay refresh to ensure document is fully created in database
+        refreshTimeoutRef.current = setTimeout(() => {
+          documentsTableRef.current?.refresh();
+        }, 2000);
+      }
+    }
+  }, []);
 
   // Set active tab based on current route
   React.useEffect(() => {
@@ -161,21 +204,29 @@ export function DashboardPage() {
                   // Refresh the user documents table after successful upload
                   setTimeout(() => {
                     userDocumentsTableRef.current?.refresh();
+                    // Check for active documents after refresh (upload always creates active doc)
+                    setTimeout(() => {
+                      setHasActiveDocuments(true);
+                    }, 1000);
                   }, 500); // Small delay to ensure database commit
                 }} />
               </div>
             </div>
 
-            {/* User Uploaded Documents - Processing Status */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            {/* Processing Status - Only show when there are active documents */}
+            {/* Always render the table (hidden) so ref is available for checking status */}
+            <div className={hasActiveDocuments ? 'bg-white rounded-lg shadow-sm border border-gray-200' : 'hidden'}>
               <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                <h2 className="text-lg font-semibold text-gray-900">Your Uploaded Documents</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Processing Status</h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  Track the processing status of your uploaded PDFs
+                  Documents currently being processed will appear here and will move to the documents list below once complete
                 </p>
               </div>
               <div className="p-6">
-                <UserDocumentsTable ref={userDocumentsTableRef} />
+                <UserDocumentsTable 
+                  ref={userDocumentsTableRef}
+                  onStatusChange={handleStatusChange}
+                />
               </div>
             </div>
 
@@ -188,7 +239,7 @@ export function DashboardPage() {
                 </p>
               </div>
               <div className="p-6">
-                <DocumentsTable isSuperAdmin={isSuperAdmin} />
+                <DocumentsTable ref={documentsTableRef} isSuperAdmin={isSuperAdmin} />
               </div>
             </div>
           </div>

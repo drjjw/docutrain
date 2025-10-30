@@ -17,15 +17,26 @@ interface UserDocument {
 
 export interface UserDocumentsTableRef {
   refresh: () => Promise<void>;
+  hasActiveDocuments: () => boolean;
 }
 
-export const UserDocumentsTable = forwardRef<UserDocumentsTableRef>((props, ref) => {
+interface UserDocumentsTableProps {
+  onStatusChange?: () => void;
+}
+
+export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocumentsTableProps>((props, ref) => {
+  const { onStatusChange } = props;
   const { user } = useAuth();
   const [documents, setDocuments] = useState<UserDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryingDocId, setRetryingDocId] = useState<string | null>(null);
   const documentsRef = useRef<UserDocument[]>([]);
+
+  // Filter to show only documents that are actively processing (not ready)
+  const activeDocuments = documents.filter(
+    doc => doc.status !== 'ready'
+  );
 
   const loadDocuments = async (isInitialLoad = false) => {
     try {
@@ -54,6 +65,11 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef>((props, ref)
       setDocuments(result.documents || []);
       documentsRef.current = result.documents || []; // Keep ref in sync
       setError(null);
+      
+      // Notify parent of status change
+      if (onStatusChange) {
+        onStatusChange();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load documents');
     } finally {
@@ -63,9 +79,12 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef>((props, ref)
     }
   };
 
-  // Expose refresh function via ref (doesn't set loading state)
+  // Expose refresh function and hasActiveDocuments via ref
   useImperativeHandle(ref, () => ({
     refresh: () => loadDocuments(false),
+    hasActiveDocuments: () => {
+      return documentsRef.current.some(doc => doc.status !== 'ready');
+    },
   }));
 
   useEffect(() => {
@@ -84,7 +103,11 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef>((props, ref)
         },
         (payload) => {
           console.log('📡 Realtime update received:', payload);
-          loadDocuments(false);
+          loadDocuments(false).then(() => {
+            if (onStatusChange) {
+              onStatusChange();
+            }
+          });
         }
       )
       .subscribe();
@@ -94,7 +117,11 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef>((props, ref)
     const pollInterval = setInterval(() => {
       if (documentsRef.current.some(doc => doc.status === 'processing')) {
         console.log('🔄 Polling: Found processing documents, refreshing...');
-        loadDocuments(false);
+        loadDocuments(false).then(() => {
+          if (onStatusChange) {
+            onStatusChange();
+          }
+        });
       }
     }, 5000); // Poll every 5 seconds
 
@@ -102,7 +129,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef>((props, ref)
       clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
-  }, [user?.id]); // Only depend on user.id, not documents array
+  }, [user?.id, onStatusChange]); // Include onStatusChange in dependencies
 
   const handleRetryProcessing = async (documentId: string) => {
     try {
@@ -133,6 +160,11 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef>((props, ref)
 
       // Reload documents to show updated status
       await loadDocuments(false);
+      
+      // Notify parent of status change
+      if (onStatusChange) {
+        onStatusChange();
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to retry processing');
     } finally {
@@ -211,6 +243,19 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef>((props, ref)
     );
   }
 
+  if (activeDocuments.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <p className="flex items-center justify-center gap-2">
+          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          All documents have been processed successfully.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
@@ -231,13 +276,10 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef>((props, ref)
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Last Updated
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {documents.map((doc) => (
+          {activeDocuments.map((doc) => (
             <tr key={doc.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm font-medium text-gray-900">{doc.title}</div>
@@ -256,29 +298,6 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef>((props, ref)
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {formatDate(doc.updated_at)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {(doc.status === 'pending' || doc.status === 'error') && (
-                  <button
-                    onClick={() => handleRetryProcessing(doc.id)}
-                    disabled={retryingDocId === doc.id}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {retryingDocId === doc.id ? (
-                      <>
-                        <Spinner size="sm" />
-                        Retrying...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Retry Processing
-                      </>
-                    )}
-                  </button>
-                )}
               </td>
             </tr>
           ))}
