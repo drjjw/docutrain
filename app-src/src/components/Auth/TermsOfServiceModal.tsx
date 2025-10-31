@@ -4,8 +4,9 @@ import { Button } from '@/components/UI/Button';
 
 interface TermsOfServiceModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void; // Optional - if not provided, modal cannot be closed
   onAccept: () => void;
+  accepting?: boolean; // Show loading state on accept button
 }
 
 const TERMS_OF_SERVICE = `# DocuTrain Terms of Service
@@ -86,13 +87,16 @@ If you have questions about these Terms, contact us at support@docutrain.com.
 
 By using DocuTrain, you acknowledge that you have read, understood, and agree to these Terms.`;
 
-export function TermsOfServiceModal({ isOpen, onClose, onAccept }: TermsOfServiceModalProps) {
+export function TermsOfServiceModal({ isOpen, onClose, onAccept, accepting = false }: TermsOfServiceModalProps) {
+  const canClose = !!onClose; // Only allow closing if onClose is provided
+  
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={onClose || (() => {})} // Provide no-op if onClose is not provided
       title="Terms of Service"
       size="lg"
+      allowClose={canClose}
     >
       <div className="space-y-4">
         <div className="max-h-[60vh] overflow-y-auto border rounded-lg p-4 bg-gray-50">
@@ -103,11 +107,14 @@ export function TermsOfServiceModal({ isOpen, onClose, onAccept }: TermsOfServic
           </div>
         </div>
         <div className="flex justify-end space-x-3 pt-4 border-t">
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-          <Button variant="primary" onClick={onAccept}>
-            I Accept
+          {/* Only show Close button if onClose is provided (signup flow) */}
+          {onClose && (
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+          )}
+          <Button variant="primary" onClick={onAccept} loading={accepting} disabled={accepting}>
+            {accepting ? 'Accepting...' : 'I Accept'}
           </Button>
         </div>
       </div>

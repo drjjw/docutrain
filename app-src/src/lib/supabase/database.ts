@@ -110,6 +110,49 @@ export function subscribeToDocuments(
 }
 
 /**
+ * Check if user has accepted Terms of Service
+ */
+export async function hasAcceptedTermsOfService(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('tos_accepted_at')
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    // If no profile exists, user hasn't accepted TOS
+    if (error.code === 'PGRST116') {
+      return false;
+    }
+    // Log other errors but assume TOS not accepted to be safe
+    console.error('Error checking TOS acceptance:', error);
+    return false;
+  }
+
+  return !!data?.tos_accepted_at;
+}
+
+/**
+ * Get user profile with TOS information
+ */
+export async function getUserProfile(userId: string) {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null; // No profile exists yet
+    }
+    throw new Error(`Failed to fetch user profile: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
  * Record Terms of Service acceptance
  */
 export async function acceptTermsOfService(userId: string, version: string = '2025-10-31') {

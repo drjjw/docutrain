@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Spinner } from '@/components/UI/Spinner';
+import { TOSGate } from '@/components/Auth/TOSGate';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -26,7 +27,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
-  console.log('🔵 ProtectedRoute: User authenticated, rendering protected content');
-  return <>{children}</>;
+  console.log('🔵 ProtectedRoute: User authenticated, checking TOS acceptance');
+  
+  // Wrap children in TOSGate to ensure TOS is accepted
+  return (
+    <TOSGate>
+      {children}
+    </TOSGate>
+  );
 }
 

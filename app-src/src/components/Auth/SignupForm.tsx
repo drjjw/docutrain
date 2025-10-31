@@ -62,21 +62,31 @@ export function SignupForm() {
     try {
       setLoading(true);
       console.log('SignupForm: Attempting signup with email:', email);
+      
+      // Signup user first
       await signUp(email, password);
       console.log('SignupForm: Signup successful');
       
       // Get the current user after signup
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       
-      // Record TOS acceptance
+      // Record TOS acceptance - this is required, so if it fails we should log an error
+      // The TOSGate will catch users who don't have TOS recorded when they log in
       if (currentUser?.id) {
         try {
           await acceptTermsOfService(currentUser.id, '2025-10-31');
           console.log('SignupForm: TOS acceptance recorded');
         } catch (tosError) {
           console.error('SignupForm: Failed to record TOS acceptance:', tosError);
-          // Don't block signup if TOS recording fails, but log it
+          // Note: We don't block signup here because:
+          // 1. The user has already been created in auth.users
+          // 2. The TOSGate component will require TOS acceptance on first login
+          // 3. This prevents orphaned auth users if TOS recording fails
+          setError('Account created, but Terms of Service recording failed. You will be asked to accept TOS on first login.');
         }
+      } else {
+        console.error('SignupForm: No user ID after signup');
+        setError('Account created but unable to retrieve user information. Please try logging in.');
       }
       
       // Show success message instead of redirecting

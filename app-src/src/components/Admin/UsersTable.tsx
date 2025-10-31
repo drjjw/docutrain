@@ -786,8 +786,8 @@ export function UsersTable() {
                 setEditRole(newRole);
                 if (newRole === 'super_admin') {
                   setEditOwnerId(null);
-                } else if (newRole === 'owner_admin' && !editOwnerId) {
-                  // Keep current owner_id or set to first owner
+                } else if ((newRole === 'owner_admin' || newRole === 'registered') && !editOwnerId) {
+                  // Keep current owner_id or set to first owner for owner_admin or registered
                   setEditOwnerId(owners[0]?.id || null);
                 }
               }}
@@ -804,7 +804,7 @@ export function UsersTable() {
             </p>
           </div>
 
-          {editRole === 'owner_admin' && (
+          {(editRole === 'owner_admin' || editRole === 'registered') && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Owner Group
@@ -822,7 +822,9 @@ export function UsersTable() {
                 ))}
               </select>
               <p className="mt-1 text-xs text-gray-500">
-                Select the owner group this user will administer
+                {editRole === 'owner_admin' 
+                  ? 'Select the owner group this user will administer'
+                  : 'Select the owner group this user will have access to'}
               </p>
             </div>
           )}
@@ -845,7 +847,7 @@ export function UsersTable() {
           <div className="flex gap-3 pt-4 border-t border-gray-200">
             <Button
               onClick={handleSavePermissions}
-              disabled={saving || (editRole === 'owner_admin' && !editOwnerId)}
+              disabled={saving || ((editRole === 'owner_admin' || editRole === 'registered') && !editOwnerId)}
               loading={saving}
               className="flex-1"
             >
@@ -1027,7 +1029,7 @@ export function UsersTable() {
                 setBulkRole(newRole);
                 if (newRole === 'super_admin') {
                   setBulkOwnerId(null);
-                } else if (newRole === 'owner_admin' && !bulkOwnerId) {
+                } else if ((newRole === 'owner_admin' || newRole === 'registered') && !bulkOwnerId) {
                   setBulkOwnerId(owners[0]?.id || null);
                 }
               }}
@@ -1044,7 +1046,7 @@ export function UsersTable() {
             </p>
           </div>
 
-          {bulkRole === 'owner_admin' && (
+          {(bulkRole === 'owner_admin' || bulkRole === 'registered') && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Owner Group
@@ -1062,7 +1064,9 @@ export function UsersTable() {
                 ))}
               </select>
               <p className="mt-1 text-xs text-gray-500">
-                Select the owner group these users will administer
+                {bulkRole === 'owner_admin'
+                  ? 'Select the owner group these users will administer'
+                  : 'Select the owner group these users will have access to'}
               </p>
             </div>
           )}
@@ -1085,7 +1089,7 @@ export function UsersTable() {
           <div className="flex gap-3 pt-4 border-t border-gray-200">
             <Button
               onClick={handleBulkRoleAssignment}
-              disabled={saving || (bulkRole === 'owner_admin' && !bulkOwnerId)}
+              disabled={saving || ((bulkRole === 'owner_admin' || bulkRole === 'registered') && !bulkOwnerId)}
               loading={saving}
               className="flex-1"
             >
