@@ -106,20 +106,20 @@ export function DashboardPage() {
     <Dashboard>
       <div className="space-y-6">
         {/* Welcome Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-2xl font-bold text-white">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-xl sm:text-2xl font-bold text-white flex-shrink-0">
               {getUserInitials()}
             </div>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
                 Welcome back!
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm sm:text-base text-gray-600 break-words">
                 {user?.email}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               {isSuperAdmin ? (
                 <PermissionsBadge role="super_admin" />
               ) : hasAdminAccess ? (
@@ -137,11 +137,11 @@ export function DashboardPage() {
 
         {/* Navigation Tabs - Only show if user has admin access */}
         {hasAdminAccess && (
-          <div className="border-b border-gray-200 bg-white rounded-t-lg shadow-sm">
-            <nav className="-mb-px flex space-x-8 px-6">
+          <div className="border-b border-gray-200 bg-white rounded-t-lg shadow-sm overflow-x-auto">
+            <nav className="-mb-px flex space-x-4 sm:space-x-8 px-4 sm:px-6 min-w-max">
               <button
                 onClick={() => handleTabChange('documents')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
                   activeTab === 'documents'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -152,7 +152,7 @@ export function DashboardPage() {
               {isSuperAdmin && (
                 <button
                   onClick={() => handleTabChange('users')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
                     activeTab === 'users'
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -173,16 +173,16 @@ export function DashboardPage() {
         ) : activeTab === 'documents' ? (
           <div className="space-y-6">
             {/* Access Level Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-sm">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 shadow-sm">
               <h3 className="text-sm font-medium text-blue-900 mb-1">Your Access Level</h3>
               {isSuperAdmin ? (
-                <p className="text-sm text-blue-700">
+                <p className="text-xs sm:text-sm text-blue-700">
                   <strong>Super Administrator</strong> - You can view and edit all documents across all owner groups, upload new documents, and manage all system users.
                 </p>
               ) : (
-                <p className="text-sm text-blue-700">
+                <p className="text-xs sm:text-sm text-blue-700">
                   <strong>Owner Administrator</strong> - You can view and edit documents for the following owner groups:
-                  <span className="ml-2 font-medium">
+                  <span className="ml-2 font-medium break-words">
                     {ownerGroups
                       .filter(og => og.role === 'owner_admin')
                       .map(og => og.owner_name)
@@ -194,13 +194,13 @@ export function DashboardPage() {
 
             {/* Upload Section */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                <h2 className="text-lg font-semibold text-gray-900">Upload New Document</h2>
-                <p className="text-sm text-gray-600 mt-1">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">Upload New Document</h2>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
                   Upload PDF documents to make them available in the system
                 </p>
               </div>
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <UploadZone onUploadSuccess={() => {
                   // Immediately show the processing section (upload always creates active doc)
                   setHasActiveDocuments(true);
@@ -221,13 +221,13 @@ export function DashboardPage() {
             {/* Processing Status - Only show when there are active documents */}
             {/* Always render the table (hidden) so ref is available for checking status */}
             <div className={hasActiveDocuments ? 'bg-white rounded-lg shadow-sm border border-gray-200' : 'hidden'}>
-              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                <h2 className="text-lg font-semibold text-gray-900">Processing Status</h2>
-                <p className="text-sm text-gray-600 mt-1">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">Processing Status</h2>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
                   Documents currently being processed will appear here and will move to the documents list below once complete
                 </p>
               </div>
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <UserDocumentsTable 
                   ref={userDocumentsTableRef}
                   onStatusChange={handleStatusChange}
@@ -237,13 +237,13 @@ export function DashboardPage() {
 
             {/* Documents Table */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                <h2 className="text-lg font-semibold text-gray-900">Manage Documents</h2>
-                <p className="text-sm text-gray-600 mt-1">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">Manage Documents</h2>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
                   View, edit, and manage all documents in the system
                 </p>
               </div>
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <DocumentsTable ref={documentsTableRef} isSuperAdmin={isSuperAdmin} />
               </div>
             </div>
@@ -251,22 +251,22 @@ export function DashboardPage() {
         ) : (
           <div className="space-y-6">
             {/* Access Level Info for Users Tab */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-sm">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 shadow-sm">
               <h3 className="text-sm font-medium text-blue-900 mb-1">Super Administrator Access</h3>
-              <p className="text-sm text-blue-700">
+              <p className="text-xs sm:text-sm text-blue-700">
                 <strong>Full System Control</strong> - You can view and manage all users, their roles, and permissions across all owner groups.
               </p>
             </div>
 
             {/* Users Table */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
-                <p className="text-sm text-gray-600 mt-1">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">User Management</h2>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
                   Manage user accounts, roles, and permissions
                 </p>
               </div>
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <UsersTable />
               </div>
             </div>

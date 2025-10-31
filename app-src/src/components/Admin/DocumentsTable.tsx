@@ -309,9 +309,88 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
     }
   };
 
-  const renderActionButtons = (doc: DocumentWithOwner) => {
+  const renderActionButtons = (doc: DocumentWithOwner, isMobile: boolean = false) => {
     const showDownload = hasDownloadAvailable(doc);
     
+    if (isMobile) {
+      // Mobile: horizontal layout with icons and text
+      return (
+        <div className="grid grid-cols-5 gap-1">
+          {/* View Button */}
+          <button
+            onClick={() => window.open(`/chat?doc=${doc.slug}`, '_blank')}
+            className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="View document"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span className="text-xs text-gray-500">View</span>
+          </button>
+
+          {/* Download PDF Button - Only show if downloads exist in database */}
+          {showDownload && (
+            <button
+              onClick={() => handleDownload(doc)}
+              className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+              title={doc.downloads!.length > 1 ? `${doc.downloads!.length} downloads available` : 'Download PDF'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="text-xs text-gray-500">
+                {doc.downloads!.length > 1 ? `PDF (${doc.downloads!.length})` : 'PDF'}
+              </span>
+            </button>
+          )}
+
+          {/* Copy Link Button */}
+          <button
+            onClick={() => handleCopyLink(doc)}
+            className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+            title="Copy link"
+          >
+            {copiedDocId === doc.id ? (
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            )}
+            <span className="text-xs text-gray-500">Copy</span>
+          </button>
+
+          {/* Edit All Button */}
+          <button
+            onClick={() => setEditorModalDoc(doc)}
+            className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+            title="Edit all fields"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            <span className="text-xs text-gray-500">Edit</span>
+          </button>
+
+          {/* Delete Button */}
+          <button
+            onClick={() => setDeleteConfirmDoc(doc)}
+            className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Delete document"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            <span className="text-xs text-gray-500">Delete</span>
+          </button>
+        </div>
+      );
+    }
+    
+    // Desktop: original layout
     return (
       <div className="flex items-center gap-2">
         {/* View Button */}
@@ -415,9 +494,9 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
       )}
 
       {/* Search and Filters */}
-      <div className="flex flex-wrap items-center gap-4">
-        {/* Search Bar */}
-        <div className="relative flex-1 min-w-0 max-w-md">
+      <div className="space-y-4">
+        {/* Search Bar - Full width on mobile */}
+        <div className="relative w-full">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -432,81 +511,18 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
           />
         </div>
 
-        {/* Status Filter */}
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
-            className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-          <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-
-        {/* Visibility Filter */}
-        <div className="relative">
-          <select
-            value={visibilityFilter}
-            onChange={(e) => setVisibilityFilter(e.target.value as 'all' | 'public' | 'passcode' | 'registered' | 'owner_restricted' | 'owner_admin_only')}
-            className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="all">All Access Levels</option>
-            <option value="public">Public</option>
-            <option value="passcode">Passcode</option>
-            <option value="registered">Registered</option>
-            <option value="owner_restricted">Owner Restricted</option>
-            <option value="owner_admin_only">Owner Admins Only</option>
-          </select>
-          <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-
-        {/* Category Filter */}
-        <div className="relative">
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="all">All Categories</option>
-            <option value="Guidelines">Guidelines</option>
-            <option value="Maker">Maker</option>
-            <option value="Manuals">Manuals</option>
-            <option value="Presentation">Presentation</option>
-            <option value="Recipes">Recipes</option>
-            <option value="Reviews">Reviews</option>
-            <option value="Slides">Slides</option>
-            <option value="Training">Training</option>
-          </select>
-          <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-
-        {/* Owner Filter (Super Admin only) */}
-        {isSuperAdmin && (
+        {/* Filters Grid - Stack on mobile, row on desktop */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Status Filter */}
           <div className="relative">
             <select
-              value={ownerFilter}
-              onChange={(e) => setOwnerFilter(e.target.value)}
-              className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+              className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-full"
             >
-              <option value="all">All Owners</option>
-              {owners.map(owner => (
-                <option key={owner.id} value={owner.id}>{owner.name}</option>
-              ))}
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
             </select>
             <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -514,7 +530,73 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
               </svg>
             </div>
           </div>
-        )}
+
+          {/* Visibility Filter */}
+          <div className="relative">
+            <select
+              value={visibilityFilter}
+              onChange={(e) => setVisibilityFilter(e.target.value as 'all' | 'public' | 'passcode' | 'registered' | 'owner_restricted' | 'owner_admin_only')}
+              className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-full"
+            >
+              <option value="all">All Access Levels</option>
+              <option value="public">Public</option>
+              <option value="passcode">Passcode</option>
+              <option value="registered">Registered</option>
+              <option value="owner_restricted">Owner Restricted</option>
+              <option value="owner_admin_only">Owner Admins Only</option>
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Category Filter */}
+          <div className="relative">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-full"
+            >
+              <option value="all">All Categories</option>
+              <option value="Guidelines">Guidelines</option>
+              <option value="Maker">Maker</option>
+              <option value="Manuals">Manuals</option>
+              <option value="Presentation">Presentation</option>
+              <option value="Recipes">Recipes</option>
+              <option value="Reviews">Reviews</option>
+              <option value="Slides">Slides</option>
+              <option value="Training">Training</option>
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Owner Filter (Super Admin only) */}
+          {isSuperAdmin && (
+            <div className="relative">
+              <select
+                value={ownerFilter}
+                onChange={(e) => setOwnerFilter(e.target.value)}
+                className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-full"
+              >
+                <option value="all">All Owners</option>
+                {owners.map(owner => (
+                  <option key={owner.id} value={owner.id}>{owner.name}</option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Clear Filters */}
         {(searchQuery || statusFilter !== 'all' || visibilityFilter !== 'all' || categoryFilter !== 'all' || ownerFilter !== 'all') && (
@@ -527,7 +609,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
               setOwnerFilter('all');
               setCurrentPage(1);
             }}
-            className="text-sm text-gray-500 hover:text-gray-700 whitespace-nowrap"
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
           >
             Clear All Filters
           </button>
@@ -535,9 +617,9 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
       </div>
 
       {/* Table Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">
             Documents ({paginatedDocuments.length} of {filteredDocuments.length}{filteredDocuments.length !== documents.length ? ` total` : ''})
           </h3>
           <div className="flex gap-2">
@@ -562,7 +644,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
             <option value={50}>50</option>
             <option value={100}>100</option>
           </select>
-          <span className="text-sm text-gray-600">per page</span>
+          <span className="text-sm text-gray-600 hidden sm:inline">per page</span>
         </div>
       </div>
 
@@ -633,11 +715,13 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <div className="text-xs text-gray-500">
-                    {doc.year && `Year: ${doc.year}`}
-                  </div>
-                  {renderActionButtons(doc)}
+                <div className="space-y-2">
+                  {doc.year && (
+                    <div className="text-xs text-gray-500">
+                      Year: {doc.year}
+                    </div>
+                  )}
+                  {renderActionButtons(doc, true)}
                 </div>
               </div>
 
@@ -684,7 +768,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                       {doc.category}
                     </span>
                   ) : (
-                    <span className="text-sm text-gray-400">—</span>
+                    <span className="text-sm text-gray-400">?</span>
                   )}
                 </div>
 
@@ -709,27 +793,27 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
 
       {/* Pagination Controls */}
       {filteredDocuments.length > 0 && totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-b-lg">
-          <div className="flex items-center gap-2 text-sm text-gray-700">
-            <span>Page {currentPage} of {totalPages}</span>
-            <span className="text-gray-500">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-b-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-700">
+            <span className="font-medium">Page {currentPage} of {totalPages}</span>
+            <span className="text-gray-500 text-xs sm:text-sm">
               ({startIndex + 1}-{Math.min(endIndex, filteredDocuments.length)} of {filteredDocuments.length} documents)
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between sm:justify-end gap-2">
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
               className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Previous
+              <span className="hidden sm:inline">Previous</span>
             </button>
 
-            {/* Page Numbers */}
-            <div className="flex items-center gap-1">
+            {/* Page Numbers - Hide on very small screens */}
+            <div className="hidden sm:flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let pageNum;
                 if (totalPages <= 5) {
@@ -763,8 +847,8 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
               disabled={currentPage === totalPages}
               className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Next
-              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span className="hidden sm:inline">Next</span>
+              <svg className="w-4 h-4 sm:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>

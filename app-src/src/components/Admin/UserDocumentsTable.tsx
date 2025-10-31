@@ -287,81 +287,149 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Title
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              File Size
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Uploaded
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Last Updated
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {activeDocuments.map((doc) => (
-            <tr key={doc.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">{doc.title}</div>
-                {doc.error_message && (
-                  <div className="text-xs text-red-600 mt-1">{doc.error_message}</div>
-                )}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {getStatusBadge(doc.status)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {formatFileSize(doc.file_size)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {formatDate(doc.created_at)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {formatDate(doc.updated_at)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <div className="flex items-center gap-2">
-                  {doc.status === 'error' && (
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => handleDelete(doc.id)}
-                      loading={deletingDocId === doc.id}
-                      disabled={deletingDocId !== null || retryingDocId !== null}
-                    >
-                      Delete
-                    </Button>
+    <div className="space-y-3">
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Title
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                File Size
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Uploaded
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Last Updated
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {activeDocuments.map((doc) => (
+              <tr key={doc.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">{doc.title}</div>
+                  {doc.error_message && (
+                    <div className="text-xs text-red-600 mt-1">{doc.error_message}</div>
                   )}
-                  {doc.status === 'error' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRetryProcessing(doc.id)}
-                      loading={retryingDocId === doc.id}
-                      disabled={deletingDocId !== null || retryingDocId !== null}
-                    >
-                      Retry
-                    </Button>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {getStatusBadge(doc.status)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {formatFileSize(doc.file_size)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {formatDate(doc.created_at)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {formatDate(doc.updated_at)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <div className="flex items-center gap-2">
+                    {doc.status === 'error' && (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDelete(doc.id)}
+                        loading={deletingDocId === doc.id}
+                        disabled={deletingDocId !== null || retryingDocId !== null}
+                      >
+                        Delete
+                      </Button>
+                    )}
+                    {doc.status === 'error' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRetryProcessing(doc.id)}
+                        loading={retryingDocId === doc.id}
+                        disabled={deletingDocId !== null || retryingDocId !== null}
+                      >
+                        Retry
+                      </Button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3">
+        {activeDocuments.map((doc) => (
+          <div key={doc.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="space-y-3">
+              {/* Title and Status */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 break-words">{doc.title}</div>
+                  {doc.error_message && (
+                    <div className="text-xs text-red-600 mt-1 break-words">{doc.error_message}</div>
                   )}
                 </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                <div className="flex-shrink-0">
+                  {getStatusBadge(doc.status)}
+                </div>
+              </div>
+              
+              {/* File Info */}
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <div className="text-gray-500">File Size</div>
+                  <div className="text-gray-900 font-medium">{formatFileSize(doc.file_size)}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Uploaded</div>
+                  <div className="text-gray-900 font-medium">{formatDate(doc.created_at)}</div>
+                </div>
+              </div>
+              
+              <div className="text-xs">
+                <div className="text-gray-500">Last Updated</div>
+                <div className="text-gray-900 font-medium">{formatDate(doc.updated_at)}</div>
+              </div>
+              
+              {/* Actions */}
+              {doc.status === 'error' && (
+                <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRetryProcessing(doc.id)}
+                    loading={retryingDocId === doc.id}
+                    disabled={deletingDocId !== null || retryingDocId !== null}
+                    className="flex-1"
+                  >
+                    Retry
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => handleDelete(doc.id)}
+                    loading={deletingDocId === doc.id}
+                    disabled={deletingDocId !== null || retryingDocId !== null}
+                    className="flex-1"
+                  >
+                    Delete
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 });
