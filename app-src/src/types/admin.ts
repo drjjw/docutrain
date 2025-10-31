@@ -58,6 +58,7 @@ export interface Document {
   show_document_selector?: boolean;
   access_level?: DocumentAccessLevel;
   passcode?: string;
+  uploaded_by_user_id?: string;
 }
 
 export interface DocumentWithOwner extends Document {

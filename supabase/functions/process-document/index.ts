@@ -490,6 +490,45 @@ async function processUserDocument(userDocId: string) {
       introMessage = `<div class="document-abstract"><p><strong>Document Summary:</strong></p><p>${abstract}</p></div><p>Ask questions about this document below.</p>`;
     }
     
+    // Check if user is super admin (global super admin has owner_id IS NULL)
+    let ownerIdToSet: string | null = null;
+    const { data: userRoles } = await supabase
+      .from('user_roles')
+      .select('role, owner_id')
+      .eq('user_id', userDoc.user_id)
+      .eq('role', 'super_admin');
+    
+    // Check if user is a global super admin (owner_id IS NULL)
+    const isSuperAdmin = userRoles && userRoles.some(r => r.owner_id === null);
+    
+    if (!isSuperAdmin) {
+      // Get user's owner group from user_owner_access (regular members)
+      const { data: ownerAccess, error: ownerAccessError } = await supabase
+        .from('user_owner_access')
+        .select('owner_id')
+        .eq('user_id', userDoc.user_id)
+        .limit(1)
+        .maybeSingle();
+      
+      if (!ownerAccessError && ownerAccess?.owner_id) {
+        ownerIdToSet = ownerAccess.owner_id;
+      } else {
+        // Check user_roles for owner_admin or registered roles with owner_id
+        const { data: userRolesWithOwner, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('owner_id')
+          .eq('user_id', userDoc.user_id)
+          .not('owner_id', 'is', null)
+          .limit(1)
+          .maybeSingle();
+        
+        if (!rolesError && userRolesWithOwner?.owner_id) {
+          ownerIdToSet = userRolesWithOwner.owner_id;
+        }
+      }
+    }
+    // If super admin, ownerIdToSet remains null (can be set later in edit modal)
+    
     const { error: docInsertError } = await supabase
       .from('documents')
       .insert({
@@ -503,6 +542,8 @@ async function processUserDocument(userDocId: string) {
         embedding_type: 'openai',
         active: true,
         access_level: 'owner_restricted',
+        owner_id: ownerIdToSet,
+        uploaded_by_user_id: userDoc.user_id,
         metadata: {
           user_document_id: userDocId,
           user_id: userDoc.user_id,

@@ -37,6 +37,7 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
       show_document_selector,
       access_level,
       passcode,
+      uploaded_by_user_id,
       owners(*)
     `)
     .order('created_at', { ascending: false });

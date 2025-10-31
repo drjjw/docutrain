@@ -794,6 +794,21 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                           <span className="text-gray-600">Updated:</span>
                           <span className="text-gray-900 font-medium">{new Date(document.updated_at).toLocaleString()}</span>
                         </div>
+                        {document.uploaded_by_user_id && (
+                          <div className="flex justify-between items-start pt-2 border-t border-gray-200">
+                            <span className="text-gray-600">Uploaded by:</span>
+                            <div className="text-right">
+                              <div className="text-gray-900 font-medium font-mono text-xs break-all max-w-[200px]">
+                                {document.uploaded_by_user_id}
+                              </div>
+                              {isSuperAdmin && (
+                                <div className="text-xs text-gray-500 mt-0.5">
+                                  (User ID - email available in user management)
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div>
