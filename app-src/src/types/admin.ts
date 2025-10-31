@@ -88,6 +88,21 @@ export interface UserRole {
   updated_at: string;
 }
 
+export interface UserStatistics {
+  document_count: number;
+  documents: Array<{
+    slug: string;
+    title: string;
+    uploaded_at: string;
+    owner_id?: string;
+  }>;
+  total_storage_bytes?: number;
+  last_login?: string;
+  account_created?: string;
+  email_verified?: boolean;
+  is_banned?: boolean;
+}
+
 export interface UserWithRoles extends User {
   roles: UserRole[];
   owner_groups: {
@@ -96,5 +111,8 @@ export interface UserWithRoles extends User {
     owner_name: string;
     role: 'registered' | 'owner_admin' | 'super_admin';
   }[];
+  banned_until?: string;
+  deleted_at?: string;
+  statistics?: UserStatistics;
 }
 

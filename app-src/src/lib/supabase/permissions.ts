@@ -14,6 +14,8 @@ export async function getUserPermissions(userId: string): Promise<UserPermission
     throw new Error(`Failed to fetch permissions: ${error.message}`);
   }
 
+  console.log('getUserPermissions - raw data from DB:', data);
+
   const isSuperAdmin = data?.some(p => p.role === 'super_admin') || false;
 
   return {
@@ -23,6 +25,7 @@ export async function getUserPermissions(userId: string): Promise<UserPermission
       owner_id: p.owner_id,
       owner_slug: p.owner_slug,
       owner_name: p.owner_name,
+      owner_logo_url: p.owner_logo_url,
       role: p.role,
     })),
   };

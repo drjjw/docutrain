@@ -13,7 +13,11 @@ import { Spinner } from '@/components/UI/Spinner';
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const { permissions, loading, isSuperAdmin, ownerGroups, needsApproval } = usePermissions();
+  const { permissions, loading, isSuperAdmin, isOwnerAdmin, ownerGroups, needsApproval } = usePermissions();
+  
+  // Debug logging
+  console.log('DashboardPage - ownerGroups:', ownerGroups);
+  
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<'documents' | 'users'>('documents');
@@ -108,9 +112,21 @@ export function DashboardPage() {
         {/* Welcome Section */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-xl sm:text-2xl font-bold text-white flex-shrink-0">
-              {getUserInitials()}
-            </div>
+            {/* User Avatar or Owner Logo */}
+            {!isSuperAdmin && hasAdminAccess && ownerGroups.length > 0 && ownerGroups[0].owner_logo_url ? (
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg bg-white border-2 border-gray-200 flex items-center justify-center flex-shrink-0 p-2">
+                <img 
+                  src={ownerGroups[0].owner_logo_url} 
+                  alt={ownerGroups[0].owner_name} 
+                  className="w-full h-full object-contain"
+                  title={ownerGroups[0].owner_name}
+                />
+              </div>
+            ) : (
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-xl sm:text-2xl font-bold text-white flex-shrink-0">
+                {getUserInitials()}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
                 Welcome back!
@@ -149,7 +165,7 @@ export function DashboardPage() {
               >
                 Documents & Uploads
               </button>
-              {isSuperAdmin && (
+              {(isSuperAdmin || isOwnerAdmin) && (
                 <button
                   onClick={() => handleTabChange('users')}
                   className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${

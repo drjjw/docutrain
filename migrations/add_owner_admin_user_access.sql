@@ -26,10 +26,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 COMMENT ON FUNCTION get_owner_admin_accessible_users IS 'Returns list of user IDs that belong to a specific owner group (via roles or direct access)';
 
 -- =====================================================
--- Helper Function: Check if user is owner admin
+-- Helper Function: Check if user is owner admin for any group
 -- =====================================================
 
-CREATE OR REPLACE FUNCTION is_owner_admin(p_user_id UUID)
+CREATE OR REPLACE FUNCTION is_any_owner_admin(p_user_id UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS(
@@ -39,7 +39,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON FUNCTION is_owner_admin IS 'Check if user has owner_admin role for any owner group';
+COMMENT ON FUNCTION is_any_owner_admin IS 'Check if user has owner_admin role for any owner group';
 
 -- =====================================================
 -- Helper Function: Get owner groups for owner admin
@@ -87,11 +87,11 @@ CREATE INDEX IF NOT EXISTS idx_user_owner_access_owner_user
 
 -- Allow authenticated users to execute these functions
 GRANT EXECUTE ON FUNCTION get_owner_admin_accessible_users(UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION is_owner_admin(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION is_any_owner_admin(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_owner_admin_groups(UUID) TO authenticated;
 
 -- Also grant to service role for backend operations
 GRANT EXECUTE ON FUNCTION get_owner_admin_accessible_users(UUID) TO service_role;
-GRANT EXECUTE ON FUNCTION is_owner_admin(UUID) TO service_role;
+GRANT EXECUTE ON FUNCTION is_any_owner_admin(UUID) TO service_role;
 GRANT EXECUTE ON FUNCTION get_owner_admin_groups(UUID) TO service_role;
 

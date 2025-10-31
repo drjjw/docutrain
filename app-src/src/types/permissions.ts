@@ -4,6 +4,7 @@ export interface OwnerAccess {
   owner_id: string;
   owner_slug: string;
   owner_name: string;
+  owner_logo_url?: string;
   role: UserRole;
 }
 

@@ -4,6 +4,7 @@ import type { UserRole } from '@/types/permissions';
 interface PermissionsBadgeProps {
   role: UserRole;
   ownerName?: string;
+  ownerLogoUrl?: string;
 }
 
 export function PermissionsBadge({ role, ownerName }: PermissionsBadgeProps) {

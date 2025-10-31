@@ -1,6 +1,6 @@
 import { supabase } from './client';
 import { getUserPermissions } from './permissions';
-import type { Document, DocumentWithOwner, Owner, UserWithRoles, UserRole } from '@/types/admin';
+import type { Document, DocumentWithOwner, Owner, UserWithRoles, UserRole, UserStatistics } from '@/types/admin';
 
 /**
  * Get all documents based on user permissions
@@ -343,16 +343,22 @@ export async function updateUserPassword(userId: string, password: string): Prom
 }
 
 /**
- * Delete a user (super admin only)
+ * Delete a user (super admin and owner admin)
  */
-export async function deleteUser(userId: string): Promise<void> {
+export async function deleteUser(userId: string, action: 'delete' | 'ban' | 'unban' = 'delete', banDuration?: 'permanent' | 'temporary', banHours?: number): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session?.access_token) {
     throw new Error('Not authenticated');
   }
 
-  const response = await fetch(`/api/users/${userId}`, {
+  const params = new URLSearchParams({ action });
+  if (action === 'ban') {
+    if (banDuration) params.append('ban_duration', banDuration);
+    if (banHours) params.append('ban_hours', banHours.toString());
+  }
+
+  const response = await fetch(`/api/users/${userId}?${params.toString()}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${session.access_token}`,
@@ -362,8 +368,48 @@ export async function deleteUser(userId: string): Promise<void> {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || 'Failed to delete user');
+    throw new Error(error.error || 'Failed to process user action');
   }
+}
+
+/**
+ * Ban a user (super admin and owner admin)
+ */
+export async function banUser(userId: string, duration: 'permanent' | 'temporary' = 'permanent', hours?: number): Promise<void> {
+  return deleteUser(userId, 'ban', duration, hours);
+}
+
+/**
+ * Unban a user (super admin and owner admin)
+ */
+export async function unbanUser(userId: string): Promise<void> {
+  return deleteUser(userId, 'unban');
+}
+
+/**
+ * Get user statistics (super admin and owner admin)
+ */
+export async function getUserStatistics(userId: string): Promise<import('@/types/admin').UserStatistics> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/users/${userId}/stats`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to fetch user statistics');
+  }
+
+  return response.json();
 }
 
 /**
