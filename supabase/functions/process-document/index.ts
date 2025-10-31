@@ -268,7 +268,7 @@ async function generateKeywords(chunks: Array<{ content: string }>, documentTitl
       messages: [
         {
           role: 'system',
-          content: 'You are an expert at analyzing document content and extracting key terms and concepts. Identify the most important keywords, phrases, and concepts that would be useful for a word cloud visualization. Focus on domain-specific terms, key concepts, and important topics.'
+          content: 'You are an expert at analyzing document content and extracting key terms and concepts. Identify the most important keywords, phrases, and concepts that would be useful for a word cloud visualization. Focus on domain-specific terms, key concepts, and important topics. Always respond with valid JSON.'
         },
         {
           role: 'user',
@@ -282,6 +282,7 @@ async function generateKeywords(chunks: Array<{ content: string }>, documentTitl
     
     const content = response.choices[0]?.message?.content?.trim();
     if (!content) {
+      console.error('No content in OpenAI response for keywords');
       return null;
     }
     
@@ -314,7 +315,7 @@ async function generateKeywords(chunks: Array<{ content: string }>, documentTitl
     }
     
     if (!keywords || !Array.isArray(keywords)) {
-      console.error('Keywords not found in expected format');
+      console.error('Keywords not found in expected format. Parsed response:', JSON.stringify(parsed, null, 2));
       return null;
     }
     
@@ -329,14 +330,21 @@ async function generateKeywords(chunks: Array<{ content: string }>, documentTitl
       .slice(0, 30); // Limit to 30 keywords
     
     if (validKeywords.length === 0) {
+      console.error('No valid keywords after filtering. Original keywords array length:', keywords.length);
       return null;
     }
     
     console.log(`   ✓ Generated ${validKeywords.length} keywords`);
     return validKeywords;
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to generate keywords:', error);
+    console.error('Error details:', {
+      message: error?.message,
+      status: error?.status,
+      code: error?.code,
+      type: error?.type
+    });
     // Return null on error - don't fail the whole process
     return null;
   }

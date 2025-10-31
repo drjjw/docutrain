@@ -50,19 +50,20 @@ export function DashboardPage() {
       prevHasActiveRef.current = hasActive;
       setHasActiveDocuments(hasActive);
       
-      // Refresh DocumentsTable when a document completes processing
-      // (transitioned from having active documents to having none, or status changed when none active)
-      if (!hasActive || (prevHasActive && !hasActive)) {
-        // Clear any pending refresh to debounce
-        if (refreshTimeoutRef.current) {
-          clearTimeout(refreshTimeoutRef.current);
-        }
-        
-        // Delay refresh to ensure document is fully created in database
-        refreshTimeoutRef.current = setTimeout(() => {
-          documentsTableRef.current?.refresh();
-        }, 2000);
+      // Refresh DocumentsTable on any status change
+      // This ensures the main documents table updates when processing completes
+      console.log('📊 Status change detected:', { hasActive, prevHasActive });
+      
+      // Clear any pending refresh to debounce
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
       }
+      
+      // Delay refresh to ensure document is fully created in database
+      refreshTimeoutRef.current = setTimeout(() => {
+        console.log('🔄 Refreshing DocumentsTable after status change');
+        documentsTableRef.current?.refresh();
+      }, 1500);
     }
   }, []);
 
