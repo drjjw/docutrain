@@ -372,7 +372,8 @@ export function UsersTable() {
         </Alert>
       )}
 
-      <div className="overflow-x-auto">
+      {/* Desktop Table View */}
+      <div className="hidden lg:block overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -429,6 +430,62 @@ export function UsersTable() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile/Tablet Card View */}
+      <div className="lg:hidden space-y-4">
+        {users.map((user) => (
+          <div key={user.id} className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+            {/* User Header */}
+            <div className="bg-gradient-to-r from-gray-50 to-white px-4 py-3 border-b border-gray-200">
+              <div className="font-medium text-gray-900 break-words">{user.email}</div>
+            </div>
+            
+            {/* User Details */}
+            <div className="px-4 py-3 space-y-3">
+              {/* Role */}
+              <div>
+                <div className="text-xs text-gray-500 mb-1">Role</div>
+                {renderCell(user, 'role', { role: (user.owner_groups || [])[0]?.role || 'registered', owner_id: (user.owner_groups || [])[0]?.owner_id })}
+              </div>
+              
+              {/* Owner Groups */}
+              <div>
+                <div className="text-xs text-gray-500 mb-1">Owner Groups</div>
+                <div className="text-sm">{renderRolesCell(user)}</div>
+              </div>
+              
+              {/* Dates Grid */}
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <div className="text-gray-500">Email Confirmed</div>
+                  <div className="text-gray-900 font-medium mt-0.5">
+                    {renderDisplayValue('email_confirmed_at', user.email_confirmed_at)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Created</div>
+                  <div className="text-gray-900 font-medium mt-0.5">
+                    {renderDisplayValue('created_at', user.created_at)}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="text-xs">
+                <div className="text-gray-500">Last Sign In</div>
+                <div className="text-gray-900 font-medium mt-0.5">
+                  {renderDisplayValue('last_sign_in_at', user.last_sign_in_at)}
+                </div>
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
+              <div className="text-xs text-gray-500 mb-2">Actions</div>
+              {renderActionsCell(user)}
+            </div>
+          </div>
+        ))}
       </div>
 
       {users.length === 0 && (
