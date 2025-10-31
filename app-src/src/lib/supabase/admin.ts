@@ -10,7 +10,7 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
   // Get user permissions to determine access level
   const permissions = await getUserPermissions(userId);
   
-  let query = supabase
+  const query = supabase
     .from('documents')
     .select(`
       id,
@@ -41,18 +41,36 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
     `)
     .order('created_at', { ascending: false });
 
-  // If not super admin, filter by owner groups
+  // If not super admin, filter by owner groups OR user's own documents
   if (!permissions.is_super_admin) {
     const ownerIds = permissions.owner_groups.map(og => og.owner_id);
     
-    if (ownerIds.length === 0) {
-      // No access to any owner groups
-      return [];
+    // Fetch all documents (RLS will filter based on SELECT policies)
+    const { data: allDocs, error: fetchError } = await query;
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch documents: ${fetchError.message}`);
     }
-    
-    query = query.in('owner_id', ownerIds);
+
+    // Filter client-side: documents from owner groups OR user's own documents
+    // RLS already filters based on user_has_document_access, but we need to also include
+    // user's own documents even if they don't have owner group access
+    const filtered = (allDocs || []).filter(doc => {
+      // Documents from owner groups
+      if (doc.owner_id && ownerIds.includes(doc.owner_id)) {
+        return true;
+      }
+      // User's own documents (owner_id IS NULL and metadata.user_id matches)
+      if (!doc.owner_id && doc.metadata?.user_id === userId) {
+        return true;
+      }
+      return false;
+    });
+
+    return filtered as DocumentWithOwner[];
   }
 
+  // Super admin sees all documents
   const { data, error } = await query;
 
   if (error) {
