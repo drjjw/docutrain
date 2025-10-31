@@ -109,6 +109,26 @@ Visit `http://localhost:3458/app` to test the production version.
 └── package.json          # Dependencies and scripts
 ```
 
+### Important: Project Conversion Context
+
+**This project is currently being converted from vanilla JavaScript to React/TypeScript:**
+
+- **Original Vanilla JS Version**: Located in the root `public/` folder
+  - Contains the complete, working vanilla JavaScript implementation
+  - Main entry point: `public/chat.html`
+  - JavaScript modules: `public/js/` (chat.js, ui.js, api.js, etc.)
+  - All functionality is implemented and working in this version
+
+- **New React/TypeScript Version**: Located in `app-src/` folder
+  - Currently being ported from the vanilla JS version
+  - Uses React, TypeScript, and Vite
+  - Components, hooks, and services are being migrated from vanilla JS
+
+**Development Notes:**
+- When implementing features in the React version, refer to the vanilla JS code in `public/js/` for implementation details
+- The vanilla JS version serves as the reference for all working functionality
+- Backend API endpoints (`lib/routes/`) remain the same for both versions
+
 ## Port Configuration
 
 - **Port 3458**: Backend API server (Express)

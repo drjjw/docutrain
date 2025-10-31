@@ -1,0 +1,45 @@
+# Project Context and Memory
+
+## Project Conversion Status
+
+**IMPORTANT: This project is being actively converted from vanilla JavaScript to React/TypeScript.**
+
+### Original Vanilla JavaScript Version (Reference Implementation)
+- **Location**: Root `public/` folder
+- **Status**: ✅ Complete and fully functional - contains ALL working functionality
+- **Main Entry Point**: `public/chat.html`
+- **JavaScript Modules**: `public/js/` directory
+  - Key files: `chat.js`, `ui.js`, `api.js`, `document-selector.js`, `user-auth.js`, and others
+- **Purpose**: This is the original, working version. Always refer to this when porting features to React.
+
+### New React/TypeScript Version (In Progress)
+- **Location**: `app-src/` folder
+- **Status**: 🔄 Being ported/converted from vanilla JS
+- **Stack**: React + TypeScript + Vite
+- **Key Directories**:
+  - `app-src/src/components/` - React components
+  - `app-src/src/hooks/` - Custom React hooks
+  - `app-src/src/pages/` - Page components
+  - `app-src/src/services/` - API services
+  - `app-src/src/utils/` - Utility functions
+
+### Development Guidelines
+
+1. **Always reference the vanilla JS version first**: When implementing features in React/TypeScript, check the corresponding vanilla JS code in `public/js/` to understand:
+   - How the feature works
+   - API calls and data structures
+   - Business logic and edge cases
+   - UI behavior and user interactions
+
+2. **Backend is shared**: The backend API (`lib/routes/`) works for both versions - API endpoints are consistent.
+
+3. **Goal**: Port all functionality from vanilla JS to React/TypeScript while improving code quality, type safety, and maintainability.
+
+### Quick Reference
+
+- **Vanilla JS Chat**: `public/js/chat.js`
+- **Vanilla JS UI**: `public/js/ui.js` and `public/js/ui-*.js` files
+- **React Chat Page**: `app-src/src/pages/ChatPage.tsx`
+- **React Components**: `app-src/src/components/Chat/`
+- **React Hooks**: `app-src/src/hooks/useChat.ts`, `app-src/src/hooks/useStreamingResponse.ts`, etc.
+

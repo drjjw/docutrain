@@ -5,6 +5,7 @@ import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { LogoutPage } from '@/pages/LogoutPage';
+import { ChatPage } from '@/pages/ChatPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export function AppRouter() {
@@ -40,11 +41,17 @@ export function AppRouter() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/chat"
+          element={<ChatPage />}
+        />
         {/* Redirects for old admin routes */}
         <Route path="/admin/documents" element={<Navigate to="/dashboard" replace />} />
         <Route path="/admin/users" element={<Navigate to="/users" replace />} />
         <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        {/* Root redirect - only redirect exact "/" path, not subroutes */}
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        {/* Catch-all for unknown routes - redirect to dashboard */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
