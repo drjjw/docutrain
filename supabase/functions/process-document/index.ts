@@ -534,7 +534,7 @@ async function processUserDocument(userDocId: string) {
       .insert({
         slug: documentSlug,
         title: userDoc.title,
-        subtitle: `Uploaded by user`,
+        subtitle: null,
         welcome_message: `Ask questions about ${userDoc.title}`,
         intro_message: introMessage,
         pdf_filename: userDoc.file_path.split('/').pop(),
