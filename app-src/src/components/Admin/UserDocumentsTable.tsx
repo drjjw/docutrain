@@ -1,8 +1,10 @@
 import { useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
+import { Button } from '@/components/UI/Button';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { deleteDocument } from '@/lib/supabase/database';
 
 interface UserDocument {
   id: string;
@@ -31,6 +33,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryingDocId, setRetryingDocId] = useState<string | null>(null);
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
   const documentsRef = useRef<UserDocument[]>([]);
 
   // Filter to show only documents that are actively processing (not ready)
@@ -172,6 +175,33 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
     }
   };
 
+  const handleDelete = async (documentId: string) => {
+    const doc = documents.find(d => d.id === documentId);
+    if (!doc) return;
+
+    if (!confirm(`Are you sure you want to delete "${doc.title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setDeletingDocId(documentId);
+      await deleteDocument(documentId);
+      
+      // Reload documents to reflect the deletion
+      await loadDocuments(false);
+      
+      // Notify parent of status change
+      if (onStatusChange) {
+        onStatusChange();
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete document');
+      console.error(err);
+    } finally {
+      setDeletingDocId(null);
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -276,6 +306,9 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Last Updated
             </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -298,6 +331,32 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {formatDate(doc.updated_at)}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                <div className="flex items-center gap-2">
+                  {doc.status === 'error' && (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleDelete(doc.id)}
+                      loading={deletingDocId === doc.id}
+                      disabled={deletingDocId !== null || retryingDocId !== null}
+                    >
+                      Delete
+                    </Button>
+                  )}
+                  {doc.status === 'error' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRetryProcessing(doc.id)}
+                      loading={retryingDocId === doc.id}
+                      disabled={deletingDocId !== null || retryingDocId !== null}
+                    >
+                      Retry
+                    </Button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
