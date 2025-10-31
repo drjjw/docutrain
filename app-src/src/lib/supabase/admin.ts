@@ -346,3 +346,99 @@ export async function deleteUser(userId: string): Promise<void> {
   }
 }
 
+/**
+ * Retrain a document with a new PDF
+ * Replaces all chunks while preserving document metadata and slug
+ */
+export async function retrainDocument(
+  documentId: string,
+  file: File,
+  useEdgeFunction: boolean = false
+): Promise<{ success: boolean; user_document_id: string; message: string }> {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    throw new Error('Session error: ' + sessionError.message);
+  }
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated - please log in to retrain documents');
+  }
+
+  // Check if the token is expired
+  const now = Math.floor(Date.now() / 1000);
+  if (session.expires_at && session.expires_at < now) {
+    throw new Error('Session expired - please log in again');
+  }
+
+  // Create FormData for file upload
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('document_id', documentId);
+  formData.append('use_edge_function', useEdgeFunction.toString());
+
+  const response = await fetch('/api/retrain-document', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to start document retraining');
+  }
+
+  const data = await response.json();
+
+  // Clear localStorage cache for documents
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('ukidney-documents-cache');
+  }
+
+  return data;
+}
+
+/**
+ * Get retraining status for a document
+ * Polls the processing status of the associated user_document
+ */
+export async function getRetrainingStatus(userDocumentId: string): Promise<{
+  success: boolean;
+  document: {
+    id: string;
+    title: string;
+    status: string;
+    error_message?: string;
+    created_at: string;
+    updated_at: string;
+  };
+  logs: any[];
+}> {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    throw new Error('Session error: ' + sessionError.message);
+  }
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/processing-status/${userDocumentId}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to get retraining status');
+  }
+
+  return response.json();
+}
+
