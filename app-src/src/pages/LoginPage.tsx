@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { AuthLayout } from '@/components/Auth/AuthLayout';
 import { LoginForm } from '@/components/Auth/LoginForm';
 import { useAuth } from '@/hooks/useAuth';
 import { Spinner } from '@/components/UI/Spinner';
+import { Alert } from '@/components/UI/Alert';
 import { supabase } from '@/lib/supabase/client';
 
 interface OwnerInfo {
@@ -14,13 +15,31 @@ interface OwnerInfo {
 }
 
 export function LoginPage() {
-  const { user, loading } = useAuth();
+  const { user, session, loading } = useAuth();
   const navigate = useNavigate();
   const [redirecting, setRedirecting] = useState(false);
   const [ownerInfo, setOwnerInfo] = useState<OwnerInfo | null>(null);
   const [showLogoutMessage, setShowLogoutMessage] = useState(false);
+  const [showVerificationSuccess, setShowVerificationSuccess] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check for OTP expiration or other verification errors in URL hash
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const error = hashParams.get('error');
+    const errorCode = hashParams.get('error_code');
+    
+    if (error && errorCode === 'otp_expired') {
+      setVerificationError('This verification link has expired. Please request a new confirmation email by signing up again.');
+      // Clear the error from URL
+      window.history.replaceState({}, '', '/app/login');
+    } else if (error) {
+      const errorDescription = hashParams.get('error_description') || error;
+      setVerificationError(decodeURIComponent(errorDescription.replace(/\+/g, ' ')));
+      // Clear the error from URL
+      window.history.replaceState({}, '', '/app/login');
+    }
+
     // Check if user was just logged out
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('logout') === 'true') {
@@ -30,6 +49,33 @@ export function LoginPage() {
         setShowLogoutMessage(false);
         window.history.replaceState({}, '', '/app/login');
       }, 5000);
+    }
+
+    // Check for email verification success
+    // Supabase may include token or type parameters in the URL
+    const urlSearchParams = new URLSearchParams(window.location.search);
+    const hashParamsForToken = new URLSearchParams(window.location.hash.substring(1));
+    const hasToken = urlSearchParams.get('token') || hashParamsForToken.get('access_token');
+    const isSignupType = urlSearchParams.get('type') === 'signup' || hashParamsForToken.get('type') === 'signup';
+    
+    // Check if we have a session (user just confirmed email)
+    // If user has a session and there's a token/type=signup, they just verified
+    if (!loading && session && user && (hasToken || isSignupType)) {
+      // Check if this is a newly confirmed email (email_confirmed_at exists)
+      const emailConfirmed = user.email_confirmed_at !== null && user.email_confirmed_at !== undefined;
+      
+      if (emailConfirmed) {
+        setShowVerificationSuccess(true);
+        // Clear URL parameters
+        const cleanUrl = window.location.pathname + window.location.hash.split('?')[0];
+        window.history.replaceState({}, '', cleanUrl);
+        // Auto-redirect after showing success message
+        setTimeout(() => {
+          if (session) {
+            navigate('/dashboard');
+          }
+        }, 3000);
+      }
     }
 
     // Check for owner info in sessionStorage (set when redirected from restricted document)
@@ -42,12 +88,17 @@ export function LoginPage() {
         console.error('Failed to parse owner info from sessionStorage:', error);
       }
     }
-  }, []);
+  }, [session, loading, navigate]);
 
   useEffect(() => {
-    console.log('🟣 LoginPage: useEffect - loading:', loading, 'user:', !!user, 'redirecting:', redirecting);
+    console.log('🟣 LoginPage: useEffect - loading:', loading, 'user:', !!user, 'session:', !!session, 'redirecting:', redirecting);
     
-    if (!loading && user && !redirecting) {
+    // Don't auto-redirect if we're showing verification success message
+    if (showVerificationSuccess) {
+      return;
+    }
+    
+    if (!loading && user && session && !redirecting) {
       console.log('🟣 LoginPage: User is authenticated, preparing to redirect...');
       setRedirecting(true);
 
@@ -105,7 +156,7 @@ export function LoginPage() {
         window.location.href = '/app/dashboard';
       });
     }
-  }, [user, loading, navigate, redirecting]);
+  }, [user, session, loading, navigate, redirecting, showVerificationSuccess]);
 
   if (loading) {
     return (
@@ -133,6 +184,38 @@ export function LoginPage() {
       subtitle={subtitle}
       ownerInfo={ownerInfo}
     >
+      {verificationError && (
+        <Alert variant="error" onDismiss={() => setVerificationError(null)}>
+          <div>
+            <p className="font-medium mb-1">Verification Link Expired</p>
+            <p className="text-sm">{verificationError}</p>
+            <p className="text-sm mt-2">
+              To get a new verification email, please{' '}
+              <Link to="/signup" className="text-blue-600 hover:text-blue-700 underline font-medium">
+                sign up again
+              </Link>
+              {' '}with the same email address.
+            </p>
+          </div>
+        </Alert>
+      )}
+      {showVerificationSuccess && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-start">
+            <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-green-800 mb-1">
+                Email verified successfully!
+              </p>
+              <p className="text-sm text-green-700">
+                Your account has been activated. You'll be redirected to the dashboard shortly, or you can sign in now.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {showLogoutMessage && (
         <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center">

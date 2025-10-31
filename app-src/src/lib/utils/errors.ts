@@ -10,6 +10,7 @@ export function getAuthErrorMessage(error: Error | string): string {
     'User already registered': 'An account with this email already exists',
     'Email not confirmed': 'Please check your email to confirm your account',
     'Password should be at least 6 characters': 'Password must be at least 6 characters',
+    'email rate limit exceeded': 'Email sending rate limit exceeded. Please wait an hour before requesting another email. You may have already received a confirmation email - please check your inbox and spam folder.',
   };
 
   // Check for exact matches
@@ -17,9 +18,10 @@ export function getAuthErrorMessage(error: Error | string): string {
     return errorMap[message];
   }
 
-  // Check for partial matches
+  // Check for partial matches (case insensitive)
+  const lowerMessage = message.toLowerCase();
   for (const [key, value] of Object.entries(errorMap)) {
-    if (message.includes(key)) {
+    if (lowerMessage.includes(key.toLowerCase())) {
       return value;
     }
   }

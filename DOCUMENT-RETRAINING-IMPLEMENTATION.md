@@ -397,3 +397,4 @@ Potential improvements for future iterations:
 
 The document retraining feature is fully implemented and ready for testing. It provides a seamless way to update document content while preserving all metadata, slugs, and settings. The feature supports both user-uploaded and legacy documents, with comprehensive error handling and real-time progress tracking.
 
+

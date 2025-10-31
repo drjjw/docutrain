@@ -17,6 +17,11 @@ export async function signUp({ email, password }: SignUpData) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      // Use TokenHash approach to prevent email prefetching
+      // The email template will construct a link to our verify page
+      emailRedirectTo: `${window.location.origin}/app/verify-email`,
+    },
   });
 
   if (error) {

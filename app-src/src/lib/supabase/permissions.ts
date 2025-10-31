@@ -94,3 +94,19 @@ export async function revokeOwnerAccess(accessId: string) {
   }
 }
 
+/**
+ * Check if user needs approval (has no roles or owner access)
+ */
+export async function checkUserNeedsApproval(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .rpc('user_needs_approval', { p_user_id: userId });
+
+  if (error) {
+    console.error('Failed to check approval status:', error);
+    // If check fails, assume user needs approval to be safe
+    return true;
+  }
+
+  return data || false;
+}
+

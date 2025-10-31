@@ -109,3 +109,27 @@ export function subscribeToDocuments(
   };
 }
 
+/**
+ * Record Terms of Service acceptance
+ */
+export async function acceptTermsOfService(userId: string, version: string = '2025-10-31') {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .upsert({
+      user_id: userId,
+      tos_accepted_at: new Date().toISOString(),
+      tos_version: version,
+      updated_at: new Date().toISOString(),
+    }, {
+      onConflict: 'user_id',
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to record TOS acceptance: ${error.message}`);
+  }
+
+  return data;
+}
+

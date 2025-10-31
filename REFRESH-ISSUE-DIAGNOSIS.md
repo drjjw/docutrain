@@ -143,3 +143,4 @@ supabase
 
 After that, the auto-refresh should work! 🎉
 
+

@@ -60,8 +60,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         hasUser: !!data.user,
         user: data.user
       });
-      setSession(data.session);
-      setUser(data.user);
+      // Only set session/user if there's a valid session (email confirmed)
+      // If email confirmation is required, session will be null and we shouldn't set user
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.user);
+      } else {
+        // No session means email confirmation required - clear any existing user
+        setSession(null);
+        setUser(null);
+      }
     } catch (error) {
       console.error('AuthContext: signUp error:', error);
       throw new Error(getAuthErrorMessage(error as Error));

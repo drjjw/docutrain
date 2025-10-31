@@ -7,17 +7,19 @@ import { Spinner } from '@/components/UI/Spinner';
 
 export function SignupPage() {
   console.log('SignupPage: Rendering');
-  const { user, loading } = useAuth();
+  const { user, session, loading } = useAuth();
   const navigate = useNavigate();
 
-  console.log('SignupPage: loading=', loading, 'user=', user ? 'Authenticated' : 'Not authenticated');
+  console.log('SignupPage: loading=', loading, 'user=', user ? 'Authenticated' : 'Not authenticated', 'session=', session ? 'Has session' : 'No session');
 
   useEffect(() => {
-    if (!loading && user) {
-      console.log('SignupPage: User already authenticated, redirecting to dashboard');
+    // Only redirect if user has a valid session (email confirmed)
+    // If user exists but no session, email isn't confirmed yet - show signup form
+    if (!loading && user && session) {
+      console.log('SignupPage: User already authenticated with confirmed email, redirecting to dashboard');
       window.location.href = '/app/dashboard';
     }
-  }, [user, loading, navigate]);
+  }, [user, session, loading, navigate]);
 
   if (loading) {
     console.log('SignupPage: Showing loading spinner');

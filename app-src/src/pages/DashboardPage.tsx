@@ -13,7 +13,7 @@ import { Spinner } from '@/components/UI/Spinner';
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const { permissions, loading, isSuperAdmin, ownerGroups } = usePermissions();
+  const { permissions, loading, isSuperAdmin, ownerGroups, needsApproval } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<'documents' | 'users'>('documents');
@@ -166,7 +166,20 @@ export function DashboardPage() {
         )}
 
         {/* Content Area */}
-        {!hasAdminAccess ? (
+        {needsApproval ? (
+          <Alert variant="warning">
+            <div className="space-y-2">
+              <p className="font-medium">Your account is pending approval</p>
+              <p className="text-sm">
+                Your account has been created but is awaiting administrative approval. 
+                Once a system administrator assigns you a role and owner group, you'll be able to access all features.
+              </p>
+              <p className="text-sm text-gray-600">
+                Please check back later or contact a system administrator if you have questions.
+              </p>
+            </div>
+          </Alert>
+        ) : !hasAdminAccess ? (
           <Alert variant="error">
             You do not have permission to access administrative features. Please contact a system administrator if you need access.
           </Alert>

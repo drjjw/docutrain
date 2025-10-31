@@ -281,12 +281,13 @@ export async function updateUserRole(userId: string, role: string, ownerId?: str
       'Authorization': `Bearer ${session.access_token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ role, owner_id: ownerId }),
+    body: JSON.stringify({ role, owner_id: ownerId || null }),
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to update user role');
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    const errorMessage = errorData.details || errorData.error || 'Failed to update user role';
+    throw new Error(errorMessage);
   }
 
   return response.json();

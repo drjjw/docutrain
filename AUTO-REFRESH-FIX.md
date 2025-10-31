@@ -78,3 +78,4 @@ Added console logs to help track the refresh behavior:
 
 You can monitor these in the browser console to verify the auto-refresh is working.
 
+

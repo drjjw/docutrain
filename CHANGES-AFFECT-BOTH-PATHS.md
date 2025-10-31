@@ -163,3 +163,4 @@ Both will show in `logs/document-processing.log`:
 
 **Yes, all changes affect BOTH new uploads AND retraining!** They share the same underlying functions, so any improvement to the shared functions benefits both code paths equally. 🎉
 
+

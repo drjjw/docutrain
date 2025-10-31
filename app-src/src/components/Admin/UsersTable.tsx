@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
+import { Modal } from '@/components/UI/Modal';
 import { getUsers, updateUserRole, resetUserPassword, updateUserPassword, deleteUser, getOwners } from '@/lib/supabase/admin';
 import type { UserWithRoles, Owner } from '@/types/admin';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 
-interface EditingCell {
+interface EditingPermissions {
   userId: string;
-  field: string;
+  userEmail: string;
+  role: 'registered' | 'owner_admin' | 'super_admin';
+  owner_id: string | null;
 }
 
 export function UsersTable() {
@@ -19,13 +22,19 @@ export function UsersTable() {
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
-  const [editValue, setEditValue] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [resetPasswordConfirm, setResetPasswordConfirm] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [passwordEditUserId, setPasswordEditUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
+  const [editingPermissions, setEditingPermissions] = useState<EditingPermissions | null>(null);
+  const [editRole, setEditRole] = useState<'registered' | 'owner_admin' | 'super_admin'>('registered');
+  const [editOwnerId, setEditOwnerId] = useState<string | null>(null);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [bulkEditPermissions, setBulkEditPermissions] = useState(false);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [bulkRole, setBulkRole] = useState<'registered' | 'owner_admin' | 'super_admin'>('registered');
+  const [bulkOwnerId, setBulkOwnerId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -60,42 +69,72 @@ export function UsersTable() {
     }
   };
 
-  const handleEdit = (userId: string, field: string, currentValue: any) => {
-    setEditingCell({ userId, field });
-    setEditValue(currentValue);
+  const openEditPermissions = (user: UserWithRoles) => {
+    const ownerGroups = user.owner_groups || [];
+    
+    // Prioritize Maker Pizza if it exists
+    const makerPizza = ownerGroups.find(og => 
+      og.owner_name === 'Maker Pizza' || og.owner_slug === 'maker'
+    );
+    
+    const ownerAdminRole = makerPizza || ownerGroups.find(og => 
+      og.role === 'owner_admin' && og.owner_id
+    );
+
+    const hasSuperAdmin = user.roles?.some(r => r.role === 'super_admin') || 
+                         ownerGroups.some(og => og.role === 'super_admin');
+
+    let initialRole: 'registered' | 'owner_admin' | 'super_admin' = 'registered';
+    let initialOwnerId: string | null = null;
+
+    if (hasSuperAdmin) {
+      initialRole = 'super_admin';
+      initialOwnerId = null;
+    } else if (ownerAdminRole) {
+      initialRole = 'owner_admin';
+      initialOwnerId = ownerAdminRole.owner_id || null;
+    }
+
+    setEditingPermissions({
+      userId: user.id,
+      userEmail: user.email,
+      role: initialRole,
+      owner_id: initialOwnerId,
+    });
+    setEditRole(initialRole);
+    setEditOwnerId(initialOwnerId);
   };
 
-  const handleCancelEdit = () => {
-    setEditingCell(null);
-    setEditValue(null);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingCell) return;
+  const handleSavePermissions = async () => {
+    if (!editingPermissions) return;
 
     try {
       setSaving(true);
-
-      if (editingCell.field === 'role') {
-        await updateUserRole(editingCell.userId, editValue.role, editValue.owner_id);
-      }
-
-      // Update local state
-      setUsers(prevUsers =>
-        prevUsers.map(u =>
-          u.id === editingCell.userId
-            ? { ...u, ...editValue }
-            : u
-        )
-      );
-
-      setEditingCell(null);
-      setEditValue(null);
+      setError(null);
+      
+      await updateUserRole(editingPermissions.userId, editRole, editOwnerId || undefined);
+      
+      await loadData();
+      
+      setEditingPermissions(null);
+      setEditRole('registered');
+      setEditOwnerId(null);
+      
+      setError('Permissions updated successfully');
+      setTimeout(() => setError(null), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save changes');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save permissions';
+      console.error('Error updating permissions:', err);
+      setError(errorMessage);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleCancelEditPermissions = () => {
+    setEditingPermissions(null);
+    setEditRole('registered');
+    setEditOwnerId(null);
   };
 
   const handleUpdatePassword = async (userId: string) => {
@@ -145,215 +184,165 @@ export function UsersTable() {
     }
   };
 
-  const renderCell = (user: UserWithRoles, field: string, value: any) => {
-    const isEditing = editingCell?.userId === user.id && editingCell?.field === field;
-
-    if (isEditing) {
-      return (
-        <div className="flex items-center gap-2">
-          {renderEditInput(field, editValue, setEditValue)}
-          <Button
-            size="sm"
-            onClick={handleSaveEdit}
-            disabled={saving}
-            loading={saving}
-          >
-            Save
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleCancelEdit}
-            disabled={saving}
-          >
-            Cancel
-          </Button>
-        </div>
-      );
-    }
-
-    const textClass = "truncate";
-
-    return (
-      <div
-        className="group cursor-pointer hover:bg-gray-50 px-2 py-1 rounded"
-        onClick={() => handleEdit(user.id, field, value)}
-      >
-        <div className="flex items-center justify-between">
-          <span className={textClass}>{renderDisplayValue(field, value)}</span>
-          <svg
-            className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-        </div>
-      </div>
-    );
+  const userNeedsApproval = (user: UserWithRoles): boolean => {
+    const hasRoles = user.roles && user.roles.length > 0;
+    const hasOwnerGroups = user.owner_groups && user.owner_groups.length > 0;
+    return !hasRoles && !hasOwnerGroups;
   };
 
-  const renderEditInput = (field: string, value: any, onChange: (val: any) => void) => {
-    switch (field) {
-      case 'role':
-        return (
-          <div className="flex gap-2">
-            <select
-              value={value?.role || 'registered'}
-              onChange={(e) => onChange({ ...value, role: e.target.value })}
-              className="px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="registered">Registered</option>
-              <option value="owner_admin">Owner Admin</option>
-              <option value="super_admin">Super Admin</option>
-            </select>
-            {value?.role === 'owner_admin' && (
-              <select
-                value={value?.owner_id || ''}
-                onChange={(e) => onChange({ ...value, owner_id: e.target.value || null })}
-                className="px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select Owner</option>
-                {owners.map(owner => (
-                  <option key={owner.id} value={owner.id}>
-                    {owner.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-        );
-
-      default:
-        return (
-          <input
-            type="text"
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            className="px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          />
-        );
-    }
+  const isProtectedSuperAdmin = (user: UserWithRoles): boolean => {
+    const hasSuperAdmin = user.roles?.some(r => r.role === 'super_admin') || 
+                         (user.owner_groups || []).some(og => og.role === 'super_admin');
+    return user.email === 'drjweinstein@gmail.com' && hasSuperAdmin;
   };
 
-  const renderDisplayValue = (field: string, value: any): string => {
-    if (value === null || value === undefined) return '—';
-
-    switch (field) {
-      case 'email_confirmed_at':
-      case 'phone_confirmed_at':
-      case 'last_sign_in_at':
-      case 'created_at':
-      case 'updated_at':
-        return value ? new Date(value).toLocaleDateString() : '—';
-
-      case 'is_anonymous':
-        return value ? 'Yes' : 'No';
-
-      case 'role':
-        // Handle both array format (user.roles) and object format (for editing)
-        if (!value) return 'Registered';
-        if (Array.isArray(value)) {
-          if (value.length === 0) return 'Registered';
-          const roles = value.map((r: any) => r.role).join(', ');
-          return roles;
-        } else if (typeof value === 'object' && value.role) {
-          return value.role.replace('_', ' ');
-        }
-        return 'Registered';
-
-      case 'owner_groups':
-        if (!value || value.length === 0) return '—';
-        return value.map((og: any) => og.owner_name).join(', ');
-
-      default:
-        return String(value);
-    }
-  };
-
-  const renderRolesCell = (user: UserWithRoles) => {
+  const getRoleBadge = (user: UserWithRoles) => {
     const ownerGroups = user.owner_groups || [];
-    const primaryRole = ownerGroups.length > 0 ? ownerGroups[0].role : 'registered';
-    const ownerName = ownerGroups.length > 0 ? ownerGroups[0].owner_name : '—';
+    const hasSuperAdmin = user.roles?.some(r => r.role === 'super_admin') || 
+                         ownerGroups.some(og => og.role === 'super_admin');
 
-    return (
-      <div className="text-sm">
-        <div className="font-medium capitalize">{primaryRole.replace('_', ' ')}</div>
-        {ownerName !== '—' && <div className="text-gray-500">{ownerName}</div>}
-      </div>
-    );
-  };
-
-  const renderActionsCell = (user: UserWithRoles) => {
-    const isEditingPassword = passwordEditUserId === user.id;
-
-    if (isEditingPassword) {
-      return (
-        <div className="flex flex-col gap-2 min-w-[200px]">
-          <div className="flex gap-2">
-            <input
-              type="password"
-              placeholder="New password (min 6 chars)"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 flex-1"
-              autoFocus
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={() => handleUpdatePassword(user.id)}
-              disabled={saving || !newPassword || newPassword.length < 6}
-              loading={saving}
-            >
-              Update
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setPasswordEditUserId(null);
-                setNewPassword('');
-              }}
-              disabled={saving}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      );
+    if (hasSuperAdmin) {
+      return {
+        label: 'Super Admin',
+        color: 'bg-purple-100 text-purple-800 border-purple-200',
+        description: 'Global Access',
+      };
     }
 
-    return (
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setPasswordEditUserId(user.id)}
-          disabled={saving}
-        >
-          Set Password
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setResetPasswordConfirm(user.email)}
-          disabled={saving}
-        >
-          Email Reset Link
-        </Button>
-        <Button
-          size="sm"
-          variant="danger"
-          onClick={() => setDeleteConfirmId(user.id)}
-          disabled={saving}
-        >
-          Delete
-        </Button>
-      </div>
-    );
+    if (ownerGroups.length > 0) {
+      const makerPizza = ownerGroups.find(og => 
+        og.owner_name === 'Maker Pizza' || og.owner_slug === 'maker'
+      );
+      const primaryGroup = makerPizza || ownerGroups[0];
+      
+      const roleLabel = primaryGroup.role === 'owner_admin' ? 'Owner Admin' : 'Registered';
+      const ownerName = primaryGroup.owner_name || 'Unknown';
+      
+      return {
+        label: roleLabel,
+        color: primaryGroup.role === 'owner_admin' 
+          ? 'bg-blue-100 text-blue-800 border-blue-200'
+          : 'bg-gray-100 text-gray-800 border-gray-200',
+        description: ownerName,
+      };
+    }
+
+    return {
+      label: 'Registered',
+      color: 'bg-gray-100 text-gray-800 border-gray-200',
+      description: 'No owner group',
+    };
+  };
+
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return '—';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUserIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const selectableUsers = users.filter(u => !isProtectedSuperAdmin(u));
+    const allSelected = selectableUsers.every(u => selectedUserIds.has(u.id));
+    
+    if (allSelected) {
+      setSelectedUserIds(new Set());
+    } else {
+      setSelectedUserIds(new Set(selectableUsers.map(u => u.id)));
+    }
+  };
+
+  const getSelectableUsers = () => {
+    return users.filter(u => !isProtectedSuperAdmin(u));
+  };
+
+  const selectedCount = selectedUserIds.size;
+  const selectableCount = getSelectableUsers().length;
+  const allSelected = selectableCount > 0 && selectedCount === selectableCount;
+  const someSelected = selectedCount > 0 && selectedCount < selectableCount;
+
+  const handleBulkRoleAssignment = async () => {
+    if (selectedUserIds.size === 0) return;
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      const userIds = Array.from(selectedUserIds);
+      const results = await Promise.allSettled(
+        userIds.map(userId => 
+          updateUserRole(userId, bulkRole, bulkOwnerId || undefined)
+        )
+      );
+
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length > 0) {
+        const errorMessages = failures
+          .map((r: PromiseRejectedResult) => r.reason?.message || 'Unknown error')
+          .join(', ');
+        setError(`Failed to update ${failures.length} user(s): ${errorMessages}`);
+      } else {
+        setError(`Successfully updated ${userIds.length} user(s)`);
+        setTimeout(() => setError(null), 3000);
+      }
+
+      await loadData();
+      setSelectedUserIds(new Set());
+      setBulkEditPermissions(false);
+      setBulkRole('registered');
+      setBulkOwnerId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update users');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedUserIds.size === 0) return;
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      const userIds = Array.from(selectedUserIds);
+      const results = await Promise.allSettled(
+        userIds.map(userId => deleteUser(userId))
+      );
+
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length > 0) {
+        const errorMessages = failures
+          .map((r: PromiseRejectedResult) => r.reason?.message || 'Unknown error')
+          .join(', ');
+        setError(`Failed to delete ${failures.length} user(s): ${errorMessages}`);
+      } else {
+        setError(`Successfully deleted ${userIds.length} user(s)`);
+        setTimeout(() => setError(null), 3000);
+      }
+
+      await loadData();
+      setSelectedUserIds(new Set());
+      setBulkDeleteConfirm(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete users');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading || permissionsLoading) {
@@ -365,148 +354,586 @@ export function UsersTable() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {error && (
-        <Alert variant={error.includes('successfully') ? "success" : "error"} onDismiss={() => setError(null)}>
+        <Alert 
+          variant={error.includes('successfully') ? "success" : "error"} 
+          onDismiss={() => setError(null)}
+        >
           {error}
         </Alert>
       )}
 
+      {/* Bulk Actions Bar */}
+      {selectedCount > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-blue-900">
+                {selectedCount} user{selectedCount !== 1 ? 's' : ''} selected
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setBulkEditPermissions(true);
+                  setBulkRole('registered');
+                  setBulkOwnerId(null);
+                }}
+                disabled={saving}
+              >
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Assign Role
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => setBulkDeleteConfirm(true)}
+                disabled={saving}
+              >
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete Selected
+              </Button>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSelectedUserIds(new Set())}
+              disabled={saving}
+            >
+              Clear Selection
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Desktop Table View */}
-      <div className="hidden lg:block overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Role
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Owner Groups
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email Confirmed
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Last Sign In
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
-              <React.Fragment key={user.id}>
-                <tr className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {user.email}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {renderCell(user, 'role', { role: (user.owner_groups || [])[0]?.role || 'registered', owner_id: (user.owner_groups || [])[0]?.owner_id })}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {renderRolesCell(user)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {renderDisplayValue('email_confirmed_at', user.email_confirmed_at)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {renderDisplayValue('last_sign_in_at', user.last_sign_in_at)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {renderDisplayValue('created_at', user.created_at)}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    {renderActionsCell(user)}
-                  </td>
-                </tr>
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
+      <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-12">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(input) => {
+                      if (input) input.indeterminate = someSelected;
+                    }}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  User
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Role & Permissions
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Last Sign In
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Created
+                </th>
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {users.map((user) => {
+                const needsApproval = userNeedsApproval(user);
+                const isProtected = isProtectedSuperAdmin(user);
+                const roleBadge = getRoleBadge(user);
+                
+                const isSelected = selectedUserIds.has(user.id);
+                const canSelect = !isProtected;
+
+                return (
+                  <tr 
+                    key={user.id} 
+                    className={`hover:bg-gray-50 transition-colors ${
+                      needsApproval ? 'bg-amber-50/50' : ''
+                    } ${isSelected ? 'bg-blue-50' : ''}`}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {canSelect && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleUserSelection(user.id)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
+                          {user.email.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-gray-900 truncate">
+                            {user.email}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            {needsApproval && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                                Pending Approval
+                              </span>
+                            )}
+                            {isProtected && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
+                                Protected
+                              </span>
+                            )}
+                            {user.email_confirmed_at && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                                Verified
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${roleBadge.color}`}>
+                            {roleBadge.label}
+                          </div>
+                          {roleBadge.description && roleBadge.description !== 'Global Access' && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {roleBadge.description}
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditPermissions(user)}
+                          disabled={isProtected && roleBadge.label === 'Super Admin'}
+                          className="flex-shrink-0"
+                        >
+                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit
+                        </Button>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.email_confirmed_at ? (
+                        <span className="inline-flex items-center">
+                          <svg className="w-4 h-4 text-green-500 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          Email Verified
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center text-amber-600">
+                          <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          Unverified
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatDate(user.last_sign_in_at)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatDate(user.created_at)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setResetPasswordConfirm(user.email)}
+                          disabled={saving}
+                          title="Send password reset email"
+                        >
+                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          Reset Link
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setPasswordEditUserId(user.id)}
+                          disabled={saving}
+                          title="Set password directly"
+                        >
+                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                          Set Password
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => setDeleteConfirmId(user.id)}
+                          disabled={saving || isProtected}
+                          title={isProtected ? 'Protected super admin cannot be deleted' : 'Delete user'}
+                        >
+                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Mobile/Tablet Card View */}
       <div className="lg:hidden space-y-4">
-        {users.map((user) => (
-          <div key={user.id} className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-            {/* User Header */}
-            <div className="bg-gradient-to-r from-gray-50 to-white px-4 py-3 border-b border-gray-200">
-              <div className="font-medium text-gray-900 break-words">{user.email}</div>
-            </div>
-            
-            {/* User Details */}
-            <div className="px-4 py-3 space-y-3">
-              {/* Role */}
-              <div>
-                <div className="text-xs text-gray-500 mb-1">Role</div>
-                {renderCell(user, 'role', { role: (user.owner_groups || [])[0]?.role || 'registered', owner_id: (user.owner_groups || [])[0]?.owner_id })}
-              </div>
-              
-              {/* Owner Groups */}
-              <div>
-                <div className="text-xs text-gray-500 mb-1">Owner Groups</div>
-                <div className="text-sm">{renderRolesCell(user)}</div>
-              </div>
-              
-              {/* Dates Grid */}
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <div className="text-gray-500">Email Confirmed</div>
-                  <div className="text-gray-900 font-medium mt-0.5">
-                    {renderDisplayValue('email_confirmed_at', user.email_confirmed_at)}
+              {users.map((user) => {
+                const needsApproval = userNeedsApproval(user);
+                const isProtected = isProtectedSuperAdmin(user);
+                const roleBadge = getRoleBadge(user);
+                const isSelected = selectedUserIds.has(user.id);
+                const canSelect = !isProtected;
+                
+                return (
+            <div 
+              key={user.id} 
+              className={`bg-white rounded-lg shadow-sm border ${
+                needsApproval ? 'border-amber-300 bg-amber-50/50' : 'border-gray-200'
+              } overflow-hidden`}
+            >
+              {/* Card Header */}
+              <div className={`px-4 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200 ${isSelected ? 'bg-blue-50' : ''}`}>
+                <div className="flex items-center gap-3">
+                  {canSelect && (
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleUserSelection(user.id)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 flex-shrink-0"
+                    />
+                  )}
+                  <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium">
+                    {user.email.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 truncate">{user.email}</div>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      {needsApproval && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                          Pending Approval
+                        </span>
+                      )}
+                      {isProtected && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
+                          Protected
+                        </span>
+                      )}
+                      {user.email_confirmed_at && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                          Verified
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Card Body */}
+              <div className="px-4 py-4 space-y-4">
+                {/* Role Section */}
                 <div>
-                  <div className="text-gray-500">Created</div>
-                  <div className="text-gray-900 font-medium mt-0.5">
-                    {renderDisplayValue('created_at', user.created_at)}
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                    Role & Permissions
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${roleBadge.color}`}>
+                        {roleBadge.label}
+                      </div>
+                      {roleBadge.description && roleBadge.description !== 'Global Access' && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {roleBadge.description}
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openEditPermissions(user)}
+                      disabled={isProtected && roleBadge.label === 'Super Admin'}
+                    >
+                      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Dates Grid */}
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200">
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">Last Sign In</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {formatDate(user.last_sign_in_at)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">Created</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {formatDate(user.created_at)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="pt-2 border-t border-gray-200">
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setResetPasswordConfirm(user.email)}
+                      disabled={saving}
+                      className="flex-1 min-w-[120px]"
+                      title="Send password reset email"
+                    >
+                      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Reset Link
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPasswordEditUserId(user.id)}
+                      disabled={saving}
+                      className="flex-1 min-w-[120px]"
+                      title="Set password directly"
+                    >
+                      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Set Password
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={() => setDeleteConfirmId(user.id)}
+                      disabled={saving || isProtected}
+                      className="flex-1 min-w-[120px]"
+                    >
+                      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete
+                    </Button>
                   </div>
                 </div>
               </div>
-              
-              <div className="text-xs">
-                <div className="text-gray-500">Last Sign In</div>
-                <div className="text-gray-900 font-medium mt-0.5">
-                  {renderDisplayValue('last_sign_in_at', user.last_sign_in_at)}
-                </div>
-              </div>
             </div>
-            
-            {/* Actions */}
-            <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
-              <div className="text-xs text-gray-500 mb-2">Actions</div>
-              {renderActionsCell(user)}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {users.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
-          No users found
+        <div className="text-center py-12">
+          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No users found</h3>
+          <p className="mt-1 text-sm text-gray-500">Get started by creating a new user.</p>
         </div>
+      )}
+
+      {/* Edit Permissions Modal */}
+      <Modal
+        isOpen={!!editingPermissions}
+        onClose={handleCancelEditPermissions}
+        title="Edit User Permissions"
+        size="md"
+      >
+        <div className="space-y-6">
+          <div>
+            <div className="text-sm font-medium text-gray-700 mb-1">User Email</div>
+            <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+              {editingPermissions?.userEmail}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Role
+            </label>
+            <select
+              value={editRole}
+              onChange={(e) => {
+                const newRole = e.target.value as 'registered' | 'owner_admin' | 'super_admin';
+                setEditRole(newRole);
+                if (newRole === 'super_admin') {
+                  setEditOwnerId(null);
+                } else if (newRole === 'owner_admin' && !editOwnerId) {
+                  // Keep current owner_id or set to first owner
+                  setEditOwnerId(owners[0]?.id || null);
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            >
+              <option value="registered">Registered User</option>
+              <option value="owner_admin">Owner Admin</option>
+              <option value="super_admin">Super Admin</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              {editRole === 'registered' && 'Basic access to assigned owner groups'}
+              {editRole === 'owner_admin' && 'Can manage documents and users for assigned owner group'}
+              {editRole === 'super_admin' && 'Full system-wide administrative access'}
+            </p>
+          </div>
+
+          {editRole === 'owner_admin' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Owner Group
+              </label>
+              <select
+                value={editOwnerId || ''}
+                onChange={(e) => setEditOwnerId(e.target.value || null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="">Select Owner Group</option>
+                {owners.map(owner => (
+                  <option key={owner.id} value={owner.id}>
+                    {owner.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Select the owner group this user will administer
+              </p>
+            </div>
+          )}
+
+          {editRole === 'super_admin' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex">
+                <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <div className="ml-3">
+                  <p className="text-sm text-blue-700">
+                    Super Admins have access to all documents and can manage all users across the system.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <Button
+              onClick={handleSavePermissions}
+              disabled={saving || (editRole === 'owner_admin' && !editOwnerId)}
+              loading={saving}
+              className="flex-1"
+            >
+              Save Changes
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleCancelEditPermissions}
+              disabled={saving}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Set Password Modal */}
+      {passwordEditUserId && (
+        <Modal
+          isOpen={!!passwordEditUserId}
+          onClose={() => {
+            setPasswordEditUserId(null);
+            setNewPassword('');
+          }}
+          title="Set User Password"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                New Password
+              </label>
+              <input
+                type="password"
+                placeholder="Enter new password (min 6 characters)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                autoFocus
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Password must be at least 6 characters long
+              </p>
+            </div>
+            <div className="flex gap-3 pt-4 border-t border-gray-200">
+              <Button
+                onClick={() => handleUpdatePassword(passwordEditUserId)}
+                disabled={saving || !newPassword || newPassword.length < 6}
+                loading={saving}
+                className="flex-1"
+              >
+                Update Password
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setPasswordEditUserId(null);
+                  setNewPassword('');
+                }}
+                disabled={saving}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* Reset Password Confirmation Modal */}
       {resetPasswordConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Email Reset Link</h3>
-            <p className="text-sm text-gray-600 mb-6">
-              Send password reset email to <strong>{resetPasswordConfirm}</strong>?
+        <Modal
+          isOpen={!!resetPasswordConfirm}
+          onClose={() => setResetPasswordConfirm(null)}
+          title="Send Password Reset Email"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Send a password reset email to <strong className="font-medium">{resetPasswordConfirm}</strong>?
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-4 border-t border-gray-200">
               <Button
                 onClick={() => handleResetPassword(resetPasswordConfirm)}
                 disabled={saving}
                 loading={saving}
+                className="flex-1"
               >
                 Send Email
               </Button>
@@ -514,28 +941,46 @@ export function UsersTable() {
                 variant="outline"
                 onClick={() => setResetPasswordConfirm(null)}
                 disabled={saving}
+                className="flex-1"
               >
                 Cancel
               </Button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Delete User</h3>
-            <p className="text-sm text-gray-600 mb-6">
-              Are you sure you want to delete this user? This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
+        <Modal
+          isOpen={!!deleteConfirmId}
+          onClose={() => setDeleteConfirmId(null)}
+          title="Delete User"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex">
+                <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700 font-medium">
+                    This action cannot be undone
+                  </p>
+                  <p className="mt-1 text-xs text-red-600">
+                    This will permanently delete the user and all associated data.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-4 border-t border-gray-200">
               <Button
                 variant="danger"
                 onClick={() => handleDelete(deleteConfirmId)}
                 disabled={saving}
                 loading={saving}
+                className="flex-1"
               >
                 Delete User
               </Button>
@@ -543,13 +988,184 @@ export function UsersTable() {
                 variant="outline"
                 onClick={() => setDeleteConfirmId(null)}
                 disabled={saving}
+                className="flex-1"
               >
                 Cancel
               </Button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
+
+      {/* Bulk Edit Permissions Modal */}
+      <Modal
+        isOpen={bulkEditPermissions}
+        onClose={() => {
+          setBulkEditPermissions(false);
+          setBulkRole('registered');
+          setBulkOwnerId(null);
+        }}
+        title="Bulk Assign Role & Permissions"
+        size="md"
+      >
+        <div className="space-y-6">
+          <div>
+            <div className="text-sm font-medium text-gray-700 mb-1">Selected Users</div>
+            <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+              {selectedCount} user{selectedCount !== 1 ? 's' : ''} selected
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Role
+            </label>
+            <select
+              value={bulkRole}
+              onChange={(e) => {
+                const newRole = e.target.value as 'registered' | 'owner_admin' | 'super_admin';
+                setBulkRole(newRole);
+                if (newRole === 'super_admin') {
+                  setBulkOwnerId(null);
+                } else if (newRole === 'owner_admin' && !bulkOwnerId) {
+                  setBulkOwnerId(owners[0]?.id || null);
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            >
+              <option value="registered">Registered User</option>
+              <option value="owner_admin">Owner Admin</option>
+              <option value="super_admin">Super Admin</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              {bulkRole === 'registered' && 'Basic access to assigned owner groups'}
+              {bulkRole === 'owner_admin' && 'Can manage documents and users for assigned owner group'}
+              {bulkRole === 'super_admin' && 'Full system-wide administrative access'}
+            </p>
+          </div>
+
+          {bulkRole === 'owner_admin' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Owner Group
+              </label>
+              <select
+                value={bulkOwnerId || ''}
+                onChange={(e) => setBulkOwnerId(e.target.value || null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="">Select Owner Group</option>
+                {owners.map(owner => (
+                  <option key={owner.id} value={owner.id}>
+                    {owner.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Select the owner group these users will administer
+              </p>
+            </div>
+          )}
+
+          {bulkRole === 'super_admin' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex">
+                <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <div className="ml-3">
+                  <p className="text-sm text-blue-700">
+                    Super Admins have access to all documents and can manage all users across the system.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <Button
+              onClick={handleBulkRoleAssignment}
+              disabled={saving || (bulkRole === 'owner_admin' && !bulkOwnerId)}
+              loading={saving}
+              className="flex-1"
+            >
+              Assign to {selectedCount} User{selectedCount !== 1 ? 's' : ''}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setBulkEditPermissions(false);
+                setBulkRole('registered');
+                setBulkOwnerId(null);
+              }}
+              disabled={saving}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Bulk Delete Confirmation Modal */}
+      <Modal
+        isOpen={bulkDeleteConfirm}
+        onClose={() => setBulkDeleteConfirm(false)}
+        title="Delete Multiple Users"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <div className="ml-3">
+                <p className="text-sm text-red-700 font-medium">
+                  This action cannot be undone
+                </p>
+                <p className="mt-1 text-xs text-red-600">
+                  This will permanently delete {selectedCount} user{selectedCount !== 1 ? 's' : ''} and all associated data.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-3 max-h-48 overflow-y-auto">
+            <div className="text-xs font-medium text-gray-700 mb-2">Users to be deleted:</div>
+            <div className="space-y-1">
+              {Array.from(selectedUserIds).map(userId => {
+                const user = users.find(u => u.id === userId);
+                return user ? (
+                  <div key={userId} className="text-sm text-gray-600">
+                    • {user.email}
+                  </div>
+                ) : null;
+              })}
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <Button
+              variant="danger"
+              onClick={handleBulkDelete}
+              disabled={saving}
+              loading={saving}
+              className="flex-1"
+            >
+              Delete {selectedCount} User{selectedCount !== 1 ? 's' : ''}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setBulkDeleteConfirm(false)}
+              disabled={saving}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
