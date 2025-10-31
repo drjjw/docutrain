@@ -272,9 +272,17 @@ app.use('/', createDocumentsRouter(supabase, documentRegistry, registryState, es
 // Start server
 async function start() {
     const startupStart = Date.now();
-    const runningFrom = __dirname.endsWith('/dist') ? 'PRODUCTION (dist/)' : 'DEVELOPMENT (root)';
-    console.log(`🔄 Starting RAG-only server from ${runningFrom}...`);
+    const isDist = __dirname.endsWith('/dist');
+    const runningFrom = isDist ? 'PRODUCTION (dist/)' : 'DEVELOPMENT (root)';
+    
+    // Prominent mode indicator
+    console.log('\n' + '='.repeat(60));
+    console.log(`🚀 RUNNING MODE: ${runningFrom}`);
     console.log(`📁 Working directory: ${__dirname}`);
+    console.log(`📦 Running from: ${isDist ? 'dist/ (built files)' : 'source (original files)'}`);
+    console.log('='.repeat(60) + '\n');
+    
+    console.log(`🔄 Starting RAG-only server...`);
 
     try {
         // Phase 1: Load document registry

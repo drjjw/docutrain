@@ -642,32 +642,32 @@
     }
 
     /* Unified header styling for mobile */
-    .downloads-header,
-    .document-keywords-header {
+    .downloads-keywords-container .downloads-header,
+    .downloads-keywords-container .document-keywords-header {
         font-size: 13px;
-        margin-bottom: 12px;
+        margin-bottom: 18px;
+        padding: 8px 16px;
+        letter-spacing: 0.8px;
     }
     
-    .downloads-header svg,
-    .document-keywords-header svg {
+    .downloads-keywords-container .downloads-header svg,
+    .downloads-keywords-container .document-keywords-header svg {
         width: 16px;
         height: 16px;
+        stroke-width: 2.5;
     }
 
     .download-button {
-        padding: 10px 14px;
+        padding: 6px 10px;
+        gap: 6px;
     }
 
     .download-title {
-        font-size: 13px;
+        font-size: 12px;
     }
 
     .download-subtitle {
-        font-size: 11px;
-    }
-
-    .download-action {
-        font-size: 11px;
+        font-size: 10px;
     }
 }
 

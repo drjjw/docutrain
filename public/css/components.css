@@ -734,6 +734,26 @@ body.mobile-menu-open {
     pointer-events: auto;
 }
 
+/* Edit icon when positioned inline (for headerTitle and welcomeTitle) */
+.header-title-wrapper .inline-edit-icon,
+.welcome-title-wrapper .inline-edit-icon {
+    position: static;
+    flex-shrink: 0;
+    align-self: center;
+}
+
+/* Welcome title wrapper styling */
+.welcome-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.welcome-title-wrapper #welcomeTitle {
+    margin-bottom: 0; /* Remove margin since wrapper handles spacing */
+}
+
 /* Ensure editable elements have relative positioning for icons */
 .inline-editable {
     position: relative;
@@ -754,17 +774,26 @@ body.mobile-menu-open {
 .inline-editor-input {
     width: 100%;
     border: 2px solid #007bff;
-    border-radius: 4px;
-    padding: 4px 8px;
+    border-radius: 6px;
+    padding: 8px 12px;
     font-size: inherit;
     font-family: inherit;
     background: white;
     outline: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
 }
 
 .inline-editor-input:focus {
     border-color: #0056b3;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
+    outline: none;
+}
+
+/* Special styling for headerTitle and welcomeTitle inputs */
+.header-title-wrapper .inline-editor-input,
+.welcome-title-wrapper .inline-editor-input {
+    min-width: 200px;
 }
 
 /* Active editor state */

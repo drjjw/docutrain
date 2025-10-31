@@ -85,14 +85,10 @@ export function addDownloadsToWelcome(container, validConfigs) {
                 log.verbose(`📥 Starting download: ${filename}`);
                 
                 // Show downloading state
-                const actionDiv = button.querySelector('.download-action');
-                const originalHTML = actionDiv.innerHTML;
-                actionDiv.innerHTML = `
-                    Downloading...
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                `;
+                button.classList.add('downloading');
+                const titleDiv = button.querySelector('.download-title');
+                const originalTitle = titleDiv.textContent;
+                titleDiv.textContent = 'Downloading...';
                 
                 // Fetch the file
                 const response = await fetch(download.url);
@@ -117,34 +113,28 @@ export function addDownloadsToWelcome(container, validConfigs) {
                 window.URL.revokeObjectURL(blobUrl);
                 
                 // Reset button state
-                actionDiv.innerHTML = originalHTML;
+                button.classList.remove('downloading');
+                titleDiv.textContent = originalTitle;
                 
                 log.verbose(`✅ Download complete: ${filename}`);
             } catch (error) {
                 console.error(`❌ Download failed: ${filename}`, error);
                 
-                // Reset button and show error
-                const actionDiv = button.querySelector('.download-action');
-                actionDiv.innerHTML = `
-                    Failed - Retry
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                `;
+                // Show error state
+                button.classList.add('error');
+                const titleDiv = button.querySelector('.download-title');
+                const originalTitle = titleDiv.textContent;
+                titleDiv.textContent = 'Failed - Click to retry';
                 
                 // Reset after 3 seconds
                 setTimeout(() => {
-                    actionDiv.innerHTML = `
-                        Download
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    `;
+                    button.classList.remove('error');
+                    titleDiv.textContent = originalTitle;
                 }, 3000);
             }
         });
         
-        // Button content with improved layout
+        // Button content with improved layout (no download-action div)
         button.innerHTML = `
             <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -155,12 +145,6 @@ export function addDownloadsToWelcome(container, validConfigs) {
             <div class="download-content">
                 <div class="download-title">${download.title}</div>
                 ${validConfigs.length > 1 ? `<div class="download-subtitle">${download.documentTitle}</div>` : ''}
-            </div>
-            <div class="download-action">
-                Download
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
             </div>
         `;
         

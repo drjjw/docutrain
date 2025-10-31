@@ -9,6 +9,68 @@ import { initializeMobileKeyboardSupport } from './mobile-keyboard.js';
 import { initializeMobileHeaderBehavior } from './mobile-header.js';
 import { initializePage } from './page-loader.js';
 
+// Detect if running from source or built files
+function detectRunningMode() {
+    // Get script source - find main.js script tag (most reliable for ES modules)
+    let currentScriptSrc = '';
+    
+    // Find main.js script tag in the DOM
+    const mainScript = Array.from(document.querySelectorAll('script[src]'))
+        .find(s => s.src.includes('main.js'));
+    
+    if (mainScript) {
+        currentScriptSrc = mainScript.src;
+    }
+    
+    // Fallback to document.currentScript (works in regular scripts, but null in ES modules)
+    if (!currentScriptSrc && document.currentScript) {
+        currentScriptSrc = document.currentScript.src;
+    }
+    
+    // Check if current script has hash (built version)
+    const hasHash = /[a-f0-9]{8,}\.js$/i.test(currentScriptSrc);
+    
+    // Check URL path for dist/public indicators
+    const urlPath = window.location.pathname;
+    const isDistPath = urlPath.includes('/dist/') || urlPath.includes('dist/public/');
+    
+    // Check all scripts for hashed files (additional indicator)
+    const allScripts = Array.from(document.querySelectorAll('script[src]'));
+    const hasHashedFiles = allScripts.some(s => {
+        const src = s.getAttribute('src') || s.src || '';
+        // Built files have pattern like: main.{hash}.js or in dist folder
+        return /[a-f0-9]{8,}\.js$/i.test(src) || src.includes('/dist/');
+    });
+    
+    const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+    
+    let mode;
+    if (hasHash || hasHashedFiles || isDistPath || currentScriptSrc.includes('/dist/')) {
+        mode = 'BUILT (dist/public/)';
+    } else if (currentScriptSrc.includes('/public/js/main.js') || 
+               (!currentScriptSrc.includes('/dist/') && !isDistPath)) {
+        mode = 'SOURCE (public/)';
+    } else {
+        mode = 'UNKNOWN';
+    }
+    
+    console.log('\n' + '='.repeat(60));
+    console.log(`📱 CHAT APP - Running Mode: ${mode}`);
+    console.log(`📁 Script source: ${currentScriptSrc || 'Not found'}`);
+    console.log(`🔗 Current URL: ${window.location.href}`);
+    console.log(`🌐 Port: ${port}`);
+    console.log(`🏗️  Hashed files detected: ${hasHash || hasHashedFiles ? '✅ Yes' : '❌ No'}`);
+    console.log('='.repeat(60) + '\n');
+    
+    return mode;
+}
+
+// Log running mode on startup
+// Use setTimeout to ensure all script tags are in the DOM
+setTimeout(() => {
+    detectRunningMode();
+}, 0);
+
 // Export debug logger for backward compatibility
 export { DEBUG_LEVEL, DEBUG_LEVELS, debugLog } from './debug-logger.js';
 

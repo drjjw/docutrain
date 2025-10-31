@@ -538,10 +538,7 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 downloadsKeywordsContainer.innerHTML = '';
             }
             
-            // Add downloads section to new container
-            addDownloadsToWelcome(downloadsKeywordsContainer, validConfigs);
-            
-            // Add keywords display if available - append to new container
+            // Add keywords display first (left side, 3/5 width) - append to new container
             // IMPORTANT: Do this AFTER setting intro content to ensure clean separation
             console.log('🔑 Keywords check:', { 
                 hasKeywords: !!config.keywords, 
@@ -549,6 +546,9 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 keywords: config.keywords 
             });
             addKeywordsDisplay(downloadsKeywordsContainer, config.keywords);
+            
+            // Add downloads section to new container (right side, 2/5 width)
+            addDownloadsToWelcome(downloadsKeywordsContainer, validConfigs);
             
             
             // Show/hide container based on content
@@ -723,13 +723,14 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 downloadsKeywordsContainer.innerHTML = '';
             }
             
-            // Add downloads section to new container
-            addDownloadsToWelcome(downloadsKeywordsContainer, validConfigs);
-            
-            // Add keywords from first document if available (for multi-doc, show first doc's keywords)
+            // Add keywords from first document if available (left side, 3/5 width)
+            // For multi-doc, show first doc's keywords
             if (validConfigs.length > 0 && validConfigs[0].keywords) {
                 addKeywordsDisplay(downloadsKeywordsContainer, validConfigs[0].keywords);
             }
+            
+            // Add downloads section to new container (right side, 2/5 width)
+            addDownloadsToWelcome(downloadsKeywordsContainer, validConfigs);
             
             // Show/hide container based on content
             const hasDownloads = downloadsKeywordsContainer.querySelector('.downloads-section');
@@ -836,11 +837,13 @@ async function initializeInlineEditors(documentSlug, documentConfig) {
         // Welcome message editor
         const welcomeTitle = document.getElementById('welcomeTitle');
         if (welcomeTitle) {
+            // Extract text content since welcomeTitle might contain HTML
+            const welcomeText = welcomeTitle.textContent || welcomeTitle.innerText || documentConfig.welcomeMessage || '';
             initInlineEditor(welcomeTitle, {
                 field: 'welcome_message',
                 documentSlug: documentSlug,
-                type: 'wysiwyg',
-                originalValue: documentConfig.welcomeMessage
+                type: 'text',
+                originalValue: welcomeText
             });
         }
         

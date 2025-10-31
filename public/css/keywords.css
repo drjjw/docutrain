@@ -29,7 +29,7 @@
     display: inline-block;
     color: var(--text-color, #333);
     transition: all 0.2s ease;
-    cursor: default;
+    cursor: pointer;
     margin-right: 0.25em;
     white-space: nowrap;
 }
@@ -56,8 +56,27 @@
         border-top-color: rgba(255, 255, 255, 0.1);
     }
     
-    .document-keywords-header {
-        color: var(--text-color-secondary, #999);
+    .downloads-keywords-container .document-keywords-header {
+        background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        color: #f3f4f6;
+    }
+    
+    .downloads-keywords-container .document-keywords-header:hover {
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+    }
+    
+    .downloads-keywords-container .document-keywords-header:active {
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .document-keywords-header .keywords-title {
+        color: #f3f4f6;
+    }
+    
+    .document-keywords-header svg {
+        color: #d1d5db;
     }
     
     .keyword-word {

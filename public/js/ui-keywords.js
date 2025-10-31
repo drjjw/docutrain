@@ -83,6 +83,15 @@ export function addKeywordsDisplay(container, keywords) {
         const opacity = 0.7 + (normalizedWeight * 0.3);
         word.style.opacity = opacity;
         
+        // Add click handler to insert topic into chat input
+        word.addEventListener('click', () => {
+            const messageInput = document.getElementById('messageInput');
+            if (messageInput) {
+                messageInput.value = `Tell me about ${keyword.term}`;
+                messageInput.focus();
+            }
+        });
+        
         wordCloudContainer.appendChild(word);
         
         // Add separator between words (except after last word)

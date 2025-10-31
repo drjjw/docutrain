@@ -282,30 +282,99 @@ export function initInlineEditor(element, options) {
         editIcon.innerHTML = '✏️';
         editIcon.title = 'Click to edit';
         editIcon.type = 'button';
-        editIcon.style.cssText = `
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            cursor: pointer;
-            font-size: 12px;
-            z-index: 100;
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: auto;
-        `;
         
-        // Always attach icon directly to the editable element, not parent
-        // This prevents overlap when multiple editable elements share the same parent
-        const computedStyle = window.getComputedStyle(element);
-        if (computedStyle.position === 'static') {
-            element.style.position = 'relative';
+        // Special handling for headerTitle - position icon beside h1, not inside it
+        const isHeaderTitle = element.id === 'headerTitle';
+        const parentWrapper = element.closest('.header-title-wrapper');
+        
+        // Special handling for welcomeTitle - wrap it in a flex container
+        const isWelcomeTitle = element.id === 'welcomeTitle';
+        
+        if (isHeaderTitle && parentWrapper) {
+            // For headerTitle, position icon inline beside the h1
+            editIcon.style.cssText = `
+                position: static;
+                background: rgba(0, 0, 0, 0.7);
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 4px 8px;
+                cursor: pointer;
+                font-size: 12px;
+                z-index: 100;
+                opacity: 0;
+                transition: opacity 0.2s;
+                pointer-events: auto;
+                flex-shrink: 0;
+                align-self: center;
+            `;
+            // Insert icon right after the h1, before header-icons div
+            const headerIcons = parentWrapper.querySelector('.header-icons');
+            if (headerIcons) {
+                parentWrapper.insertBefore(editIcon, headerIcons);
+            } else {
+                parentWrapper.appendChild(editIcon);
+            }
+        } else if (isWelcomeTitle) {
+            // For welcomeTitle, wrap it in a flex container if not already wrapped
+            let wrapper = element.closest('.welcome-title-wrapper');
+            if (!wrapper) {
+                wrapper = document.createElement('div');
+                wrapper.className = 'welcome-title-wrapper';
+                wrapper.style.cssText = `
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-bottom: 12px;
+                `;
+                element.parentElement.insertBefore(wrapper, element);
+                wrapper.appendChild(element);
+            }
+            
+            // Position icon inline beside the welcomeTitle
+            editIcon.style.cssText = `
+                position: static;
+                background: rgba(0, 0, 0, 0.7);
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 4px 8px;
+                cursor: pointer;
+                font-size: 12px;
+                z-index: 100;
+                opacity: 0;
+                transition: opacity 0.2s;
+                pointer-events: auto;
+                flex-shrink: 0;
+                align-self: center;
+            `;
+            wrapper.appendChild(editIcon);
+        } else {
+            // For other elements, use absolute positioning inside the element
+            editIcon.style.cssText = `
+                position: absolute;
+                top: 4px;
+                right: 4px;
+                background: rgba(0, 0, 0, 0.7);
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 4px 8px;
+                cursor: pointer;
+                font-size: 12px;
+                z-index: 100;
+                opacity: 0;
+                transition: opacity 0.2s;
+                pointer-events: auto;
+            `;
+            // Always attach icon directly to the editable element, not parent
+            // This prevents overlap when multiple editable elements share the same parent
+            const computedStyle = window.getComputedStyle(element);
+            if (computedStyle.position === 'static') {
+                element.style.position = 'relative';
+            }
+            element.appendChild(editIcon);
         }
-        element.appendChild(editIcon);
         
         // Show on hover
         const showIcon = () => {
@@ -315,9 +384,27 @@ export function initInlineEditor(element, options) {
             if (!isEditing) editIcon.style.opacity = '0';
         };
         
-        element.addEventListener('mouseenter', showIcon);
-        editIcon.addEventListener('mouseenter', showIcon);
-        editIcon.addEventListener('mouseleave', hideIcon);
+        // For headerTitle, hover on both wrapper and element
+        if (isHeaderTitle && parentWrapper) {
+            parentWrapper.addEventListener('mouseenter', showIcon);
+            element.addEventListener('mouseenter', showIcon);
+            editIcon.addEventListener('mouseenter', showIcon);
+            parentWrapper.addEventListener('mouseleave', hideIcon);
+            editIcon.addEventListener('mouseleave', hideIcon);
+        } else if (isWelcomeTitle) {
+            // For welcomeTitle, hover on wrapper and element
+            const welcomeWrapper = element.closest('.welcome-title-wrapper') || element.parentElement;
+            welcomeWrapper.addEventListener('mouseenter', showIcon);
+            element.addEventListener('mouseenter', showIcon);
+            editIcon.addEventListener('mouseenter', showIcon);
+            welcomeWrapper.addEventListener('mouseleave', hideIcon);
+            editIcon.addEventListener('mouseleave', hideIcon);
+        } else {
+            element.addEventListener('mouseenter', showIcon);
+            editIcon.addEventListener('mouseenter', showIcon);
+            element.addEventListener('mouseleave', hideIcon);
+            editIcon.addEventListener('mouseleave', hideIcon);
+        }
         
         editIcon.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -457,14 +544,57 @@ export function initInlineEditor(element, options) {
             input.type = 'text';
             input.value = currentValue;
             input.className = 'inline-editor-input';
+            
+            // Special handling for headerTitle and welcomeTitle - size to content
+            const isHeaderTitle = element.id === 'headerTitle';
+            const isWelcomeTitle = element.id === 'welcomeTitle';
+            
+            // Get computed styles to match original element appearance
+            const computedStyle = window.getComputedStyle(element);
+            const fontSize = computedStyle.fontSize;
+            const fontFamily = computedStyle.fontFamily;
+            const fontWeight = computedStyle.fontWeight;
+            const letterSpacing = computedStyle.letterSpacing;
+            
+            // Calculate width based on content for headerTitle and welcomeTitle
+            let inputWidth = '100%';
+            if (isHeaderTitle || isWelcomeTitle) {
+                // Create a temporary span to measure text width
+                const tempSpan = document.createElement('span');
+                tempSpan.style.cssText = `
+                    position: absolute;
+                    visibility: hidden;
+                    white-space: pre;
+                    font-size: ${fontSize};
+                    font-family: ${fontFamily};
+                    font-weight: ${fontWeight};
+                    letter-spacing: ${letterSpacing};
+                    padding: 0;
+                    margin: 0;
+                `;
+                tempSpan.textContent = currentValue || ' ';
+                document.body.appendChild(tempSpan);
+                const measuredWidth = tempSpan.offsetWidth;
+                document.body.removeChild(tempSpan);
+                // Add padding (8px + 12px = 20px on each side = 40px total) plus some extra space
+                const minWidth = 200;
+                const calculatedWidth = Math.max(measuredWidth + 60, minWidth);
+                inputWidth = `${calculatedWidth}px`;
+            }
+            
             input.style.cssText = `
-                width: 100%;
+                width: ${inputWidth};
+                min-width: 200px;
                 border: 2px solid #007bff;
-                border-radius: 4px;
-                padding: 4px 8px;
-                font-size: inherit;
-                font-family: inherit;
+                border-radius: 6px;
+                padding: 8px 12px;
+                font-size: ${fontSize};
+                font-family: ${fontFamily};
+                font-weight: ${fontWeight};
+                letter-spacing: ${letterSpacing};
                 background: white;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                transition: all 0.2s ease;
             `;
             
             if (type === 'textarea') {
@@ -476,6 +606,33 @@ export function initInlineEditor(element, options) {
             const originalDisplay = element.style.display;
             element.style.display = 'none';
             element.parentElement.insertBefore(input, element);
+            
+            // Auto-resize input width as user types (for headerTitle and welcomeTitle)
+            if (isHeaderTitle || isWelcomeTitle) {
+                const updateWidth = () => {
+                    const tempSpan = document.createElement('span');
+                    tempSpan.style.cssText = `
+                        position: absolute;
+                        visibility: hidden;
+                        white-space: pre;
+                        font-size: ${fontSize};
+                        font-family: ${fontFamily};
+                        font-weight: ${fontWeight};
+                        letter-spacing: ${letterSpacing};
+                        padding: 0;
+                        margin: 0;
+                    `;
+                    tempSpan.textContent = input.value || ' ';
+                    document.body.appendChild(tempSpan);
+                    const measuredWidth = tempSpan.offsetWidth;
+                    document.body.removeChild(tempSpan);
+                    const minWidth = 200;
+                    const newWidth = Math.max(measuredWidth + 60, minWidth);
+                    input.style.width = `${newWidth}px`;
+                };
+                
+                input.addEventListener('input', updateWidth);
+            }
             
             input.focus();
             input.select();
