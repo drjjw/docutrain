@@ -1,144 +1,201 @@
-# SMH Housestaff Manual Chatbot
+# Documentation Directory
 
-A Node.js chatbot with **dual AI model support** that answers questions based exclusively on the SMH Housestaff Manual PDF.
+This directory contains all project documentation organized into logical subfolders for easy navigation.
 
-## Features
+## 📁 Directory Structure
 
-- 🤖 **Dual AI Models** - Switch between Gemini 2.5 Flash & Grok 4
-- 📄 **PDF Context** - Loads entire PDF into context
-- 🔒 **Constrained Responses** - Only answers from manual content
-- 💬 **Chat Interface** - Clean, modern web UI with model selector
-- 📝 **Conversation History** - Maintains chat context
-- ⚡ **Real-time Switching** - Toggle between models on the fly
+### 🚀 Getting Started
+**Location:** `getting-started/`
 
-## Setup
+Essential documentation for new developers or users:
+- Project overview and README
+- Quick start guides
+- Project structure and architecture
+- Production checklists
+- Implementation summaries
 
-### 1. Install Dependencies
+### ⚙️ Setup & Configuration
+**Location:** `setup-config/`
 
-```bash
-npm install
-```
+Configuration guides and setup instructions:
+- Authentication setup
+- RAG (Retrieval-Augmented Generation) setup
+- Edge function configuration
+- URL parameters and configuration
+- Batch training guides
+- Embedding defaults
 
-### 2. Configuration
+### ✨ Features
+**Location:** `features/`
 
-Create a `.env` file in the root directory with your API keys:
-```
-GEMINI_API_KEY=your_gemini_api_key_here
-XAI_API_KEY=your_xai_api_key_here
-PORT=3000
-```
+Documentation for all implemented features:
+- Document selector
+- Downloads functionality
+- Streaming implementation
+- Multi-document RAG
+- AI hints and abstracts
+- Back button navigation
+- Page detection
+- Model comparisons
+- Webhooks and auto-refresh
+- PDF processing improvements
 
-Get your API keys from:
-- **Gemini**: [Google AI Studio](https://makersuite.google.com/)
-- **Grok/xAI**: [xAI Console](https://console.x.ai/)
+### 🚢 Deployment
+**Location:** `deployment/`
 
-### 3. Run the Server
+Deployment guides and production setup:
+- Main deployment guides
+- RAG deployment
+- Deployment troubleshooting
+- Multi-VPS architecture
+- Domain switching
+- Processing VPS setup
 
-```bash
-npm start
-```
+### ⚡ Performance & Optimization
+**Location:** `performance/`
 
-Or for development with auto-reload:
-```bash
-npm run dev
-```
+Performance analysis and optimization guides:
+- Lazy loading optimization
+- Performance logging
+- Cache management
+- PDF optimization
+- Concurrency improvements
+- VPS capacity analysis
 
-### 4. Open the Chatbot
+### 🐛 Bug Fixes
+**Location:** `bug-fixes/`
 
-Navigate to: **http://localhost:3000**
+Documentation of bugs fixed during development:
+- Error fixes (500 errors, timeouts)
+- Embedding fixes
+- Permission fixes
+- UI fixes (mobile, refresh, etc.)
+- PDF and document processing fixes
 
-## How It Works
+### 🔄 Refactoring
+**Location:** `refactoring/`
 
-1. **PDF Loading**: On startup, the server extracts all text from `SMH Housestaff Manual.pdf`
-2. **Context Injection**: The entire PDF content is included in the system prompt
-3. **Model Selection**: Choose between Gemini 2.5 or Grok 4 via toggle buttons
-4. **Query Processing**: User questions are sent to the selected AI with the PDF context
-5. **Constrained Responses**: Both models are instructed to only use information from the manual
+Documentation of code refactoring efforts:
+- Server refactoring summaries
+- UI refactoring
+- Main.js refactoring
+- Processing routes refactoring
+- Modular structure changes
+- Document registry refactoring
 
-## Available Models
+### 📚 API & Documentation
+**Location:** `api-docs/`
 
-### 🤖 Gemini 2.5 Flash
-- Google's latest model (2025)
-- Fast and efficient
-- Excellent at document analysis
-- Great for structured information
+Technical API documentation:
+- API reference
+- Server module guide
+- Testing guide
+- URL encoding cheatsheets
+- Admin CRUD guide
+- Encoding how-to guides
 
-### 🚀 Grok 4 (grok-4-fast-non-reasoning)
-- xAI's powerful model
-- Strong reasoning capabilities
-- Different perspective on the same content
-- Good for complex queries
+### 🔧 Troubleshooting
+**Location:** `troubleshooting/`
 
-**Pro Tip**: Try asking the same question to both models to compare their responses!
+Troubleshooting guides for common issues:
+- General troubleshooting
+- Downloads troubleshooting
+- Stuck document recovery
 
-## Project Structure
+### 📝 Session Summaries
+**Location:** `session-summaries/`
 
-```
-.
-├── server.js                      # Express server & Gemini integration
-├── public/
-│   └── index.html                 # Chat interface
-├── SMH Housestaff Manual.pdf      # Source document
-├── package.json                   # Dependencies
-├── .env                          # API keys (not committed)
-└── README.md                      # This file
-```
+Date-stamped session summaries of development work.
 
-## API Endpoints
+### 🎨 UI/UX
+**Location:** `ui-ux/`
 
-### POST /api/chat
-Send a chat message and get a response.
+User interface and user experience documentation:
+- UI module quick reference
+- Header redesigns
+- Mobile layout improvements
+- Admin redesign summaries
 
-**Request:**
-```json
-{
-  "message": "What are the resident responsibilities?",
-  "history": []
-}
-```
+### 🔌 Integrations
+**Location:** `integrations/`
 
-**Response:**
-```json
-{
-  "response": "Based on the manual...",
-  "metadata": {
-    "pdfPages": 50,
-    "pdfTitle": "SMH Housestaff Manual"
-  }
-}
-```
+External integration documentation:
+- UKidney integration
+- PubMed integration
 
-### GET /api/health
-Check server and PDF loading status.
+### 🔐 Permissions & Access
+**Location:** `permissions-access/`
 
-## Technologies
+Authorization and access control documentation:
+- Permission system
+- Permission management guides
+- Document access guides
+- RLS (Row Level Security) fixes
+- Owner-based chunk limits
 
-- **Node.js** - Runtime
-- **Express** - Web framework
-- **@google/generative-ai** - Gemini API client
-- **openai** - OpenAI-compatible client for Grok
-- **pdf-parse** - PDF text extraction
-- **marked.js** - Markdown rendering
-- **dotenv** - Environment variables
+### 💾 Database
+**Location:** `database/`
 
-## Notes
+Database-related documentation:
+- Database dump guides
+- Migration guides
+- Storage cascade delete
+- Migration cleanup
 
-- The PDF is loaded into memory on startup
-- Conversation history is maintained per session
-- The AI is constrained to only use manual content
-- If information isn't in the manual, the bot will say so
+### 📄 Document Processing
+**Location:** `document-processing/`
 
-## Troubleshooting
+Document processing and training documentation:
+- Adding new documents
+- Batch processing
+- Page number system
+- Troubleshooting document processing
 
-**PDF not loading?**
-- Ensure `SMH Housestaff Manual.pdf` is in the project root
-- Check file permissions
+### 🔮 Future Modifications
+**Location:** `future-mods/`
 
-**API errors?**
-- Verify your Gemini API key in `.env`
-- Check your API quota at [Google AI Studio](https://makersuite.google.com/)
+Planned or proposed future modifications:
+- Cache busting strategies
+- Multi-doc conflict handling
+- Multi-document RAG implementation ideas
 
-**Server won't start?**
-- Ensure port 3000 is available
-- Run `npm install` to install dependencies
+### 📋 Setup-Specific Folders
+
+#### `disclaimer-setup/`
+Disclaimer feature setup documentation.
+
+#### `docs-setup/`
+Setup guides for specific document sets (AJKD, KDIGO guidelines, etc.).
+
+## 📊 Statistics
+
+- **Total Documentation Files:** 177 markdown files
+- **Organized Categories:** 18 main folders
+- **Features Documented:** 45+ feature implementations
+- **Bug Fixes Documented:** 18+ bug fixes
+- **Deployment Guides:** 12 deployment-related documents
+
+## 🔍 Finding Documentation
+
+### By Topic
+- Need setup help? → `setup-config/` or `getting-started/`
+- Looking for a feature? → `features/`
+- Deployment issues? → `deployment/` or `troubleshooting/`
+- Performance questions? → `performance/`
+- API reference? → `api-docs/`
+
+### By File Name Pattern
+- `*-SUMMARY.md` → Usually in `features/`, `refactoring/`, or `deployment/`
+- `*-FIX.md` → Bug fixes in `bug-fixes/`
+- `*-GUIDE.md` → Setup or usage guides
+- `*-QUICK-REFERENCE.md` → Quick lookup documentation
+- `SESSION-SUMMARY-*.md` → Date-stamped summaries in `session-summaries/`
+
+## 📝 Contributing
+
+When adding new documentation:
+1. Place files in the appropriate subfolder
+2. Use descriptive, consistent naming (UPPERCASE with hyphens)
+3. Include dates in session summaries
+4. Cross-reference related documents
 
