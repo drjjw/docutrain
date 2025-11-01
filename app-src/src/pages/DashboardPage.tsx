@@ -31,6 +31,16 @@ export function DashboardPage() {
     og => og.role === 'owner_admin'
   ));
 
+  // Redirect regular users (registered role only) to their owner chat interface
+  React.useEffect(() => {
+    if (!loading && !needsApproval && !hasAdminAccess && ownerGroups.length > 0) {
+      // User is a regular registered user - redirect to their owner's chat
+      const primaryOwner = ownerGroups[0];
+      console.log('DashboardPage: Regular user detected, redirecting to chat:', primaryOwner.owner_slug);
+      window.location.href = `/?owner=${primaryOwner.owner_slug}`;
+    }
+  }, [loading, needsApproval, hasAdminAccess, ownerGroups]);
+
   // Check for active documents on mount (after table has loaded)
   React.useEffect(() => {
     const checkActiveDocuments = () => {

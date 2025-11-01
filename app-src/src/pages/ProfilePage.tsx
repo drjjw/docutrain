@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Dashboard } from '@/components/Dashboard/Dashboard';
 import { Button } from '@/components/UI/Button';
 import { Input } from '@/components/UI/Input';
@@ -10,7 +11,11 @@ import { getAuthErrorMessage } from '@/lib/utils/errors';
 
 export function ProfilePage() {
   const { user } = useAuth();
+  const { isSuperAdmin, isOwnerAdmin } = usePermissions();
   const navigate = useNavigate();
+  
+  // Check if user has admin access (super_admin or owner_admin)
+  const hasAdminAccess = isSuperAdmin || isOwnerAdmin;
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -145,23 +150,25 @@ export function ProfilePage() {
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
-              <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/dashboard')}
-                  className="w-full justify-start"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                  Back to Dashboard
-                </Button>
+            {/* Quick Actions - Only show for admins */}
+            {hasAdminAccess && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/dashboard')}
+                    className="w-full justify-start"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    Back to Dashboard
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right Column - Security Settings */}

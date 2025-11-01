@@ -6,10 +6,13 @@ import { docutrainLogoUrl } from '@/assets';
 
 export function DashboardHeader() {
   const { signOut } = useAuth();
-  const { isSuperAdmin } = usePermissions();
+  const { isSuperAdmin, isOwnerAdmin } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Check if user has admin access (super admin or owner admin)
+  const hasAdminAccess = isSuperAdmin || isOwnerAdmin;
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -84,24 +87,27 @@ export function DashboardHeader() {
             
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-1">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className={`group relative flex items-center gap-2.5 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 whitespace-nowrap ${
-                  isDashboard
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <svg className={`w-4 h-4 flex-shrink-0 transition-colors ${
-                  isDashboard ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'
-                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                <span className="font-medium">Dashboard</span>
-                {isDashboard && (
-                  <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full" />
-                )}
-              </button>
+              {/* Only show Dashboard link to admins (super_admin or owner_admin) */}
+              {hasAdminAccess && (
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className={`group relative flex items-center gap-2.5 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 whitespace-nowrap ${
+                    isDashboard
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <svg className={`w-4 h-4 flex-shrink-0 transition-colors ${
+                    isDashboard ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'
+                  }`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  <span className="font-medium">Dashboard</span>
+                  {isDashboard && (
+                    <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full" />
+                  )}
+                </button>
+              )}
               
               {isSuperAdmin && (
                 <button
@@ -208,17 +214,20 @@ export function DashboardHeader() {
 
               {/* Navigation Links */}
               <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-                <NavLink
-                  path="/dashboard"
-                  icon={
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
-                  }
-                  label="Dashboard"
-                  isActive={isDashboard}
-                  onClick={() => handleNavigation('/dashboard')}
-                />
+                {/* Only show Dashboard link to admins (super_admin or owner_admin) */}
+                {hasAdminAccess && (
+                  <NavLink
+                    path="/dashboard"
+                    icon={
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                      </svg>
+                    }
+                    label="Dashboard"
+                    isActive={isDashboard}
+                    onClick={() => handleNavigation('/dashboard')}
+                  />
+                )}
                 
                 {isSuperAdmin && (
                   <NavLink

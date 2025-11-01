@@ -45,7 +45,9 @@ export function LoginForm() {
 
     try {
       await signIn(email, password);
-      window.location.href = '/app/dashboard';
+      // Don't redirect here - let LoginPage handle it based on user role
+      // LoginPage will redirect super_admins and owner_admins to dashboard
+      // and regular users to their owner chat interface
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');
       setLoading(false);

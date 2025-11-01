@@ -95,6 +95,9 @@ export async function initializeUserMenu() {
 
     // Load user avatar/owner logo
     await loadUserAvatar();
+    
+    // Hide Dashboard link for regular users (only show to super_admin and owner_admin)
+    await updateDashboardLinkVisibility();
 
     // Toggle dropdown
     userMenuBtn.addEventListener('click', (e) => {
@@ -181,6 +184,62 @@ function closeUserMenuDropdown() {
     if (userMenuBtn && userMenuDropdown) {
         userMenuBtn.classList.remove('open');
         userMenuDropdown.classList.remove('open');
+    }
+}
+
+/**
+ * Hide/show Dashboard link based on user permissions
+ * Only super_admin and owner_admin should see Dashboard link
+ */
+async function updateDashboardLinkVisibility() {
+    try {
+        // Get JWT token from Supabase session
+        const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
+        const sessionData = localStorage.getItem(sessionKey);
+        
+        if (!sessionData) {
+            return; // Not logged in
+        }
+
+        const session = JSON.parse(sessionData);
+        const token = session?.access_token;
+
+        if (!token) {
+            return; // No token
+        }
+
+        // Fetch user permissions
+        const response = await fetch(`${API_URL}/api/permissions`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            return; // Can't check permissions
+        }
+
+        const data = await response.json();
+        const isSuperAdmin = data.is_super_admin;
+        const ownerGroups = data.owner_groups || [];
+        
+        // Check if user has admin access (super_admin or owner_admin role)
+        const hasAdminAccess = isSuperAdmin || ownerGroups.some(og => og.role === 'owner_admin');
+        
+        // Get Dashboard links in both desktop and mobile menus
+        const dashboardLinks = document.querySelectorAll('a[href="/app/dashboard"]');
+        
+        dashboardLinks.forEach(link => {
+            if (hasAdminAccess) {
+                link.style.display = ''; // Show for admins
+            } else {
+                link.style.display = 'none'; // Hide for regular users
+            }
+        });
+        
+        console.log(`Dashboard links ${hasAdminAccess ? 'shown' : 'hidden'} for user role`);
+    } catch (error) {
+        console.error('Error updating dashboard link visibility:', error);
     }
 }
 
