@@ -217,3 +217,89 @@ export async function updateUserProfile(
   return profile;
 }
 
+/**
+ * Get current user's profile (self-service via API)
+ */
+export async function getMyProfile(): Promise<{
+  first_name: string | null;
+  last_name: string | null;
+  email: string;
+}> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch('/api/users/me/profile', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Failed to fetch profile (${response.status})`;
+    // Clone response before reading so we can read it multiple times if needed
+    const responseClone = response.clone();
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.details || errorData.error || errorMessage;
+    } catch (e) {
+      // If JSON parsing fails, try to get text from clone
+      try {
+        const text = await responseClone.text();
+        errorMessage = text || errorMessage;
+      } catch (textError) {
+        // If that also fails, use the status-based message
+        console.error('Failed to parse error response:', textError);
+      }
+    }
+    console.error('Profile fetch error:', {
+      status: response.status,
+      statusText: response.statusText,
+      message: errorMessage
+    });
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+/**
+ * Update current user's profile (self-service via API)
+ * Supports email, first_name, and last_name
+ */
+export async function updateMyProfile(data: {
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+}): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch('/api/users/me/profile', {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    const errorMessage = errorData.details || errorData.error || 'Failed to update profile';
+    throw new Error(errorMessage);
+  }
+
+  // If email was updated, refresh the auth user
+  if (data.email) {
+    await supabase.auth.refreshSession();
+  }
+}
+
