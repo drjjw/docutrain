@@ -33,10 +33,13 @@ export function validateFileType(file: File): boolean {
 }
 
 /**
- * Validate file size (max 50MB)
+ * Validate file size (environment-aware: 200MB dev, 50MB prod)
  */
-export function validateFileSize(file: File, maxSizeMB = 50): boolean {
-  const maxSizeBytes = maxSizeMB * 1024 * 1024;
+export function validateFileSize(file: File, maxSizeMB?: number): boolean {
+  // Use 200MB for development, 50MB for production
+  const defaultMaxSize = import.meta.env.PROD ? 50 : 200;
+  const maxSize = maxSizeMB ?? defaultMaxSize;
+  const maxSizeBytes = maxSize * 1024 * 1024;
   return file.size <= maxSizeBytes;
 }
 
@@ -44,11 +47,14 @@ export function validateFileSize(file: File, maxSizeMB = 50): boolean {
  * Get file validation error message
  */
 export function getFileValidationError(file: File): string | null {
+  const maxSize = import.meta.env.PROD ? 50 : 200;
+  console.log('[validation] PROD:', import.meta.env.PROD, 'DEV:', import.meta.env.DEV, 'Max size:', maxSize, 'MB');
+  
   if (!validateFileType(file)) {
     return 'Only PDF files are allowed';
   }
   if (!validateFileSize(file)) {
-    return 'File size must be less than 50MB';
+    return `File size must be less than ${maxSize}MB`;
   }
   return null;
 }

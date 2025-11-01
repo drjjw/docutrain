@@ -164,11 +164,28 @@ const routeDependencies = {
 app.use('/api/auth', createAuthRouter(supabase));
 app.use('/api/permissions', createPermissionsRouter(supabase));
 app.use('/api/users', createUsersRouter());
-app.use('/api', createProcessingRouter(supabase, openaiClient));
+
+// Apply extended timeout for processing routes (large file uploads)
+// Note: Server timeout is set globally below in server.listen()
+const processingRouter = createProcessingRouter(supabase, openaiClient);
+app.use('/api', processingRouter);
+
 app.use('/api', createChatRouter(routeDependencies));
 app.use('/api', createRatingRouter(supabase));
 app.use('/api', createCacheRouter(embeddingCache));
 app.use('/api', createHealthRouter(supabase, documentRegistry, registryState));
+
+// Global error handler for API routes
+app.use('/api', (err, req, res, next) => {
+    console.error('❌ API Error:', err);
+    console.error('   Path:', req.path);
+    console.error('   Method:', req.method);
+    console.error('   Stack:', err.stack);
+    res.status(500).json({ 
+        success: false, 
+        error: err.message || 'Internal server error' 
+    });
+});
 
 // Serve React app at /app route
 app.use('/app', express.static(path.join(__dirname, 'dist/app')));
@@ -317,12 +334,18 @@ async function start() {
             const serverTime = Date.now() - serverStart;
             const totalStartupTime = Date.now() - startupStart;
 
+            // Set server timeout to 15 minutes for large file uploads
+            server.timeout = 15 * 60 * 1000; // 15 minutes
+            server.keepAliveTimeout = 60000; // 60 seconds
+            server.headersTimeout = 61000; // Must be > keepAliveTimeout
+
             console.log(`\n🚀 Server running at http://localhost:${PORT} (${serverTime}ms)`);
             console.log(`📚 RAG-only chatbot ready!`);
             console.log(`   - Total startup time: ${totalStartupTime}ms`);
             console.log(`   - Available documents: ${activeDocumentSlugs.length} total`);
             console.log(`   - Mode: RAG-only (database retrieval)`);
-            console.log(`   - Use ?doc=<slug> URL parameter to select document\n`);
+            console.log(`   - Use ?doc=<slug> URL parameter to select document`);
+            console.log(`   - Server timeout: ${server.timeout / 1000}s (for large file uploads)\n`);
 
             // Signal to PM2 that the app is ready
             if (process.send) {

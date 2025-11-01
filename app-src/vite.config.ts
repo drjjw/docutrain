@@ -22,7 +22,14 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3458',
         changeOrigin: true,
+        // Increase timeout and body size limits for large file uploads
+        timeout: 600000, // 10 minutes
+        proxyTimeout: 600000,
       },
+    },
+    // Increase max HTTP header size for large multipart uploads
+    hmr: {
+      overlay: true,
     },
   },
   resolve: {

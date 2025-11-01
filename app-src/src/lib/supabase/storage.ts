@@ -31,9 +31,18 @@ function sanitizeFileName(fileName: string): string {
 
 /**
  * Upload a file to user's storage bucket
+ * For files > 50MB, routes through backend to bypass Supabase client limit
  */
 export async function uploadFile(userId: string, file: File) {
-  // Sanitize filename to avoid special character issues
+  const FIFTY_MB = 50 * 1024 * 1024;
+  
+  if (file.size > FIFTY_MB) {
+    // For large files, we can't use Supabase client (50MB hard limit)
+    // Return a special marker so the upload hook knows to use backend upload
+    throw new Error('FILE_TOO_LARGE_USE_BACKEND');
+  }
+
+  // Standard upload for files <= 50MB
   const sanitizedFileName = sanitizeFileName(file.name);
   const filePath = `${userId}/${Date.now()}-${sanitizedFileName}`;
 

@@ -124,14 +124,65 @@ export function useUpload() {
       setUploadedDocument(null);
       setProgress(0);
 
-      // Upload to storage
+      const documentTitle = title || file.name.replace('.pdf', '');
+      const FIFTY_MB = 50 * 1024 * 1024;
+
+      // For files > 50MB, use backend upload endpoint (bypasses Supabase client limit)
+      if (file.size > FIFTY_MB) {
+        console.log(`📤 Large file detected (${(file.size / 1024 / 1024).toFixed(2)}MB), using backend upload...`);
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          throw new Error('Authentication required');
+        }
+
+        setProgress(20);
+
+        // Upload via backend (handles storage + database + processing)
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('title', documentTitle);
+
+        // For large files, bypass Vite proxy and go directly to backend
+        // In production, this will use the same origin, but in dev we need to specify port
+        const isDev = import.meta.env.DEV;
+        const uploadUrl = isDev 
+          ? 'http://localhost:3458/api/upload-document'  // Direct to backend in dev
+          : '/api/upload-document';  // Use proxy/same-origin in production
+
+        const response = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const result = await response.json();
+        console.log('✅ Backend upload successful:', result);
+
+        setProgress(100);
+        setSuccess(true);
+        setUploadedDocument({
+          id: result.user_document_id,
+          title: documentTitle
+        });
+
+        return { id: result.user_document_id, title: documentTitle };
+      }
+
+      // Standard flow for files <= 50MB
       setProgress(30);
       const uploadResult = await uploadFile(user.id, file);
       
       setProgress(70);
 
       // Create database record
-      const documentTitle = title || file.name.replace('.pdf', '');
       console.log('📝 Creating database record for:', documentTitle);
       console.log('   user_id:', user.id);
       console.log('   file_path:', uploadResult.path);

@@ -17,6 +17,22 @@ interface UserDocument {
   updated_at: string;
 }
 
+interface ProcessingLog {
+  id: string;
+  stage: string;
+  status: string;
+  message: string;
+  metadata: Record<string, any>;
+  created_at: string;
+}
+
+interface ProcessingProgress {
+  stageLabel: string;
+  batchInfo?: string;
+  progressPercent: number;
+  message?: string;
+}
+
 // Helper function to check if a document is stuck in processing (>5 minutes)
 const isDocumentStuck = (doc: UserDocument): boolean => {
   if (doc.status !== 'processing') return false;
@@ -43,6 +59,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
   const [error, setError] = useState<string | null>(null);
   const [retryingDocId, setRetryingDocId] = useState<string | null>(null);
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
+  const [logsMap, setLogsMap] = useState<Record<string, ProcessingLog[]>>({});
   const documentsRef = useRef<UserDocument[]>([]);
 
   // Filter to show only documents that are actively processing (not ready)
@@ -74,9 +91,28 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
       }
 
       const result = await response.json();
-      setDocuments(result.documents || []);
-      documentsRef.current = result.documents || []; // Keep ref in sync
+      const loadedDocuments: UserDocument[] = result.documents || [];
+      setDocuments(loadedDocuments);
+      documentsRef.current = loadedDocuments; // Keep ref in sync
       setError(null);
+      
+      // Fetch logs for any documents currently in processing state
+      const processingDocs = loadedDocuments.filter((doc: UserDocument) => doc.status === 'processing');
+      if (processingDocs.length > 0 && session?.access_token) {
+        const logsPromises = processingDocs.map(async (doc: UserDocument) => {
+          const logs = await fetchProcessingLogs(doc.id);
+          return { docId: doc.id, logs };
+        });
+        
+        const logsResults = await Promise.all(logsPromises);
+        setLogsMap(prev => {
+          const updated = { ...prev };
+          logsResults.forEach(({ docId, logs }) => {
+            updated[docId] = logs;
+          });
+          return updated;
+        });
+      }
       
       // Notify parent of status change
       if (onStatusChange) {
@@ -126,16 +162,38 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
     
     // Set up polling for documents in processing state
     // Use ref to check current state without stale closure issues
-    const pollInterval = setInterval(() => {
-      if (documentsRef.current.some(doc => doc.status === 'processing')) {
-        console.log('🔄 Polling: Found processing documents, refreshing...');
-        loadDocuments(false).then(() => {
-          if (onStatusChange) {
-            onStatusChange();
-          }
-        });
+    const pollInterval = setInterval(async () => {
+      const processingDocs = documentsRef.current.filter(doc => doc.status === 'processing');
+      
+      if (processingDocs.length > 0) {
+        console.log(`🔄 Polling: Found ${processingDocs.length} processing documents, refreshing status and logs...`);
+        
+        // Refresh document status
+        await loadDocuments(false);
+        
+        // Fetch logs for processing documents
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const logsPromises = processingDocs.map(async (doc) => {
+            const logs = await fetchProcessingLogs(doc.id);
+            return { docId: doc.id, logs };
+          });
+          
+          const logsResults = await Promise.all(logsPromises);
+          setLogsMap(prev => {
+            const updated = { ...prev };
+            logsResults.forEach(({ docId, logs }) => {
+              updated[docId] = logs;
+            });
+            return updated;
+          });
+        }
+        
+        if (onStatusChange) {
+          onStatusChange();
+        }
       }
-    }, 5000); // Poll every 5 seconds
+    }, 3000); // Poll every 3 seconds for more responsive updates
 
     return () => {
       clearInterval(pollInterval);
@@ -258,10 +316,119 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
     return new Date(dateString).toLocaleString();
   };
 
-  const getStatusBadge = (status: UserDocument['status']) => {
+  /**
+   * Parse processing progress from logs to extract stage, batch info, and percentage
+   */
+  const parseProcessingProgress = (logs: ProcessingLog[]): ProcessingProgress => {
+    if (!logs || logs.length === 0) {
+      return { stageLabel: 'Processing...', progressPercent: 0 };
+    }
+
+    const stages = ['download', 'extract', 'chunk', 'embed', 'store'];
+    const stageLabels: Record<string, string> = {
+      download: 'Downloading PDF',
+      extract: 'Extracting text',
+      chunk: 'Chunking text',
+      embed: 'Generating embeddings',
+      store: 'Storing chunks',
+      complete: 'Complete'
+    };
+
+    // Find latest log entry
+    const latestLog = logs[logs.length - 1];
+    
+    // Special handling for embedding stage with batch progress
+    if (latestLog.stage === 'embed' && latestLog.status === 'progress') {
+      const batch = latestLog.metadata?.batch;
+      const totalBatches = latestLog.metadata?.total_batches;
+      
+      if (batch && totalBatches && totalBatches > 0) {
+        // Calculate embedding progress (embedding is stage 3 out of 5 stages)
+        const embedProgress = (batch / totalBatches) * 100;
+        // Embedding stage is roughly 60-70% of total processing time
+        const stageBaseProgress = (stages.indexOf('embed') / stages.length) * 100;
+        const overallProgress = stageBaseProgress + (embedProgress * 0.65);
+        
+        return {
+          stageLabel: stageLabels.embed || 'Generating embeddings',
+          batchInfo: `Batch ${batch}/${totalBatches}`,
+          progressPercent: Math.min(95, Math.round(overallProgress)),
+          message: latestLog.message
+        };
+      }
+    }
+
+    // Check for completed stages
+    const completedStages = logs.filter(log => 
+      log.status === 'completed' && stages.includes(log.stage)
+    ).length;
+
+    // Find current active stage (not completed)
+    const currentStage = stages.find(stage => {
+      const stageLogs = logs.filter(log => log.stage === stage);
+      const hasStarted = stageLogs.some(log => log.status === 'started' || log.status === 'progress');
+      const isCompleted = stageLogs.some(log => log.status === 'completed');
+      return hasStarted && !isCompleted;
+    }) || (completedStages === stages.length ? 'complete' : stages[completedStages]);
+
+    // Calculate progress based on stages
+    let progressPercent = 0;
+    
+    if (currentStage === 'complete') {
+      progressPercent = 100;
+    } else if (stages.includes(currentStage)) {
+      const stageIndex = stages.indexOf(currentStage);
+      const baseProgress = (stageIndex / stages.length) * 100;
+      
+      // If we have progress within the current stage, add a small amount
+      const hasProgress = logs.some(log => 
+        log.stage === currentStage && log.status === 'progress'
+      );
+      progressPercent = baseProgress + (hasProgress ? 10 : 0);
+    }
+
+    const stageLabel = stageLabels[currentStage] || 'Processing...';
+    const latestMessage = latestLog?.message || '';
+
+    return {
+      stageLabel,
+      progressPercent: Math.min(95, Math.round(progressPercent)),
+      message: latestMessage
+    };
+  };
+
+  /**
+   * Fetch processing logs for a specific document
+   */
+  const fetchProcessingLogs = async (documentId: string): Promise<ProcessingLog[]> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        return [];
+      }
+
+      const response = await fetch(`/api/processing-status/${documentId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        return [];
+      }
+
+      const result = await response.json();
+      return result.logs || [];
+    } catch (err) {
+      console.error('Error fetching processing logs:', err);
+      return [];
+    }
+  };
+
+  const getStatusBadge = (doc: UserDocument, logs?: ProcessingLog[]) => {
     const baseClasses = 'px-2 py-1 text-xs font-medium rounded-full inline-flex items-center gap-1';
     
-    switch (status) {
+    switch (doc.status) {
       case 'pending':
         return (
           <span className={`${baseClasses} bg-gray-100 text-gray-700`}>
@@ -272,6 +439,36 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
           </span>
         );
       case 'processing':
+        if (logs && logs.length > 0) {
+          const progress = parseProcessingProgress(logs);
+          return (
+            <div className="flex flex-col gap-1.5 min-w-[140px]">
+              <span className={`${baseClasses} bg-blue-100 text-blue-700`}>
+                <Spinner size="sm" />
+                {progress.stageLabel}
+              </span>
+              {progress.batchInfo && (
+                <span className="text-xs text-gray-600 px-1 font-medium">
+                  {progress.batchInfo}
+                </span>
+              )}
+              {progress.progressPercent > 0 && (
+                <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-600 transition-all duration-500 ease-out"
+                    style={{ width: `${progress.progressPercent}%` }}
+                  />
+                </div>
+              )}
+              {progress.message && progress.message !== progress.stageLabel && (
+                <span className="text-xs text-gray-500 px-1 truncate" title={progress.message}>
+                  {progress.message}
+                </span>
+              )}
+            </div>
+          );
+        }
+        // Fallback if no logs available yet
         return (
           <span className={`${baseClasses} bg-blue-100 text-blue-700`}>
             <Spinner size="sm" />
@@ -368,8 +565,8 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
                     <div className="text-xs text-red-600 mt-1">{doc.error_message}</div>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {getStatusBadge(doc.status)}
+                <td className="px-6 py-4">
+                  {getStatusBadge(doc, logsMap[doc.id])}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {formatFileSize(doc.file_size)}
@@ -433,7 +630,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
                   )}
                 </div>
                 <div className="flex-shrink-0">
-                  {getStatusBadge(doc.status)}
+                  {getStatusBadge(doc, logsMap[doc.id])}
                 </div>
               </div>
               
