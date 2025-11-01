@@ -18,6 +18,9 @@ export function ProfilePage() {
   // Check if user has admin access (super_admin or owner_admin)
   const hasAdminAccess = isSuperAdmin || isOwnerAdmin;
   
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'personal' | 'security'>('personal');
+  
   // Profile form state
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -220,22 +223,69 @@ export function ProfilePage() {
                 <p className="text-sm text-gray-500 mt-1">{user.email}</p>
               )}
             </div>
+            {hasAdminAccess && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/dashboard')}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Back to Dashboard
+              </Button>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Profile Information */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Profile Update Form */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
-                <p className="text-sm text-gray-600 mt-1">
+        {/* Tabs */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-200">
+            <nav className="flex -mb-px">
+              <button
+                onClick={() => setActiveTab('personal')}
+                className={`flex-1 px-6 py-4 text-center font-medium text-sm transition-colors ${
+                  activeTab === 'personal'
+                    ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Personal Information
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('security')}
+                className={`flex-1 px-6 py-4 text-center font-medium text-sm transition-colors ${
+                  activeTab === 'security'
+                    ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Security Settings
+                </div>
+              </button>
+            </nav>
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-6">
+            {/* Personal Information Tab */}
+            {activeTab === 'personal' && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-1">Personal Information</h2>
+                <p className="text-sm text-gray-600 mb-6">
                   Update your name and email address
                 </p>
-              </div>
 
-              <div className="p-6">
                 {profileLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Spinner size="sm" />
@@ -336,90 +386,16 @@ export function ProfilePage() {
                   </form>
                 )}
               </div>
-            </div>
-            {/* Account Info Card */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                <h2 className="text-lg font-semibold text-gray-900">Account Information</h2>
-              </div>
-              <div className="p-6 space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email Address</p>
-                    <p className="text-sm text-gray-900 font-medium mt-1 break-words">{user?.email}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Account Status</p>
-                    <div className="mt-2">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                        <svg className="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 8 8">
-                          <circle cx="4" cy="4" r="3" />
-                        </svg>
-                        Verified & Active
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-docutrain-light/20 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-docutrain-medium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Member Since</p>
-                    <p className="text-sm text-gray-900 font-medium mt-1">{getAccountCreatedDate()}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions - Only show for admins */}
-            {hasAdminAccess && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate('/dashboard')}
-                    className="w-full justify-start"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
-                    Back to Dashboard
-                  </Button>
-                </div>
-              </div>
             )}
-          </div>
 
-          {/* Right Column - Security Settings */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                <h2 className="text-lg font-semibold text-gray-900">Security Settings</h2>
-                <p className="text-sm text-gray-600 mt-1">
+            {/* Security Settings Tab */}
+            {activeTab === 'security' && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-1">Security Settings</h2>
+                <p className="text-sm text-gray-600 mb-6">
                   Manage your password and security preferences
                 </p>
-              </div>
 
-              <div className="p-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                   <div className="flex gap-3">
                     <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -540,6 +516,59 @@ export function ProfilePage() {
                     </Button>
                   </div>
                 </form>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Account Information Footer */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+            <h2 className="text-lg font-semibold text-gray-900">Account Information</h2>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email Address</p>
+                  <p className="text-sm text-gray-900 font-medium mt-1 break-words">{user?.email}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Account Status</p>
+                  <div className="mt-2">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                      <svg className="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 8 8">
+                        <circle cx="4" cy="4" r="3" />
+                      </svg>
+                      Verified & Active
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-docutrain-light/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-docutrain-medium" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Member Since</p>
+                  <p className="text-sm text-gray-900 font-medium mt-1">{getAccountCreatedDate()}</p>
+                </div>
               </div>
             </div>
           </div>
