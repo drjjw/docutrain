@@ -308,10 +308,20 @@ export function initInlineEditor(element, options) {
                 flex-shrink: 0;
                 align-self: center;
             `;
-            // Insert icon right after the h1, before header-icons div
+            // Insert icon after the header-icons div, so PubMed "?" icon appears to the left of edit icon
             const headerIcons = parentWrapper.querySelector('.header-icons');
             if (headerIcons) {
-                parentWrapper.insertBefore(editIcon, headerIcons);
+                // Use after() if available, otherwise insert before nextSibling or append
+                if (headerIcons.after) {
+                    headerIcons.after(editIcon);
+                } else {
+                    const nextSibling = headerIcons.nextSibling;
+                    if (nextSibling) {
+                        headerIcons.parentNode.insertBefore(editIcon, nextSibling);
+                    } else {
+                        headerIcons.parentNode.appendChild(editIcon);
+                    }
+                }
             } else {
                 parentWrapper.appendChild(editIcon);
             }
