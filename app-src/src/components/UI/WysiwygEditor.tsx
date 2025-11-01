@@ -24,6 +24,93 @@ export function WysiwygEditor({ value, onChange, placeholder, className = '' }: 
     return document.queryCommandState(command);
   }, []);
 
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const clipboardData = e.clipboardData || (window as any).clipboardData;
+    const pastedText = clipboardData.getData('text/plain');
+
+    if (!pastedText) return;
+
+    // Convert line breaks to <br> tags, preserving structure
+    const textWithBreaks = pastedText
+      .replace(/\r\n/g, '\n') // Normalize Windows line breaks
+      .replace(/\r/g, '\n')    // Normalize Mac line breaks
+      .split('\n')
+      .map((line, index, array) => {
+        // Escape HTML entities in the text
+        const escapedLine = line
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        // Add <br> after each line except the last (or if last is empty)
+        return index < array.length - 1 ? `${escapedLine}<br>` : escapedLine;
+      })
+      .join('');
+
+    // Insert the cleaned text at the cursor position
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0 && contentEditableRef.current) {
+      const range = selection.getRangeAt(0);
+      
+      // Ensure the range is within our contentEditable element
+      if (!contentEditableRef.current.contains(range.commonAncestorContainer)) {
+        range.selectNodeContents(contentEditableRef.current);
+        range.collapse(false);
+      }
+      
+      range.deleteContents();
+      
+      // Create a temporary container to parse the HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = textWithBreaks;
+      
+      // Track the last node before moving to fragment
+      let lastNode: Node | null = null;
+      
+      // Create a document fragment and move all nodes to it
+      const fragment = document.createDocumentFragment();
+      while (tempDiv.firstChild) {
+        lastNode = tempDiv.firstChild;
+        fragment.appendChild(lastNode);
+      }
+      
+      // Insert the fragment (all nodes at once)
+      range.insertNode(fragment);
+      
+      // Move cursor to end of inserted content
+      // After insertion, lastNode is now in the DOM
+      if (lastNode) {
+        range.setStartAfter(lastNode);
+        range.collapse(true);
+      } else {
+        // If no nodes were inserted, position at insertion point
+        range.collapse(true);
+      }
+      selection.removeAllRanges();
+      selection.addRange(range);
+      
+      // Update the content by reading from the DOM
+      onChange(contentEditableRef.current.innerHTML);
+    } else if (contentEditableRef.current) {
+      // Fallback: if no selection, append to the end
+      const currentHtml = contentEditableRef.current.innerHTML;
+      const newHtml = currentHtml + textWithBreaks;
+      onChange(newHtml);
+      
+      // Set cursor to end
+      setTimeout(() => {
+        const range = document.createRange();
+        const sel = window.getSelection();
+        if (contentEditableRef.current && sel) {
+          range.selectNodeContents(contentEditableRef.current);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }, 0);
+    }
+  }, [onChange]);
+
   const formatButtons = [
     { command: 'bold', icon: 'B', label: 'Bold', className: 'font-bold' },
     { command: 'italic', icon: 'I', label: 'Italic', className: 'italic' },
@@ -88,6 +175,7 @@ export function WysiwygEditor({ value, onChange, placeholder, className = '' }: 
         innerRef={contentEditableRef}
         html={value}
         onChange={handleChange}
+        onPaste={handlePaste}
         className="wysiwyg-editor px-3 py-2 min-h-[80px] focus:outline-none prose prose-sm max-w-none"
         placeholder={placeholder}
         style={{
