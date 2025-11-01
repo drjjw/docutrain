@@ -243,16 +243,19 @@ export function DashboardPage() {
                 <UploadZone onUploadSuccess={() => {
                   // Immediately show the processing section (upload always creates active doc)
                   setHasActiveDocuments(true);
-                  // Refresh immediately to catch the "processing" status
-                  // Then refresh again after a short delay to catch any rapid Edge Function completions
-                  userDocumentsTableRef.current?.refresh();
+                  // Wait 200ms before first refresh to avoid race condition with database commit
+                  // (useUpload already waits 500ms, but we add a small buffer)
                   setTimeout(() => {
                     userDocumentsTableRef.current?.refresh();
-                  }, 500);
+                  }, 200);
+                  // Second refresh to catch any rapid Edge Function completions
+                  setTimeout(() => {
+                    userDocumentsTableRef.current?.refresh();
+                  }, 1000);
                   // Final refresh after longer delay to catch Edge Function completion
                   setTimeout(() => {
                     userDocumentsTableRef.current?.refresh();
-                  }, 2000);
+                  }, 3000);
                 }} />
               </div>
             </div>

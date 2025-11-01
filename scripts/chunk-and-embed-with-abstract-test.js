@@ -132,25 +132,26 @@ function chunkText(text, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP, totalP
 
         // Only include non-empty chunks
         if (chunk.trim().length > 0) {
-            // Determine actual page number using page markers
-            const chunkCenter = start + (end - start) / 2;
-            let actualPage = 1;
-
-            // Find which page this chunk belongs to
-            for (let i = 0; i < pageMarkers.length; i++) {
-                if (chunkCenter < pageMarkers[i].position) {
-                    if (i === 0) {
-                        actualPage = 1;
-                    } else {
-                        actualPage = pageMarkers[i - 1].pageNum;
+            // Determine actual page number by finding the LAST page marker within this chunk
+            // This is more accurate than using chunk center, especially for chunks spanning multiple pages
+            let actualPage = 1; // Default to page 1
+            
+            // Find all page markers that fall within this chunk's range
+            const markersInChunk = pageMarkers.filter(marker => 
+                marker.position >= start && marker.position < end
+            );
+            
+            if (markersInChunk.length > 0) {
+                // Use the LAST page marker found in this chunk
+                actualPage = markersInChunk[markersInChunk.length - 1].pageNum;
+            } else {
+                // No markers in this chunk - find the last marker BEFORE this chunk
+                for (let i = pageMarkers.length - 1; i >= 0; i--) {
+                    if (pageMarkers[i].position < start) {
+                        actualPage = pageMarkers[i].pageNum;
+                        break;
                     }
-                    break;
                 }
-            }
-
-            // If chunk center is after the last marker
-            if (pageMarkers.length > 0 && chunkCenter >= pageMarkers[pageMarkers.length - 1].position) {
-                actualPage = pageMarkers[pageMarkers.length - 1].pageNum;
             }
 
             // Ensure page number is within valid range

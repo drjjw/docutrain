@@ -17,6 +17,15 @@ interface UserDocument {
   updated_at: string;
 }
 
+// Helper function to check if a document is stuck in processing (>5 minutes)
+const isDocumentStuck = (doc: UserDocument): boolean => {
+  if (doc.status !== 'processing') return false;
+  const updatedAt = new Date(doc.updated_at);
+  const now = new Date();
+  const minutesSinceUpdate = (now.getTime() - updatedAt.getTime()) / 1000 / 60;
+  return minutesSinceUpdate > 5;
+};
+
 export interface UserDocumentsTableRef {
   refresh: () => Promise<void>;
   hasActiveDocuments: () => boolean;
@@ -134,12 +143,24 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
     };
   }, [user?.id, onStatusChange]); // Include onStatusChange in dependencies
 
-  const handleRetryProcessing = async (documentId: string) => {
+  const handleRetryProcessing = async (documentId: string, attempt: number = 1) => {
     try {
       setRetryingDocId(documentId);
+      
+      // Optimistically update the document status to 'processing' in the UI
+      setDocuments(prevDocs => 
+        prevDocs.map(doc => 
+          doc.id === documentId 
+            ? { ...doc, status: 'processing' as const, error_message: undefined }
+            : doc
+        )
+      );
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         alert('Not authenticated');
+        // Revert optimistic update
+        await loadDocuments(false);
         return;
       }
 
@@ -156,22 +177,47 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (response.ok) {
+        // Success - reload documents to get actual status
+        await loadDocuments(false);
+        
+        // Notify parent of status change
+        if (onStatusChange) {
+          onStatusChange();
+        }
+      } else if (response.status === 503 && attempt === 1) {
+        // Server busy on first attempt - start automatic retry
+        const errorData = await response.json().catch(() => ({}));
+        const retryAfter = errorData.retry_after || 30;
+        
+        console.log(`⚠️  Server busy (503), will retry in ${retryAfter} seconds...`);
+        alert(`Server is busy processing other documents. Will automatically retry in ${retryAfter} seconds...`);
+        
+        // Wait and retry once
+        setTimeout(async () => {
+          try {
+            await handleRetryProcessing(documentId, 2);
+          } catch (retryErr) {
+            console.error('Retry failed:', retryErr);
+          }
+        }, retryAfter * 1000);
+      } else {
+        // Other error or second attempt failed
+        const errorData = await response.json().catch(() => ({}));
+        // Revert optimistic update on error
+        await loadDocuments(false);
         throw new Error(errorData.error || 'Failed to trigger processing');
-      }
-
-      // Reload documents to show updated status
-      await loadDocuments(false);
-      
-      // Notify parent of status change
-      if (onStatusChange) {
-        onStatusChange();
       }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to retry processing');
-    } finally {
+      // Revert optimistic update on error
+      await loadDocuments(false);
       setRetryingDocId(null);
+    } finally {
+      // Only clear retrying state if this is not the first attempt (which will retry)
+      if (attempt !== 1) {
+        setRetryingDocId(null);
+      }
     }
   };
 
@@ -336,26 +382,33 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <div className="flex items-center gap-2">
-                    {doc.status === 'error' && (
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleDelete(doc.id)}
-                        loading={deletingDocId === doc.id}
-                        disabled={deletingDocId !== null || retryingDocId !== null}
-                      >
-                        Delete
-                      </Button>
-                    )}
-                    {doc.status === 'error' && (
+                    {/* Show retry button for error, pending, or stuck processing documents */}
+                    {(doc.status === 'error' || doc.status === 'pending' || (doc.status === 'processing' && isDocumentStuck(doc))) && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleRetryProcessing(doc.id)}
                         loading={retryingDocId === doc.id}
                         disabled={deletingDocId !== null || retryingDocId !== null}
+                        title={isDocumentStuck(doc) ? 'Force retry (document stuck for >5 minutes)' : 'Retry processing'}
                       >
-                        Retry
+                        {isDocumentStuck(doc) ? 'Force Retry' : 'Retry'}
+                      </Button>
+                    )}
+                    
+                    {/* Show delete button for non-ready documents, with warning for active processing */}
+                    {doc.status !== 'ready' && (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDelete(doc.id)}
+                        loading={deletingDocId === doc.id}
+                        disabled={deletingDocId !== null || retryingDocId !== null}
+                        title={doc.status === 'processing' && !isDocumentStuck(doc) 
+                          ? 'Delete (warning: processing will continue in background)' 
+                          : 'Delete this document'}
+                      >
+                        Delete
                       </Button>
                     )}
                   </div>
@@ -401,19 +454,25 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
                 <div className="text-gray-900 font-medium">{formatDate(doc.updated_at)}</div>
               </div>
               
-              {/* Actions */}
-              {doc.status === 'error' && (
+              {/* Actions - Show for non-ready documents */}
+              {doc.status !== 'ready' && (
                 <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleRetryProcessing(doc.id)}
-                    loading={retryingDocId === doc.id}
-                    disabled={deletingDocId !== null || retryingDocId !== null}
-                    className="flex-1"
-                  >
-                    Retry
-                  </Button>
+                  {/* Show retry button for error, pending, or stuck processing documents */}
+                  {(doc.status === 'error' || doc.status === 'pending' || (doc.status === 'processing' && isDocumentStuck(doc))) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRetryProcessing(doc.id)}
+                      loading={retryingDocId === doc.id}
+                      disabled={deletingDocId !== null || retryingDocId !== null}
+                      className="flex-1"
+                      title={isDocumentStuck(doc) ? 'Force retry (document stuck for >5 minutes)' : 'Retry processing'}
+                    >
+                      {isDocumentStuck(doc) ? 'Force Retry' : 'Retry'}
+                    </Button>
+                  )}
+                  
+                  {/* Show delete button with warning for active processing */}
                   <Button
                     variant="danger"
                     size="sm"
@@ -421,6 +480,9 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
                     loading={deletingDocId === doc.id}
                     disabled={deletingDocId !== null || retryingDocId !== null}
                     className="flex-1"
+                    title={doc.status === 'processing' && !isDocumentStuck(doc) 
+                      ? 'Delete (warning: processing will continue in background)' 
+                      : 'Delete this document'}
                   >
                     Delete
                   </Button>

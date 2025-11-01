@@ -13,6 +13,96 @@ export function useUpload() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [uploadedDocument, setUploadedDocument] = useState<{ id: string; title: string } | null>(null);
+  const [retryingProcessing, setRetryingProcessing] = useState(false);
+  const [retryMessage, setRetryMessage] = useState<string | null>(null);
+
+  /**
+   * Retry processing with exponential backoff
+   * Automatically retries when server is busy (503)
+   */
+  const retryProcessing = async (
+    documentId: string,
+    attempt: number = 1,
+    maxAttempts: number = 4
+  ): Promise<boolean> => {
+    if (attempt > maxAttempts) {
+      console.error('❌ Max retry attempts reached');
+      setRetryMessage('Server is busy. Please try again later.');
+      setRetryingProcessing(false);
+      return false;
+    }
+
+    // Exponential backoff: 30s, 60s, 120s, 240s
+    const delay = Math.min(30000 * Math.pow(2, attempt - 1), 240000);
+    const delaySeconds = Math.round(delay / 1000);
+
+    setRetryingProcessing(true);
+    setRetryMessage(`Server busy. Retrying in ${delaySeconds} seconds... (attempt ${attempt}/${maxAttempts})`);
+    
+    console.log(`⏳ Waiting ${delaySeconds}s before retry attempt ${attempt}/${maxAttempts}`);
+    await new Promise(resolve => setTimeout(resolve, delay));
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.error('❌ Session expired during retry');
+        setRetryMessage('Session expired. Please refresh and try again.');
+        setRetryingProcessing(false);
+        return false;
+      }
+
+      setRetryMessage(`Attempting to start processing... (attempt ${attempt}/${maxAttempts})`);
+      
+      const timestamp = Date.now();
+      const response = await fetch(`/api/process-document?t=${timestamp}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+        cache: 'no-store',
+        body: JSON.stringify({
+          user_document_id: documentId,
+        }),
+      });
+
+      if (response.ok) {
+        console.log(`✅ Processing started successfully on attempt ${attempt}`);
+        setRetryMessage(null);
+        setRetryingProcessing(false);
+        return true;
+      }
+
+      // Check if it's a 503 (server busy) - retry
+      if (response.status === 503) {
+        console.warn(`⚠️  Server still busy (503) on attempt ${attempt}`);
+        return retryProcessing(documentId, attempt + 1, maxAttempts);
+      }
+
+      // Other errors - don't retry
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`❌ Processing failed with status ${response.status}:`, errorData);
+      setRetryMessage(`Failed to start processing: ${errorData.error || 'Unknown error'}`);
+      setRetryingProcessing(false);
+      return false;
+
+    } catch (error) {
+      console.error(`❌ Error during retry attempt ${attempt}:`, error);
+      
+      // Network errors - retry
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.warn('⚠️  Network error, will retry...');
+        return retryProcessing(documentId, attempt + 1, maxAttempts);
+      }
+
+      // Other errors - don't retry
+      setRetryMessage('Failed to start processing. Please try manually.');
+      setRetryingProcessing(false);
+      return false;
+    }
+  };
 
   const upload = async (file: File, title?: string) => {
     if (!user) {
@@ -65,7 +155,7 @@ export function useUpload() {
       await new Promise(resolve => setTimeout(resolve, 500));
       console.log('✅ Wait complete, triggering processing...');
 
-      // Trigger processing
+      // Trigger processing with automatic retry on 503
       let processingTriggered = false;
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -86,13 +176,26 @@ export function useUpload() {
             }),
           });
 
-          if (!response.ok) {
+          if (response.ok) {
+            processingTriggered = true;
+            console.log('✅ Processing triggered successfully for document:', document.id);
+          } else if (response.status === 503) {
+            // Server busy - start automatic retry in background
+            console.warn('⚠️  Server busy (503), starting automatic retry...');
+            setRetryMessage('Server is busy. Will retry automatically...');
+            
+            // Start retry process asynchronously (don't wait for it)
+            retryProcessing(document.id).then(success => {
+              if (success) {
+                console.log('✅ Processing started after automatic retry');
+              } else {
+                console.warn('⚠️  Automatic retry failed. User can retry manually.');
+              }
+            });
+          } else {
             const errorText = await response.text();
             console.error('❌ Failed to trigger processing:', errorText);
             console.warn('⚠️ Document uploaded but processing failed to start. User can retry manually.');
-          } else {
-            processingTriggered = true;
-            console.log('✅ Processing triggered successfully for document:', document.id);
           }
         }
       } catch (processingError) {
@@ -123,6 +226,8 @@ export function useUpload() {
     setProgress(0);
     setSuccess(false);
     setUploadedDocument(null);
+    setRetryingProcessing(false);
+    setRetryMessage(null);
   };
 
   return {
@@ -132,6 +237,8 @@ export function useUpload() {
     error,
     success,
     uploadedDocument,
+    retryingProcessing,
+    retryMessage,
     reset,
   };
 }
