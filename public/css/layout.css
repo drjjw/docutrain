@@ -298,6 +298,7 @@
     box-sizing: border-box;
     align-items: flex-start; /* Align to top, let content determine height */
     max-width: none; /* Allow full width */
+    position: relative;
 }
 
 .document-cover-section {
@@ -378,6 +379,16 @@
     justify-content: flex-start;
     align-items: flex-start;
     height: 100%; /* Fill full height to match cover image */
+    width: 100%;
+    max-width: 100% !important; /* Override base max-width: 90% to allow full width */
+    box-sizing: border-box;
+}
+
+/* Intro content should span full width */
+#welcomeIntroContent {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Multi-Document Cover Grid Layout */
@@ -385,9 +396,11 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
-    margin: 20px 0;
-    padding: 0 20px;
+    margin: 20px -20px; /* Negative margin to counteract parent padding */
+    padding: 0 20px; /* Add back padding for content */
+    width: calc(100% + 40px); /* Account for negative margins */
     box-sizing: border-box;
+    max-width: none; /* Allow full width */
 }
 
 .multi-doc-covers-header {
@@ -493,6 +506,9 @@
 .multi-doc-intro-content {
     margin-top: 12px;
     line-height: 1.5;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Retrieval Selector */

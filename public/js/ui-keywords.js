@@ -44,6 +44,11 @@ export function addKeywordsDisplay(container, keywords) {
         <span class="keywords-title">Key Topics</span>
     `;
     
+    // Create subtle hint message
+    const hintMessage = document.createElement('div');
+    hintMessage.className = 'keywords-hint';
+    hintMessage.textContent = 'Click a topic to quickly ask about it';
+    
     // Create word cloud container
     const wordCloudContainer = document.createElement('div');
     wordCloudContainer.className = 'document-keywords-wordcloud';
@@ -104,6 +109,7 @@ export function addKeywordsDisplay(container, keywords) {
     });
     
     keywordsContainer.appendChild(header);
+    keywordsContainer.appendChild(hintMessage);
     keywordsContainer.appendChild(wordCloudContainer);
     
     // Simply append keywords to the target container

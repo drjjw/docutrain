@@ -19,6 +19,17 @@
     font-size: 14px;
 }
 
+/* Subtle hint message for Key Topics */
+.keywords-hint {
+    font-size: 12px;
+    color: var(--text-color-secondary, #666);
+    margin-top: 4px;
+    margin-bottom: 8px;
+    opacity: 0.7;
+    font-style: italic;
+    line-height: 1.4;
+}
+
 .document-keywords-wordcloud {
     margin-top: 12px;
     line-height: 2;
@@ -91,6 +102,11 @@
         opacity: 0.4;
         color: var(--text-color-secondary, #999);
     }
+    
+    .keywords-hint {
+        color: var(--text-color-secondary, #999);
+        opacity: 0.6;
+    }
 }
 
 /* Responsive adjustments */
@@ -114,6 +130,12 @@
         line-height: 2;
         word-spacing: 0.25em;
         text-align: left;
+    }
+    
+    .keywords-hint {
+        font-size: 11px;
+        margin-top: 3px;
+        margin-bottom: 6px;
     }
     
     .keyword-word {

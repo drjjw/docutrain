@@ -241,7 +241,11 @@ export async function sendMessage(state, elements) {
     let documentOwner = null;
     try {
         const docConfig = await getDocument(state.selectedDocument);
-        documentOwner = docConfig?.owner || null;
+        // Try owner field first, then fall back to ownerInfo.slug
+        // Handle empty strings as well as null/undefined
+        const ownerFromField = docConfig?.owner?.trim?.() || docConfig?.owner;
+        const ownerFromInfo = docConfig?.ownerInfo?.slug?.trim?.() || docConfig?.ownerInfo?.slug;
+        documentOwner = ownerFromField || ownerFromInfo || null;
     } catch (error) {
         console.log('Could not get document owner for loading facts:', error);
     }

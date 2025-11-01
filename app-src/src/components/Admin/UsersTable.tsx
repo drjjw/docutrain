@@ -3,7 +3,7 @@ import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
 import { Modal } from '@/components/UI/Modal';
-import { getUsers, updateUserRole, resetUserPassword, updateUserPassword, deleteUser, banUser, unbanUser, getUserStatistics, getOwners } from '@/lib/supabase/admin';
+import { getUsers, updateUserRole, resetUserPassword, updateUserPassword, deleteUser, banUser, unbanUser, getUserStatistics, getOwners, getUserProfileAsAdmin, updateUserProfileAsAdmin } from '@/lib/supabase/admin';
 import type { UserWithRoles, Owner, UserStatistics } from '@/types/admin';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -13,6 +13,8 @@ interface EditingPermissions {
   userEmail: string;
   role: 'registered' | 'owner_admin' | 'super_admin';
   owner_id: string | null;
+  firstName?: string;
+  lastName?: string;
 }
 
 export function UsersTable() {
@@ -30,6 +32,9 @@ export function UsersTable() {
   const [editingPermissions, setEditingPermissions] = useState<EditingPermissions | null>(null);
   const [editRole, setEditRole] = useState<'registered' | 'owner_admin' | 'super_admin'>('registered');
   const [editOwnerId, setEditOwnerId] = useState<string | null>(null);
+  const [editEmail, setEditEmail] = useState('');
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [bulkEditPermissions, setBulkEditPermissions] = useState(false);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
@@ -75,7 +80,7 @@ export function UsersTable() {
     }
   };
 
-  const openEditPermissions = (user: UserWithRoles) => {
+  const openEditPermissions = async (user: UserWithRoles) => {
     const ownerGroups = user.owner_groups || [];
     
     // Prioritize Maker Pizza if it exists
@@ -101,14 +106,32 @@ export function UsersTable() {
       initialOwnerId = ownerAdminRole.owner_id || null;
     }
 
+    // Fetch user profile data
+    let firstName = '';
+    let lastName = '';
+    try {
+      const profile = await getUserProfileAsAdmin(user.id);
+      if (profile) {
+        firstName = profile.first_name || '';
+        lastName = profile.last_name || '';
+      }
+    } catch (err) {
+      console.error('Failed to fetch user profile:', err);
+    }
+
     setEditingPermissions({
       userId: user.id,
       userEmail: user.email,
       role: initialRole,
       owner_id: initialOwnerId,
+      firstName,
+      lastName,
     });
     setEditRole(initialRole);
     setEditOwnerId(initialOwnerId);
+    setEditEmail(user.email);
+    setEditFirstName(firstName);
+    setEditLastName(lastName);
   };
 
   const handleSavePermissions = async () => {
@@ -118,19 +141,59 @@ export function UsersTable() {
       setSaving(true);
       setError(null);
       
-      await updateUserRole(editingPermissions.userId, editRole, editOwnerId || undefined);
+      // Check if user is trying to downgrade themselves from super_admin
+      const editingUser = users.find(u => u.id === editingPermissions.userId);
+      const isEditingSelf = user?.id === editingPermissions.userId;
+      const currentHasSuperAdmin = editingUser?.roles?.some(r => r.role === 'super_admin') || 
+                                   editingUser?.owner_groups?.some(og => og.role === 'super_admin');
+      
+      if (isEditingSelf && currentHasSuperAdmin && editRole !== 'super_admin') {
+        setError('Super admins cannot downgrade their own role');
+        setSaving(false);
+        return;
+      }
+      
+      // Update role and permissions (only if role changed or owner changed)
+      const roleChanged = editRole !== editingPermissions.role || editOwnerId !== editingPermissions.owner_id;
+      if (roleChanged) {
+        await updateUserRole(editingPermissions.userId, editRole, editOwnerId || undefined);
+      }
+      
+      // Update user profile (email, first_name, last_name) if changed
+      const profileUpdates: {
+        email?: string;
+        first_name?: string;
+        last_name?: string;
+      } = {};
+      
+      if (editEmail !== editingPermissions.userEmail) {
+        profileUpdates.email = editEmail;
+      }
+      if (editFirstName !== (editingPermissions.firstName || '')) {
+        profileUpdates.first_name = editFirstName || null;
+      }
+      if (editLastName !== (editingPermissions.lastName || '')) {
+        profileUpdates.last_name = editLastName || null;
+      }
+      
+      if (Object.keys(profileUpdates).length > 0) {
+        await updateUserProfileAsAdmin(editingPermissions.userId, profileUpdates);
+      }
       
       await loadData();
       
       setEditingPermissions(null);
       setEditRole('registered');
       setEditOwnerId(null);
+      setEditEmail('');
+      setEditFirstName('');
+      setEditLastName('');
       
-      setError('Permissions updated successfully');
+      setError('User updated successfully');
       setTimeout(() => setError(null), 3000);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save permissions';
-      console.error('Error updating permissions:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save changes';
+      console.error('Error updating user:', err);
       setError(errorMessage);
     } finally {
       setSaving(false);
@@ -141,6 +204,9 @@ export function UsersTable() {
     setEditingPermissions(null);
     setEditRole('registered');
     setEditOwnerId(null);
+    setEditEmail('');
+    setEditFirstName('');
+    setEditLastName('');
   };
 
   const handleUpdatePassword = async (userId: string) => {
@@ -561,7 +627,6 @@ export function UsersTable() {
                           size="sm"
                           variant="outline"
                           onClick={() => openEditPermissions(user)}
-                          disabled={isProtected && roleBadge.label === 'Super Admin'}
                           className="flex-shrink-0"
                         >
                           <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -747,7 +812,6 @@ export function UsersTable() {
                       size="sm"
                       variant="outline"
                       onClick={() => openEditPermissions(user)}
-                      disabled={isProtected && roleBadge.label === 'Super Admin'}
                     >
                       <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -836,44 +900,95 @@ export function UsersTable() {
       <Modal
         isOpen={!!editingPermissions}
         onClose={handleCancelEditPermissions}
-        title="Edit User Permissions"
+        title="Edit User"
         size="md"
       >
         <div className="space-y-6">
           <div>
-            <div className="text-sm font-medium text-gray-700 mb-1">User Email</div>
-            <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
-              {editingPermissions?.userEmail}
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              value={editEmail}
+              onChange={(e) => setEditEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              placeholder="user@example.com"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                First Name
+              </label>
+              <input
+                type="text"
+                value={editFirstName}
+                onChange={(e) => setEditFirstName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="John"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Last Name
+              </label>
+              <input
+                type="text"
+                value={editLastName}
+                onChange={(e) => setEditLastName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="Doe"
+              />
             </div>
           </div>
 
-          <div>
+          <div className="pt-4 border-t border-gray-200">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Role
             </label>
-            <select
-              value={editRole}
-              onChange={(e) => {
-                const newRole = e.target.value as 'registered' | 'owner_admin' | 'super_admin';
-                setEditRole(newRole);
-                if (newRole === 'super_admin') {
-                  setEditOwnerId(null);
-                } else if ((newRole === 'owner_admin' || newRole === 'registered') && !editOwnerId) {
-                  // Keep current owner_id or set to first owner for owner_admin or registered
-                  setEditOwnerId(owners[0]?.id || null);
-                }
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-            >
-              <option value="registered">Registered User</option>
-              <option value="owner_admin">Owner Admin</option>
-              <option value="super_admin">Super Admin</option>
-            </select>
-            <p className="mt-1 text-xs text-gray-500">
-              {editRole === 'registered' && 'Basic access to assigned owner groups'}
-              {editRole === 'owner_admin' && 'Can manage documents and users for assigned owner group'}
-              {editRole === 'super_admin' && 'Full system-wide administrative access'}
-            </p>
+            {(() => {
+              const isEditingSelf = user?.id === editingPermissions?.userId;
+              const currentHasSuperAdmin = editingPermissions?.role === 'super_admin';
+              const isSelfSuperAdmin = isEditingSelf && currentHasSuperAdmin;
+              
+              return (
+                <>
+                  <select
+                    value={editRole}
+                    onChange={(e) => {
+                      const newRole = e.target.value as 'registered' | 'owner_admin' | 'super_admin';
+                      setEditRole(newRole);
+                      if (newRole === 'super_admin') {
+                        setEditOwnerId(null);
+                      } else if ((newRole === 'owner_admin' || newRole === 'registered') && !editOwnerId) {
+                        // Keep current owner_id or set to first owner for owner_admin or registered
+                        setEditOwnerId(owners[0]?.id || null);
+                      }
+                    }}
+                    disabled={isSelfSuperAdmin}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="registered">Registered User</option>
+                    <option value="owner_admin">Owner Admin</option>
+                    <option value="super_admin">Super Admin</option>
+                  </select>
+                  {isSelfSuperAdmin && (
+                    <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                      <p className="text-xs text-amber-800">
+                        You cannot change your own role while you are a super admin. You must remain a super admin.
+                      </p>
+                    </div>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">
+                    {editRole === 'registered' && 'Basic access to assigned owner groups'}
+                    {editRole === 'owner_admin' && 'Can manage documents and users for assigned owner group'}
+                    {editRole === 'super_admin' && 'Full system-wide administrative access'}
+                  </p>
+                </>
+              );
+            })()}
           </div>
 
           {(editRole === 'owner_admin' || editRole === 'registered') && (

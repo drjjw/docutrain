@@ -413,6 +413,74 @@ export async function getUserStatistics(userId: string): Promise<import('@/types
 }
 
 /**
+ * Get user profile data (admin function)
+ */
+export async function getUserProfileAsAdmin(userId: string): Promise<{
+  first_name?: string;
+  last_name?: string;
+} | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/users/${userId}/profile`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    const errorMessage = errorData.details || errorData.error || 'Failed to fetch user profile';
+    throw new Error(errorMessage);
+  }
+
+  const data = await response.json();
+  // Return null if both fields are null (no profile), otherwise return the data
+  if (data.first_name === null && data.last_name === null) {
+    return null;
+  }
+  return data;
+}
+
+/**
+ * Update user profile (email, first_name, last_name) - Admin function
+ */
+export async function updateUserProfileAsAdmin(
+  userId: string,
+  data: {
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+  }
+): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/users/${userId}/profile`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    const errorMessage = errorData.details || errorData.error || 'Failed to update user profile';
+    throw new Error(errorMessage);
+  }
+}
+
+/**
  * Retrain a document with a new PDF
  * Replaces all chunks while preserving document metadata and slug
  */

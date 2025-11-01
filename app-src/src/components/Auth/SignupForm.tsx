@@ -6,11 +6,13 @@ import { Alert } from '@/components/UI/Alert';
 import { useAuth } from '@/hooks/useAuth';
 import { validateEmail, validatePassword, validatePasswordMatch } from '@/lib/utils/validation';
 import { TermsOfServiceModal } from './TermsOfServiceModal';
-import { acceptTermsOfService } from '@/lib/supabase/database';
+import { updateUserProfile } from '@/lib/supabase/database';
 import { supabase } from '@/lib/supabase/client';
 
 export function SignupForm() {
   const { signUp } = useAuth();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -33,7 +35,7 @@ export function SignupForm() {
     setError(null);
 
     // Validation
-    if (!email || !password || !confirmPassword) {
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
       setError('Please fill in all fields');
       return;
     }
@@ -70,19 +72,23 @@ export function SignupForm() {
       // Get the current user after signup
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       
-      // Record TOS acceptance - this is required, so if it fails we should log an error
-      // The TOSGate will catch users who don't have TOS recorded when they log in
+      // Record user profile with name and TOS acceptance
       if (currentUser?.id) {
         try {
-          await acceptTermsOfService(currentUser.id, '2025-10-31');
-          console.log('SignupForm: TOS acceptance recorded');
-        } catch (tosError) {
-          console.error('SignupForm: Failed to record TOS acceptance:', tosError);
+          await updateUserProfile(currentUser.id, {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            tos_accepted_at: new Date().toISOString(),
+            tos_version: '2025-10-31',
+          });
+          console.log('SignupForm: User profile created with name and TOS acceptance');
+        } catch (profileError) {
+          console.error('SignupForm: Failed to create user profile:', profileError);
           // Note: We don't block signup here because:
           // 1. The user has already been created in auth.users
           // 2. The TOSGate component will require TOS acceptance on first login
-          // 3. This prevents orphaned auth users if TOS recording fails
-          setError('Account created, but Terms of Service recording failed. You will be asked to accept TOS on first login.');
+          // 3. This prevents orphaned auth users if profile creation fails
+          setError('Account created, but profile setup failed. You will be asked to complete your profile on first login.');
         }
       } else {
         console.error('SignupForm: No user ID after signup');
@@ -146,6 +152,29 @@ export function SignupForm() {
             {error}
           </Alert>
         )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            label="First Name"
+            type="text"
+            placeholder="John"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            disabled={loading}
+            autoComplete="given-name"
+            required
+          />
+          <Input
+            label="Last Name"
+            type="text"
+            placeholder="Doe"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            disabled={loading}
+            autoComplete="family-name"
+            required
+          />
+        </div>
 
         <Input
           label="Email"

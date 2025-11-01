@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalProps {
   isOpen: boolean;
@@ -23,6 +24,11 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', allowClos
 
   if (!isOpen) return null;
 
+  // Ensure we're in a browser environment before using portals
+  if (typeof window === 'undefined' || !document.body) {
+    return null;
+  }
+
   const sizeClasses = {
     sm: 'max-w-md',
     md: 'max-w-2xl',
@@ -31,7 +37,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', allowClos
     full: 'max-w-full mx-4',
   };
 
-  return (
+  const modalContent = (
     <div
       className="fixed inset-0 z-50 overflow-y-auto"
       onClick={(e) => {
@@ -72,5 +78,9 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', allowClos
       <div className="fixed inset-0 bg-black bg-opacity-50 -z-10" />
     </div>
   );
+
+  // Use React Portal to render modal outside the component tree (at body level)
+  // This prevents issues with overflow containers and z-index stacking
+  return createPortal(modalContent, document.body);
 }
 

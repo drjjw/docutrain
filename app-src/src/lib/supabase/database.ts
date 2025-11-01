@@ -176,3 +176,44 @@ export async function acceptTermsOfService(userId: string, version: string = '20
   return data;
 }
 
+/**
+ * Update user profile with name and TOS acceptance
+ */
+export async function updateUserProfile(
+  userId: string,
+  data: {
+    first_name?: string;
+    last_name?: string;
+    tos_accepted_at?: string;
+    tos_version?: string;
+  }
+) {
+  const updateData: {
+    first_name?: string;
+    last_name?: string;
+    tos_accepted_at?: string;
+    tos_version?: string;
+    updated_at: string;
+  } = {
+    ...data,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: profile, error } = await supabase
+    .from('user_profiles')
+    .upsert({
+      user_id: userId,
+      ...updateData,
+    }, {
+      onConflict: 'user_id',
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update user profile: ${error.message}`);
+  }
+
+  return profile;
+}
+

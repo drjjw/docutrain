@@ -82,12 +82,12 @@ export function UploadZone({ onUploadSuccess }: UploadZoneProps) {
               file:mr-4 file:py-2.5 file:px-4
               file:rounded-lg file:border-0
               file:text-sm file:font-medium
-              file:bg-gradient-to-r file:from-blue-600 file:to-indigo-600
+              file:bg-gradient-to-r file:from-green-500 file:to-emerald-600
               file:text-white
-              hover:file:from-blue-700 hover:file:to-indigo-700
+              hover:file:from-green-600 hover:file:to-emerald-700
               file:cursor-pointer cursor-pointer
               file:transition-all file:duration-200
-              file:shadow-sm hover:file:shadow-md"
+              file:shadow-md hover:file:shadow-lg hover:file:scale-105"
           />
           <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,10 +98,10 @@ export function UploadZone({ onUploadSuccess }: UploadZoneProps) {
         </div>
 
         {selectedFile && (
-          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
               </div>
@@ -129,11 +129,11 @@ export function UploadZone({ onUploadSuccess }: UploadZoneProps) {
           <div className="space-y-2">
             <div className="flex justify-between text-sm font-medium">
               <span className="text-gray-700">Uploading...</span>
-              <span className="text-blue-600">{progress}%</span>
+              <span className="text-green-600">{progress}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
               <div
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+                className="bg-gradient-to-r from-green-500 to-emerald-600 h-2.5 rounded-full transition-all duration-300 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>
