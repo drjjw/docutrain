@@ -1,6 +1,49 @@
 /* Downloads Styles - Ported from public/css/layout.css */
 /* Matches vanilla JS implementation exactly */
 
+/* Container wrapper for mobile collapse */
+.downloads-keywords-wrapper {
+  width: 100%;
+}
+
+/* Container header - shown on all screen sizes */
+.downloads-keywords-container-header {
+  display: flex;
+  width: 100%;
+  padding: 12px 20px;
+  margin: 0;
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
+}
+
+.downloads-keywords-container-header:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #d1d5db 0%, #e5e7eb 100%);
+}
+
+.downloads-keywords-container-header .collapse-icon {
+  flex-shrink: 0;
+  color: #374151;
+}
+
 .downloads-keywords-container {
   display: flex;
   flex-direction: row;
@@ -10,6 +53,17 @@
   width: calc(100% + 40px); /* Account for negative margins */
   box-sizing: border-box;
   max-width: none; /* Allow full width */
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out, margin 0.3s ease-out, padding 0.3s ease-out;
+}
+
+/* Container collapse state */
+.downloads-keywords-container.collapsed {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out, margin 0.3s ease-out, padding 0.3s ease-out;
 }
 
 /* Key Topics takes 3/5 (60%), Downloads takes 2/5 (40%) */
@@ -96,6 +150,57 @@
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: default;
+  width: fit-content;
+  align-self: flex-start;
+}
+
+/* Collapsible header button */
+.downloads-keywords-container .downloads-header.collapsible-header,
+.downloads-keywords-container .document-keywords-header.collapsible-header {
+  cursor: pointer;
+  user-select: none;
+  width: 100%;
+  justify-content: flex-start;
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+}
+
+.downloads-keywords-container .downloads-header.collapsible-header:hover,
+.downloads-keywords-container .document-keywords-header.collapsible-header:hover {
+  opacity: 0.9;
+}
+
+/* Ensure ::before pseudo-element doesn't block clicks */
+.downloads-keywords-container .downloads-header.collapsible-header::before,
+.downloads-keywords-container .document-keywords-header.collapsible-header::before {
+  pointer-events: none;
+}
+
+/* Collapse icon */
+.downloads-keywords-container .collapse-icon {
+  margin-left: auto;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+  color: #374151;
+}
+
+/* Downloads content wrapper */
+.downloads-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.downloads-content.expanded {
+  max-height: 2000px;
+  opacity: 1;
+}
+
+.downloads-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
 }
 
 .downloads-keywords-container .downloads-header::before,
@@ -205,8 +310,8 @@
 }
 
 .download-icon {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
   color: var(--accent-color, #007bff);
 }
@@ -231,8 +336,11 @@
   white-space: nowrap;
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
+  .downloads-keywords-container-header {
+    display: flex; /* Show on mobile */
+  }
+
   .downloads-keywords-container {
     flex-direction: column !important;
     gap: 15px;
@@ -258,6 +366,11 @@
     margin-bottom: 18px;
     padding: 8px 16px;
     letter-spacing: 0.8px;
+  }
+
+  .downloads-keywords-container .downloads-header.collapsible-header,
+  .downloads-keywords-container .document-keywords-header.collapsible-header {
+    width: 100%;
   }
 
   .download-button {
@@ -286,34 +399,4 @@
   }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .downloads-keywords-container .downloads-header,
-  .downloads-keywords-container .document-keywords-header {
-    background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    color: #f3f4f6;
-  }
-  
-  .downloads-keywords-container .downloads-header:hover,
-  .downloads-keywords-container .document-keywords-header:hover {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
-  }
-  
-  .downloads-keywords-container .downloads-header:active,
-  .downloads-keywords-container .document-keywords-header:active {
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
-  }
-  
-  .downloads-keywords-container .downloads-header svg,
-  .downloads-keywords-container .document-keywords-header svg {
-    color: #d1d5db;
-  }
-  
-  .downloads-keywords-container .downloads-header span,
-  .downloads-keywords-container .document-keywords-header .keywords-title {
-    color: #f3f4f6;
-  }
-}
 

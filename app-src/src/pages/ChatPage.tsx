@@ -179,6 +179,12 @@ export function ChatPage() {
     setSelectedModel(getModel());
   }, [searchParams]);
   
+  // Log model choice when it changes
+  useEffect(() => {
+    const modelParam = searchParams.get('model');
+    console.log(`🤖 Model choice: ${selectedModel}${modelParam ? '' : ' (default)'}`);
+  }, [selectedModel, searchParams]);
+  
   // Get document config (includes cover, introMessage, etc.)
   // Only fetch if we have a document slug - don't fetch when null (shows modal instead)
   const { config: docConfig, errorDetails, loading: configLoading } = useDocumentConfig(documentSlug);
@@ -406,36 +412,42 @@ export function ChatPage() {
               
               if (data.type === 'done') {
                 // Log technical details: model used and RAG performance
-                if (data.metadata && data.metadata.model) {
-                  const actualModel = data.metadata.model;
-                  const requestedModel = selectedModel;
+                const actualModel = data.metadata?.model;
+                const requestedModel = selectedModel;
+                const expectedActual = requestedModel === 'grok' ? 'grok-4-fast-non-reasoning' :
+                                     requestedModel === 'grok-reasoning' ? 'grok-4-fast-reasoning' :
+                                     'gemini-2.5-flash';
+                const wasOverridden = actualModel && expectedActual !== actualModel;
 
-                  const expectedActual = requestedModel === 'grok' ? 'grok-4-fast-non-reasoning' :
-                                       requestedModel === 'grok-reasoning' ? 'grok-4-fast-reasoning' :
-                                       'gemini-2.5-flash';
-
-                  const wasOverridden = expectedActual !== actualModel;
-
-                  if (wasOverridden) {
-                    console.warn('🔒 Model override detected:', {
-                      requested: `${requestedModel} (${expectedActual})`,
-                      actual: actualModel,
-                      reason: 'Owner-configured safety mechanism'
-                    });
-                  } else {
-                    console.log(`🤖 Model used: ${actualModel}`);
-                  }
+                // Log model override if detected
+                if (wasOverridden && actualModel) {
+                  console.warn('🔒 Model override detected:', {
+                    requested: `${requestedModel} (${expectedActual})`,
+                    actual: actualModel,
+                    reason: 'Owner-configured safety mechanism'
+                  });
                 }
 
-                // Log RAG performance metrics
+                // Log RAG performance metrics with model choice
                 if (data.metadata && data.metadata.chunksUsed !== undefined) {
-                  console.log('📊 RAG Performance:', {
+                  const performanceData: any = {
                     chunks: data.metadata.chunksUsed,
                     retrievalTime: data.metadata.retrievalTime,
                     totalTime: data.metadata.responseTime,
                     isMultiDocument: data.metadata.isMultiDocument,
                     documentSlugs: data.metadata.documentSlugs
-                  });
+                  };
+                  
+                  // Add model information to RAG performance log
+                  if (actualModel) {
+                    performanceData.model = actualModel;
+                    performanceData.modelChoice = requestedModel;
+                    if (wasOverridden) {
+                      performanceData.modelOverride = true;
+                    }
+                  }
+                  
+                  console.log('📊 RAG Performance:', performanceData);
                 }
 
                 setIsLoading(false);

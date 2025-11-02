@@ -5,6 +5,17 @@
 
 import { useState } from 'react';
 import { Download } from '@/hooks/useDocumentConfig';
+import {
+  FileText,
+  Presentation,
+  FileSpreadsheet,
+  FileEdit,
+  Image as ImageIcon,
+  Archive,
+  Video,
+  Music,
+  File,
+} from 'lucide-react';
 
 interface DownloadWithDocTitle extends Download {
   documentTitle?: string;
@@ -13,9 +24,70 @@ interface DownloadWithDocTitle extends Download {
 interface DownloadsSectionProps {
   downloads: DownloadWithDocTitle[];
   isMultiDoc?: boolean;
+  isExpanded?: boolean; // Controlled by parent
 }
 
-export function DownloadsSection({ downloads, isMultiDoc = false }: DownloadsSectionProps) {
+/**
+ * Get file extension from URL
+ */
+function getFileExtension(url: string): string {
+  const urlParts = url.split('/');
+  const filename = urlParts[urlParts.length - 1];
+  const extension = filename.split('.').pop()?.toLowerCase() || '';
+  return extension;
+}
+
+/**
+ * Get appropriate icon component based on file type
+ */
+function getFileIcon(url: string): JSX.Element {
+  const extension = getFileExtension(url);
+  
+  // PDF icon
+  if (extension === 'pdf') {
+    return <FileText className="download-icon" size={24} />;
+  }
+  
+  // PowerPoint icon (PPT, PPTX)
+  if (extension === 'ppt' || extension === 'pptx') {
+    return <Presentation className="download-icon" size={24} />;
+  }
+  
+  // Word icon (DOC, DOCX)
+  if (extension === 'doc' || extension === 'docx') {
+    return <FileEdit className="download-icon" size={24} />;
+  }
+  
+  // Excel icon (XLS, XLSX)
+  if (extension === 'xls' || extension === 'xlsx') {
+    return <FileSpreadsheet className="download-icon" size={24} />;
+  }
+  
+  // Image icon (JPG, JPEG, PNG, GIF, SVG)
+  if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(extension)) {
+    return <ImageIcon className="download-icon" size={24} />;
+  }
+  
+  // Archive icon (ZIP, RAR, 7Z, TAR, GZ)
+  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(extension)) {
+    return <Archive className="download-icon" size={24} />;
+  }
+  
+  // Video icon (MP4, AVI, MOV, WMV)
+  if (['mp4', 'avi', 'mov', 'wmv', 'mkv', 'webm'].includes(extension)) {
+    return <Video className="download-icon" size={24} />;
+  }
+  
+  // Audio icon (MP3, WAV, OGG, M4A)
+  if (['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'].includes(extension)) {
+    return <Music className="download-icon" size={24} />;
+  }
+  
+  // Default document icon
+  return <File className="download-icon" size={24} />;
+}
+
+export function DownloadsSection({ downloads, isMultiDoc = false, isExpanded = true }: DownloadsSectionProps) {
   const [downloadingStates, setDownloadingStates] = useState<Record<string, 'idle' | 'downloading' | 'error'>>({});
 
   if (!downloads || downloads.length === 0) {
@@ -93,7 +165,8 @@ export function DownloadsSection({ downloads, isMultiDoc = false }: DownloadsSec
         <span>Available Downloads</span>
       </div>
       
-      <div className="downloads-list">
+      <div className={`downloads-content ${isExpanded ? 'expanded' : 'collapsed'}`}>
+        <div className="downloads-list">
         {downloads.map((download, index) => {
           const downloadKey = download.url;
           const state = downloadingStates[downloadKey] || 'idle';
@@ -110,12 +183,7 @@ export function DownloadsSection({ downloads, isMultiDoc = false }: DownloadsSec
               }}
               disabled={isDownloading}
             >
-              <svg className="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="12" y1="18" x2="12" y2="12"></line>
-                <polyline points="9 15 12 18 15 15"></polyline>
-              </svg>
+              {getFileIcon(download.url)}
               <div className="download-content">
                 <div className="download-title">{getButtonText(download)}</div>
                 {isMultiDoc && download.documentTitle && (
@@ -125,6 +193,7 @@ export function DownloadsSection({ downloads, isMultiDoc = false }: DownloadsSec
             </button>
           );
         })}
+        </div>
       </div>
     </div>
   );

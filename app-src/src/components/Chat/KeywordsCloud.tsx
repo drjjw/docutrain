@@ -3,18 +3,37 @@
  * Matches vanilla JS implementation from ui-keywords.js
  */
 
+import { useMemo } from 'react';
 import { Keyword } from '@/hooks/useDocumentConfig';
 
 interface KeywordsCloudProps {
   keywords: Keyword[];
   onKeywordClick?: (term: string) => void;
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  isExpanded?: boolean; // Controlled by parent
 }
 
-export function KeywordsCloud({ keywords, onKeywordClick, inputRef }: KeywordsCloudProps) {
+/**
+ * Fisher-Yates shuffle algorithm to randomize array order
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]; // Create a copy to avoid mutating original
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+export function KeywordsCloud({ keywords, onKeywordClick, inputRef, isExpanded = true }: KeywordsCloudProps) {
+
   if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
     return null;
   }
+
+  // Randomize keyword order for word cloud display
+  // This memoizes the shuffle so it only re-shuffles when keywords change
+  const shuffledKeywords = useMemo(() => shuffleArray(keywords), [keywords]);
 
   // Normalize weights to determine font size range
   // Weight range: 0.1 to 1.0
@@ -50,12 +69,13 @@ export function KeywordsCloud({ keywords, onKeywordClick, inputRef }: KeywordsCl
         <span className="keywords-title">Key Topics</span>
       </div>
       
-      <div className="keywords-hint">
-        Click a topic to quickly ask about it
-      </div>
-      
-      <div className="document-keywords-wordcloud">
-        {keywords.map((keyword, index) => {
+      <div className={`keywords-content ${isExpanded ? 'expanded' : 'collapsed'}`}>
+        <div className="keywords-hint">
+          Click a topic to quickly ask about it
+        </div>
+        
+        <div className="document-keywords-wordcloud">
+        {shuffledKeywords.map((keyword, index) => {
           // Calculate font size based on weight (larger = more important)
           const normalizedWeight = weightRange > 0 
             ? (keyword.weight - minWeight) / weightRange 
@@ -75,7 +95,7 @@ export function KeywordsCloud({ keywords, onKeywordClick, inputRef }: KeywordsCl
           const opacity = 0.7 + (normalizedWeight * 0.3);
           
           return (
-            <span key={index}>
+            <span key={keyword.term}>
               <span
                 className="keyword-word"
                 style={{
@@ -87,12 +107,13 @@ export function KeywordsCloud({ keywords, onKeywordClick, inputRef }: KeywordsCl
               >
                 {keyword.term}
               </span>
-              {index < keywords.length - 1 && (
+              {index < shuffledKeywords.length - 1 && (
                 <span className="keyword-separator"> • </span>
               )}
             </span>
           );
         })}
+        </div>
       </div>
     </div>
   );

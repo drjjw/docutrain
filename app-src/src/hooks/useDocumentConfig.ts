@@ -214,12 +214,36 @@ export function useDocumentConfig(documentSlug: string | null) {
       ? `${documentSlug}:${passcodeForCacheKey}:${userId}` 
       : `${documentSlug}:${userId}`;
     
+        // Check for forceRefresh parameter in URL
+        const forceRefreshParam = searchParams.get('forceRefresh') === 'true';
+        
+        // If forceRefresh is requested, clear localStorage cache for this document
+        if (forceRefreshParam && documentSlug) {
+          devLog(`[useDocumentConfig] forceRefresh=true - clearing localStorage cache for: ${documentSlug}`);
+          // Clear all possible localStorage cache keys for this document
+          const cacheKeysToClear: string[] = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (
+              key.startsWith('docutrain-documents-cache') || 
+              key.startsWith('ukidney-documents-cache')
+            ) && key.includes(documentSlug)) {
+              cacheKeysToClear.push(key);
+            }
+          }
+          cacheKeysToClear.forEach(key => {
+            localStorage.removeItem(key);
+            devLog(`[useDocumentConfig] Cleared localStorage cache key: ${key}`);
+          });
+        }
+        
         // Check cache first (but NEVER use cache when logged out - always re-check access)
+        // Also skip cache if forceRefresh is requested
         // This ensures logout immediately invalidates cached documents
-        const cachedConfig = !user ? null : configCache.get(cacheKey);
+        const cachedConfig = (!user || forceRefreshParam) ? null : configCache.get(cacheKey);
         const cachedErrorDetails = errorDetailsCache.get(cacheKey); // Check for cached error details
-        devLog(`[useDocumentConfig] Cache check: user=${user?.id || 'null'}, cacheKey=${cacheKey}, cachedConfig=${cachedConfig ? 'EXISTS' : 'NONE'}, cachedErrorDetails=${cachedErrorDetails ? 'EXISTS' : 'NONE'}, willUseCache=${!!cachedConfig && !!user}`);
-        if (cachedConfig) {
+        devLog(`[useDocumentConfig] Cache check: user=${user?.id || 'null'}, cacheKey=${cacheKey}, forceRefresh=${forceRefreshParam}, cachedConfig=${cachedConfig ? 'EXISTS' : 'NONE'}, cachedErrorDetails=${cachedErrorDetails ? 'EXISTS' : 'NONE'}, willUseCache=${!!cachedConfig && !!user && !forceRefreshParam}`);
+        if (cachedConfig && !forceRefreshParam) {
           devLog(`[useDocumentConfig] Using cached config for: ${cacheKey}`);
           setConfig(cachedConfig);
           setLoading(false);
@@ -227,6 +251,12 @@ export function useDocumentConfig(documentSlug: string | null) {
           setErrorDetails(null);
           passcodeRequiredRef.current = false; // Clear passcode flag when using cache
           return;
+        }
+        
+        // If forceRefresh is requested, also clear the in-memory cache for this document
+        if (forceRefreshParam && cachedConfig) {
+          devLog(`[useDocumentConfig] forceRefresh=true - clearing in-memory cached config for: ${cacheKey}`);
+          configCache.delete(cacheKey);
         }
         
         // If we have cached error details (e.g., passcode_required), use them
@@ -574,7 +604,7 @@ export function useDocumentConfig(documentSlug: string | null) {
     }
 
     // Create and track the request promise
-    const requestPromise = loadConfig().finally(() => {
+    const requestPromise = loadConfig(forceRefreshParam).finally(() => {
       pendingRequests.delete(cacheKey);
     });
     

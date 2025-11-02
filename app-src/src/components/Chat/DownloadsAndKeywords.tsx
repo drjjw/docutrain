@@ -3,10 +3,38 @@
  * Matches vanilla JS downloads-keywords-container layout
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { KeywordsCloud } from './KeywordsCloud';
 import { DownloadsSection } from './DownloadsSection';
 import { Keyword, Download } from '@/hooks/useDocumentConfig';
+
+/**
+ * Hook to detect mobile viewport
+ */
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 768px)').matches;
+  });
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const handleChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    
+    // Modern browsers
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } else {
+      // Fallback for older browsers
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
+  }, []);
+
+  return isMobile;
+}
 
 interface DownloadsAndKeywordsProps {
   keywords?: Keyword[];
@@ -69,8 +97,18 @@ export function DownloadsAndKeywords({
   onKeywordClick,
 }: DownloadsAndKeywordsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
+  const [isContainerExpanded, setIsContainerExpanded] = useState(!isMobile);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const hasKeywords = keywords && keywords.length > 0;
   const hasDownloads = downloads && downloads.length > 0;
+
+  // Update container expanded state when mobile state changes, but only if user hasn't manually interacted
+  useEffect(() => {
+    if (!hasUserInteracted) {
+      setIsContainerExpanded(!isMobile);
+    }
+  }, [isMobile, hasUserInteracted]);
 
   // Equalize heights after render and on window resize
   useEffect(() => {
@@ -111,18 +149,48 @@ export function DownloadsAndKeywords({
   }));
 
   return (
-    <div
-      ref={containerRef}
-      id="downloadsKeywordsContainer"
-      className="downloads-keywords-container"
-      style={{ display: hasKeywords || hasDownloads ? 'flex' : 'none' }}
-    >
-      {hasKeywords && (
-        <KeywordsCloud keywords={keywords} inputRef={inputRef} onKeywordClick={onKeywordClick} />
-      )}
-      {hasDownloads && downloadsWithTitles && (
-        <DownloadsSection downloads={downloadsWithTitles} isMultiDoc={isMultiDoc} />
-      )}
+    <div className="downloads-keywords-wrapper">
+      <button
+        className="downloads-keywords-container-header"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setHasUserInteracted(true);
+          setIsContainerExpanded(!isContainerExpanded);
+        }}
+        aria-expanded={isContainerExpanded}
+        aria-label={isContainerExpanded ? 'Collapse Downloads & Topics' : 'Expand Downloads & Topics'}
+        type="button"
+      >
+        <span>Downloads & Key Topics</span>
+        {isContainerExpanded ? (
+          <ChevronUp className="collapse-icon" size={18} />
+        ) : (
+          <ChevronDown className="collapse-icon" size={18} />
+        )}
+      </button>
+      <div
+        ref={containerRef}
+        id="downloadsKeywordsContainer"
+        className={`downloads-keywords-container ${!isContainerExpanded ? 'collapsed' : ''}`}
+        style={{ display: hasKeywords || hasDownloads ? 'flex' : 'none' }}
+      >
+        {hasKeywords && (
+          <KeywordsCloud 
+            keywords={keywords} 
+            inputRef={inputRef} 
+            onKeywordClick={onKeywordClick}
+            isExpanded={isContainerExpanded}
+          />
+        )}
+        {hasDownloads && downloadsWithTitles && (
+          <DownloadsSection 
+            downloads={downloadsWithTitles} 
+            isMultiDoc={isMultiDoc}
+            isExpanded={isContainerExpanded}
+          />
+        )}
+      </div>
     </div>
   );
 }

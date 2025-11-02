@@ -20,6 +20,87 @@
   font-size: 14px;
 }
 
+/* Collapsible header button */
+.document-keywords-header.collapsible-header {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.document-keywords-header.collapsible-header:hover {
+  opacity: 0.8;
+}
+
+/* Collapse icon */
+.collapse-icon {
+  margin-left: auto;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+/* In downloads-keywords-container, use the styled header from downloads.css */
+.downloads-keywords-container .document-keywords-header.collapsible-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  margin-top: 0;
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  border-radius: 50px;
+  border: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  width: 100%;
+  align-self: flex-start;
+  justify-content: flex-start;
+}
+
+.downloads-keywords-container .document-keywords-header.collapsible-header:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #d1d5db 0%, #e5e7eb 100%);
+}
+
+.downloads-keywords-container .collapse-icon {
+  color: #374151;
+}
+
+/* Keywords content wrapper */
+.keywords-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.keywords-content.expanded {
+  max-height: 2000px;
+  opacity: 1;
+}
+
+.keywords-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
+}
+
 /* Subtle hint message for Key Topics */
 .keywords-hint {
   font-size: 12px;
@@ -60,54 +141,6 @@
   font-size: 0.9em;
   font-weight: normal;
   user-select: none;
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .document-keywords {
-    border-top-color: rgba(255, 255, 255, 0.1);
-  }
-  
-  .downloads-keywords-container .document-keywords-header {
-    background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    color: #f3f4f6;
-  }
-  
-  .downloads-keywords-container .document-keywords-header:hover {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
-  }
-  
-  .downloads-keywords-container .document-keywords-header:active {
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
-  }
-  
-  .document-keywords-header .keywords-title {
-    color: #f3f4f6;
-  }
-  
-  .document-keywords-header svg {
-    color: #d1d5db;
-  }
-  
-  .keyword-word {
-    color: var(--text-color, #e0e0e0);
-  }
-  
-  .keyword-word:hover {
-    color: var(--accent-color, #60a5fa);
-  }
-  
-  .keyword-separator {
-    opacity: 0.4;
-    color: var(--text-color-secondary, #999);
-  }
-  
-  .keywords-hint {
-    color: var(--text-color-secondary, #999);
-    opacity: 0.6;
-  }
 }
 
 /* Responsive adjustments */
