@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/UI/Button';
 import { Toggle } from '@/components/UI/Toggle';
 import { WysiwygEditor } from '@/components/UI/WysiwygEditor';
@@ -22,6 +23,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   const [error, setError] = useState<string | null>(null);
   const [retraining, setRetraining] = useState(false);
   const [showRetrainSection, setShowRetrainSection] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   console.log('DocumentEditorModal rendering - document:', document?.id, 'editingValues.downloads:', editingValues.downloads?.length);
 
@@ -40,10 +42,43 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
     }
   }, [error]);
 
+  const handleClose = useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onCancel();
+    }, 200); // Match animation duration
+  }, [onCancel]);
+
   if (!document) {
     console.log('DocumentEditorModal: No document provided, returning null');
     return null;
   }
+
+  // Ensure we're in the browser before using portal
+  if (typeof window === 'undefined' || !window.document.body) {
+    return null;
+  }
+
+  // Reset closing state when document changes
+  React.useEffect(() => {
+    if (document) {
+      setIsClosing(false);
+    }
+  }, [document]);
+
+  // Handle Escape key to close modal
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isClosing) {
+        handleClose();
+      }
+    };
+
+    window.document.addEventListener('keydown', handleEscape);
+    return () => {
+      window.document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isClosing, handleClose]);
 
   // Initialize editing values when document changes
   React.useEffect(() => {
@@ -229,7 +264,8 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   };
 
 
-  return (
+  // Use portal to render modal at document body level, outside any container constraints
+  const modalContent = (
     <div className="fixed inset-0 z-50">
       <style>{`
         .wysiwyg-preview ul {
@@ -248,14 +284,65 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
           margin-top: 0.25rem;
           margin-bottom: 0.25rem;
         }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        @keyframes fadeOut {
+          from {
+            opacity: 1;
+          }
+          to {
+            opacity: 0;
+          }
+        }
+        @keyframes slideIn {
+          from {
+            transform: translateY(-20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        @keyframes slideOut {
+          from {
+            transform: translateY(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateY(-20px);
+            opacity: 0;
+          }
+        }
+        .modal-overlay {
+          animation: fadeIn 0.2s ease-out;
+        }
+        .modal-overlay.closing {
+          animation: fadeOut 0.2s ease-out;
+        }
+        .modal-content {
+          animation: slideIn 0.2s ease-out;
+        }
+        .modal-content.closing {
+          animation: slideOut 0.2s ease-out;
+        }
       `}</style>
       {/* Background overlay */}
-      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onCancel}></div>
+      <div 
+        className={`fixed inset-0 z-10 bg-gray-500 bg-opacity-75 modal-overlay ${isClosing ? 'closing' : ''}`}
+        onClick={handleClose}
+      ></div>
 
-      {/* Modal container - properly centered */}
-      <div className="flex items-center justify-center min-h-screen p-4">
-        {/* Modal panel */}
-        <div className="bg-white rounded-lg shadow-xl transform transition-all max-w-6xl w-full max-h-[90vh] flex flex-col">
+      {/* Modal container - fullscreen, above entire app */}
+      <div className="fixed inset-0 z-20 flex flex-col">
+        {/* Modal panel - fullscreen */}
+        <div className={`bg-white w-full h-full flex flex-col shadow-xl modal-content ${isClosing ? 'closing' : ''}`}>
           {/* Header - fixed height */}
           <div className="bg-white px-6 py-4 border-b border-gray-200 flex-shrink-0">
             <div className="flex items-center justify-between">
@@ -271,10 +358,11 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                 </div>
               </div>
               <button
-                onClick={onCancel}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={handleClose}
+                className="relative w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2"
+                aria-label="Close modal"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -834,7 +922,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
           <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0">
             <Button
               variant="outline"
-              onClick={onCancel}
+              onClick={handleClose}
               disabled={saving}
             >
               Cancel
@@ -851,4 +939,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
       </div>
     </div>
   );
+
+  // Render modal via portal at document body level to escape container constraints
+  return createPortal(modalContent, window.document.body);
 }

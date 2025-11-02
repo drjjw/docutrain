@@ -87,7 +87,23 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
       });
 
       if (!response.ok) {
-        throw new Error('Failed to load documents');
+        // Try to get error details from response
+        let errorMessage = `Server error (${response.status})`;
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorData.error || errorMessage;
+            console.error('Failed to load documents - server error:', errorData);
+          } else {
+            const errorText = await response.text();
+            console.error('Failed to load documents - non-JSON response:', errorText);
+            errorMessage = errorText || errorMessage;
+          }
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
