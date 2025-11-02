@@ -87,6 +87,15 @@
 .message.assistant .message-content strong {
   font-weight: 600;
   color: #333;
+  font-size: 1.5em;
+  line-height: 1.5;
+}
+
+/* Mobile responsive: scale down strong text on smaller screens */
+@media (max-width: 768px) {
+  .message.assistant .message-content strong {
+    font-size: 1.25em;
+  }
 }
 
 .message.assistant .message-content em {

@@ -216,7 +216,8 @@ const logoFiles = [
     { from: 'public/logos/maker-logo-trns.png', to: 'public/logos/maker-logo-trns.png' },
     { from: 'public/logos/ukidney-logo.svg', to: 'public/logos/ukidney-logo.svg' },
     { from: 'public/robot-favicon.png', to: 'public/robot-favicon.png' },
-    { from: 'public/chat-cover-place.png', to: 'public/chat-cover-place.png' }
+    { from: 'public/chat-cover-place.png', to: 'public/chat-cover-place.png' },
+    { from: 'app-src/public/chat-cover-place.jpeg', to: 'public/chat-cover-place.jpeg' }
 ];
 
 // Copy lib directory (for local embeddings module)

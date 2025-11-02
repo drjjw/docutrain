@@ -167,33 +167,65 @@ export function InlineWysiwygEditor({
   const [isHovering, setIsHovering] = useState(false);
   const [editValue, setEditValue] = useState(value);
   const [saving, setSaving] = useState(false);
+  const [displayValue, setDisplayValue] = useState(value); // Optimistic display value
+  const [justSaved, setJustSaved] = useState(false); // Track if we just saved to prevent immediate overwrite
+  const [savedValue, setSavedValue] = useState<string | null>(null); // Track what we just saved
   const editorRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const isInitializedRef = useRef(false);
 
-  // Update editValue when value prop changes
+  // Update editValue when value prop changes (but only when not editing)
+  // Also update displayValue when prop updates (this happens after refetch)
+  // Don't overwrite displayValue if we just saved (optimistic update is showing)
   useEffect(() => {
-    setEditValue(value);
-  }, [value]);
+    if (!isEditing) {
+      setEditValue(value);
+      // If we just saved, don't update displayValue from prop unless it matches what we saved
+      // This prevents stale cached data from overwriting our optimistic update
+      if (!justSaved) {
+        // Normal case: update displayValue when prop changes
+        setDisplayValue(value);
+        isInitializedRef.current = false;
+      } else if (savedValue !== null && value === savedValue) {
+        // Refetch completed successfully - the prop matches what we saved
+        setDisplayValue(value);
+        setJustSaved(false);
+        setSavedValue(null);
+        isInitializedRef.current = false;
+      }
+      // If justSaved is true and value doesn't match savedValue, ignore the prop update
+      // (it's stale cached data - keep the optimistic value)
+    }
+  }, [value, isEditing, justSaved, savedValue]);
+
+  // Initialize editor content only once when entering edit mode
+  useEffect(() => {
+    if (isEditing && editorRef.current && !isInitializedRef.current) {
+      editorRef.current.innerHTML = displayValue;
+      isInitializedRef.current = true;
+      
+      // Set default paragraph separator
+      document.execCommand('defaultParagraphSeparator', false, 'p');
+      
+      // Focus and position cursor at end
+      editorRef.current.focus();
+      
+      // Move cursor to end of content
+      const range = document.createRange();
+      const selection = window.getSelection();
+      if (selection && editorRef.current) {
+        range.selectNodeContents(editorRef.current);
+        range.collapse(false); // Collapse to end
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    }
+  }, [isEditing, displayValue]);
 
   const handleStartEditing = () => {
     if (isEditing) return;
     setIsEditing(true);
-    setEditValue(value);
-    
-    // Set default paragraph separator
-    setTimeout(() => {
-      document.execCommand('defaultParagraphSeparator', false, 'p');
-      editorRef.current?.focus();
-      
-      // Select all text if element is empty
-      if (!editorRef.current?.textContent?.trim()) {
-        const range = document.createRange();
-        range.selectNodeContents(editorRef.current!);
-        const selection = window.getSelection();
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-      }
-    }, 0);
+    setEditValue(displayValue);
   };
 
   const handleSave = async () => {
@@ -209,7 +241,21 @@ export function InlineWysiwygEditor({
     try {
       const success = await onSave(newValue);
       if (success) {
+        // Update display value optimistically with saved value
+        setDisplayValue(newValue);
+        setEditValue(newValue);
+        setJustSaved(true); // Mark that we just saved
+        setSavedValue(newValue); // Remember what we saved
         setIsEditing(false);
+        isInitializedRef.current = false;
+        // Reset justSaved flag after a delay to allow refetch to complete
+        // If refetch completes with matching value, it will clear the flag earlier
+        setTimeout(() => {
+          if (justSaved) {
+            setJustSaved(false);
+            setSavedValue(null);
+          }
+        }, 2000); // Fallback timeout - clear after 2 seconds
       }
     } catch (error) {
       console.error('Failed to save:', error);
@@ -221,7 +267,9 @@ export function InlineWysiwygEditor({
 
   const handleCancel = () => {
     setEditValue(value);
+    setDisplayValue(value);
     setIsEditing(false);
+    isInitializedRef.current = false;
     if (editorRef.current) {
       editorRef.current.innerHTML = value;
     }
@@ -342,7 +390,6 @@ export function InlineWysiwygEditor({
           contentEditable
           className={`inline-editor-active ${className}`}
           id={id}
-          dangerouslySetInnerHTML={{ __html: editValue }}
           onInput={(e) => {
             setEditValue(e.currentTarget.innerHTML);
           }}
@@ -363,7 +410,7 @@ export function InlineWysiwygEditor({
         className={className}
         style={{ cursor: 'pointer', position: 'relative' }}
         onClick={handleStartEditing}
-        dangerouslySetInnerHTML={{ __html: value }}
+        dangerouslySetInnerHTML={{ __html: displayValue }}
       />
       {/* Always render icon but control visibility with opacity to prevent layout shift */}
       <button

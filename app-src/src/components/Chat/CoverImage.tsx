@@ -22,7 +22,7 @@ export function CoverImage({ cover, title, category, year, onImageLoad }: CoverI
   // In production, Express serves public assets from root, so we use absolute path
   const hasValidCover = cover && typeof cover === 'string' && cover.trim().length > 0;
   // For placeholder, use root path - works in both dev (Vite serves public at root) and prod (Express serves /public/ at root)
-  const placeholderPath = '/chat-cover-place.png';
+  const placeholderPath = '/chat-cover-place.jpeg';
   const imageSrc = hasValidCover ? cover.trim() : placeholderPath;
   const imageAlt = hasValidCover ? `${title} - Title Slide` : `${title} - Cover Placeholder`;
 

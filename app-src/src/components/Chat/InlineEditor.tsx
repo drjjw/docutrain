@@ -30,14 +30,33 @@ export function InlineEditor({
   const [isHovering, setIsHovering] = useState(false);
   const [editValue, setEditValue] = useState(value);
   const [saving, setSaving] = useState(false);
+  const [displayValue, setDisplayValue] = useState(value); // Optimistic display value
+  const [justSaved, setJustSaved] = useState(false); // Track if we just saved to prevent immediate overwrite
+  const [savedValue, setSavedValue] = useState<string | null>(null); // Track what we just saved
   const elementRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   const measureRef = useRef<HTMLSpanElement>(null);
 
-  // Update editValue when value prop changes
+  // Update editValue and displayValue when value prop changes (but only when not editing)
+  // Don't overwrite displayValue if we just saved (optimistic update is showing)
   useEffect(() => {
-    setEditValue(value);
-  }, [value]);
+    if (!isEditing) {
+      setEditValue(value);
+      // If we just saved, don't update displayValue from prop unless it matches what we saved
+      // This prevents stale cached data from overwriting our optimistic update
+      if (!justSaved) {
+        // Normal case: update displayValue when prop changes
+        setDisplayValue(value);
+      } else if (savedValue !== null && value === savedValue) {
+        // Refetch completed successfully - the prop matches what we saved
+        setDisplayValue(value);
+        setJustSaved(false);
+        setSavedValue(null);
+      }
+      // If justSaved is true and value doesn't match savedValue, ignore the prop update
+      // (it's stale cached data - keep the optimistic value)
+    }
+  }, [value, isEditing, justSaved, savedValue]);
 
   // Calculate input width based on content (for title fields)
   const calculateInputWidth = useCallback((text: string): string => {
@@ -82,7 +101,7 @@ export function InlineEditor({
   const handleStartEditing = () => {
     if (isEditing) return;
     setIsEditing(true);
-    setEditValue(value);
+    setEditValue(displayValue);
     
     // Focus input after state update
     setTimeout(() => {
@@ -96,12 +115,25 @@ export function InlineEditor({
 
     const trimmedValue = editValue.trim();
     
-    if (trimmedValue !== value.trim()) {
+    if (trimmedValue !== displayValue.trim()) {
       setSaving(true);
       try {
         const success = await onSave(trimmedValue);
         if (success) {
+          // Update display value optimistically with saved value
+          setDisplayValue(trimmedValue);
+          setEditValue(trimmedValue);
+          setJustSaved(true); // Mark that we just saved
+          setSavedValue(trimmedValue); // Remember what we saved
           setIsEditing(false);
+          // Reset justSaved flag after a delay to allow refetch to complete
+          // If refetch completes with matching value, it will clear the flag earlier
+          setTimeout(() => {
+            if (justSaved) {
+              setJustSaved(false);
+              setSavedValue(null);
+            }
+          }, 2000); // Fallback timeout - clear after 2 seconds
         }
       } catch (error) {
         console.error('Failed to save:', error);
@@ -115,7 +147,7 @@ export function InlineEditor({
   };
 
   const handleCancel = () => {
-    setEditValue(value);
+    setEditValue(displayValue);
     setIsEditing(false);
   };
 
@@ -244,7 +276,7 @@ export function InlineEditor({
           style={{ cursor: 'pointer', margin: 0, ...style }}
           onClick={handleStartEditing}
         >
-          {value}
+          {displayValue}
         </Element>
         <button
           type="button"
@@ -294,7 +326,7 @@ export function InlineEditor({
         style={{ cursor: 'pointer', ...style }}
         onClick={handleStartEditing}
       >
-        {value}
+        {displayValue}
       </Element>
       <button
         type="button"

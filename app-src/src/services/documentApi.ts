@@ -62,7 +62,7 @@ export async function fetchDocuments(options?: {
   const { doc, owner, passcode, forceRefresh = false } = options || {};
   
   // Build cache key
-  const CACHE_KEY = 'ukidney-documents-cache-v5'; // Bumped to v5 to include logo_url in ownerInfo
+  const CACHE_KEY = 'docutrain-documents-cache-v1'; // Changed from ukidney-documents-cache to docutrain-documents-cache (v1)
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   
   let cacheKey = CACHE_KEY;
@@ -130,5 +130,25 @@ export async function fetchDocuments(options?: {
 export async function fetchDocument(slug: string, forceRefresh = false): Promise<DocumentInfo | null> {
   const response = await fetchDocuments({ doc: slug, forceRefresh });
   return response.documents.find(d => d.slug === slug) || null;
+}
+
+/**
+ * Clear all document cache keys from localStorage
+ * This includes all versioned cache keys (v1, v2, v3, etc.) and their variations
+ * Also clears legacy ukidney-documents-cache keys for backward compatibility
+ */
+export function clearAllDocumentCaches() {
+  const documentCacheKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key.startsWith('docutrain-documents-cache') || key.startsWith('ukidney-documents-cache'))) {
+      documentCacheKeys.push(key);
+    }
+  }
+  documentCacheKeys.forEach(key => {
+    localStorage.removeItem(key);
+    console.log(`🗑️ Cleared cache key: ${key}`);
+  });
+  return documentCacheKeys.length;
 }
 

@@ -9,6 +9,7 @@ import { useOwnerLogo } from '@/hooks/useOwnerLogo';
 import { useSearchParams } from 'react-router-dom';
 import { useCanEditDocument } from '@/hooks/useCanEditDocument';
 import { InlineEditor } from './InlineEditor';
+import { clearAllDocumentCaches } from '@/services/documentApi';
 
 interface DocumentTitleProps {
   documentSlug: string | null;
@@ -51,8 +52,8 @@ async function saveDocumentField(
     throw new Error(error.error || 'Failed to save');
   }
 
-  // Clear document cache
-  localStorage.removeItem('ukidney-documents-cache');
+  // Clear all document cache keys (including versioned ones)
+  clearAllDocumentCaches();
 
   return true;
 }
@@ -71,8 +72,12 @@ export function DocumentTitle({ documentSlug, ownerSlug }: DocumentTitleProps) {
     if (success) {
       // Force refresh by updating key
       setRefreshKey(prev => prev + 1);
-      // Also trigger a manual cache clear and refetch
-      window.dispatchEvent(new Event('document-updated'));
+      // Add a small delay before refetching to ensure backend cache refresh completes
+      // The PUT endpoint refreshes cache, and DB trigger also fires async, so we wait a bit
+      setTimeout(() => {
+        // Trigger a manual cache clear and refetch
+        window.dispatchEvent(new Event('document-updated'));
+      }, 200); // 200ms delay to ensure backend cache refresh completes
     }
     return success;
   }, [documentSlug]);

@@ -30,6 +30,10 @@ export default defineConfig({
         proxyTimeout: 600000,
       },
       // Proxy public assets from Express server for images not in app-src/public
+      '/chat-cover-place.jpeg': {
+        target: 'http://localhost:3458',
+        changeOrigin: true,
+      },
       '/chat-cover-place.png': {
         target: 'http://localhost:3458',
         changeOrigin: true,

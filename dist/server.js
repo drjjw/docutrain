@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const OpenAI = require('openai');
 const { createClient } = require('@supabase/supabase-js');
@@ -194,15 +195,271 @@ app.use('/api', (err, req, res, next) => {
     });
 });
 
-// Serve React app at /app route
+// Helper function to convert relative URLs to absolute URLs
+function ensureAbsoluteUrl(url, protocol, host) {
+    if (!url) return null;
+    
+    // If already absolute (starts with http:// or https://), return as-is
+    if (/^https?:\/\//i.test(url)) {
+        return url;
+    }
+    
+    // If relative, make absolute
+    // Remove leading slash if present to avoid double slashes
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    return `${protocol}://${host}${cleanPath}`;
+}
+
+// Helper function to update or insert meta tag
+function updateOrInsertMetaTag(html, attr, attrValue, content, insertAfter = null) {
+    const selector = `meta[${attr}="${attrValue}"]`;
+    const regex = new RegExp(`<meta ${attr}="${attrValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}" content=".*?"\\s*\\/?>`, 'i');
+    
+    if (html.match(regex)) {
+        // Update existing tag
+        return html.replace(regex, `<meta ${attr}="${attrValue}" content="${content}">`);
+    } else {
+        // Insert new tag
+        if (insertAfter) {
+            const insertAfterRegex = new RegExp(`(${insertAfter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'i');
+            if (html.match(insertAfterRegex)) {
+                return html.replace(insertAfterRegex, `$1\n    <meta ${attr}="${attrValue}" content="${content}">`);
+            }
+        }
+        // Fallback: insert before closing </head>
+        return html.replace(/<\/head>/i, `    <meta ${attr}="${attrValue}" content="${content}">\n</head>`);
+    }
+}
+
+// Helper function to generate structured data (JSON-LD) for documents
+function generateDocumentStructuredData(docConfigs, url, baseUrl) {
+    const isMultiDoc = docConfigs.length > 1;
+    
+    if (isMultiDoc) {
+        // For multiple documents, create a collection
+        return {
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            "name": docConfigs.map(c => c.title).join(' + '),
+            "description": `Multi-document search across ${docConfigs.length} documents`,
+            "url": url,
+            "mainEntity": docConfigs.map(config => ({
+                "@type": "DigitalDocument",
+                "name": config.title,
+                "description": config.subtitle || config.welcome_message || "AI-powered document assistant",
+                "encodingFormat": "application/pdf",
+                "inLanguage": "en-US"
+            }))
+        };
+    } else {
+        // Single document
+        const config = docConfigs[0];
+        return {
+            "@context": "https://schema.org",
+            "@type": "DigitalDocument",
+            "name": config.title,
+            "description": config.subtitle || config.welcome_message || "AI-powered document assistant",
+            "url": url,
+            "encodingFormat": "application/pdf",
+            "inLanguage": "en-US",
+            "isPartOf": {
+                "@type": "WebApplication",
+                "name": "DocuTrain",
+                "url": baseUrl
+            }
+        };
+    }
+}
+
+// Helper function to update or insert structured data script tag
+function updateOrInsertStructuredData(html, structuredData) {
+    const jsonLd = JSON.stringify(structuredData, null, 2);
+    const scriptTag = `<script type="application/ld+json">\n    ${jsonLd.split('\n').join('\n    ')}\n    </script>`;
+    
+    // Check if structured data already exists
+    const existingRegex = /<script type="application\/ld\+json">[\s\S]*?<\/script>/i;
+    if (html.match(existingRegex)) {
+        // Replace existing structured data
+        return html.replace(existingRegex, scriptTag);
+    } else {
+        // Insert before closing </head>
+        return html.replace(/<\/head>/i, `    ${scriptTag}\n</head>`);
+    }
+}
+
+// Helper function to serve React app index.html with dynamic meta tags
+async function serveReactAppWithMetaTags(req, res) {
+    try {
+        const indexPath = path.join(__dirname, 'app/index.html');
+        let html = fs.readFileSync(indexPath, 'utf8');
+        
+        // Get base URL components
+        const protocol = req.protocol;
+        const host = req.get('host');
+        const baseUrl = `${protocol}://${host}`;
+        
+        // Always set og:url and canonical for the base page (even without doc param)
+        const currentUrl = `${protocol}://${host}${req.originalUrl}`;
+        const escapedCurrentUrl = escapeHtml(currentUrl);
+        
+        // Convert default image to absolute URL
+        const defaultOgImage = ensureAbsoluteUrl('/chat-cover-place.jpeg', protocol, host);
+        const escapedDefaultOgImage = defaultOgImage ? escapeHtml(defaultOgImage) : '';
+        
+        // Update og:url and canonical for base page
+        html = updateOrInsertMetaTag(html, 'property', 'og:url', escapedCurrentUrl);
+        if (html.includes('<link rel="canonical"')) {
+            html = html.replace(
+                /<link rel="canonical" href=".*?"\s*\/?>/,
+                `<link rel="canonical" href="${escapedCurrentUrl}">`
+            );
+        } else {
+            html = html.replace(
+                /<\/head>/i,
+                `    <link rel="canonical" href="${escapedCurrentUrl}">\n</head>`
+            );
+        }
+        
+        // Update default og:image URLs to absolute (if no doc param, this will be used)
+        if (escapedDefaultOgImage) {
+            html = updateOrInsertMetaTag(html, 'property', 'og:image', escapedDefaultOgImage);
+            html = updateOrInsertMetaTag(html, 'property', 'og:image:secure_url', escapedDefaultOgImage);
+            html = updateOrInsertMetaTag(html, 'name', 'twitter:image', escapedDefaultOgImage);
+        }
+        
+        // Check if doc parameter is provided
+        const docParam = req.query.doc;
+        
+        console.log(`📄 Serving React app - URL: ${req.originalUrl}, doc param: ${docParam || 'none'}`);
+        
+        if (docParam) {
+            // Parse multiple documents (support for + separator)
+            const docSlugs = docParam.split(/[\s+]+/).map(s => s.trim()).filter(s => s);
+            
+            if (docSlugs.length > 0) {
+                // Fetch document configs
+                const docConfigs = await Promise.all(
+                    docSlugs.map(slug => documentRegistry.getDocumentBySlug(slug))
+                );
+                
+                // Filter out null results
+                const validConfigs = docConfigs.filter(c => c !== null);
+                
+                console.log(`📄 Found ${validConfigs.length} valid config(s) for ${docSlugs.length} slug(s)`);
+                
+                if (validConfigs.length > 0) {
+                    // Build title and description
+                    const isMultiDoc = validConfigs.length > 1;
+                    const combinedTitle = validConfigs.map(c => c.title).join(' + ');
+                    const metaDescription = isMultiDoc 
+                        ? `Multi-document search across ${validConfigs.length} documents: ${combinedTitle}`
+                        : (validConfigs[0].subtitle || validConfigs[0].welcome_message || 'AI-powered document assistant');
+                    
+                    // Escape HTML to prevent XSS
+                    const escapedTitle = escapeHtml(combinedTitle);
+                    const escapedDescription = escapeHtml(metaDescription);
+                    
+                    // Get the current URL for og:url and canonical
+                    const url = `${protocol}://${host}${req.originalUrl}`;
+                    const escapedUrl = escapeHtml(url);
+                    
+                    // Get cover image if available (for og:image)
+                    // Convert to absolute URL if needed
+                    const coverImage = validConfigs[0].cover || null;
+                    const ogImage = coverImage ? ensureAbsoluteUrl(coverImage, protocol, host) : ensureAbsoluteUrl('/chat-cover-place.jpeg', protocol, host);
+                    const escapedOgImage = ogImage ? escapeHtml(ogImage) : '';
+                    
+                    // Replace title
+                    html = html.replace(
+                        /<title>.*?<\/title>/,
+                        `<title>${escapedTitle}</title>`
+                    );
+                    
+                    // Update description
+                    html = updateOrInsertMetaTag(html, 'name', 'description', escapedDescription);
+                    
+                    // Update Open Graph tags
+                    html = updateOrInsertMetaTag(html, 'property', 'og:type', 'website');
+                    html = updateOrInsertMetaTag(html, 'property', 'og:title', escapedTitle);
+                    html = updateOrInsertMetaTag(html, 'property', 'og:description', escapedDescription);
+                    html = updateOrInsertMetaTag(html, 'property', 'og:url', escapedUrl, '<meta property="og:description"');
+                    html = updateOrInsertMetaTag(html, 'property', 'og:site_name', 'DocuTrain', '<meta property="og:url"');
+                    html = updateOrInsertMetaTag(html, 'property', 'og:locale', 'en_US', '<meta property="og:site_name"');
+                    
+                    // Update og:image with all related tags
+                    if (escapedOgImage) {
+                        html = updateOrInsertMetaTag(html, 'property', 'og:image', escapedOgImage, '<meta property="og:locale"');
+                        html = updateOrInsertMetaTag(html, 'property', 'og:image:secure_url', escapedOgImage, '<meta property="og:image"');
+                        html = updateOrInsertMetaTag(html, 'property', 'og:image:type', 'image/jpeg', '<meta property="og:image:secure_url"');
+                        html = updateOrInsertMetaTag(html, 'property', 'og:image:width', '1200', '<meta property="og:image:type"');
+                        html = updateOrInsertMetaTag(html, 'property', 'og:image:height', '630', '<meta property="og:image:width"');
+                        html = updateOrInsertMetaTag(html, 'property', 'og:image:alt', escapedTitle, '<meta property="og:image:height"');
+                    }
+                    
+                    // Update Twitter Card tags
+                    html = updateOrInsertMetaTag(html, 'name', 'twitter:card', 'summary_large_image');
+                    html = updateOrInsertMetaTag(html, 'name', 'twitter:title', escapedTitle, '<meta name="twitter:card"');
+                    html = updateOrInsertMetaTag(html, 'name', 'twitter:description', escapedDescription, '<meta name="twitter:title"');
+                    html = updateOrInsertMetaTag(html, 'name', 'twitter:site', '@DocuTrain', '<meta name="twitter:description"');
+                    if (escapedOgImage) {
+                        html = updateOrInsertMetaTag(html, 'name', 'twitter:image', escapedOgImage, '<meta name="twitter:site"');
+                        html = updateOrInsertMetaTag(html, 'name', 'twitter:image:alt', escapedTitle, '<meta name="twitter:image"');
+                    }
+                    
+                    // Add canonical URL
+                    if (html.includes('<link rel="canonical"')) {
+                        html = html.replace(
+                            /<link rel="canonical" href=".*?"\s*\/?>/,
+                            `<link rel="canonical" href="${escapedUrl}">`
+                        );
+                    } else {
+                        html = html.replace(
+                            /<\/head>/i,
+                            `    <link rel="canonical" href="${escapedUrl}">\n</head>`
+                        );
+                    }
+                    
+                    // Add document-specific structured data
+                    const structuredData = generateDocumentStructuredData(validConfigs, escapedUrl, baseUrl);
+                    html = updateOrInsertStructuredData(html, structuredData);
+                    
+                    console.log(`✅ Serving React app with dynamic meta tags for: ${combinedTitle}`);
+                } else {
+                    console.warn(`⚠️  No valid configs found for slugs: ${docSlugs.join(', ')}`);
+                }
+            }
+        }
+        
+        // Send the modified HTML
+        res.send(html);
+    } catch (error) {
+        console.error('❌ Error serving React app with dynamic meta tags:', error);
+        // Fallback to static file on error
+        const indexPath = path.join(__dirname, 'app/index.html');
+        res.sendFile(indexPath);
+    }
+}
+
+// Serve React app static assets FIRST (so JS/CSS files are served correctly)
 app.use('/app', express.static(path.join(__dirname, 'app')));
 
-// Handle React Router - serve index.html for all /app routes and subroutes
-app.get('/app', (req, res) => {
-    res.sendFile(path.join(__dirname, 'app/index.html'));
+// Handle React Router - serve index.html for all /app routes and subroutes with dynamic meta tags
+// These must come AFTER static middleware so asset requests (JS/CSS) are handled first
+// Only match routes that don't have file extensions (to avoid catching asset requests)
+app.get('/app/chat', async (req, res) => {
+    await serveReactAppWithMetaTags(req, res);
 });
-app.get('/app/*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'app/index.html'));
+app.get('/app', async (req, res) => {
+    await serveReactAppWithMetaTags(req, res);
+});
+// Catch-all for React Router routes (but NOT for assets - those are handled by static middleware above)
+app.get('/app/*', async (req, res) => {
+    // Skip if this is an asset request (has a file extension)
+    const pathname = req.path;
+    if (pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/i)) {
+        return res.status(404).send('Asset not found');
+    }
+    await serveReactAppWithMetaTags(req, res);
 });
 
 // Serve static files for main app BEFORE dynamic routes

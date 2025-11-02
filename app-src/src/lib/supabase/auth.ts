@@ -81,10 +81,11 @@ export async function signOut() {
   clearDocumentConfigCaches();
   
   // Also clear any document-related localStorage caches
+  // Clear both new (docutrain) and legacy (ukidney) cache keys
   const documentCacheKeys: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && (key.startsWith('ukidney-documents-cache') || key.startsWith('passcode:'))) {
+    if (key && (key.startsWith('docutrain-documents-cache') || key.startsWith('ukidney-documents-cache') || key.startsWith('passcode:'))) {
       documentCacheKeys.push(key);
     }
   }

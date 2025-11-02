@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import { getUserPermissions } from './permissions';
 import type { Document, DocumentWithOwner, Owner, UserWithRoles, UserRole, UserStatistics } from '@/types/admin';
+import { clearAllDocumentCaches } from '@/services/documentApi';
 
 /**
  * Get all documents based on user permissions
@@ -137,9 +138,9 @@ export async function updateDocument(
 
   const data = await response.json();
 
-  // Clear localStorage cache for documents
+  // Clear all document cache keys (new and legacy)
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('ukidney-documents-cache');
+    clearAllDocumentCaches();
   }
 
   return data as Document;
@@ -182,9 +183,9 @@ export async function deleteDocument(id: string): Promise<void> {
     throw new Error(`Failed to delete document: ${error.message}`);
   }
 
-  // Clear localStorage cache for documents
+  // Clear all document cache keys (new and legacy)
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('ukidney-documents-cache');
+    clearAllDocumentCaches();
   }
 }
 
@@ -220,9 +221,9 @@ export async function createDocument(document: Partial<Document>): Promise<Docum
     throw new Error(`Failed to create document: ${error.message}`);
   }
 
-  // Clear localStorage cache for documents
+  // Clear all document cache keys (new and legacy)
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('ukidney-documents-cache');
+    clearAllDocumentCaches();
   }
 
   return data as Document;
@@ -526,9 +527,9 @@ export async function retrainDocument(
 
   const data = await response.json();
 
-  // Clear localStorage cache for documents
+  // Clear all document cache keys (new and legacy)
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('ukidney-documents-cache');
+    clearAllDocumentCaches();
   }
 
   return data;
