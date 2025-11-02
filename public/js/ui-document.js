@@ -154,7 +154,7 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                             return;
                         }
                         
-                        window.location.href = `/chat?doc=${encodeURIComponent(slug)}`;
+                        window.location.href = `/app/chat?doc=${encodeURIComponent(slug)}`;
                     });
                     
                     // Handle Load Owner button
@@ -166,7 +166,7 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                             return;
                         }
                         
-                        window.location.href = `/chat?owner=${encodeURIComponent(owner)}`;
+                        window.location.href = `/app/chat?owner=${encodeURIComponent(owner)}`;
                     });
                     
                     // Allow Enter key in document input to trigger Load Document
@@ -385,7 +385,7 @@ export async function updateDocumentUI(selectedDocument, forceRefresh = false) {
                 log.verbose('🔗 Owner logo link disabled due to owner_link=false parameter');
             } else {
                 // Override logo link to navigate to owner's chat page
-                logoLink.href = `/chat?owner=${encodeURIComponent(ownerSlug)}`;
+                logoLink.href = `/app/chat?owner=${encodeURIComponent(ownerSlug)}`;
                 logoLink.title = `View all documents for ${logoConfig.alt}`;
                 
                 // Remove target="_blank" to navigate in same window

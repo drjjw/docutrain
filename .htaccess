@@ -9,6 +9,11 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 RewriteCond %{HTTP_HOST} !^www\. [NC]
 RewriteRule ^(.*)$ https://www.%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
+# Redirect old /chat paths to /app/chat (preserve query parameters)
+RewriteCond %{REQUEST_URI} ^/chat [NC]
+RewriteCond %{REQUEST_URI} !^/app/chat [NC]
+RewriteRule ^chat(.*)$ /app/chat$1 [R=301,L,QSA]
+
 # Don't proxy if directly accessing these (would create loops)
 RewriteCond %{REQUEST_URI} !^/\.well-known/
 

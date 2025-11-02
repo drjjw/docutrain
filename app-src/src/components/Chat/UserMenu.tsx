@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -23,6 +24,8 @@ export function UserMenu({ inline = false, onItemClick }: UserMenuProps = {}) {
   const [userName, setUserName] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRootRef = useRef<HTMLDivElement>(null); // Ref for dropdown portal root
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right?: number; left?: number } | null>(null);
 
   // Load user profile (name)
   useEffect(() => {
@@ -128,26 +131,107 @@ export function UserMenu({ inline = false, onItemClick }: UserMenuProps = {}) {
     loadAvatar();
   }, [user]);
 
+  // Create dropdown root for portal
+  useEffect(() => {
+    if (isOpen && !dropdownRootRef.current && !inline) {
+      const dropdownRoot = document.createElement('div');
+      dropdownRoot.id = 'user-menu-dropdown-root';
+      dropdownRoot.style.position = 'fixed';
+      dropdownRoot.style.top = '0';
+      dropdownRoot.style.left = '0';
+      dropdownRoot.style.width = '100%';
+      dropdownRoot.style.height = '100%';
+      dropdownRoot.style.pointerEvents = 'none';
+      dropdownRoot.style.zIndex = '9999';
+      document.body.appendChild(dropdownRoot);
+      dropdownRootRef.current = dropdownRoot;
+    }
+    
+    return () => {
+      if (dropdownRootRef.current && dropdownRootRef.current.parentNode) {
+        dropdownRootRef.current.parentNode.removeChild(dropdownRootRef.current);
+        dropdownRootRef.current = null;
+      }
+    };
+  }, [isOpen, inline]);
+
+  // Calculate dropdown position based on button position
+  useEffect(() => {
+    if (isOpen && buttonRef.current && !inline) {
+      const updatePosition = () => {
+        if (buttonRef.current) {
+          const rect = buttonRef.current.getBoundingClientRect();
+          const dropdownWidth = 256; // w-64 = 256px
+          const margin = 16; // Add some margin from screen edge
+          
+          // Calculate position, ensuring dropdown doesn't go off-screen
+          const rightFromButton = window.innerWidth - rect.right;
+          
+          // Check if dropdown would overflow on the right
+          if (rightFromButton + dropdownWidth > window.innerWidth - margin) {
+            // Position from left edge instead
+            setDropdownPosition({
+              top: rect.bottom + 8, // mt-2 = 8px
+              left: Math.max(margin, rect.left - dropdownWidth + rect.width),
+            });
+          } else {
+            // Position from right edge (normal case)
+            setDropdownPosition({
+              top: rect.bottom + 8, // mt-2 = 8px
+              right: rightFromButton,
+            });
+          }
+        }
+      };
+      
+      updatePosition();
+      window.addEventListener('resize', updatePosition);
+      window.addEventListener('scroll', updatePosition, true);
+      
+      return () => {
+        window.removeEventListener('resize', updatePosition);
+        window.removeEventListener('scroll', updatePosition, true);
+      };
+    } else {
+      setDropdownPosition(null);
+    }
+  }, [isOpen, inline]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
+    if (!isOpen || inline) return;
+    
+    // Use a ref to track if we're in the process of opening (to prevent immediate close)
+    const openingRef = { current: true };
+    setTimeout(() => {
+      openingRef.current = false;
+    }, 100);
+    
     function handleClickOutside(event: MouseEvent) {
+      // Don't close if we just opened
+      if (openingRef.current) return;
+      
+      const target = event.target as Node;
       if (
         menuRef.current &&
         buttonRef.current &&
-        !menuRef.current.contains(event.target as Node) &&
-        !buttonRef.current.contains(event.target as Node)
+        !menuRef.current.contains(target) &&
+        !buttonRef.current.contains(target)
       ) {
         setIsOpen(false);
       }
     }
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
-  }, [isOpen]);
+    // Use a slight delay to prevent immediate closing when button is clicked
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside, true); // Use capture phase
+    }, 50);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('mousedown', handleClickOutside, true);
+    };
+  }, [isOpen, inline]);
 
   // Close on escape key
   useEffect(() => {
@@ -328,61 +412,22 @@ export function UserMenu({ inline = false, onItemClick }: UserMenuProps = {}) {
   }
 
   // Regular dropdown mode - render button and dropdown
-  return (
-    <div className="relative flex items-center flex-shrink-0 ml-auto mr-4">
-      <button
-        ref={buttonRef}
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsOpen(!isOpen);
-        }}
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-          isOpen
-            ? 'bg-gray-100 text-gray-900'
-            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-        }`}
-        title="User Menu"
-      >
-        <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center flex-shrink-0">
-          {userAvatar.type === 'owner' && userAvatar.src ? (
-            <img
-              src={userAvatar.src}
-              alt={userAvatar.alt || 'User avatar'}
-              className="w-full h-full object-contain"
-            />
-          ) : (
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-5 h-5 text-gray-600"
-            >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          )}
-        </div>
-        <svg
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-
-      {isOpen && (
-        <div
-          ref={menuRef}
-          className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
-        >
+  const menuContent = (
+    <div
+      ref={menuRef}
+      className="fixed w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 pointer-events-auto max-w-[calc(100vw-32px)]"
+      style={dropdownPosition ? {
+        top: `${dropdownPosition.top}px`,
+        ...(dropdownPosition.right !== undefined ? { right: `${dropdownPosition.right}px` } : {}),
+        ...(dropdownPosition.left !== undefined ? { left: `${dropdownPosition.left}px` } : {}),
+      } : undefined}
+      onClick={(e) => {
+        e.stopPropagation(); // Prevent clicks inside dropdown from bubbling
+      }}
+      onMouseDown={(e) => {
+        e.stopPropagation(); // Prevent mousedown from triggering outside click handler
+      }}
+    >
           {/* Header */}
           <div className="px-4 py-3 border-b border-gray-200">
             <span className="text-sm font-medium text-gray-900">
@@ -467,7 +512,72 @@ export function UserMenu({ inline = false, onItemClick }: UserMenuProps = {}) {
             </button>
           </div>
         </div>
-      )}
-    </div>
+  );
+
+  return (
+    <>
+      <div className="relative flex items-center flex-shrink-0 ml-auto mr-4">
+        <button
+          ref={buttonRef}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            // Use a small delay to ensure state updates properly
+            requestAnimationFrame(() => {
+              setIsOpen(prev => !prev);
+            });
+          }}
+          onMouseDown={(e) => {
+            // Prevent mousedown from triggering outside click handler
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+            isOpen
+              ? 'bg-gray-100 text-gray-900'
+              : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+          }`}
+          title="User Menu"
+        >
+          <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center flex-shrink-0">
+            {userAvatar.type === 'owner' && userAvatar.src ? (
+              <img
+                src={userAvatar.src}
+                alt={userAvatar.alt || 'User avatar'}
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5 text-gray-600"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            )}
+          </div>
+          <svg
+            className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        {/* Button only - dropdown rendered via portal */}
+      </div>
+
+      {/* Dropdown mode - render via portal */}
+      {isOpen && dropdownRootRef.current && createPortal(menuContent, dropdownRootRef.current)}
+    </>
   );
 }

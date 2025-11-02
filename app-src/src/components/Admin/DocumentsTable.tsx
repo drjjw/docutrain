@@ -159,7 +159,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
   };
 
   const handleCopyLink = async (doc: DocumentWithOwner) => {
-    const link = `${window.location.origin}/chat?doc=${doc.slug}`;
+    const link = `${window.location.origin}/app/chat?doc=${doc.slug}`;
     try {
       await navigator.clipboard.writeText(link);
       setCopiedDocId(doc.id);
@@ -318,7 +318,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
         <div className="grid grid-cols-5 gap-1">
           {/* View Button */}
           <button
-            onClick={() => window.open(`/chat?doc=${doc.slug}`, '_blank')}
+            onClick={() => window.open(`/app/chat?doc=${doc.slug}`, '_blank')}
             className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
             title="View document"
           >
@@ -396,7 +396,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
         {/* View Button */}
         <div className="flex flex-col items-center gap-1">
           <button
-            onClick={() => window.open(`/chat?doc=${doc.slug}`, '_blank')}
+            onClick={() => window.open(`/app/chat?doc=${doc.slug}`, '_blank')}
             className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50/80 rounded-xl transition-all duration-200 hover:shadow-md hover:scale-110"
             title="View document"
           >

@@ -39,7 +39,7 @@ export function DashboardPage() {
       // User is a regular registered user - redirect to their owner's chat
       const primaryOwner = ownerGroups[0];
       console.log('DashboardPage: Regular user detected, redirecting to chat:', primaryOwner.owner_slug);
-      window.location.href = `/?owner=${primaryOwner.owner_slug}`;
+      window.location.href = `/app/chat?owner=${primaryOwner.owner_slug}`;
     }
   }, [loading, needsApproval, hasAdminAccess, ownerGroups]);
 

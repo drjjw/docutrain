@@ -655,7 +655,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
     <>
       {/* Button (hidden in modal mode) */}
       {!isModalMode && (
-        <div ref={containerRef} className="relative flex items-center flex-shrink-0">
+        <div ref={containerRef} className="relative flex items-center flex-shrink-0 min-w-0">
           <button
             ref={buttonRef}
             type="button"
@@ -672,7 +672,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
               e.stopPropagation();
               e.preventDefault();
             }}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors max-w-[240px] min-w-0 ${
               isOpen
                 ? 'bg-gray-50 border-gray-300 text-gray-900'
                 : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
@@ -690,7 +690,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
             </svg>
-            <span className="text-sm font-medium whitespace-nowrap">
+            <span className="text-sm font-medium truncate min-w-0">
               {currentDoc ? currentDoc.title : 'Select Document'}
             </span>
             <svg
