@@ -71,30 +71,11 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// In-memory cache for documents
-let documentCache = {
-    documents: [],
-    lastUpdated: null,
-    ttl: 5 * 60 * 1000, // 5 minutes cache TTL
-    cacheVersion: Date.now() // Cache version for client-side invalidation
-};
-
 /**
  * Load all active documents from database
- * Uses caching to reduce database queries
+ * NO CACHING - Always fetches fresh data
  */
-async function loadDocuments(forceRefresh = false) {
-    const now = Date.now();
-    
-    // Return cached documents if still valid
-    if (!forceRefresh && 
-        documentCache.documents.length > 0 && 
-        documentCache.lastUpdated &&
-        (now - documentCache.lastUpdated) < documentCache.ttl) {
-        console.log('📦 Using cached document registry');
-        return documentCache.documents;
-    }
-    
+async function loadDocuments() {
     try {
         console.log('🔄 Loading documents from database...');
         
@@ -138,11 +119,6 @@ async function loadDocuments(forceRefresh = false) {
         
         if (error) {
             console.error('❌ Error loading documents:', error.message);
-            // Return cached documents if available, even if stale
-            if (documentCache.documents.length > 0) {
-                console.log('⚠️  Using stale cache due to database error');
-                return documentCache.documents;
-            }
             throw error;
         }
         
@@ -169,17 +145,12 @@ async function loadDocuments(forceRefresh = false) {
             };
         });
         
-        // Update cache
-        documentCache.documents = processedData;
-        documentCache.lastUpdated = now;
-        
         console.log(`✓ Loaded ${processedData.length} active documents from registry`);
-        console.log(`📦 Cache version: ${documentCache.cacheVersion}`);
         processedData.forEach(doc => {
             console.log(`  - ${doc.slug}: ${doc.title} (${doc.embedding_type})`);
         });
         
-        return documentCache.documents;
+        return processedData;
     } catch (error) {
         console.error('❌ Failed to load documents:', error);
         throw error;
@@ -189,11 +160,10 @@ async function loadDocuments(forceRefresh = false) {
 /**
  * Get a single document by slug
  * @param {string} slug - Document slug identifier
- * @param {boolean} forceRefresh - Force refresh from database (bypass cache)
  * @returns {Object|null} Document object or null if not found
  */
-async function getDocumentBySlug(slug, forceRefresh = false) {
-    const documents = await loadDocuments(forceRefresh);
+async function getDocumentBySlug(slug) {
+    const documents = await loadDocuments();
     const doc = documents.find(d => d.slug === slug);
     
     if (!doc) {
@@ -222,14 +192,12 @@ function getDocumentPath(doc) {
 }
 
 /**
- * Refresh the document registry cache
+ * Refresh the document registry
  * Forces a reload from database
  */
 async function refreshRegistry() {
     console.log('🔄 Forcing registry refresh...');
-    // Increment cache version when registry is refreshed
-    documentCache.cacheVersion = Date.now();
-    return await loadDocuments(true);
+    return await loadDocuments();
 }
 
 /**
@@ -431,32 +399,6 @@ async function getDocumentsForAPI() {
     });
 }
 
-/**
- * Clear the cache (useful for testing)
- */
-function clearCache() {
-    documentCache = {
-        documents: [],
-        lastUpdated: null,
-        ttl: 5 * 60 * 1000
-    };
-    console.log('🗑️  Document cache cleared');
-}
-
-/**
- * Get cache statistics
- */
-function getCacheStats() {
-    return {
-        documentsCount: documentCache.documents.length,
-        lastUpdated: documentCache.lastUpdated,
-        ttl: documentCache.ttl,
-        isStale: documentCache.lastUpdated ? 
-            (Date.now() - documentCache.lastUpdated) > documentCache.ttl : 
-            true
-    };
-}
-
 module.exports = {
     loadDocuments,
     getDocumentBySlug,
@@ -470,9 +412,6 @@ module.exports = {
     groupDocumentsByOwner,
     getDocumentsByEmbeddingType,
     getDocumentsForAPI,
-    clearCache,
-    getCacheStats,
-    sanitizeIntroHTML,
-    getCacheVersion: () => documentCache.cacheVersion
+    sanitizeIntroHTML
 };
 

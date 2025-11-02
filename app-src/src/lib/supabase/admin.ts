@@ -1,7 +1,6 @@
 import { supabase } from './client';
 import { getUserPermissions } from './permissions';
-import type { Document, DocumentWithOwner, Owner, UserWithRoles, UserRole, UserStatistics } from '@/types/admin';
-import { clearAllDocumentCaches } from '@/services/documentApi';
+import type { Document, DocumentWithOwner, Owner, UserWithRoles, UserRole } from '@/types/admin';
 
 /**
  * Get all documents based on user permissions
@@ -71,7 +70,11 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
       return false;
     });
 
-    return filtered as DocumentWithOwner[];
+    // Transform owners array to single owner object for type compatibility
+    return filtered.map(doc => ({
+      ...doc,
+      owners: Array.isArray(doc.owners) ? doc.owners[0] : doc.owners
+    })) as DocumentWithOwner[];
   }
 
   // Super admin sees all documents
@@ -81,7 +84,11 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
     throw new Error(`Failed to fetch documents: ${error.message}`);
   }
 
-  return (data || []) as DocumentWithOwner[];
+  // Transform owners array to single owner object for type compatibility
+  return (data || []).map(doc => ({
+    ...doc,
+    owners: Array.isArray(doc.owners) ? doc.owners[0] : doc.owners
+  })) as DocumentWithOwner[];
 }
 
 /**
@@ -142,7 +149,6 @@ export async function updateDocument(
 
   // Clear all document cache keys (new and legacy)
   if (typeof window !== 'undefined') {
-    clearAllDocumentCaches();
   }
 
   return data as Document;
@@ -187,7 +193,6 @@ export async function deleteDocument(id: string): Promise<void> {
 
   // Clear all document cache keys (new and legacy)
   if (typeof window !== 'undefined') {
-    clearAllDocumentCaches();
   }
 }
 
@@ -225,7 +230,6 @@ export async function createDocument(document: Partial<Document>): Promise<Docum
 
   // Clear all document cache keys (new and legacy)
   if (typeof window !== 'undefined') {
-    clearAllDocumentCaches();
   }
 
   return data as Document;
@@ -531,7 +535,6 @@ export async function retrainDocument(
 
   // Clear all document cache keys (new and legacy)
   if (typeof window !== 'undefined') {
-    clearAllDocumentCaches();
   }
 
   return data;

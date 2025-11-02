@@ -50,6 +50,7 @@
     "react-contenteditable": "^3.3.7",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.4",
+    "resend": "^6.4.0",
     "typescript": "^5.9.3",
     "uuid": "^9.0.1",
     "vite": "^7.1.11"

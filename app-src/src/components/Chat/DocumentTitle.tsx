@@ -9,7 +9,6 @@ import { useOwnerLogo } from '@/hooks/useOwnerLogo';
 import { useSearchParams } from 'react-router-dom';
 import { useCanEditDocument } from '@/hooks/useCanEditDocument';
 import { InlineEditor } from './InlineEditor';
-import { clearAllDocumentCaches } from '@/services/documentApi';
 
 interface DocumentTitleProps {
   documentSlug: string | null;
@@ -51,9 +50,6 @@ async function saveDocumentField(
     const error = await response.json();
     throw new Error(error.error || 'Failed to save');
   }
-
-  // Clear all document cache keys (including versioned ones)
-  clearAllDocumentCaches();
 
   return true;
 }

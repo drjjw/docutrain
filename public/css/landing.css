@@ -354,8 +354,24 @@ body {
     padding: 1.5rem;
     box-shadow: var(--shadow-xl);
     border: 1px solid var(--border-light);
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center;
 }
 
+/* Conversation visibility states */
+.conversation-hidden {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    pointer-events: none;
+}
+
+.conversation-active {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+/* Card positions */
 .hero-card-1 {
     top: 50px;
     right: 100px;
@@ -368,6 +384,101 @@ body {
     right: 0;
     width: 360px;
     animation: float 6s ease-in-out infinite 3s;
+}
+
+.hero-card-3 {
+    top: 50px;
+    right: 100px;
+    width: 320px;
+    animation: float 6s ease-in-out infinite;
+}
+
+.hero-card-4 {
+    top: 200px;
+    right: 0;
+    width: 360px;
+    animation: float 6s ease-in-out infinite 3s;
+}
+
+.hero-card-5 {
+    top: 50px;
+    right: 100px;
+    width: 320px;
+    animation: float 6s ease-in-out infinite;
+}
+
+.hero-card-6 {
+    top: 200px;
+    right: 0;
+    width: 360px;
+    animation: float 6s ease-in-out infinite 3s;
+}
+
+/* Enhanced card styling */
+.hero-card {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.98);
+}
+
+.hero-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: var(--radius-lg);
+    padding: 1px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+.hero-card-avatar-ai {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+}
+
+.hero-card-content {
+    position: relative;
+    padding-left: 0.5rem;
+    color: var(--text-primary);
+    line-height: 1.6;
+    font-size: 0.9375rem;
+}
+
+/* Speech bubble tail effect */
+.hero-card-1::after,
+.hero-card-3::after,
+.hero-card-5::after {
+    content: '';
+    position: absolute;
+    left: -8px;
+    bottom: 20px;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 8px 8px 8px 0;
+    border-color: transparent white transparent transparent;
+    filter: drop-shadow(-2px 2px 2px rgba(0, 0, 0, 0.1));
+}
+
+.hero-card-2::after,
+.hero-card-4::after,
+.hero-card-6::after {
+    content: '';
+    position: absolute;
+    right: -8px;
+    bottom: 20px;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 8px 0 8px 8px;
+    border-color: transparent transparent transparent white;
+    filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.1));
 }
 
 @keyframes float {
@@ -399,20 +510,6 @@ body {
     width: 18px;
     height: 18px;
     color: var(--text-tertiary);
-}
-
-.hero-card-avatar-ai {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-}
-
-.hero-card-avatar-ai svg {
-    color: white;
-}
-
-.hero-card-content {
-    color: var(--text-primary);
-    line-height: 1.6;
-    font-size: 0.9375rem;
 }
 
 .hero-card-typing {
@@ -593,6 +690,129 @@ body {
     width: 32px;
     height: 32px;
     color: var(--primary);
+}
+
+/* ==================== RATIONALE SECTION ==================== */
+
+.rationale {
+    padding: 6rem 2rem;
+    background: white;
+}
+
+.rationale-container {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+.rationale-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    margin-bottom: 4rem;
+}
+
+.rationale-problem,
+.rationale-solution {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 2.5rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+}
+
+.rationale-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rationale-icon-wrapper svg {
+    width: 32px;
+    height: 32px;
+    color: white;
+}
+
+.rationale-subtitle {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.rationale-text {
+    font-size: 1.0625rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.rationale-benefits {
+    margin-top: 4rem;
+}
+
+.rationale-benefits-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 3rem;
+    color: var(--text-primary);
+}
+
+.rationale-benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+}
+
+.rationale-benefit-card {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.rationale-benefit-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary);
+}
+
+.rationale-benefit-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius);
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rationale-benefit-icon svg {
+    width: 24px;
+    height: 24px;
+    color: var(--primary);
+}
+
+.rationale-benefit-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.rationale-benefit-description {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    font-size: 0.9375rem;
 }
 
 /* ==================== ABOUT SECTION ==================== */
@@ -807,27 +1027,45 @@ body {
 .footer-content {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     padding-bottom: 2rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     margin-bottom: 2rem;
+    gap: 2rem;
 }
 
 .footer-brand {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    align-items: flex-start;
+    gap: 1rem;
+    flex: 1;
+    max-width: 400px;
 }
 
 .footer-logo {
-    width: 32px;
-    height: 32px;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+}
+
+.footer-brand-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .footer-brand-text {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
-    font-size: 1.125rem;
+    font-size: 1.25rem;
+    color: white;
+}
+
+.footer-brand-description {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0;
 }
 
 .footer-links {
@@ -890,6 +1128,14 @@ body {
     .features-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+    
+    .rationale-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .rationale-benefits-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 @media (max-width: 768px) {
@@ -938,6 +1184,19 @@ body {
         font-size: 2rem;
     }
     
+    .rationale-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    
+    .rationale-benefits-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .rationale-benefits-title {
+        font-size: 1.75rem;
+    }
+    
     .step {
         grid-template-columns: 1fr;
         text-align: center;
@@ -960,6 +1219,17 @@ body {
         flex-direction: column;
         gap: 1.5rem;
         text-align: center;
+    }
+    
+    .footer-brand {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        max-width: 100%;
+    }
+    
+    .footer-brand-info {
+        align-items: center;
     }
     
     .footer-links {

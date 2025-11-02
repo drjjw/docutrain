@@ -67,7 +67,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     
     <!-- Application Styles -->
-    <link rel="stylesheet" href="css/landing.3379d1f7.css">
+    <link rel="stylesheet" href="css/landing.fc9d6c07.css">
 </head>
 <body>
     <!-- Navigation -->
@@ -79,6 +79,7 @@
             <div class="nav-links">
                 <a href="#features" class="nav-link">Features</a>
                 <a href="#how-it-works" class="nav-link">How It Works</a>
+                <a href="#rationale" class="nav-link">Why It Matters</a>
                 <a href="#about" class="nav-link">About</a>
                 <a href="/chat" class="nav-cta">Launch Chat</a>
             </div>
@@ -94,6 +95,7 @@
     <div class="mobile-menu" id="mobileMenu">
         <a href="#features" class="mobile-menu-link">Features</a>
         <a href="#how-it-works" class="mobile-menu-link">How It Works</a>
+        <a href="#rationale" class="mobile-menu-link">Why It Matters</a>
         <a href="#about" class="mobile-menu-link">About</a>
         <a href="/chat" class="mobile-menu-cta">Launch Chat</a>
     </div>
@@ -147,7 +149,8 @@
                 </div>
             </div>
             <div class="hero-visual">
-                <div class="hero-card hero-card-1">
+                <!-- Conversation 1 -->
+                <div class="hero-card hero-card-1 conversation-active" data-conversation="1">
                     <div class="hero-card-header">
                         <div class="hero-card-avatar">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -161,7 +164,7 @@
                         What are the treatment guidelines for CKD?
                     </div>
                 </div>
-                <div class="hero-card hero-card-2">
+                <div class="hero-card hero-card-2 conversation-active" data-conversation="1">
                     <div class="hero-card-header">
                         <div class="hero-card-avatar hero-card-avatar-ai">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -172,7 +175,77 @@
                         <span>AI Assistant</span>
                     </div>
                     <div class="hero-card-content">
-                        Based on KDIGO 2024 guidelines, CKD treatment focuses on...
+                        Based on KDIGO 2024 guidelines, CKD treatment focuses on blood pressure control, glycemic management, and renoprotective strategies...
+                        <div class="hero-card-typing">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conversation 2 -->
+                <div class="hero-card hero-card-3 conversation-hidden" data-conversation="2">
+                    <div class="hero-card-header">
+                        <div class="hero-card-avatar">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </div>
+                        <span>You</span>
+                    </div>
+                    <div class="hero-card-content">
+                        Can you summarize the key points from the research paper?
+                    </div>
+                </div>
+                <div class="hero-card hero-card-4 conversation-hidden" data-conversation="2">
+                    <div class="hero-card-header">
+                        <div class="hero-card-avatar hero-card-avatar-ai">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </div>
+                        <span>AI Assistant</span>
+                    </div>
+                    <div class="hero-card-content">
+                        The study found three main findings: (1) improved patient outcomes with early intervention, (2) cost-effectiveness analysis showing...
+                        <div class="hero-card-typing">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conversation 3 -->
+                <div class="hero-card hero-card-5 conversation-hidden" data-conversation="3">
+                    <div class="hero-card-header">
+                        <div class="hero-card-avatar">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </div>
+                        <span>You</span>
+                    </div>
+                    <div class="hero-card-content">
+                        What does our training manual say about compliance procedures?
+                    </div>
+                </div>
+                <div class="hero-card hero-card-6 conversation-hidden" data-conversation="3">
+                    <div class="hero-card-header">
+                        <div class="hero-card-avatar hero-card-avatar-ai">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </div>
+                        <span>AI Assistant</span>
+                    </div>
+                    <div class="hero-card-content">
+                        According to Section 4.2 of your training manual, compliance procedures require quarterly audits, documentation of all...
                         <div class="hero-card-typing">
                             <span></span>
                             <span></span>
@@ -311,6 +384,110 @@
         </div>
     </section>
 
+    <!-- Rationale Section -->
+    <section class="rationale" id="rationale">
+        <div class="rationale-container">
+            <div class="section-header">
+                <h2 class="section-title">Why Focused Context Matters</h2>
+                <p class="section-description">The Problem with General AI Assistants</p>
+            </div>
+            <div class="rationale-content">
+                <div class="rationale-problem">
+                    <div class="rationale-icon-wrapper">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 8v4M12 16h.01"/>
+                        </svg>
+                    </div>
+                    <h3 class="rationale-subtitle">The Internet Pollution Problem</h3>
+                    <p class="rationale-text">
+                        Traditional AI assistants pull from the entire internet, mixing your specific documents with countless unrelated sources. This creates noise, confusion, and inaccurate answers that don't reflect your organization's actual knowledge base.
+                    </p>
+                </div>
+                <div class="rationale-solution">
+                    <div class="rationale-icon-wrapper">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5"/>
+                            <path d="M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <h3 class="rationale-subtitle">Document-Focused Intelligence</h3>
+                    <p class="rationale-text">
+                        Our system creates a controlled environment where the AI assistant operates exclusively within the context of your uploaded documents. For training purposes, corporate knowledge bases, or specialized information, you get answers that are 100% grounded in your content—nothing more, nothing less.
+                    </p>
+                </div>
+            </div>
+            <div class="rationale-benefits">
+                <h3 class="rationale-benefits-title">Key Benefits of Focused Context</h3>
+                <div class="rationale-benefits-grid">
+                    <div class="rationale-benefit-card">
+                        <div class="rationale-benefit-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </div>
+                        <h4 class="rationale-benefit-title">Protected Documents</h4>
+                        <p class="rationale-benefit-description">Your sensitive corporate information stays within your controlled environment, never exposed to public internet sources.</p>
+                    </div>
+                    <div class="rationale-benefit-card">
+                        <div class="rationale-benefit-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                <path d="M2 17l10 5 10-5"/>
+                                <path d="M2 12l10 5 10-5"/>
+                            </svg>
+                        </div>
+                        <h4 class="rationale-benefit-title">Training-Focused</h4>
+                        <p class="rationale-benefit-description">Perfect for employee training programs where you need answers based solely on your training materials, not external sources.</p>
+                    </div>
+                    <div class="rationale-benefit-card">
+                        <div class="rationale-benefit-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 7h-9M14 17H5M15 3l4 4-4 4M9 21l-4-4 4-4"/>
+                            </svg>
+                        </div>
+                        <h4 class="rationale-benefit-title">Corporate-Specific</h4>
+                        <p class="rationale-benefit-description">Ensure your team gets answers based on your company's policies, procedures, and knowledge base—not generic internet advice.</p>
+                    </div>
+                    <div class="rationale-benefit-card">
+                        <div class="rationale-benefit-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 12l2 2 4-4"/>
+                                <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3z"/>
+                                <path d="M3 12c1 0 3-1 3-3s-2-3-3-3-3 1-3 3 2 3 3 3z"/>
+                            </svg>
+                        </div>
+                        <h4 class="rationale-benefit-title">Custom Branding</h4>
+                        <p class="rationale-benefit-description">Brand your document assistant with your organization's identity, creating a seamless experience for your team or clients.</p>
+                    </div>
+                    <div class="rationale-benefit-card">
+                        <div class="rationale-benefit-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                                <polyline points="16 6 12 2 8 6"/>
+                                <line x1="12" y1="2" x2="12" y2="15"/>
+                            </svg>
+                        </div>
+                        <h4 class="rationale-benefit-title">Secure Sharing</h4>
+                        <p class="rationale-benefit-description">Share your document assistant with confidence, knowing recipients only see answers from your approved documents.</p>
+                    </div>
+                    <div class="rationale-benefit-card">
+                        <div class="rationale-benefit-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </div>
+                        <h4 class="rationale-benefit-title">Access Control</h4>
+                        <p class="rationale-benefit-description">Granular permissions ensure only authorized users can access specific documents and knowledge bases.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- About Section -->
     <section class="about" id="about">
         <div class="about-container">
@@ -394,18 +571,21 @@
         <div class="footer-container">
             <div class="footer-content">
                 <div class="footer-brand">
-                    <img src="robot-favicon.png" alt="AI Assistant" class="footer-logo">
-                    <span class="footer-brand-text">AI Document Assistant</span>
+                    <div class="footer-brand-info">
+                        <span class="footer-brand-text">DocuTrain</span>
+                        <p class="footer-brand-description">Document-focused AI assistant for training, compliance, and knowledge management. Keep your AI context focused on your documents—not the entire internet.</p>
+                    </div>
                 </div>
                 <div class="footer-links">
                     <a href="/chat" class="footer-link">Chat</a>
                     <a href="/app/dashboard" class="footer-link">Dashboard</a>
                     <a href="/app/documents" class="footer-link">Documents</a>
                     <a href="/app/profile" class="footer-link">Profile</a>
+                    <a href="/app/contact" class="footer-link">Contact</a>
                 </div>
             </div>
             <div class="footer-bottom">
-                <p class="footer-copyright">© 2025 AI Document Assistant. Powered by RAG Technology.</p>
+                <p class="footer-copyright">© 2025 DocuTrain. Powered by RAG Technology.</p>
                 <div class="footer-tech">
                     <span class="footer-tech-badge">Gemini</span>
                     <span class="footer-tech-badge">Grok</span>

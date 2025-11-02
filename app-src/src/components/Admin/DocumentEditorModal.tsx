@@ -7,8 +7,6 @@ import { FileUploadManager } from './FileUploadManager';
 import { CoverImageUploader } from './CoverImageUploader';
 import { DocumentRetrainer } from './DocumentRetrainer';
 import { updateDocument, checkSlugUniqueness } from '@/lib/supabase/admin';
-import { clearAllDocumentCaches } from '@/services/documentApi';
-import { clearDocumentConfigCaches } from '@/utils/documentCache';
 import type { DocumentWithOwner, Owner, DocumentAccessLevel } from '@/types/admin';
 
 interface DocumentEditorModalProps {
@@ -135,28 +133,6 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
       }
 
       await updateDocument(document.id, editingValues);
-      
-      // Clear ALL caches immediately (synchronously) before dispatching event
-      // This ensures changes are visible immediately, even if event listener hasn't fired yet
-      clearAllDocumentCaches(); // Clear localStorage caches (docutrain-documents-cache, ukidney-documents-cache)
-      clearDocumentConfigCaches(); // Clear in-memory caches in useDocumentConfig hook
-      
-      // Also clear any cache keys that might contain the document slug (case-insensitive)
-      // This handles any edge cases or library-specific cache keys
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const documentSlug = editingValues.slug || document.slug;
-        const keysToRemove: string[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.toLowerCase().includes(documentSlug.toLowerCase())) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach(key => {
-          localStorage.removeItem(key);
-          console.log(`🗑️ Cleared cache key containing slug: ${key}`);
-        });
-      }
       
       // Dispatch document-updated event with slug so listeners can clear the right cache
       // Use a small delay to ensure backend cache refresh completes

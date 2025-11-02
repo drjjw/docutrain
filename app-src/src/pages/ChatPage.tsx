@@ -24,6 +24,8 @@ import { Spinner } from '@/components/UI/Spinner';
 import { useDocumentConfig } from '@/hooks/useDocumentConfig';
 import { useOwnerLogo } from '@/hooks/useOwnerLogo';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
+import { supabase } from '@/lib/supabase/client';
 import { setAccentColorVariables, setDefaultAccentColors } from '@/utils/accentColor';
 import '@/styles/messages.css';
 import '@/styles/loading.css';
@@ -36,6 +38,7 @@ import '@/styles/send-button.css';
 export function ChatPage() {
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
+  const permissions = usePermissions();
   
   // Get document parameter (same as vanilla JS)
   // If no doc param, set to null to show document selector (matches vanilla JS behavior)
@@ -189,6 +192,46 @@ export function ChatPage() {
   // Get document config (includes cover, introMessage, etc.)
   // Only fetch if we have a document slug - don't fetch when null (shows modal instead)
   const { config: docConfig, errorDetails, loading: configLoading } = useDocumentConfig(documentSlug);
+  
+  // CENTRALIZED Realtime subscription for document updates
+  // This is the ONLY place we subscribe to avoid duplicate subscriptions
+  // (useDocumentConfig is called by 8+ components, which would create 8+ subscriptions)
+  useEffect(() => {
+    // Wait for auth and permissions to fully load, and ensure we have a document
+    if (!documentSlug || authLoading || permissions.loading) {
+      console.log(`[ChatPage] Skipping Realtime setup - waiting. documentSlug: ${documentSlug}, authLoading: ${authLoading}, permissions.loading: ${permissions.loading}`);
+      return;
+    }
+
+    console.log(`[ChatPage] 🔌 Setting up Realtime subscription for document: ${documentSlug}`);
+    
+    const channel = supabase
+      .channel(`document_${documentSlug}_changes`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'documents',
+          filter: `slug=eq.${documentSlug}`,
+        },
+        (payload) => {
+          console.log(`[ChatPage] 📡 Realtime update received for ${documentSlug}:`, payload);
+          // Dispatch browser event to notify all useDocumentConfig instances
+          window.dispatchEvent(new CustomEvent('document-updated', {
+            detail: { documentSlug }
+          }));
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[ChatPage] Realtime subscription status for ${documentSlug}:`, status);
+      });
+
+    return () => {
+      console.log(`[ChatPage] 🔌 Cleaning up Realtime subscription for ${documentSlug}`);
+      supabase.removeChannel(channel);
+    };
+  }, [documentSlug, authLoading, permissions.loading]);
   
   // Passcode modal handling (no verbose logging)
   

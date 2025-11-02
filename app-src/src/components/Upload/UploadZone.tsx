@@ -71,7 +71,7 @@ export function UploadZone({ onUploadSuccess }: UploadZoneProps) {
       )}
 
       <div className="space-y-4">
-        <div>
+        <div className="overflow-visible">
           <input
             ref={fileInputRef}
             type="file"
@@ -87,7 +87,8 @@ export function UploadZone({ onUploadSuccess }: UploadZoneProps) {
               hover:file:from-green-600 hover:file:to-emerald-700
               file:cursor-pointer cursor-pointer
               file:transition-all file:duration-200
-              file:shadow-md hover:file:shadow-lg hover:file:scale-105"
+              file:shadow-md hover:file:shadow-lg
+              file:origin-left"
           />
           <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

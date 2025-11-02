@@ -7,6 +7,7 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { LogoutPage } from '@/pages/LogoutPage';
 import { ChatPage } from '@/pages/ChatPage';
+import { ContactPage } from '@/pages/ContactPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export function AppRouter() {
@@ -51,6 +52,11 @@ export function AppRouter() {
         <Route
           path="/chat"
           element={<ChatPage />}
+        />
+        {/* Contact page - public access */}
+        <Route
+          path="/contact"
+          element={<ContactPage />}
         />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -7,7 +7,6 @@ import { useCanEditDocument } from '@/hooks/useCanEditDocument';
 import { InlineEditor } from './InlineEditor';
 import { InlineWysiwygEditor } from './InlineWysiwygEditor';
 import { useState, useCallback } from 'react';
-import { clearAllDocumentCaches } from '@/services/documentApi';
 
 interface WelcomeMessageProps {
   welcomeMessage: string;
@@ -63,9 +62,6 @@ async function saveDocumentField(
     throw new Error(error.error || 'Failed to save');
   }
 
-  // Clear all document cache keys (including versioned ones)
-  clearAllDocumentCaches();
-
   return true;
 }
 
@@ -75,16 +71,20 @@ export function WelcomeMessage({ welcomeMessage, introMessage, documentSlug }: W
 
   // Force refresh of document config after save
   const handleSave = useCallback(async (field: string, value: string) => {
+    console.log(`[WelcomeMessage] Saving ${field} for document: ${documentSlug}`);
     const success = await saveDocumentField(documentSlug, field, value);
     if (success) {
+      console.log(`[WelcomeMessage] ✅ Save successful, dispatching document-updated event`);
       // Force refresh by updating key
       setRefreshKey(prev => prev + 1);
-      // Add a small delay before refetching to ensure backend cache refresh completes
-      // The PUT endpoint refreshes cache, and DB trigger also fires async, so we wait a bit
-      setTimeout(() => {
-        // Trigger a manual cache clear and refetch
-        window.dispatchEvent(new Event('document-updated'));
-      }, 200); // 200ms delay to ensure backend cache refresh completes
+      // Dispatch event immediately to trigger local refresh
+      // Realtime will also trigger an update, but this ensures immediate feedback
+      window.dispatchEvent(new CustomEvent('document-updated', {
+        detail: { documentSlug }
+      }));
+      console.log(`[WelcomeMessage] Event dispatched for slug: ${documentSlug}`);
+    } else {
+      console.error(`[WelcomeMessage] ❌ Save failed`);
     }
     return success;
   }, [documentSlug]);

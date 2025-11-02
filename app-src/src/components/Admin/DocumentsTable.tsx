@@ -5,10 +5,9 @@ import { Alert } from '@/components/UI/Alert';
 import { Toggle } from '@/components/UI/Toggle';
 import { DocumentEditorModal } from './DocumentEditorModal';
 import { getDocuments, deleteDocument, getOwners, updateDocument } from '@/lib/supabase/admin';
-import { clearAllDocumentCaches } from '@/services/documentApi';
-import { clearDocumentConfigCaches } from '@/utils/documentCache';
 import type { DocumentWithOwner, Owner } from '@/types/admin';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/lib/supabase/client';
 
 interface DocumentsTableProps {
   isSuperAdmin?: boolean;
@@ -111,7 +110,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
     setCurrentPage(1);
   }, [itemsPerPage]);
 
-  const loadData = async (showLoading = true) => {
+  const loadData = React.useCallback(async (showLoading = true) => {
     console.log('DocumentsTable: loadData called');
     if (!user?.id) {
       if (showLoading) {
@@ -140,12 +139,56 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
         setLoading(false);
       }
     }
-  };
+  }, [user?.id]);
 
   // Expose refresh method via ref
   useImperativeHandle(ref, () => ({
     refresh: () => loadData(false),
   }));
+
+  // Listen for document-updated events from inline edits in same browser window
+  useEffect(() => {
+    const handleDocumentUpdate = () => {
+      console.log('DocumentsTable: document-updated event received, refreshing...');
+      loadData(false);
+    };
+
+    window.addEventListener('document-updated', handleDocumentUpdate);
+    
+    return () => {
+      window.removeEventListener('document-updated', handleDocumentUpdate);
+    };
+  }, [loadData]);
+
+  // Subscribe to Supabase Realtime for cross-tab/window updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('DocumentsTable: Setting up Realtime subscription for documents table');
+    
+    const channel = supabase
+      .channel('documents_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'documents',
+        },
+        (payload) => {
+          console.log('📡 DocumentsTable: Realtime update received:', payload.eventType, payload);
+          loadData(false);
+        }
+      )
+      .subscribe((status) => {
+        console.log('DocumentsTable: Realtime subscription status:', status);
+      });
+
+    return () => {
+      console.log('DocumentsTable: Cleaning up Realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, loadData]);
 
   const handleDelete = async (doc: DocumentWithOwner) => {
     try {
@@ -190,26 +233,6 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
     try {
       // Include slug in updates as required by the API endpoint
       await updateDocument(doc.id, { active: newActive, slug: doc.slug });
-      
-      // Clear ALL caches immediately (synchronously) before dispatching event
-      clearAllDocumentCaches(); // Clear localStorage caches (docutrain-documents-cache, ukidney-documents-cache)
-      clearDocumentConfigCaches(); // Clear in-memory caches in useDocumentConfig hook
-      
-      // Also clear any cache keys that might contain the document slug (case-insensitive)
-      // This handles any edge cases or library-specific cache keys
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const keysToRemove: string[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.toLowerCase().includes(doc.slug.toLowerCase())) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach(key => {
-          localStorage.removeItem(key);
-          console.log(`🗑️ Cleared cache key containing slug: ${key}`);
-        });
-      }
       
       // Dispatch event to trigger refresh in other tabs/components
       setTimeout(() => {
