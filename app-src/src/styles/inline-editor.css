@@ -1,0 +1,249 @@
+/* Inline Editor Styles - Ported from vanilla JS public/css/components.css */
+
+.inline-edit-icon {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: auto;
+}
+
+/* Edit icon when positioned inline (for headerTitle and welcomeTitle) */
+.header-title-wrapper .inline-edit-icon,
+.welcome-title-wrapper .inline-edit-icon {
+    position: static;
+    flex-shrink: 0;
+    align-self: center;
+}
+
+/* Welcome title wrapper styling */
+.welcome-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.welcome-title-wrapper #welcomeTitle {
+    margin-bottom: 0; /* Remove margin since wrapper handles spacing */
+}
+
+/* Ensure editable elements have relative positioning for icons */
+.inline-editable {
+    position: relative;
+}
+
+/* For nested editable elements, adjust icon position slightly */
+.inline-editable .inline-editable .inline-edit-icon {
+    top: 8px;
+    right: 8px;
+}
+
+.inline-edit-icon:hover {
+    background: rgba(0, 0, 0, 0.9);
+    opacity: 1 !important;
+}
+
+/* Inline editor input (for text/textarea fields) */
+.inline-editor-input {
+    width: 100%;
+    border: 2px solid #007bff;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: inherit;
+    font-family: inherit;
+    background: white;
+    outline: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.inline-editor-input:focus {
+    border-color: #0056b3;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
+    outline: none;
+}
+
+/* Special styling for headerTitle and welcomeTitle inputs */
+.header-title-wrapper .inline-editor-input,
+.welcome-title-wrapper .inline-editor-input {
+    min-width: 200px;
+}
+
+/* Active editor state */
+.inline-editor-active {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+    border-radius: 4px;
+    background: white;
+    padding: 4px 8px;
+    min-height: 40px;
+}
+
+/* Saving state */
+.inline-editor-saving {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.inline-editor-saving::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid #007bff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: inline-editor-spin 0.6s linear infinite;
+}
+
+@keyframes inline-editor-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* WYSIWYG Toolbar */
+.inline-editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    flex-wrap: wrap;
+}
+
+.inline-editor-toolbar-btn {
+    padding: 4px 8px;
+    border: 1px solid #dee2e6;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: all 0.2s;
+    color: #495057;
+}
+
+.inline-editor-toolbar-btn:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.inline-editor-toolbar-btn:active {
+    background: #dee2e6;
+}
+
+.inline-editor-toolbar-separator {
+    width: 1px;
+    height: 20px;
+    background: #dee2e6;
+    margin: 0 4px;
+}
+
+.inline-editor-toolbar-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+}
+
+.inline-editor-save-btn,
+.inline-editor-cancel-btn {
+    padding: 4px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.inline-editor-save-btn {
+    background: #007bff !important;
+    color: white !important;
+    border-color: #007bff !important;
+}
+
+.inline-editor-save-btn:hover {
+    background: #0056b3 !important;
+    border-color: #0056b3 !important;
+    color: white !important;
+}
+
+.inline-editor-save-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #007bff !important;
+    color: white !important;
+    border-color: #007bff !important;
+}
+
+/* Ensure text color is always white - override any parent styles */
+/* Specifically override message-content color inheritance */
+.message-content .inline-editor-save-btn,
+.message.assistant .message-content .inline-editor-save-btn,
+.inline-editor-save-btn {
+    color: white !important;
+}
+
+.inline-editor-save-btn * {
+    color: white !important;
+}
+
+.inline-editor-cancel-btn {
+    background: white;
+    color: #6c757d;
+}
+
+.inline-editor-cancel-btn:hover {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+}
+
+/* WYSIWYG Editor Content */
+.inline-editor-active[contenteditable="true"] {
+    padding: 8px;
+    min-height: 60px;
+    border: 1px solid #dee2e6;
+    border-radius: 0 0 4px 4px;
+    background: white;
+    outline: none;
+}
+
+.inline-editor-active[contenteditable="true"]:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.inline-editor-active[contenteditable="true"] ul,
+.inline-editor-active[contenteditable="true"] ol {
+    margin-left: 1.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.inline-editor-active[contenteditable="true"] li {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Make parent elements position relative for absolute positioning of edit icon */
+.header-title-wrapper,
+.header-center {
+    position: relative;
+}
+

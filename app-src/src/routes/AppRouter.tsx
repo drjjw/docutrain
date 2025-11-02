@@ -6,6 +6,7 @@ import { VerifyEmailPage } from '@/pages/VerifyEmailPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { LogoutPage } from '@/pages/LogoutPage';
+import { ChatPage } from '@/pages/ChatPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export function AppRouter() {
@@ -46,6 +47,11 @@ export function AppRouter() {
         <Route path="/admin/documents" element={<Navigate to="/dashboard" replace />} />
         <Route path="/admin/users" element={<Navigate to="/users" replace />} />
         <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
+        {/* Chat page - React version (migration in progress) */}
+        <Route
+          path="/chat"
+          element={<ChatPage />}
+        />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

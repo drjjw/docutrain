@@ -1,0 +1,65 @@
+/* Loading Message Styles - Ported from public/css/components.css */
+
+/* Loading Container */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+/* Loading Dots */
+.loading-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.loading-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #999;
+  animation: bounce 1.4s infinite ease-in-out;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* Fun Fact Styling */
+.fun-fact {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #666;
+  font-style: italic;
+  max-width: 100%;
+  padding: 12px 16px;
+  background: #f9f9f9;
+  border-left: 3px solid #cc0000;
+  border-radius: 4px;
+  transition: opacity 0.6s ease-in-out;
+  opacity: 1;
+}
+
+.fun-fact.fade-out {
+  opacity: 0;
+}
+
+.fun-fact.fade-in {
+  opacity: 1;
+}
+

@@ -1,0 +1,235 @@
+/* Cover and Welcome Styles - Ported from public/css/layout.css */
+/* Matches vanilla JS implementation exactly */
+
+/* Document Cover and Welcome Layout */
+.document-cover-and-welcome {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 20px;
+  margin: 20px -20px; /* Negative margin to counteract parent padding */
+  padding: 0 20px; /* Add back padding for content */
+  width: calc(100% + 40px); /* Account for negative margins */
+  box-sizing: border-box;
+  align-items: flex-start; /* Align to top, let content determine height */
+  max-width: none; /* Allow full width */
+  position: relative;
+}
+
+.document-cover-section {
+  flex: 2; /* 2/5 of the width */
+  min-width: 0; /* Allow flex item to shrink below content size */
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  border-radius: 12px;
+  background: white;
+  display: flex;
+  align-items: center; /* Center image vertically when container is taller */
+  justify-content: center;
+  position: relative; /* Allow absolute positioning of overlay */
+}
+
+.document-cover-image {
+  width: 100%;
+  height: 100%; /* Fill container height */
+  object-fit: fill; /* Maintain aspect ratio */
+  display: block;
+  border-radius: 0;
+}
+
+.document-cover-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20%; /* Lower 20% of the image */
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.3));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 10px;
+  border-radius: 0 0 12px 12px; /* Match container border radius */
+}
+
+.document-cover-title {
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  line-height: 1.3;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  margin-bottom: 8px;
+  max-width: 100%;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* Max 3 lines on desktop */
+  -webkit-box-orient: vertical;
+}
+
+.document-cover-meta {
+  color: white;
+  font-size: 14px;
+  font-weight: 400;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  line-height: 1.2;
+  opacity: 0.9;
+}
+
+.welcome-message-section {
+  flex: 3; /* 3/5 of the width */
+  min-width: 0; /* Allow flex item to shrink below content size */
+  display: flex;
+  align-items: stretch; /* Make message fill full height */
+}
+
+.welcome-message-section .message.assistant {
+  width: 100%;
+  height: 100%; /* Fill full height of container */
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0; /* Remove default margin */
+}
+
+/* Special styling for welcome message in cover layout */
+.welcome-message-section .message.assistant .message-content {
+  padding: 20px 24px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  height: 100%; /* Fill full height to match cover image */
+  width: 100%;
+  max-width: 100% !important; /* Override base max-width: 90% to allow full width */
+  box-sizing: border-box;
+}
+
+/* Intro content should span full width */
+#welcomeIntroContent {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .document-cover-and-welcome {
+    flex-direction: column !important;
+    gap: 15px;
+    margin: 15px 16px; /* Add side margins for mobile */
+    padding: 0;
+    width: auto; /* Let it size naturally within container */
+    align-items: stretch; /* Keep equal heights on mobile */
+  }
+
+  .document-cover-section {
+    flex: none;
+    width: 100%; /* Ensure full width */
+    height: auto; /* Let height be fully responsive to image aspect ratio */
+    padding: 12px; /* Card-like padding */
+    margin: 0;
+    display: flex;
+    align-items: stretch;
+    border-radius: 12px; /* More rounded for card appearance */
+    overflow: hidden; /* Contain the image */
+    background: white; /* Card background */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Card shadow */
+    border: 1px solid #e9ecef; /* Subtle border */
+  }
+
+  .welcome-message-section {
+    width: 100%; /* Ensure full width matches image container */
+  }
+
+  .welcome-message-section .message.assistant .message-content {
+    width: 100%; /* Override max-width to ensure full width */
+    max-width: 100%; /* Ensure it takes full container width */
+  }
+
+  .document-cover-image {
+    width: 100%;
+    height: auto; /* Let image determine height based on aspect ratio */
+    object-fit: contain; /* Show full image without cropping */
+    border-radius: 8px; /* Match container border radius */
+    display: block;
+  }
+
+  .document-cover-overlay {
+    border-radius: 0 0 8px 8px; /* Match mobile image border radius */
+    height: 30%; /* Increase overlay height on mobile for more space */
+    padding: 12px 10px; /* Slightly more padding */
+    min-height: 80px; /* Ensure minimum height for content */
+  }
+
+  .document-cover-title {
+    font-size: 14px; /* Larger on mobile for better readability */
+    line-height: 1.3; /* Tighter line height */
+    margin-bottom: 6px; /* Less margin */
+    max-width: 100%;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Max 2 lines */
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+  }
+
+  .document-cover-meta {
+    font-size: 11px; /* Smaller font size on mobile */
+    line-height: 1.2;
+  }
+}
+
+@media (max-width: 480px) {
+  .document-cover-and-welcome {
+    margin: 10px 12px; /* Add side margins for small screens */
+    padding: 0;
+    gap: 10px;
+    width: auto; /* Let it size naturally within container */
+  }
+
+  .document-cover-section {
+    width: 100%; /* Ensure full width */
+    height: auto; /* Let height be fully responsive to image aspect ratio */
+    padding: 8px; /* Slightly less padding on small screens */
+    margin: 0;
+    display: flex;
+    align-items: stretch;
+    border-radius: 10px; /* Slightly less rounded for small screens */
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+  }
+
+  .welcome-message-section {
+    width: 100%; /* Ensure full width matches image container */
+  }
+
+  .welcome-message-section .message.assistant .message-content {
+    width: 100%; /* Override max-width to ensure full width */
+    max-width: 100%; /* Ensure it takes full container width */
+  }
+
+  .document-cover-image {
+    height: auto; /* Let image determine height based on aspect ratio */
+    border-radius: 6px; /* Match container border radius */
+  }
+
+  .document-cover-overlay {
+    height: 35%; /* Even taller overlay on very small screens */
+    min-height: 90px; /* More minimum height for very small screens */
+    padding: 14px 10px; /* More padding */
+  }
+
+  .document-cover-title {
+    font-size: 14px; /* Same size as general mobile - consistent across all mobile sizes */
+    line-height: 1.3;
+    margin-bottom: 5px;
+    -webkit-line-clamp: 3; /* Allow 3 lines on very small screens if needed */
+  }
+
+  .document-cover-meta {
+    font-size: 10px; /* Smaller on very small screens */
+  }
+}
+

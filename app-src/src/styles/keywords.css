@@ -1,0 +1,148 @@
+/* Keywords Styles - Ported from public/css/keywords.css */
+/* Matches vanilla JS implementation exactly */
+
+.document-keywords {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* When in downloads-keywords-container, remove top margin/border but keep padding */
+.downloads-keywords-container .document-keywords {
+  margin-top: 0;
+  border-top: none;
+  /* padding: 20px is set in layout.css - don't override it */
+}
+
+/* Unified header styling - see layout.css for main styles */
+/* Keywords title should match downloads header text size */
+.keywords-title {
+  font-size: 14px;
+}
+
+/* Subtle hint message for Key Topics */
+.keywords-hint {
+  font-size: 12px;
+  color: var(--text-color-secondary, #666);
+  margin-top: 4px;
+  margin-bottom: 8px;
+  opacity: 0.7;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.document-keywords-wordcloud {
+  margin-top: 12px;
+  line-height: 2;
+  text-align: left;
+}
+
+.keyword-word {
+  display: inline-block;
+  color: var(--text-color, #333);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  margin-right: 0.25em;
+  white-space: nowrap;
+}
+
+.keyword-word:hover {
+  color: var(--accent-color, #3b82f6);
+  opacity: 1 !important;
+  transform: scale(1.05);
+}
+
+.keyword-separator {
+  display: inline-block;
+  color: var(--text-color-secondary, #999);
+  opacity: 0.5;
+  margin: 0 0.3em;
+  font-size: 0.9em;
+  font-weight: normal;
+  user-select: none;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .document-keywords {
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .downloads-keywords-container .document-keywords-header {
+    background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    color: #f3f4f6;
+  }
+  
+  .downloads-keywords-container .document-keywords-header:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  }
+  
+  .downloads-keywords-container .document-keywords-header:active {
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+  }
+  
+  .document-keywords-header .keywords-title {
+    color: #f3f4f6;
+  }
+  
+  .document-keywords-header svg {
+    color: #d1d5db;
+  }
+  
+  .keyword-word {
+    color: var(--text-color, #e0e0e0);
+  }
+  
+  .keyword-word:hover {
+    color: var(--accent-color, #60a5fa);
+  }
+  
+  .keyword-separator {
+    opacity: 0.4;
+    color: var(--text-color-secondary, #999);
+  }
+  
+  .keywords-hint {
+    color: var(--text-color-secondary, #999);
+    opacity: 0.6;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .document-keywords {
+    margin-top: 20px;
+    padding-top: 16px;
+  }
+  
+  .document-keywords-header {
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+  
+  .keywords-icon {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .document-keywords-wordcloud {
+    line-height: 2;
+    word-spacing: 0.25em;
+    text-align: left;
+  }
+  
+  .keywords-hint {
+    font-size: 11px;
+    margin-top: 3px;
+    margin-bottom: 6px;
+  }
+}
+
+/* Ensure keywords display nicely in welcome message sections */
+.welcome-message-section .document-keywords,
+.message.assistant .document-keywords {
+  margin-top: 20px;
+}
+

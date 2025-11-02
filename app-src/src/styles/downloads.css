@@ -1,0 +1,319 @@
+/* Downloads Styles - Ported from public/css/layout.css */
+/* Matches vanilla JS implementation exactly */
+
+.downloads-keywords-container {
+  display: flex;
+  flex-direction: row;
+  gap: 10px; /* Reduced gap for flush appearance */
+  margin: 20px -20px; /* Negative margin to counteract parent padding */
+  padding: 0 20px; /* Add back padding for content */
+  width: calc(100% + 40px); /* Account for negative margins */
+  box-sizing: border-box;
+  max-width: none; /* Allow full width */
+}
+
+/* Key Topics takes 3/5 (60%), Downloads takes 2/5 (40%) */
+.downloads-keywords-container > .document-keywords:not(:only-child) {
+  flex: 0 0 calc(60% - 6px); /* 60% minus proportional gap */
+  min-width: calc(60% - 6px);
+  max-width: calc(60% - 6px);
+  height: 100%; /* Fill container height */
+  display: flex;
+  flex-direction: column; /* Stack content vertically inside */
+}
+
+.downloads-keywords-container > .downloads-section:not(:only-child) {
+  flex: 0 0 calc(40% - 4px); /* 40% minus proportional gap */
+  min-width: calc(40% - 4px);
+  max-width: calc(40% - 4px);
+  height: 100%; /* Fill container height */
+  display: flex;
+  flex-direction: column; /* Stack content vertically inside */
+}
+
+/* When only one is present, it takes 100% width */
+.downloads-keywords-container > .downloads-section:only-child,
+.downloads-keywords-container > .document-keywords:only-child {
+  flex: 1 1 100%;
+  min-width: 100%;
+}
+
+/* Downloads Section - In new container */
+.downloads-keywords-container .downloads-section {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  /* Ensure content fills available height */
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Keywords in new container */
+.downloads-keywords-container .document-keywords {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  /* Ensure content fills available height */
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Legacy: Downloads Section - Inside Welcome Message (kept for backwards compatibility) */
+.downloads-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Unified header styling for downloads and keywords */
+.downloads-keywords-container .downloads-header,
+.downloads-keywords-container .document-keywords-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  margin-top: 0;
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  border-radius: 50px;
+  border: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: default;
+}
+
+.downloads-keywords-container .downloads-header::before,
+.downloads-keywords-container .document-keywords-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.downloads-keywords-container .downloads-header:hover::before,
+.downloads-keywords-container .document-keywords-header:hover::before {
+  left: 100%;
+}
+
+.downloads-keywords-container .downloads-header:hover,
+.downloads-keywords-container .document-keywords-header:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #d1d5db 0%, #e5e7eb 100%);
+}
+
+.downloads-keywords-container .downloads-header:active,
+.downloads-keywords-container .document-keywords-header:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+}
+
+.downloads-header svg,
+.document-keywords-header svg {
+  width: 18px;
+  height: 18px;
+  color: #4b5563;
+  flex-shrink: 0;
+  stroke-width: 3;
+  opacity: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.downloads-keywords-container .downloads-header:hover svg,
+.downloads-keywords-container .document-keywords-header:hover svg {
+  transform: scale(1.15);
+}
+
+.downloads-header span,
+.document-keywords-header .keywords-title {
+  font-weight: 700;
+  color: #374151;
+  letter-spacing: 1.2px;
+  text-shadow: none;
+  position: relative;
+  z-index: 1;
+}
+
+.downloads-list {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.download-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  color: #333;
+  cursor: pointer;
+  width: auto;
+  font-family: inherit;
+}
+
+.download-button:hover {
+  background: #e8f4ff;
+  border-color: var(--accent-color, #007bff);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.download-button:active {
+  transform: translateY(0);
+}
+
+.download-button.downloading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.download-button.error {
+  border-color: #dc3545;
+}
+
+.download-button.error .download-action {
+  color: #dc3545;
+}
+
+.download-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--accent-color, #007bff);
+}
+
+.download-content {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.download-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+}
+
+.download-subtitle {
+  font-size: 12px;
+  color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .downloads-keywords-container {
+    flex-direction: column !important;
+    gap: 15px;
+    margin: 15px 16px !important;
+    padding: 0;
+    width: auto !important;
+  }
+
+  .downloads-keywords-container > .downloads-section,
+  .downloads-keywords-container > .document-keywords {
+    flex: 1 1 100% !important;
+    min-width: 100% !important;
+  }
+
+  .downloads-keywords-container .downloads-section,
+  .downloads-keywords-container .document-keywords {
+    padding: 15px;
+  }
+
+  .downloads-keywords-container .downloads-header,
+  .downloads-keywords-container .document-keywords-header {
+    font-size: 13px;
+    margin-bottom: 18px;
+    padding: 8px 16px;
+    letter-spacing: 0.8px;
+  }
+
+  .download-button {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+
+  .download-title {
+    font-size: 12px;
+  }
+
+  .download-subtitle {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .downloads-keywords-container {
+    margin: 10px 12px !important;
+    gap: 10px;
+  }
+
+  .downloads-keywords-container .downloads-section,
+  .downloads-keywords-container .document-keywords {
+    padding: 15px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .downloads-keywords-container .downloads-header,
+  .downloads-keywords-container .document-keywords-header {
+    background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    color: #f3f4f6;
+  }
+  
+  .downloads-keywords-container .downloads-header:hover,
+  .downloads-keywords-container .document-keywords-header:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  }
+  
+  .downloads-keywords-container .downloads-header:active,
+  .downloads-keywords-container .document-keywords-header:active {
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+  }
+  
+  .downloads-keywords-container .downloads-header svg,
+  .downloads-keywords-container .document-keywords-header svg {
+    color: #d1d5db;
+  }
+  
+  .downloads-keywords-container .downloads-header span,
+  .downloads-keywords-container .document-keywords-header .keywords-title {
+    color: #f3f4f6;
+  }
+}
+
