@@ -10,11 +10,13 @@ import { docutrainIconUrl } from '@/assets';
 
 interface DocumentOwnerModalProps {
   isOpen: boolean;
+  customMessage?: string; // Optional custom message to display (e.g., for document not found)
+  attemptedSlug?: string; // Optional slug that was attempted (for pre-filling input)
 }
 
-export function DocumentOwnerModal({ isOpen }: DocumentOwnerModalProps) {
+export function DocumentOwnerModal({ isOpen, customMessage, attemptedSlug }: DocumentOwnerModalProps) {
   const navigate = useNavigate();
-  const [documentSlug, setDocumentSlug] = useState('');
+  const [documentSlug, setDocumentSlug] = useState(attemptedSlug || '');
   const [ownerSlug, setOwnerSlug] = useState('');
   const [availableOwners, setAvailableOwners] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,12 +40,21 @@ export function DocumentOwnerModal({ isOpen }: DocumentOwnerModalProps) {
       }
       loadOwners();
       
+      // Pre-fill document slug if attemptedSlug is provided
+      if (attemptedSlug) {
+        setDocumentSlug(attemptedSlug);
+      }
+      
       // Focus document input when modal opens
       setTimeout(() => {
         documentInputRef.current?.focus();
+        // Select the text if there's an attempted slug
+        if (attemptedSlug && documentInputRef.current) {
+          documentInputRef.current.select();
+        }
       }, 100);
     }
-  }, [isOpen]);
+  }, [isOpen, attemptedSlug]);
 
   // Clear owner input when typing in document input
   const handleDocumentChange = (value: string) => {
@@ -107,6 +118,32 @@ export function DocumentOwnerModal({ isOpen }: DocumentOwnerModalProps) {
         <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
           Document or Owner Required
         </h2>
+        
+        {/* Custom Message (e.g., document not found) */}
+        {customMessage && (
+          <div className="mb-4 p-4 bg-amber-50 border border-amber-300 rounded-lg">
+            <div className="flex items-start gap-3">
+              <svg 
+                className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" 
+                />
+              </svg>
+              <div className="flex-1">
+                <div className="font-semibold text-amber-900 mb-1">Document Not Found</div>
+                <p className="text-amber-800 text-sm leading-relaxed">{customMessage}</p>
+                <p className="text-amber-700 text-sm mt-2">Please try entering a different document slug or owner information below.</p>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Error Message */}
         {errorMessage && (

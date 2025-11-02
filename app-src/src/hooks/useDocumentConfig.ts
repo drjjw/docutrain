@@ -451,10 +451,16 @@ export function useDocumentConfig(documentSlug: string | null) {
                 // documentSlug is guaranteed to be non-null here due to check above
                 errorCache.set(documentSlug!, true);
                 errorHandledRef.current = documentSlug;
-                setErrorDetails({
-                  type: 'document_not_found',
-                  message: 'Document not found'
-                });
+                const errorMessage = errorData.error || `Document "${documentSlug}" not found`;
+                const errorDetailsValue = {
+                  type: 'document_not_found' as const,
+                  message: errorMessage
+                };
+                errorDetailsCache.set(cacheKey, errorDetailsValue);
+                setErrorDetails(errorDetailsValue);
+                setError(errorMessage);
+                setConfig(null);
+                setLoading(false);
               }
             }
             

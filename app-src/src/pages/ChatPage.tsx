@@ -250,9 +250,12 @@ export function ChatPage() {
   const shouldShowPasscodeModal = errorDetails?.type === 'passcode_required' && !!documentSlug;
   
   // Check if we should show the document/owner selection modal
-  // Show when no document is selected and no owner parameter is present
+  // Show when:
+  // 1. No document is selected and no owner parameter is present, OR
+  // 2. Document was not found (404 error)
   const ownerParam = searchParams.get('owner');
-  const shouldShowDocumentOwnerModal = !documentSlug && !ownerParam;
+  const isDocumentNotFound = errorDetails?.type === 'document_not_found';
+  const shouldShowDocumentOwnerModal = (!documentSlug && !ownerParam) || isDocumentNotFound;
 
   // When owner param is present but no doc is selected, DocumentSelector should show as modal
   // DocumentSelector handles its own modal rendering when in modal mode
@@ -506,7 +509,12 @@ export function ChatPage() {
       )}
       
       {/* Document/Owner Selection Modal - shown when no document is selected and no owner param */}
-      <DocumentOwnerModal isOpen={shouldShowDocumentOwnerModal} />
+      {/* Also shown when document is not found (404) */}
+      <DocumentOwnerModal 
+        isOpen={shouldShowDocumentOwnerModal}
+        customMessage={isDocumentNotFound ? errorDetails?.message : undefined}
+        attemptedSlug={isDocumentNotFound ? documentSlug || undefined : undefined}
+      />
       
       {/* Document Selector Modal - shown when owner param is present but no doc is selected */}
       {/* DocumentSelector renders its own modal via portal when in modal mode */}
