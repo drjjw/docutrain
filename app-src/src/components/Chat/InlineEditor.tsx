@@ -246,7 +246,8 @@ export function InlineEditor({
   const isHeaderTitle = id === 'headerTitle';
   const isWelcomeTitle = id === 'welcomeTitle';
   const isHeaderSubtitle = id === 'headerSubtitle';
-  const Element = isTitle ? 'h1' : (isSubtitle ? 'p' : 'span');
+  // welcomeTitle should be h2 (not h1) to avoid duplicate h1 tags - headerTitle is the page h1
+  const Element = isHeaderTitle ? 'h1' : (isWelcomeTitle ? 'h2' : (isTitle ? 'h1' : (isSubtitle ? 'p' : 'span')));
 
   // For headerTitle, welcomeTitle, and headerSubtitle, use inline positioning (beside text)
   // For others, use absolute positioning

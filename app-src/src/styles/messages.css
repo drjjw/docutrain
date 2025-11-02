@@ -84,11 +84,25 @@
   line-height: 1.6;
 }
 
-.message.assistant .message-content strong {
+/* Welcome title styling - h2 element with larger font size */
+.message.assistant .message-content #welcomeTitle {
   font-weight: 600;
   color: #333;
   font-size: 1.5em;
   line-height: 1.5;
+  margin: 0;
+}
+
+/* Mobile responsive: scale down welcome title on smaller screens */
+@media (max-width: 768px) {
+  .message.assistant .message-content #welcomeTitle {
+    font-size: 1.25em;
+  }
+}
+
+.message.assistant .message-content strong {
+  font-weight: 600;
+  color: #333;
 }
 
 /* Mobile responsive: scale down strong text on smaller screens */

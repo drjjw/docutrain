@@ -16,6 +16,18 @@ interface WelcomeMessageProps {
 }
 
 /**
+ * Convert h1 tags to h2 tags in HTML content to maintain proper heading hierarchy
+ * Page title is h1, so welcome content should use h2 or lower
+ */
+function convertH1ToH2(html: string): string {
+  if (!html) return html;
+  // Replace opening and closing h1 tags with h2
+  return html
+    .replace(/<h1\b([^>]*)>/gi, '<h2$1>')
+    .replace(/<\/h1>/gi, '</h2>');
+}
+
+/**
  * Save document field via API
  */
 async function saveDocumentField(
@@ -92,9 +104,9 @@ export function WelcomeMessage({ welcomeMessage, introMessage, documentSlug }: W
               style={{ fontWeight: 'bold', display: 'block', marginBottom: introMessage ? '12px' : '0' }}
             />
           ) : (
-            <strong id="welcomeTitle" className="loading-text">
+            <h2 id="welcomeTitle" className="loading-text">
               {welcomeMessage}
-            </strong>
+            </h2>
           )}
           {introMessage !== null && introMessage !== undefined && (
             canEdit ? (
@@ -109,7 +121,7 @@ export function WelcomeMessage({ welcomeMessage, introMessage, documentSlug }: W
             ) : (
               <div 
                 id="welcomeIntroContent"
-                dangerouslySetInnerHTML={{ __html: introMessage }}
+                dangerouslySetInnerHTML={{ __html: convertH1ToH2(introMessage) }}
               />
             )
           )}
