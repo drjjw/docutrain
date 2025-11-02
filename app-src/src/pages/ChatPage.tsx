@@ -622,19 +622,23 @@ export function ChatPage() {
               documentSlug={documentSlug}
             />
             {/* Downloads and Keywords - shown below cover and welcome */}
-            <DownloadsAndKeywords
-              keywords={docConfig.keywords}
-              downloads={docConfig.downloads}
-              isMultiDoc={false}
-              inputRef={inputRef}
-              onKeywordClick={(term) => {
-                setInputValue(`Tell me about ${term}`);
-                // Focus the input after state update
-                setTimeout(() => {
-                  inputRef.current?.focus();
-                }, 0);
-              }}
-            />
+            {/* Only show if at least one of keywords or downloads should be displayed */}
+            {/* Hide only if both are explicitly set to false */}
+            {(docConfig.showKeywords !== false || docConfig.showDownloads !== false) && (
+              <DownloadsAndKeywords
+                keywords={docConfig.showKeywords !== false ? docConfig.keywords : undefined}
+                downloads={docConfig.showDownloads !== false ? docConfig.downloads : undefined}
+                isMultiDoc={false}
+                inputRef={inputRef}
+                onKeywordClick={(term) => {
+                  setInputValue(`Tell me about ${term}`);
+                  // Focus the input after state update
+                  setTimeout(() => {
+                    inputRef.current?.focus();
+                  }, 0);
+                }}
+              />
+            )}
           </>
         )}
 

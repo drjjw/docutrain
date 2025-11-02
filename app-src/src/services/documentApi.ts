@@ -23,6 +23,7 @@ export interface DocumentInfo {
 
 export interface DocumentsResponse {
   documents: DocumentInfo[];
+  cacheVersion?: number; // Server cache version for client-side invalidation
 }
 
 export function getAPIUrl(): string {
@@ -85,20 +86,38 @@ export async function fetchDocuments(options?: {
     apiUrl += `passcode=${encodeURIComponent(passcode)}`;
   }
   
-  // Check cache first
+  // Check cache first - but validate cache version if available
   if (!forceRefresh) {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
-      const { documents, timestamp } = JSON.parse(cached);
-      const age = Date.now() - timestamp;
-      if (age < CACHE_TTL) {
-        console.log('📦 Using cached documents');
-        return { documents };
+      try {
+        const cacheData = JSON.parse(cached);
+        const { documents, timestamp, cacheVersion: cachedVersion } = cacheData;
+        const age = Date.now() - timestamp;
+        
+        // Check if cache is still valid (not expired)
+        if (age < CACHE_TTL) {
+          // If cache version exists, we need to validate it hasn't changed
+          // Make a lightweight fetch to check version (only if we have a cached version)
+          if (cachedVersion) {
+            // Fetch fresh data to check cache version
+            // This ensures we don't use stale cache after admin updates
+            console.log('🔄 Checking cache version before using cached data...');
+            // Continue to fetch below to validate cache version
+          } else {
+            // No cache version stored - use cache but will update with version on next fetch
+            console.log('📦 Using cached documents (no version check)');
+            return { documents, cacheVersion: cachedVersion };
+          }
+        }
+      } catch (e) {
+        // Invalid cache data, remove it
+        localStorage.removeItem(cacheKey);
       }
     }
   }
   
-  // Fetch from API
+  // Fetch from API (either cache expired, forceRefresh, or version check needed)
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   const token = getAuthToken();
   if (token) {
@@ -114,11 +133,30 @@ export async function fetchDocuments(options?: {
   
   const data: DocumentsResponse = await response.json();
   
-  // Cache the result
+  // Check if server cache version changed (cache invalidation)
+  const cached = localStorage.getItem(cacheKey);
+  if (cached && data.cacheVersion) {
+    try {
+      const cacheData = JSON.parse(cached);
+      const cachedVersion = cacheData.cacheVersion;
+      
+      // If server version is newer or different, cache was invalidated
+      if (cachedVersion && data.cacheVersion !== cachedVersion) {
+        console.log(`🔄 Cache version mismatch (cached: ${cachedVersion}, server: ${data.cacheVersion}) - cache was stale, using fresh data`);
+        // Clear all related caches to ensure fresh data
+        clearAllDocumentCaches();
+      }
+    } catch (e) {
+      // Ignore cache version check errors
+    }
+  }
+  
+  // Cache the result with cache version
   try {
     localStorage.setItem(cacheKey, JSON.stringify({
       documents: data.documents,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      cacheVersion: data.cacheVersion
     }));
   } catch (e) {
     console.warn('Failed to cache documents:', e);

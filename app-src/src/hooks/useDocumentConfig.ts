@@ -9,6 +9,7 @@ import { useAuth } from './useAuth';
 import { usePermissions } from './usePermissions';
 
 import { registerDocumentCaches, clearDocumentConfigCaches as clearCaches } from '@/utils/documentCache';
+import { clearAllDocumentCaches } from '@/services/documentApi';
 
 // Module-level tracking to prevent duplicate requests across hook instances
 const pendingRequests = new Map<string, Promise<DocumentConfig | null>>();
@@ -62,6 +63,8 @@ interface DocumentConfig {
   category?: string;
   year?: string;
   showDocumentSelector?: boolean;
+  showKeywords?: boolean;
+  showDownloads?: boolean;
   keywords?: Keyword[];
   downloads?: Download[];
   ownerInfo?: {
@@ -114,17 +117,28 @@ export function useDocumentConfig(documentSlug: string | null) {
 
   // Set up document-updated event listener (separate from main effect to avoid re-registering)
   useEffect(() => {
-    const handleDocumentUpdate = () => {
-      devLog(`[useDocumentConfig] document-updated event received, clearing caches and incrementing forceRefreshCounter`);
+    const handleDocumentUpdate = (event: Event) => {
+      // Handle both regular Event and CustomEvent
+      const customEvent = event as CustomEvent<{ documentSlug?: string }>;
+      const updatedSlug = customEvent.detail?.documentSlug;
       
-      // Clear all caches for this document
-      if (documentSlug) {
-        errorCache.delete(documentSlug);
+      devLog(`[useDocumentConfig] document-updated event received, clearing caches and incrementing forceRefreshCounter`, {
+        documentSlug,
+        updatedSlug
+      });
+      
+      // Clear caches for both current document slug and updated slug (in case slug changed)
+      const slugsToClear = [documentSlug, updatedSlug].filter(Boolean) as string[];
+      
+      slugsToClear.forEach(slug => {
+        if (!slug) return;
+        
+        errorCache.delete(slug);
         
         // Clear all config cache entries for this document (all user IDs and passcodes)
         const keysToDelete: string[] = [];
         configCache.forEach((_, key) => {
-          if (key.startsWith(`${documentSlug}:`)) {
+          if (key.startsWith(`${slug}:`)) {
             keysToDelete.push(key);
           }
         });
@@ -136,21 +150,54 @@ export function useDocumentConfig(documentSlug: string | null) {
         // Clear error details cache
         const errorKeysToDelete: string[] = [];
         errorDetailsCache.forEach((_, key) => {
-          if (key.startsWith(`${documentSlug}:`)) {
+          if (key.startsWith(`${slug}:`)) {
             errorKeysToDelete.push(key);
           }
         });
         errorKeysToDelete.forEach(key => errorDetailsCache.delete(key));
-      }
+        
+        // Clear localStorage cache for this document
+        const documentCacheKeys: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (
+            key.startsWith('docutrain-documents-cache') || 
+            key.startsWith('ukidney-documents-cache')
+          ) && key.includes(slug)) {
+            documentCacheKeys.push(key);
+          }
+        }
+        documentCacheKeys.forEach(key => {
+          localStorage.removeItem(key);
+          devLog(`[useDocumentConfig] Cleared localStorage cache key: ${key}`);
+        });
+        
+        // Also clear any other localStorage keys that might contain the slug (case-insensitive)
+        // This handles edge cases or library-specific cache keys
+        const additionalKeysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.toLowerCase().includes(slug.toLowerCase())) {
+            // Skip keys we already cleared above
+            if (!documentCacheKeys.includes(key)) {
+              additionalKeysToRemove.push(key);
+            }
+          }
+        }
+        additionalKeysToRemove.forEach(key => {
+          localStorage.removeItem(key);
+          devLog(`[useDocumentConfig] Cleared additional cache key containing slug: ${key}`);
+        });
+      });
       
       // Increment counter to trigger re-fetch
       setForceRefreshCounter(prev => prev + 1);
     };
 
-    window.addEventListener('document-updated', handleDocumentUpdate);
+    window.addEventListener('document-updated', handleDocumentUpdate as EventListener);
     
     return () => {
-      window.removeEventListener('document-updated', handleDocumentUpdate);
+      window.removeEventListener('document-updated', handleDocumentUpdate as EventListener);
     };
   }, [documentSlug]); // Include documentSlug so we clear the right caches
 
@@ -286,7 +333,11 @@ export function useDocumentConfig(documentSlug: string | null) {
         const cachedConfig = (!user || forceRefreshParam) ? null : configCache.get(cacheKey);
         const cachedErrorDetails = errorDetailsCache.get(cacheKey); // Check for cached error details
         devLog(`[useDocumentConfig] Cache check: user=${user?.id || 'null'}, cacheKey=${cacheKey}, forceRefresh=${forceRefreshParam}, cachedConfig=${cachedConfig ? 'EXISTS' : 'NONE'}, cachedErrorDetails=${cachedErrorDetails ? 'EXISTS' : 'NONE'}, willUseCache=${!!cachedConfig && !!user && !forceRefreshParam}`);
-        if (cachedConfig && !forceRefreshParam) {
+        
+        // IMPORTANT: If we're forcing refresh or cache was cleared, skip using cached config
+        // This ensures document updates are immediately visible
+        // Also: Don't use cache if forceRefreshCounter was incremented (document was updated)
+        if (cachedConfig && !forceRefreshParam && user && forceRefreshCounter === 0) {
           devLog(`[useDocumentConfig] Using cached config for: ${cacheKey}`);
           setConfig(cachedConfig);
           setLoading(false);
@@ -296,9 +347,9 @@ export function useDocumentConfig(documentSlug: string | null) {
           return;
         }
         
-        // If forceRefresh is requested, also clear the in-memory cache for this document
-        if (forceRefreshParam && cachedConfig) {
-          devLog(`[useDocumentConfig] forceRefresh=true - clearing in-memory cached config for: ${cacheKey}`);
+        // If forceRefresh is requested or counter was incremented, clear the in-memory cache for this document
+        if ((forceRefreshParam || forceRefreshCounter > 0) && cachedConfig) {
+          devLog(`[useDocumentConfig] forceRefresh=${forceRefreshParam} or counter=${forceRefreshCounter} - clearing in-memory cached config for: ${cacheKey}`);
           configCache.delete(cacheKey);
         }
         
@@ -552,8 +603,43 @@ export function useDocumentConfig(documentSlug: string | null) {
         const data = await response.json();
         devLog(`[useDocumentConfig] Response data:`, data);
         const documents = data.documents || [];
+        const serverCacheVersion = data.cacheVersion;
         devLog(`[useDocumentConfig] Documents array length: ${documents.length}, looking for slug: ${documentSlug}`);
         devLog(`[useDocumentConfig] Current user: ${user?.id || 'null (logged out)'}`);
+        devLog(`[useDocumentConfig] Server cache version: ${serverCacheVersion || 'not provided'}`);
+        
+        // Check if server cache version changed (cache invalidation)
+        // If cache version is newer, clear our in-memory cache to force fresh data
+        if (serverCacheVersion && configCache.has(cacheKey)) {
+          const cachedConfig = configCache.get(cacheKey);
+          // If we have a cached version stored, compare it
+          // For now, if server version exists and is different, clear cache
+          // This ensures all users get fresh data when admin updates documents
+          devLog(`[useDocumentConfig] Server cache version check: ${serverCacheVersion}`);
+          // Clear cache for this document to ensure fresh data
+          configCache.delete(cacheKey);
+          devLog(`[useDocumentConfig] Cleared in-memory cache due to cache version change`);
+        }
+        
+        // Also check localStorage cache version and clear if stale
+        if (serverCacheVersion) {
+          const localStorageCacheKey = `docutrain-documents-cache-v1-doc-${documentSlug}`;
+          const cached = localStorage.getItem(localStorageCacheKey);
+          if (cached) {
+            try {
+              const cacheData = JSON.parse(cached);
+              const cachedVersion = cacheData.cacheVersion;
+              if (cachedVersion && serverCacheVersion !== cachedVersion) {
+                devLog(`[useDocumentConfig] localStorage cache version mismatch - clearing`);
+                localStorage.removeItem(localStorageCacheKey);
+                // Also clear related cache keys
+                clearAllDocumentCaches();
+              }
+            } catch (e) {
+              // Ignore cache check errors
+            }
+          }
+        }
         
         // Find the document with matching slug
         const doc = documents.find((d: DocumentConfig) => d.slug === documentSlug);

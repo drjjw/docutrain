@@ -5,6 +5,8 @@ import { Alert } from '@/components/UI/Alert';
 import { Toggle } from '@/components/UI/Toggle';
 import { DocumentEditorModal } from './DocumentEditorModal';
 import { getDocuments, deleteDocument, getOwners, updateDocument } from '@/lib/supabase/admin';
+import { clearAllDocumentCaches } from '@/services/documentApi';
+import { clearDocumentConfigCaches } from '@/utils/documentCache';
 import type { DocumentWithOwner, Owner } from '@/types/admin';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -189,6 +191,33 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
       // Include slug in updates as required by the API endpoint
       await updateDocument(doc.id, { active: newActive, slug: doc.slug });
       
+      // Clear ALL caches immediately (synchronously) before dispatching event
+      clearAllDocumentCaches(); // Clear localStorage caches (docutrain-documents-cache, ukidney-documents-cache)
+      clearDocumentConfigCaches(); // Clear in-memory caches in useDocumentConfig hook
+      
+      // Also clear any cache keys that might contain the document slug (case-insensitive)
+      // This handles any edge cases or library-specific cache keys
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.toLowerCase().includes(doc.slug.toLowerCase())) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => {
+          localStorage.removeItem(key);
+          console.log(`🗑️ Cleared cache key containing slug: ${key}`);
+        });
+      }
+      
+      // Dispatch event to trigger refresh in other tabs/components
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('document-updated', {
+          detail: { documentSlug: doc.slug }
+        }));
+      }, 200);
+      
       // Update the document in state
       setDocuments(prevDocs => 
         prevDocs.map(d => 
@@ -223,8 +252,10 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
           disabled={isUpdating}
           size="sm"
         />
-        <span className={`text-xs font-semibold ${isActive ? 'text-green-700' : 'text-gray-600'}`}>
-          {isActive ? 'Active' : 'Inactive'}
+        <span className={`inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200/50 shadow-sm text-center`}>
+          <span className={`text-xs font-semibold ${isActive ? 'text-green-700' : 'text-gray-600'}`}>
+            {isActive ? 'Active' : 'Inactive'}
+          </span>
         </span>
       </div>
     );
@@ -234,16 +265,16 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
     switch (accessLevel) {
       case 'public':
         return (
-          <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-100 to-[#65ccff]/30 text-blue-800 border border-blue-200/50 shadow-sm">
-            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
+          <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200/50 shadow-sm text-center gap-1.5">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 002 2h2.945M11 3.055V5a2 2 0 002 2h1M13 13v2.945M20.945 13H19a2 2 0 00-2-2v-1a2 2 0 00-2-2 2 2 0 00-2-2H9.055M11 20.945V19a2 2 0 002-2v-1a2 2 0 002 2h2.945M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Public
           </span>
         );
       case 'passcode':
         return (
-          <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-[#65ccff]/30 to-[#3399ff]/20 text-[#3399ff] border border-[#65ccff]/50 shadow-sm">
+          <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#65ccff]/30 text-[#3399ff] border border-[#65ccff]/50 shadow-sm text-center">
             <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
             </svg>
@@ -252,7 +283,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
         );
       case 'registered':
         return (
-          <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200/50 shadow-sm">
+          <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-100 text-green-800 border border-green-200/50 shadow-sm text-center">
             <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
@@ -261,16 +292,16 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
         );
       case 'owner_restricted':
         return (
-          <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border border-yellow-200/50 shadow-sm">
-            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200/50 shadow-sm text-center gap-1.5">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            Owner Restricted
+            Owner
           </span>
         );
       case 'owner_admin_only':
         return (
-          <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-200/50 shadow-sm">
+          <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-100 text-red-800 border border-red-200/50 shadow-sm text-center">
             <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
@@ -279,7 +310,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
         );
       default:
         return (
-          <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-200/50 shadow-sm">
+          <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200/50 shadow-sm text-center">
             Unknown
           </span>
         );
@@ -497,14 +528,14 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
       <div className="space-y-4">
         {/* Search Bar - Full width on mobile */}
         <div className="relative w-full">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
             <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
           <input
             type="text"
-            placeholder="Search documents..."
+            placeholder="Search documents ..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="block w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl leading-5 bg-white/80 backdrop-blur-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm hover:shadow-md transition-all duration-200 sm:text-sm"
@@ -542,7 +573,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
               <option value="public">Public</option>
               <option value="passcode">Passcode</option>
               <option value="registered">Registered</option>
-              <option value="owner_restricted">Owner Restricted</option>
+              <option value="owner_restricted">Owner</option>
               <option value="owner_admin_only">Owner Admins Only</option>
             </select>
             <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
@@ -626,10 +657,10 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
             Documents ({paginatedDocuments.length} of {filteredDocuments.length}{filteredDocuments.length !== documents.length ? ` total` : ''})
           </h3>
           <div className="flex gap-2">
-            <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200/50 shadow-sm">
+            <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-100 text-green-800 border border-green-200/50 shadow-sm text-center">
               {filteredDocuments.filter(doc => doc.active ?? false).length} Active
             </span>
-            <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-100 to-[#65ccff]/30 text-blue-800 border border-blue-200/50 shadow-sm">
+            <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200/50 shadow-sm text-center">
               {filteredDocuments.filter(doc => (doc.access_level || 'public') === 'public').length} Public
             </span>
           </div>
@@ -654,7 +685,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
       {/* Documents Grid/List */}
       {paginatedDocuments.length === 0 ? (
         <div className="text-center py-20">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shadow-inner">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gray-100 flex items-center justify-center shadow-inner">
             <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
@@ -669,7 +700,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
       ) : (
         <div className="space-y-4">
           {/* Table Header Row */}
-          <div className="hidden lg:grid grid-cols-12 gap-4 px-5 py-4 bg-gradient-to-r from-gray-50/80 to-gray-100/50 backdrop-blur-sm rounded-xl border border-gray-200/60 shadow-sm">
+          <div className="hidden lg:grid grid-cols-12 gap-4 px-5 py-4 bg-gray-50 rounded-xl border border-gray-200/60 shadow-sm">
             <div className="col-span-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Document</div>
             <div className="col-span-2 text-xs font-bold text-gray-600 uppercase tracking-wider">Status</div>
             <div className="col-span-2 text-xs font-bold text-gray-600 uppercase tracking-wider">Visibility</div>
@@ -691,7 +722,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-[#65ccff]/30 flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 shadow-sm">
                         <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
@@ -711,7 +742,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                       </div>
                       {renderVisibilityBadge(doc.access_level || 'public')}
                       {doc.category && (
-                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-200/50 shadow-sm">
+                        <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200/50 shadow-sm text-center">
                           {doc.category}
                         </span>
                       )}
@@ -733,7 +764,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                 {/* Document Info */}
                 <div className="col-span-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-[#65ccff]/30 flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 shadow-sm">
                       <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
@@ -767,7 +798,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                 {/* Category */}
                 <div className="col-span-2 flex items-center">
                   {doc.category ? (
-                    <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-200/50 shadow-sm">
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200/50 shadow-sm">
                       {doc.category}
                     </span>
                   ) : null}
@@ -775,11 +806,11 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
 
                 {/* Owner (Super Admin only) */}
                 {isSuperAdmin && (
-                  <div className="col-span-1 flex items-center min-w-0 w-full">
+                  <div className="col-span-1 flex items-center justify-center min-w-0 w-full">
                     {doc.owners?.name ? (
                       <div className="relative group w-full min-w-0">
                         <span 
-                          className="inline-block px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200 shadow-sm overflow-hidden text-ellipsis whitespace-nowrap w-full"
+                          className="inline-block px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200 shadow-sm overflow-hidden text-ellipsis whitespace-nowrap w-full text-center"
                         >
                           {doc.owners.name}
                         </span>
@@ -805,7 +836,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
 
       {/* Pagination Controls */}
       {filteredDocuments.length > 0 && totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-gray-200/60 bg-gradient-to-r from-gray-50/50 to-white/80 backdrop-blur-sm px-5 py-4 sm:px-6 rounded-b-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-gray-200/60 bg-gray-50 px-5 py-4 sm:px-6 rounded-b-xl">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-700">
             <span className="font-bold">Page {currentPage} of {totalPages}</span>
             <span className="text-gray-600 text-xs sm:text-sm font-medium">
@@ -844,7 +875,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                     onClick={() => setCurrentPage(pageNum)}
                     className={`relative inline-flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 ${
                       currentPage === pageNum
-                        ? 'text-white bg-gradient-to-r from-[#3399ff] to-[#65ccff] border border-[#3399ff] shadow-md shadow-[#3399ff]/30'
+                        ? 'text-white bg-[#3399ff] border border-[#3399ff] shadow-md shadow-[#3399ff]/30'
                         : 'text-gray-700 bg-white/80 backdrop-blur-sm border border-gray-200 hover:bg-gray-50 hover:shadow-md hover:border-gray-300'
                     }`}
                   >

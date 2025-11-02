@@ -7,6 +7,8 @@ import { FileUploadManager } from './FileUploadManager';
 import { CoverImageUploader } from './CoverImageUploader';
 import { DocumentRetrainer } from './DocumentRetrainer';
 import { updateDocument, checkSlugUniqueness } from '@/lib/supabase/admin';
+import { clearAllDocumentCaches } from '@/services/documentApi';
+import { clearDocumentConfigCaches } from '@/utils/documentCache';
 import type { DocumentWithOwner, Owner, DocumentAccessLevel } from '@/types/admin';
 
 interface DocumentEditorModalProps {
@@ -97,6 +99,8 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         cover: document.cover || '',
         chunk_limit_override: document.chunk_limit_override,
         show_document_selector: document.show_document_selector || false,
+        show_keywords: document.show_keywords !== false,
+        show_downloads: document.show_downloads !== false,
         active: document.active ?? true,
         access_level: document.access_level || 'public',
         passcode: document.passcode || '',
@@ -131,6 +135,37 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
       }
 
       await updateDocument(document.id, editingValues);
+      
+      // Clear ALL caches immediately (synchronously) before dispatching event
+      // This ensures changes are visible immediately, even if event listener hasn't fired yet
+      clearAllDocumentCaches(); // Clear localStorage caches (docutrain-documents-cache, ukidney-documents-cache)
+      clearDocumentConfigCaches(); // Clear in-memory caches in useDocumentConfig hook
+      
+      // Also clear any cache keys that might contain the document slug (case-insensitive)
+      // This handles any edge cases or library-specific cache keys
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const documentSlug = editingValues.slug || document.slug;
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.toLowerCase().includes(documentSlug.toLowerCase())) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => {
+          localStorage.removeItem(key);
+          console.log(`🗑️ Cleared cache key containing slug: ${key}`);
+        });
+      }
+      
+      // Dispatch document-updated event with slug so listeners can clear the right cache
+      // Use a small delay to ensure backend cache refresh completes
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('document-updated', {
+          detail: { documentSlug: editingValues.slug || document.slug }
+        }));
+      }, 200);
+      
       onSave();
     } catch (error) {
       console.error('Failed to save document:', error);
@@ -612,7 +647,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                             />
                             <div className="flex items-center gap-2 mb-1">
                               <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 002 2h2.945M11 3.055V5a2 2 0 002 2h1M13 13v2.945M20.945 13H19a2 2 0 00-2-2v-1a2 2 0 00-2-2 2 2 0 00-2-2H9.055M11 20.945V19a2 2 0 002-2v-1a2 2 0 002 2h2.945M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                               <span className="font-medium text-gray-900">Public</span>
                             </div>
@@ -748,23 +783,15 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                         )}
                       </div>
 
-                  {/* Configuration Settings */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div>
-                      <h5 className="text-sm font-medium text-gray-900 mb-4 flex items-center gap-2">
-                        <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        Configuration
-                      </h5>
-                      <div className="space-y-4">
-                        {renderField('show_document_selector', 'Document Selector', 'toggle', {
-                          description: 'Show a document selection interface in the chat interface'
-                        })}
-                      </div>
-                    </div>
-
+                  {/* Technical Configuration */}
+                  <div className="mb-6">
+                    <h5 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Technical Configuration
+                    </h5>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-3">Chunk Limit Override</label>
                       <div className="max-w-xs">
@@ -775,6 +802,31 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                       </p>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* UI Configuration Card */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="px-6 py-4 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <h4 className="text-lg font-semibold text-gray-900">UI Configuration</h4>
+                  </div>
+                </div>
+                <div className="px-6 py-4 space-y-4">
+                  {renderField('show_document_selector', 'Document Selector', 'toggle', {
+                    description: 'Show a document selection interface in the chat interface'
+                  })}
+                  {renderField('show_keywords', 'Show Keywords Cloud', 'toggle', {
+                    description: 'Display the keywords cloud in the chat interface'
+                  })}
+                  {renderField('show_downloads', 'Show Downloads Section', 'toggle', {
+                    description: 'Display the downloads section in the chat interface'
+                  })}
                 </div>
               </div>
 

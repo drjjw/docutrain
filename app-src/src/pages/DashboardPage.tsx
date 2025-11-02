@@ -164,7 +164,7 @@ export function DashboardPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             {/* User Avatar or Owner Logo */}
             {!isSuperAdmin && hasAdminAccess && ownerGroups.length > 0 && ownerGroups[0].owner_logo_url ? (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200/60 shadow-sm flex items-center justify-center flex-shrink-0 p-3 transition-transform duration-300 hover:scale-105">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-white border-2 border-gray-200/60 shadow-sm flex items-center justify-center flex-shrink-0 p-3 transition-transform duration-300 hover:scale-105">
                 <img 
                   src={ownerGroups[0].owner_logo_url} 
                   alt={ownerGroups[0].owner_name} 
@@ -173,12 +173,12 @@ export function DashboardPage() {
                 />
               </div>
             ) : (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-gradient-to-br from-[#3399ff] to-[#65ccff] flex items-center justify-center text-xl sm:text-2xl font-bold text-white flex-shrink-0 shadow-lg shadow-[#3399ff]/30 transition-transform duration-300 hover:scale-105">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-[#3399ff] flex items-center justify-center text-xl sm:text-2xl font-bold text-white flex-shrink-0 shadow-lg shadow-[#3399ff]/30 transition-transform duration-300 hover:scale-105">
                 {getUserInitials()}
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                 Welcome back!
               </h1>
               <p className="text-base sm:text-lg text-gray-600 break-words font-medium mb-3">
@@ -252,7 +252,7 @@ export function DashboardPage() {
         ) : activeTab === 'documents' ? (
           <div className="space-y-6">
             {/* Access Level Info */}
-            <div className="bg-gradient-to-r from-blue-50 via-[#65ccff]/10 to-blue-50 border border-blue-200/60 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
+            <div className="bg-blue-50 border border-blue-200/60 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
               <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -278,7 +278,7 @@ export function DashboardPage() {
 
             {/* Upload Section */}
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
-              <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/80">
+              <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
                   <svg className="w-5 h-5 text-[#3399ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -313,7 +313,7 @@ export function DashboardPage() {
             {/* Processing Status - Only show when there are active documents */}
             {/* Always render the table (hidden) so ref is available for checking status */}
             <div className={hasActiveDocuments ? 'bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300' : 'hidden'}>
-              <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/80">
+              <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
                   <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -334,7 +334,7 @@ export function DashboardPage() {
 
             {/* Documents Table */}
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
-              <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/80">
+              <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
                   <svg className="w-5 h-5 text-[#3399ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -353,7 +353,7 @@ export function DashboardPage() {
         ) : (
           <div className="space-y-6">
             {/* Access Level Info for Users Tab */}
-            <div className="bg-gradient-to-r from-blue-50 via-[#65ccff]/10 to-blue-50 border border-blue-200/60 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
+            <div className="bg-blue-50 border border-blue-200/60 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
               <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -367,7 +367,7 @@ export function DashboardPage() {
 
             {/* Users Table */}
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
-              <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/80">
+              <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
                   <svg className="w-5 h-5 text-[#3399ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />

@@ -59,10 +59,23 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
     setIsOpen(isModalMode);
   }, [isModalMode]); // Set isOpen directly based on isModalMode
   
-  // Synchronous check to prevent flashing during navigation
-  // If we have doc param but no owner param, immediately hide (transitioning out of owner mode)
-  // This prevents the race condition where shouldShow state hasn't updated yet
-  const shouldHideImmediately = !!docParam && !ownerParam && documentSelectorParam !== 'true';
+  // Track if we're transitioning FROM owner mode (had owner param previously)
+  // This prevents flashing when navigating away from owner mode
+  const [wasInOwnerMode, setWasInOwnerMode] = useState(false);
+
+  // Update wasInOwnerMode when we detect owner mode
+  useEffect(() => {
+    if (!!ownerParam && !docParam) {
+      setWasInOwnerMode(true);
+    } else if (docParam && !ownerParam && wasInOwnerMode) {
+      // We're transitioning out of owner mode - reset after a brief delay
+      setTimeout(() => setWasInOwnerMode(false), 100);
+    }
+  }, [ownerParam, docParam, wasInOwnerMode]);
+
+  // Only hide immediately if we're actually transitioning FROM owner mode TO a document
+  // Don't hide if we're just viewing a normal document (that's the normal case)
+  const shouldHideImmediately = !!docParam && !ownerParam && wasInOwnerMode && documentSelectorParam !== 'true';
 
   // Reset shouldShow immediately when transitioning out of owner mode (prevents flash)
   useEffect(() => {
@@ -136,7 +149,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
         } else if (currentDocSlug) {
           // Check database value for current document
           const currentDoc = loadedDocuments.find((d: Document) => d.slug === currentDocSlug);
-          showSelector = currentDoc?.showDocumentSelector || false;
+          showSelector = currentDoc?.showDocumentSelector !== false; // Default to true if not explicitly false
         }
 
         setShouldShow(showSelector);
@@ -317,6 +330,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
   }, [isOpen]);
 
   // Hide immediately if transitioning out of owner mode (prevents flash)
+  // Only hide if we actually had an owner param before (not just a normal document view)
   if (shouldHideImmediately && !inline) {
     return null;
   }

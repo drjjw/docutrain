@@ -75,7 +75,8 @@ const supabase = createClient(
 let documentCache = {
     documents: [],
     lastUpdated: null,
-    ttl: 5 * 60 * 1000 // 5 minutes cache TTL
+    ttl: 5 * 60 * 1000, // 5 minutes cache TTL
+    cacheVersion: Date.now() // Cache version for client-side invalidation
 };
 
 /**
@@ -123,6 +124,8 @@ async function loadDocuments(forceRefresh = false) {
                 downloads,
                 chunk_limit_override,
                 show_document_selector,
+                show_keywords,
+                show_downloads,
                 owners!documents_owner_id_fkey (
                     intro_message,
                     slug,
@@ -171,6 +174,7 @@ async function loadDocuments(forceRefresh = false) {
         documentCache.lastUpdated = now;
         
         console.log(`✓ Loaded ${processedData.length} active documents from registry`);
+        console.log(`📦 Cache version: ${documentCache.cacheVersion}`);
         processedData.forEach(doc => {
             console.log(`  - ${doc.slug}: ${doc.title} (${doc.embedding_type})`);
         });
@@ -223,6 +227,8 @@ function getDocumentPath(doc) {
  */
 async function refreshRegistry() {
     console.log('🔄 Forcing registry refresh...');
+    // Increment cache version when registry is refreshed
+    documentCache.cacheVersion = Date.now();
     return await loadDocuments(true);
 }
 
@@ -414,7 +420,9 @@ async function getDocumentsForAPI() {
             metadata: doc.metadata || {},
             keywords: keywords, // Extract keywords for easy access
             downloads: doc.downloads || [], // Download URLs for the document
-            showDocumentSelector: doc.show_document_selector || false, // Controls document selector visibility
+            showDocumentSelector: doc.show_document_selector !== false, // Controls document selector visibility (default true)
+            showKeywords: doc.show_keywords !== false, // Controls keywords visibility (default true)
+            showDownloads: doc.show_downloads !== false, // Controls downloads visibility (default true)
             ownerInfo: ownerInfo ? {
                 slug: ownerInfo.slug,
                 name: ownerInfo.name
@@ -464,6 +472,7 @@ module.exports = {
     getDocumentsForAPI,
     clearCache,
     getCacheStats,
-    sanitizeIntroHTML
+    sanitizeIntroHTML,
+    getCacheVersion: () => documentCache.cacheVersion
 };
 

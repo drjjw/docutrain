@@ -56,6 +56,8 @@ export interface Document {
   downloads?: DownloadLink[];
   chunk_limit_override?: number;
   show_document_selector?: boolean;
+  show_keywords?: boolean;
+  show_downloads?: boolean;
   access_level?: DocumentAccessLevel;
   passcode?: string;
   uploaded_by_user_id?: string;
