@@ -14,6 +14,7 @@ interface DownloadsAndKeywordsProps {
   isMultiDoc?: boolean;
   documentTitles?: string[]; // For multi-doc scenarios
   inputRef?: React.RefObject<HTMLInputElement | null>; // For keyword click handling
+  onKeywordClick?: (term: string) => void; // Callback for keyword clicks
 }
 
 /**
@@ -65,6 +66,7 @@ export function DownloadsAndKeywords({
   isMultiDoc = false,
   documentTitles = [],
   inputRef,
+  onKeywordClick,
 }: DownloadsAndKeywordsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const hasKeywords = keywords && keywords.length > 0;
@@ -116,7 +118,7 @@ export function DownloadsAndKeywords({
       style={{ display: hasKeywords || hasDownloads ? 'flex' : 'none' }}
     >
       {hasKeywords && (
-        <KeywordsCloud keywords={keywords} inputRef={inputRef} />
+        <KeywordsCloud keywords={keywords} inputRef={inputRef} onKeywordClick={onKeywordClick} />
       )}
       {hasDownloads && downloadsWithTitles && (
         <DownloadsSection downloads={downloadsWithTitles} isMultiDoc={isMultiDoc} />

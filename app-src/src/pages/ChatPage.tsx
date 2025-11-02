@@ -8,7 +8,7 @@
  * 4. Test side-by-side with vanilla JS version
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MessageContent } from '@/components/Chat/MessageContent';
 import { ChatHeader } from '@/components/Chat/ChatHeader';
@@ -79,6 +79,12 @@ export function ChatPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
+  // Scroll management (ported from vanilla JS chat.js)
+  const userHasScrolledRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const scrollAnimationFrameRef = useRef<number | null>(null);
+  const isStreamingRef = useRef(false); // Track if we're currently streaming
+  
   // Initialize session ID (same as vanilla JS)
   useEffect(() => {
     const generateSessionId = () => {
@@ -98,6 +104,66 @@ export function ChatPage() {
       setSessionId(newSessionId);
     }
   }, []);
+  
+  // Setup scroll interrupt detection (ported from vanilla JS)
+  useEffect(() => {
+    const chatContainer = chatContainerRef.current;
+    if (!chatContainer) return;
+    
+    // Detect user scroll via wheel/trackpad
+    const handleWheel = () => {
+      userHasScrolledRef.current = true;
+    };
+    
+    // Detect user scroll via touch (mobile/trackpad gestures)
+    const handleTouchMove = () => {
+      userHasScrolledRef.current = true;
+    };
+    
+    // Detect manual scrollbar dragging or keyboard scrolling
+    const handleScroll = () => {
+      // Clear any existing timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      // Set a timeout to detect if this was user-initiated
+      // (auto-scroll happens immediately, user scroll has momentum/continuation)
+      scrollTimeoutRef.current = setTimeout(() => {
+        if (!chatContainer) return;
+        const isAtBottom = Math.abs(
+          chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight
+        ) < 50; // 50px threshold
+        
+        if (!isAtBottom && !userHasScrolledRef.current) {
+          userHasScrolledRef.current = true;
+        }
+      }, 100);
+    };
+    
+    chatContainer.addEventListener('wheel', handleWheel, { passive: true });
+    chatContainer.addEventListener('touchmove', handleTouchMove, { passive: true });
+    chatContainer.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      chatContainer.removeEventListener('wheel', handleWheel);
+      chatContainer.removeEventListener('touchmove', handleTouchMove);
+      chatContainer.removeEventListener('scroll', handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+  
+  // Helper to check if we should auto-scroll
+  const shouldAutoScroll = () => {
+    return !userHasScrolledRef.current;
+  };
+  
+  // Reset auto-scroll for new response
+  const resetAutoScroll = () => {
+    userHasScrolledRef.current = false;
+  };
   
   // Update document slug, embedding type, and model when URL param changes
   useEffect(() => {
@@ -160,6 +226,10 @@ export function ChatPage() {
     
     // Set loading state
     setIsLoading(true);
+    isStreamingRef.current = false; // Reset streaming flag (will be set when first chunk arrives)
+
+    // Reset auto-scroll for new response (same as vanilla JS)
+    resetAutoScroll();
 
     // Add loading message with fun facts IMMEDIATELY (same as vanilla JS addLoading)
     const loadingMsgId = `loading-${Date.now()}`;
@@ -228,6 +298,7 @@ export function ChatPage() {
               
               if (data.type === 'content' && data.chunk) {
                 assistantContent += data.chunk;
+                isStreamingRef.current = true; // Mark as streaming
                 
                 // Replace loading message with accumulated content
                 setMessages(prev => prev.map(msg => 
@@ -235,6 +306,26 @@ export function ChatPage() {
                     ? { ...msg, content: assistantContent, isLoading: false }
                     : msg
                 ));
+                
+                // Auto-scroll to show new content (only if user hasn't scrolled)
+                // Scroll immediately with single RAF for better sync with content updates
+                // This matches vanilla JS behavior more closely (immediate scroll after DOM update)
+                if (shouldAutoScroll() && chatContainerRef.current) {
+                  // Cancel pending scroll and schedule new one immediately
+                  // This allows scroll to keep up with rapid content updates
+                  if (scrollAnimationFrameRef.current !== null) {
+                    cancelAnimationFrame(scrollAnimationFrameRef.current);
+                  }
+                  
+                  // Single RAF - React batches updates, so one frame is usually enough
+                  // This keeps scroll in sync with content updates
+                  scrollAnimationFrameRef.current = requestAnimationFrame(() => {
+                    if (chatContainerRef.current && shouldAutoScroll()) {
+                      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+                    }
+                    scrollAnimationFrameRef.current = null;
+                  });
+                }
               }
               
               if (data.type === 'done') {
@@ -279,6 +370,7 @@ export function ChatPage() {
                 }
 
                 setIsLoading(false);
+                isStreamingRef.current = false; // Mark streaming as complete
                 // Convert loading message to final message
                 setMessages(prev => prev.map(msg => 
                   msg.id === loadingMsgId
@@ -289,6 +381,7 @@ export function ChatPage() {
               
               if (data.type === 'error') {
                 setIsLoading(false);
+                isStreamingRef.current = false; // Reset streaming flag on error
                 setMessages(prev => prev.filter(msg => msg.id !== loadingMsgId));
                 throw new Error(data.error || 'Unknown error');
               }
@@ -299,6 +392,7 @@ export function ChatPage() {
     } catch (error) {
       console.error('Chat error:', error);
       setIsLoading(false);
+      isStreamingRef.current = false; // Reset streaming flag on error
       // Remove loading message if it exists
       setMessages(prev => {
         const loadingMsg = prev.find(msg => msg.isLoading);
@@ -336,8 +430,27 @@ export function ChatPage() {
   };
   
   // Auto-scroll to bottom (ported from vanilla JS)
-  useEffect(() => {
-    if (chatContainerRef.current) {
+  // Use useLayoutEffect for synchronous scroll after DOM updates (better sync with content)
+  useLayoutEffect(() => {
+    // During streaming, let streaming handler manage scroll to avoid conflicts
+    // But allow scroll for initial loading message and final message updates
+    if (isStreamingRef.current && messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      // Skip if actively streaming (has content and not in loading state)
+      if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.isLoading && lastMsg.content) {
+        return;
+      }
+    }
+    
+    // Cancel any pending scroll from streaming handler
+    if (scrollAnimationFrameRef.current !== null) {
+      cancelAnimationFrame(scrollAnimationFrameRef.current);
+      scrollAnimationFrameRef.current = null;
+    }
+    
+    // Scroll immediately - useLayoutEffect runs synchronously after DOM mutations
+    // This keeps scroll in sync with React's DOM updates
+    if (chatContainerRef.current && shouldAutoScroll()) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
@@ -370,6 +483,13 @@ export function ChatPage() {
               downloads={docConfig.downloads}
               isMultiDoc={false}
               inputRef={inputRef}
+              onKeywordClick={(term) => {
+                setInputValue(`Tell me about ${term}`);
+                // Focus the input after state update
+                setTimeout(() => {
+                  inputRef.current?.focus();
+                }, 0);
+              }}
             />
           </>
         )}
