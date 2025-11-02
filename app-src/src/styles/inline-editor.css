@@ -247,3 +247,24 @@
     position: relative;
 }
 
+/* Links in WYSIWYG editor content - both in edit mode and display mode */
+.inline-editor-active a,
+.inline-editor-wrapper a,
+.inline-wysiwyg-editor a {
+    font-weight: bold;
+    color: #007bff;
+    text-decoration: underline;
+}
+
+.inline-editor-active a:hover,
+.inline-editor-wrapper a:hover,
+.inline-wysiwyg-editor a:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+/* Ensure links in display mode (not editing) are clickable */
+.inline-editor-wrapper a {
+    cursor: pointer;
+}
+

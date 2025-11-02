@@ -90,6 +90,7 @@ export function useDocumentConfig(documentSlug: string | null) {
   const [loading, setLoading] = useState(false); // Start as false when no slug
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<DocumentConfigError | null>(null);
+  const [forceRefreshCounter, setForceRefreshCounter] = useState(0); // Counter to force re-fetch
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
@@ -110,6 +111,48 @@ export function useDocumentConfig(documentSlug: string | null) {
   
   // Wait for both auth and permissions to finish loading
   const isLoading = authLoading || permissions.loading;
+
+  // Set up document-updated event listener (separate from main effect to avoid re-registering)
+  useEffect(() => {
+    const handleDocumentUpdate = () => {
+      devLog(`[useDocumentConfig] document-updated event received, clearing caches and incrementing forceRefreshCounter`);
+      
+      // Clear all caches for this document
+      if (documentSlug) {
+        errorCache.delete(documentSlug);
+        
+        // Clear all config cache entries for this document (all user IDs and passcodes)
+        const keysToDelete: string[] = [];
+        configCache.forEach((_, key) => {
+          if (key.startsWith(`${documentSlug}:`)) {
+            keysToDelete.push(key);
+          }
+        });
+        keysToDelete.forEach(key => {
+          devLog(`[useDocumentConfig] Clearing cache key: ${key}`);
+          configCache.delete(key);
+        });
+        
+        // Clear error details cache
+        const errorKeysToDelete: string[] = [];
+        errorDetailsCache.forEach((_, key) => {
+          if (key.startsWith(`${documentSlug}:`)) {
+            errorKeysToDelete.push(key);
+          }
+        });
+        errorKeysToDelete.forEach(key => errorDetailsCache.delete(key));
+      }
+      
+      // Increment counter to trigger re-fetch
+      setForceRefreshCounter(prev => prev + 1);
+    };
+
+    window.addEventListener('document-updated', handleDocumentUpdate);
+    
+    return () => {
+      window.removeEventListener('document-updated', handleDocumentUpdate);
+    };
+  }, [documentSlug]); // Include documentSlug so we clear the right caches
 
   // Clear cache when user changes (login/logout) to ensure access is re-checked
   useEffect(() => {
@@ -610,19 +653,6 @@ export function useDocumentConfig(documentSlug: string | null) {
     
     pendingRequests.set(cacheKey, requestPromise);
 
-    // Listen for document update events
-    const handleDocumentUpdate = () => {
-      if (!cancelled) {
-        // Clear error cache and config cache when forcing refresh
-        errorCache.delete(documentSlug);
-        configCache.delete(cacheKey);
-        errorHandledRef.current = null;
-        loadConfig(true);
-      }
-    };
-
-    window.addEventListener('document-updated', handleDocumentUpdate);
-    
     // Listen for passcode storage events to trigger re-check
     const handlePasscodeStored = (event: CustomEvent) => {
       if (!cancelled && event.detail?.documentSlug === documentSlug) {
@@ -649,11 +679,10 @@ export function useDocumentConfig(documentSlug: string | null) {
 
     return () => {
       cancelled = true;
-      window.removeEventListener('document-updated', handleDocumentUpdate);
       window.removeEventListener('passcode-stored', handlePasscodeStored as EventListener);
       devLog(`[useDocumentConfig] Effect cleanup for: ${documentSlug}`);
     };
-  }, [documentSlug, user?.id, isLoading, isSuperAdmin, passcode]); // Use user?.id instead of user object, remove navigate
+  }, [documentSlug, user?.id, isLoading, isSuperAdmin, passcode, forceRefreshCounter]); // Added forceRefreshCounter to trigger re-fetch
 
   return { config, loading, error, errorDetails };
 }

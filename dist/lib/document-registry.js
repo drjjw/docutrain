@@ -39,11 +39,21 @@ function sanitizeIntroHTML(html) {
     const tagRegex = /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi;
     sanitized = sanitized.replace(tagRegex, (match, tagName) => {
         if (allowedTags.includes(tagName.toLowerCase())) {
-            // For anchor tags, ensure only href attribute is kept
+            // For anchor tags, preserve href, target, and rel attributes
             if (tagName.toLowerCase() === 'a') {
                 const hrefMatch = match.match(/href\s*=\s*["']([^"']*)["']/i);
+                const targetMatch = match.match(/target\s*=\s*["']([^"']*)["']/i);
+                const relMatch = match.match(/rel\s*=\s*["']([^"']*)["']/i);
+                
                 if (hrefMatch) {
-                    return `<a href="${hrefMatch[1]}">`;
+                    let attrs = `href="${hrefMatch[1]}"`;
+                    if (targetMatch) {
+                        attrs += ` target="${targetMatch[1]}"`;
+                    }
+                    if (relMatch) {
+                        attrs += ` rel="${relMatch[1]}"`;
+                    }
+                    return `<a ${attrs}>`;
                 }
                 return match.includes('</') ? '</a>' : '<a>';
             }

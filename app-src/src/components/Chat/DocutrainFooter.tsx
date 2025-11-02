@@ -8,11 +8,11 @@ import { docutrainIconUrl } from '@/assets';
 export function DocutrainFooter() {
   return (
     <div className="border-t border-gray-100 bg-gray-50/50 py-3 px-4">
-      <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 text-xs text-gray-500 px-2 sm:px-0">
+      <div className="flex flex-wrap items-center justify-center gap-0.5 sm:gap-1 text-xs text-gray-500 px-2 sm:px-0">
         <img 
           src={docutrainIconUrl}
           alt="DocuTrain"
-          className="h-4 w-4 opacity-70 flex-shrink-0"
+          className="h-6 w-6 opacity-100 flex-shrink-0"
         />
         <span className="whitespace-nowrap">
           This is a{' '}

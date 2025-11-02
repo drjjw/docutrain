@@ -58,14 +58,16 @@ function sanitizeHTML(html: string): string {
   
   const allowedTags = {
     'p': [],
+    'b': [],      // Allow <b> tags (created by execCommand('bold'))
     'strong': [],
+    'i': [],      // Allow <i> tags (created by execCommand('italic'))
     'em': [],
     'u': [],
     'br': [],
     'ul': [],
     'ol': [],
     'li': [],
-    'a': ['href', 'title', 'target']
+    'a': ['href', 'title', 'target', 'rel']
   };
   
   function cleanNode(node: Node): Node | DocumentFragment | null {
@@ -117,6 +119,16 @@ function sanitizeHTML(html: string): string {
         }
       });
       
+      // For anchor tags, ensure target="_blank" and rel="noopener noreferrer" are set
+      if (tagName === 'a' && cleanElement.hasAttribute('href')) {
+        if (!cleanElement.hasAttribute('target')) {
+          cleanElement.setAttribute('target', '_blank');
+        }
+        if (!cleanElement.hasAttribute('rel')) {
+          cleanElement.setAttribute('rel', 'noopener noreferrer');
+        }
+      }
+      
       Array.from(element.childNodes).forEach(child => {
         const cleanedChild = cleanNode(child);
         if (cleanedChild) {
@@ -167,41 +179,22 @@ export function InlineWysiwygEditor({
   const [isHovering, setIsHovering] = useState(false);
   const [editValue, setEditValue] = useState(value);
   const [saving, setSaving] = useState(false);
-  const [displayValue, setDisplayValue] = useState(value); // Optimistic display value
-  const [justSaved, setJustSaved] = useState(false); // Track if we just saved to prevent immediate overwrite
-  const [savedValue, setSavedValue] = useState<string | null>(null); // Track what we just saved
   const editorRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const isInitializedRef = useRef(false);
 
   // Update editValue when value prop changes (but only when not editing)
-  // Also update displayValue when prop updates (this happens after refetch)
-  // Don't overwrite displayValue if we just saved (optimistic update is showing)
   useEffect(() => {
     if (!isEditing) {
       setEditValue(value);
-      // If we just saved, don't update displayValue from prop unless it matches what we saved
-      // This prevents stale cached data from overwriting our optimistic update
-      if (!justSaved) {
-        // Normal case: update displayValue when prop changes
-        setDisplayValue(value);
-        isInitializedRef.current = false;
-      } else if (savedValue !== null && value === savedValue) {
-        // Refetch completed successfully - the prop matches what we saved
-        setDisplayValue(value);
-        setJustSaved(false);
-        setSavedValue(null);
-        isInitializedRef.current = false;
-      }
-      // If justSaved is true and value doesn't match savedValue, ignore the prop update
-      // (it's stale cached data - keep the optimistic value)
+      isInitializedRef.current = false;
     }
-  }, [value, isEditing, justSaved, savedValue]);
+  }, [value, isEditing]);
 
   // Initialize editor content only once when entering edit mode
   useEffect(() => {
     if (isEditing && editorRef.current && !isInitializedRef.current) {
-      editorRef.current.innerHTML = displayValue;
+      editorRef.current.innerHTML = value;
       isInitializedRef.current = true;
       
       // Set default paragraph separator
@@ -220,12 +213,12 @@ export function InlineWysiwygEditor({
         selection.addRange(range);
       }
     }
-  }, [isEditing, displayValue]);
+  }, [isEditing, value]);
 
   const handleStartEditing = () => {
     if (isEditing) return;
     setIsEditing(true);
-    setEditValue(displayValue);
+    setEditValue(value);
   };
 
   const handleSave = async () => {
@@ -233,29 +226,33 @@ export function InlineWysiwygEditor({
 
     // Normalize and sanitize HTML
     let newValue = editorRef.current.innerHTML;
+    console.log('📝 Before sanitization:', newValue);
     newValue = newValue.replace(/<div>/gi, '<p>').replace(/<\/div>/gi, '</p>');
     newValue = newValue.replace(/<p><\/p>/gi, '<br>');
     newValue = sanitizeHTML(newValue);
+    console.log('✅ After sanitization:', newValue);
+    
+    // Check if links have target="_blank"
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = newValue;
+    const links = tempDiv.querySelectorAll('a');
+    links.forEach((link, i) => {
+      console.log(`🔗 Link ${i + 1}:`, {
+        href: link.getAttribute('href'),
+        target: link.getAttribute('target'),
+        rel: link.getAttribute('rel')
+      });
+    });
 
     setSaving(true);
     try {
       const success = await onSave(newValue);
       if (success) {
-        // Update display value optimistically with saved value
-        setDisplayValue(newValue);
         setEditValue(newValue);
-        setJustSaved(true); // Mark that we just saved
-        setSavedValue(newValue); // Remember what we saved
         setIsEditing(false);
         isInitializedRef.current = false;
-        // Reset justSaved flag after a delay to allow refetch to complete
-        // If refetch completes with matching value, it will clear the flag earlier
-        setTimeout(() => {
-          if (justSaved) {
-            setJustSaved(false);
-            setSavedValue(null);
-          }
-        }, 2000); // Fallback timeout - clear after 2 seconds
+        // The parent component (WelcomeMessage) will dispatch 'document-updated' event
+        // which triggers useDocumentConfig to refetch, and the new value prop will update this component
       }
     } catch (error) {
       console.error('Failed to save:', error);
@@ -267,7 +264,6 @@ export function InlineWysiwygEditor({
 
   const handleCancel = () => {
     setEditValue(value);
-    setDisplayValue(value);
     setIsEditing(false);
     isInitializedRef.current = false;
     if (editorRef.current) {
@@ -281,6 +277,46 @@ export function InlineWysiwygEditor({
       const url = prompt('Enter URL:');
       if (url) {
         document.execCommand('createLink', false, url);
+        
+        // After creating the link, add target="_blank" and rel="noopener noreferrer"
+        // Use requestAnimationFrame instead of setTimeout to avoid async issues
+        requestAnimationFrame(() => {
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            let anchor: HTMLAnchorElement | null = null;
+            
+            // Try to find the anchor in various ways
+            // 1. Check if the range's common ancestor is an anchor
+            const commonAncestor = range.commonAncestorContainer;
+            if (commonAncestor.nodeType === Node.ELEMENT_NODE && (commonAncestor as Element).tagName === 'A') {
+              anchor = commonAncestor as HTMLAnchorElement;
+            } 
+            // 2. Check if parent is an anchor
+            else if (commonAncestor.parentElement?.tagName === 'A') {
+              anchor = commonAncestor.parentElement as HTMLAnchorElement;
+            }
+            // 3. Search within the editor for the link with this URL
+            else if (editorRef.current) {
+              const links = editorRef.current.querySelectorAll('a');
+              // Find the most recently added link (last one) that matches our URL
+              // Compare both href attribute and the resolved href property
+              for (let i = links.length - 1; i >= 0; i--) {
+                const link = links[i];
+                const hrefAttr = link.getAttribute('href');
+                if (hrefAttr === url || link.href === url || link.href.endsWith(url)) {
+                  anchor = link as HTMLAnchorElement;
+                  break;
+                }
+              }
+            }
+            
+            if (anchor) {
+              anchor.setAttribute('target', '_blank');
+              anchor.setAttribute('rel', 'noopener noreferrer');
+            }
+          }
+        });
       }
     } else {
       document.execCommand(command, false, value);
@@ -355,9 +391,17 @@ export function InlineWysiwygEditor({
             type="button"
             className="inline-editor-toolbar-btn"
             onClick={() => execCommand('createLink')}
-            title="Link"
+            title="Insert Link"
           >
             🔗
+          </button>
+          <button
+            type="button"
+            className="inline-editor-toolbar-btn"
+            onClick={() => execCommand('unlink')}
+            title="Remove Link"
+          >
+            🔗❌
           </button>
           <div className="inline-editor-toolbar-actions">
             <button
@@ -408,18 +452,14 @@ export function InlineWysiwygEditor({
       <div
         id={id}
         className={className}
-        style={{ cursor: 'pointer', position: 'relative' }}
-        onClick={handleStartEditing}
-        dangerouslySetInnerHTML={{ __html: displayValue }}
+        style={{ position: 'relative' }}
+        dangerouslySetInnerHTML={{ __html: value }}
       />
-      {/* Always render icon but control visibility with opacity to prevent layout shift */}
+      {/* Edit icon - only this should be clickable */}
       <button
         type="button"
         className="inline-edit-icon"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleStartEditing();
-        }}
+        onClick={handleStartEditing}
         title="Click to edit"
         style={{
           position: 'absolute',

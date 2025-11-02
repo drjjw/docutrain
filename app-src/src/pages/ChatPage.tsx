@@ -89,6 +89,7 @@ export function ChatPage() {
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollAnimationFrameRef = useRef<number | null>(null);
   const isStreamingRef = useRef(false); // Track if we're currently streaming
+  const scrollThrottleRef = useRef<number | null>(null); // Throttle scroll updates
   
   // Initialize session ID (same as vanilla JS)
   useEffect(() => {
@@ -227,12 +228,31 @@ export function ChatPage() {
       scrollAnimationFrameRef.current = null;
     }
     
+    // Cancel any pending scroll throttle
+    if (scrollThrottleRef.current !== null) {
+      clearTimeout(scrollThrottleRef.current);
+      scrollThrottleRef.current = null;
+    }
+    
     // Scroll immediately - useLayoutEffect runs synchronously after DOM mutations
     // This keeps scroll in sync with React's DOM updates
-    if (chatContainerRef.current && shouldAutoScroll()) {
+    // Only scroll if not actively streaming (streaming uses smooth scroll)
+    if (chatContainerRef.current && shouldAutoScroll() && !isStreamingRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+  
+  // Cleanup scroll throttle on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollThrottleRef.current !== null) {
+        clearTimeout(scrollThrottleRef.current);
+      }
+      if (scrollAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(scrollAnimationFrameRef.current);
+      }
+    };
+  }, []);
   
   // Show loading spinner while auth is loading OR while checking document access
   // This prevents flash of content when redirecting to login for restricted documents
@@ -389,28 +409,69 @@ export function ChatPage() {
                     : msg
                 ));
                 
-                // Auto-scroll to show new content (only if user hasn't scrolled)
-                // Scroll immediately with single RAF for better sync with content updates
-                // This matches vanilla JS behavior more closely (immediate scroll after DOM update)
+                // Smooth auto-scroll with throttling to reduce shuddering
+                // Use scrollIntoView with smooth behavior for a wiping animation effect
                 if (shouldAutoScroll() && chatContainerRef.current) {
-                  // Cancel pending scroll and schedule new one immediately
-                  // This allows scroll to keep up with rapid content updates
-                  if (scrollAnimationFrameRef.current !== null) {
-                    cancelAnimationFrame(scrollAnimationFrameRef.current);
+                  // Throttle scroll updates to reduce frequency (every ~50ms instead of every chunk)
+                  if (scrollThrottleRef.current === null) {
+                    scrollThrottleRef.current = window.setTimeout(() => {
+                      scrollThrottleRef.current = null;
+                      
+                      // Use requestAnimationFrame to ensure DOM is updated
+                      if (scrollAnimationFrameRef.current !== null) {
+                        cancelAnimationFrame(scrollAnimationFrameRef.current);
+                      }
+                      
+                      scrollAnimationFrameRef.current = requestAnimationFrame(() => {
+                        if (chatContainerRef.current && shouldAutoScroll()) {
+                          // Find the last message element for smooth scrollIntoView
+                          const messages = chatContainerRef.current.querySelectorAll('.message');
+                          const lastMessage = messages[messages.length - 1] as HTMLElement;
+                          
+                          if (lastMessage) {
+                            // Use scrollIntoView with smooth behavior for wiping effect
+                            lastMessage.scrollIntoView({ 
+                              behavior: 'smooth', 
+                              block: 'end',
+                              inline: 'nearest'
+                            });
+                          } else {
+                            // Fallback to direct scroll if no message found
+                            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+                          }
+                        }
+                        scrollAnimationFrameRef.current = null;
+                      });
+                    }, 50); // Throttle to ~20 updates per second max
                   }
-                  
-                  // Single RAF - React batches updates, so one frame is usually enough
-                  // This keeps scroll in sync with content updates
-                  scrollAnimationFrameRef.current = requestAnimationFrame(() => {
-                    if (chatContainerRef.current && shouldAutoScroll()) {
-                      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-                    }
-                    scrollAnimationFrameRef.current = null;
-                  });
                 }
               }
               
               if (data.type === 'done') {
+                // Clear scroll throttle when streaming completes
+                if (scrollThrottleRef.current !== null) {
+                  clearTimeout(scrollThrottleRef.current);
+                  scrollThrottleRef.current = null;
+                }
+                
+                // Final scroll to ensure we're at the bottom
+                if (chatContainerRef.current && shouldAutoScroll()) {
+                  requestAnimationFrame(() => {
+                    if (chatContainerRef.current && shouldAutoScroll()) {
+                      const messages = chatContainerRef.current.querySelectorAll('.message');
+                      const lastMessage = messages[messages.length - 1] as HTMLElement;
+                      if (lastMessage) {
+                        lastMessage.scrollIntoView({ 
+                          behavior: 'smooth', 
+                          block: 'end',
+                          inline: 'nearest'
+                        });
+                      }
+                    }
+                  });
+                }
+                
+                isStreamingRef.current = false; // Mark streaming as complete
                 // Log technical details: model used and RAG performance
                 const actualModel = data.metadata?.model;
                 const requestedModel = selectedModel;
@@ -544,7 +605,9 @@ export function ChatPage() {
       {/* Messages container - port from vanilla JS */}
       <div 
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4"
+        className={`flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 ${
+          isStreamingRef.current ? 'chat-container-streaming' : ''
+        }`}
       >
         {/* Cover and Welcome Message - shown for single documents */}
         {shouldShowCoverAndWelcome && docConfig && (
@@ -584,10 +647,13 @@ export function ChatPage() {
             return <LoadingMessage key={msg.id} owner={currentOwner} />;
           }
           
+          const isLastMessage = msg.id === messages[messages.length - 1]?.id;
+          const isStreaming = isStreamingRef.current && msg.role === 'assistant' && isLastMessage;
+          
           return (
             <div
               key={msg.id}
-              className={`message ${msg.role}`}
+              className={`message ${msg.role} ${isStreaming ? 'streaming' : ''}`}
             >
               <MessageContent content={msg.content} role={msg.role} />
             </div>
