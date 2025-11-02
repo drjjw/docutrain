@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 import { KeywordsCloud } from './KeywordsCloud';
 import { DownloadsSection } from './DownloadsSection';
 import { Keyword, Download } from '@/hooks/useDocumentConfig';
@@ -100,6 +100,7 @@ export function DownloadsAndKeywords({
   const isMobile = useIsMobile();
   const [isContainerExpanded, setIsContainerExpanded] = useState(!isMobile);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [containerHeight, setContainerHeight] = useState<number | undefined>(undefined);
   const hasKeywords = keywords && keywords.length > 0;
   const hasDownloads = downloads && downloads.length > 0;
 
@@ -109,6 +110,50 @@ export function DownloadsAndKeywords({
       setIsContainerExpanded(!isMobile);
     }
   }, [isMobile, hasUserInteracted]);
+
+  // Measure and update container height for smooth animation
+  useEffect(() => {
+    if (!containerRef.current || (!hasKeywords && !hasDownloads)) return;
+
+    const updateHeight = () => {
+      if (containerRef.current) {
+        // Temporarily remove max-height and collapsed class to measure natural height
+        const wasCollapsed = containerRef.current.classList.contains('collapsed');
+        const originalMaxHeight = containerRef.current.style.maxHeight;
+        const originalDisplay = containerRef.current.style.display;
+        
+        containerRef.current.classList.remove('collapsed');
+        containerRef.current.style.maxHeight = 'none';
+        containerRef.current.style.opacity = '0';
+        containerRef.current.style.position = 'absolute';
+        containerRef.current.style.visibility = 'hidden';
+        
+        const height = containerRef.current.scrollHeight;
+        
+        // Restore original state
+        containerRef.current.style.maxHeight = originalMaxHeight;
+        containerRef.current.style.opacity = '';
+        containerRef.current.style.position = '';
+        containerRef.current.style.visibility = '';
+        containerRef.current.style.display = originalDisplay;
+        if (wasCollapsed) {
+          containerRef.current.classList.add('collapsed');
+        }
+        
+        setContainerHeight(height);
+      }
+    };
+
+    // Measure height when expanded or when content changes
+    if (isContainerExpanded || !containerHeight) {
+      // Delay measurement to ensure content is rendered
+      const timeoutId = setTimeout(() => {
+        updateHeight();
+      }, 50);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [hasKeywords, hasDownloads, keywords, downloads, isContainerExpanded]);
 
   // Equalize heights after render and on window resize
   useEffect(() => {
@@ -163,17 +208,61 @@ export function DownloadsAndKeywords({
         type="button"
       >
         <span>Downloads & Key Topics</span>
-        {isContainerExpanded ? (
-          <ChevronUp className="collapse-icon" size={18} />
-        ) : (
-          <ChevronDown className="collapse-icon" size={18} />
-        )}
+        <div 
+          className="collapse-icon" 
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            backgroundColor: isContainerExpanded ? '#ef4444' : '#22c55e',
+            flexShrink: 0,
+            transition: 'background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        >
+          <div style={{ position: 'relative', width: '16px', height: '16px' }}>
+            <Minus 
+              size={16} 
+              strokeWidth={3} 
+              style={{ 
+                color: 'white',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                transition: 'opacity 0.25s ease-out, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                opacity: isContainerExpanded ? 1 : 0,
+                transform: isContainerExpanded ? 'scale(1) rotate(0deg)' : 'scale(0.8) rotate(-90deg)',
+                pointerEvents: 'none',
+              }} 
+            />
+            <Plus 
+              size={16} 
+              strokeWidth={3} 
+              style={{ 
+                color: 'white',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                transition: 'opacity 0.25s ease-out, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                opacity: isContainerExpanded ? 0 : 1,
+                transform: isContainerExpanded ? 'scale(0.8) rotate(90deg)' : 'scale(1) rotate(0deg)',
+                pointerEvents: 'none',
+              }} 
+            />
+          </div>
+        </div>
       </button>
       <div
         ref={containerRef}
         id="downloadsKeywordsContainer"
         className={`downloads-keywords-container ${!isContainerExpanded ? 'collapsed' : ''}`}
-        style={{ display: hasKeywords || hasDownloads ? 'flex' : 'none' }}
+        style={{ 
+          display: hasKeywords || hasDownloads ? 'flex' : 'none',
+          maxHeight: isContainerExpanded && containerHeight ? `${containerHeight}px` : '0px',
+          opacity: isContainerExpanded ? 1 : undefined,
+        }}
       >
         {hasKeywords && (
           <KeywordsCloud 

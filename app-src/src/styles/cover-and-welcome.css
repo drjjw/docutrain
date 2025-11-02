@@ -1,39 +1,40 @@
-/* Cover and Welcome Styles - Ported from public/css/layout.css */
-/* Matches vanilla JS implementation exactly */
+/* Cover and Welcome Styles - Enhanced modern flat design */
 
 /* Document Cover and Welcome Layout */
 .document-cover-and-welcome {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
-  gap: 20px;
-  margin: 20px -20px; /* Negative margin to counteract parent padding */
+  gap: 24px;
+  margin: 24px -20px; /* Negative margin to counteract parent padding */
   padding: 0 20px; /* Add back padding for content */
   width: calc(100% + 40px); /* Account for negative margins */
   box-sizing: border-box;
-  align-items: flex-start; /* Align to top, let content determine height */
-  max-width: none; /* Allow full width */
+  align-items: flex-start;
+  max-width: none;
   position: relative;
 }
 
 .document-cover-section {
   flex: 2; /* 2/5 of the width */
-  min-width: 0; /* Allow flex item to shrink below content size */
+  min-width: 0;
   overflow: hidden;
   padding: 0;
   margin: 0;
   border-radius: 12px;
   background: white;
   display: flex;
-  align-items: center; /* Center image vertically when container is taller */
+  align-items: center;
   justify-content: center;
-  position: relative; /* Allow absolute positioning of overlay */
+  position: relative;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .document-cover-image {
   width: 100%;
-  height: 100%; /* Fill container height */
-  object-fit: fill; /* Maintain aspect ratio */
+  height: 100%;
+  object-fit: cover;
   display: block;
   border-radius: 0;
 }
@@ -43,64 +44,66 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 20%; /* Lower 20% of the image */
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.3));
+  height: 25%;
+  background: rgba(0, 0, 0, 0.65);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-end;
-  padding: 10px;
-  border-radius: 0 0 12px 12px; /* Match container border radius */
+  padding: 20px 16px;
+  border-radius: 0 0 12px 12px;
 }
 
 .document-cover-title {
   color: white;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-  line-height: 1.3;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  line-height: 1.4;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   max-width: 100%;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 3; /* Max 3 lines on desktop */
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
+  letter-spacing: -0.01em;
 }
 
 .document-cover-meta {
-  color: white;
-  font-size: 14px;
-  font-weight: 400;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 13px;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  line-height: 1.4;
   opacity: 0.9;
+  letter-spacing: 0.01em;
 }
 
 .welcome-message-section {
   flex: 3; /* 3/5 of the width */
-  min-width: 0; /* Allow flex item to shrink below content size */
+  min-width: 0;
   display: flex;
-  align-items: stretch; /* Make message fill full height */
+  align-items: stretch;
 }
 
 .welcome-message-section .message.assistant {
   width: 100%;
-  height: 100%; /* Fill full height of container */
+  height: 100%;
   display: flex;
   flex-direction: column;
-  margin-bottom: 0; /* Remove default margin */
+  margin-bottom: 0;
 }
 
 /* Special styling for welcome message in cover layout */
 .welcome-message-section .message.assistant .message-content {
-  padding: 20px 24px;
+  padding: 28px 32px;
   justify-content: flex-start;
   align-items: flex-start;
-  height: 100%; /* Fill full height to match cover image */
+  height: 100%;
   width: 100%;
-  max-width: 100% !important; /* Override base max-width: 90% to allow full width */
+  max-width: 100% !important;
   box-sizing: border-box;
 }
 
@@ -115,76 +118,77 @@
 @media (max-width: 768px) {
   .document-cover-and-welcome {
     flex-direction: column !important;
-    gap: 15px;
-    margin: 15px 16px; /* Add side margins for mobile */
+    gap: 16px;
+    margin: 16px 16px;
     padding: 0;
-    width: auto; /* Let it size naturally within container */
-    align-items: stretch; /* Keep equal heights on mobile */
+    width: auto;
+    align-items: stretch;
   }
 
   .document-cover-section {
     flex: none;
-    width: 100%; /* Ensure full width */
-    height: auto; /* Let height be fully responsive to image aspect ratio */
-    padding: 12px; /* Card-like padding */
+    width: 100%;
+    height: auto;
+    padding: 0;
     margin: 0;
     display: flex;
     align-items: stretch;
-    border-radius: 12px; /* More rounded for card appearance */
-    overflow: hidden; /* Contain the image */
-    background: white; /* Card background */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Card shadow */
-    border: 1px solid #e9ecef; /* Subtle border */
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   }
 
   .welcome-message-section {
-    width: 100%; /* Ensure full width matches image container */
+    width: 100%;
   }
 
   .welcome-message-section .message.assistant .message-content {
-    width: 100%; /* Override max-width to ensure full width */
-    max-width: 100%; /* Ensure it takes full container width */
+    width: 100%;
+    max-width: 100%;
+    padding: 20px 24px;
   }
 
   .document-cover-image {
     width: 100%;
-    height: auto; /* Let image determine height based on aspect ratio */
-    object-fit: contain; /* Show full image without cropping */
-    border-radius: 8px; /* Match container border radius */
+    height: auto;
+    object-fit: cover;
+    border-radius: 0;
     display: block;
   }
 
   .document-cover-overlay {
-    border-radius: 0 0 8px 8px; /* Match mobile image border radius */
-    height: 30%; /* Increase overlay height on mobile for more space */
-    padding: 12px 10px; /* Slightly more padding */
-    min-height: 80px; /* Ensure minimum height for content */
+    border-radius: 0 0 12px 12px;
+    height: 30%;
+    padding: 16px 14px;
+    min-height: 90px;
   }
 
   .document-cover-title {
-    font-size: 14px; /* Larger on mobile for better readability */
-    line-height: 1.3; /* Tighter line height */
-    margin-bottom: 6px; /* Less margin */
+    font-size: 16px;
+    line-height: 1.4;
+    margin-bottom: 6px;
     max-width: 100%;
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 2; /* Max 2 lines */
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     word-break: break-word;
   }
 
   .document-cover-meta {
-    font-size: 11px; /* Smaller font size on mobile */
-    line-height: 1.2;
+    font-size: 12px;
+    line-height: 1.4;
   }
 }
 
 @media (max-width: 480px) {
   .document-cover-and-welcome {
-    margin: 10px 12px; /* Add side margins for small screens */
+    margin: 12px 12px;
     padding: 0;
-    gap: 10px;
-    width: auto; /* Let it size naturally within container */
+    gap: 12px;
+    width: auto;
   }
 
   .document-cover-section {
@@ -194,10 +198,9 @@
     margin: 0;
     display: flex;
     align-items: stretch;
-    border-radius: 10px; /* Slightly less rounded for small screens */
+    border-radius: 8px; /* Slightly less rounded for small screens */
     overflow: hidden;
     background: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     border: 1px solid #e9ecef;
   }
 

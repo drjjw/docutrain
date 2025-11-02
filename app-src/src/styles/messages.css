@@ -24,17 +24,17 @@
 /* Message Content */
 .message-content {
   max-width: 70%;
-  padding: 14px 20px;
-  border-radius: 16px;
+  padding: 16px 20px;
+  border-radius: 8px;
   word-wrap: break-word;
-  line-height: 1.65;
+  line-height: 1.6;
 }
 
 /* Assistant messages use full width */
 .message.assistant .message-content {
   max-width: 90%;
   padding: 20px 24px;
-  border-radius: 12px;
+  border-radius: 8px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -43,18 +43,16 @@
 
 /* User Message Styling */
 .message.user .message-content {
-  background: linear-gradient(135deg, #f8f8f8 0%, #f2f2f2 100%);
-  color: #2c2c2c;
-  border: 1px solid #e0e0e0;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  background: #f8f9fa;
+  color: #212529;
+  border: 1px solid #e9ecef;
 }
 
 /* Assistant Message Styling */
 .message.assistant .message-content {
   background: white;
-  color: #333;
-  border: 1px solid #e5e5e5;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  color: #212529;
+  border: 1px solid #e9ecef;
 }
 
 /* Markdown styling for assistant messages */
@@ -87,16 +85,18 @@
 /* Welcome title styling - h2 element with larger font size */
 .message.assistant .message-content #welcomeTitle {
   font-weight: 600;
-  color: #333;
-  font-size: 1.5em;
-  line-height: 1.5;
-  margin: 0;
+  color: #212529;
+  font-size: 1.75em;
+  line-height: 1.4;
+  margin: 0 0 16px 0;
+  letter-spacing: -0.02em;
 }
 
 /* Mobile responsive: scale down welcome title on smaller screens */
 @media (max-width: 768px) {
   .message.assistant .message-content #welcomeTitle {
-    font-size: 1.25em;
+    font-size: 1.5em;
+    margin-bottom: 12px;
   }
 }
 
@@ -119,17 +119,19 @@
 }
 
 .message.assistant .message-content code {
-  background: #f5f5f5;
-  padding: 2px 6px;
+  background: #f8f9fa;
+  padding: 3px 6px;
   border-radius: 4px;
   font-family: 'Monaco', 'Courier New', monospace;
   font-size: 0.9em;
+  border: 1px solid #e9ecef;
 }
 
 .message.assistant .message-content pre {
-  background: #f5f5f5;
-  padding: 10px;
-  border-radius: 8px;
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
   overflow-x: auto;
   margin: 10px 0;
 }
@@ -140,11 +142,14 @@
 }
 
 .message.assistant .message-content blockquote {
-  border-left: 4px solid #ccc;
-  padding-left: 12px;
+  border-left: 3px solid #dee2e6;
+  padding-left: 16px;
   margin: 10px 0;
-  color: #555;
+  color: #6c757d;
   font-style: italic;
+  background: #f8f9fa;
+  padding: 12px 16px;
+  border-radius: 4px;
 }
 
 /* Table styling */
@@ -157,28 +162,28 @@
 }
 
 .message.assistant .message-content table th {
-  background: #f5f5f5;
-  color: #333;
+  background: #f8f9fa;
+  color: #212529;
   padding: 12px;
   text-align: left;
   font-weight: 600;
-  border: 1px solid #e0e0e0;
-  border-bottom: 2px solid #ccc;
+  border: 1px solid #e9ecef;
+  border-bottom: 1px solid #dee2e6;
 }
 
 .message.assistant .message-content table td {
   padding: 10px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e9ecef;
   text-align: left;
-  color: #333;
+  color: #212529;
 }
 
 .message.assistant .message-content table tr:nth-child(even) {
-  background-color: #fafafa;
+  background-color: #f8f9fa;
 }
 
 .message.assistant .message-content table tr:hover {
-  background-color: #f0f0f0;
+  background-color: #f1f3f5;
 }
 
 /* Table wrapper for mobile scrolling */

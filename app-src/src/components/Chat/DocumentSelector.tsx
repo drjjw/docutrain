@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 
 interface Document {
@@ -30,7 +30,6 @@ interface DocumentSelectorProps {
 
 export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }: DocumentSelectorProps) {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -364,21 +363,20 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
       onItemClick();
     }
     
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('doc', docSlug);
+    // Use full page reload to clear chat messages (matches vanilla JS behavior)
+    const url = new URL(window.location.href);
+    url.searchParams.set('doc', docSlug);
     
     // If in owner mode, remove the owner parameter since user has selected a document
-    // (matches vanilla JS behavior)
     if (ownerParam) {
-      newParams.delete('owner');
+      url.searchParams.delete('owner');
     }
     
     // Preserve other params
-    if (passcodeParam) newParams.set('passcode', passcodeParam);
-    if (documentSelectorParam === 'true') newParams.set('document_selector', 'true');
+    if (passcodeParam) url.searchParams.set('passcode', passcodeParam);
+    if (documentSelectorParam === 'true') url.searchParams.set('document_selector', 'true');
     
-    // Note: basename="/app" is set in AppRouter, so we use /chat not /app/chat
-    navigate(`/chat?${newParams.toString()}`);
+    window.location.href = url.toString();
   };
 
   // If inline mode, render just the document list without button/dropdown wrapper

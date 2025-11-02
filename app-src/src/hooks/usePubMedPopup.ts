@@ -25,7 +25,73 @@ interface UsePubMedPopupReturn {
 }
 
 /**
+ * Format author list for display - returns array of author names
+ */
+function formatAuthors(authors: any[]): string[] {
+  if (!authors || authors.length === 0) {
+    return ['Authors not available'];
+  }
+
+  // Take first 3 authors, then add "et al." if more
+  const authorNames = authors.slice(0, 3).map((author) => {
+    // Use collective name if available, otherwise format name
+    if (author.collectivename) {
+      return author.collectivename;
+    }
+    return `${author.name || author.lastname || ''}${
+      author.forename ? ` ${author.forename}` : ''
+    }`.trim();
+  });
+
+  if (authors.length > 3) {
+    authorNames.push('et al.');
+  }
+
+  return authorNames;
+}
+
+/**
+ * Format publication date
+ */
+function formatPubDate(result: any): string {
+  const pubdate = result.pubdate || result.epubdate;
+  if (!pubdate) return 'Date not available';
+
+  // Parse different date formats
+  try {
+    const date = new Date(pubdate);
+    if (isNaN(date.getTime())) {
+      return pubdate; // Return as-is if parsing fails
+    }
+    return date.getFullYear().toString();
+  } catch {
+    return pubdate;
+  }
+}
+
+/**
+ * Extract DOI from article data
+ */
+function extractDOI(result: any): string | null {
+  // Check various places where DOI might be stored
+  if (result.doi) return result.doi;
+  if (result.elocationid && result.elocationid.startsWith('10.'))
+    return result.elocationid;
+
+  // Check articleids array
+  if (result.articleids) {
+    const doiEntry = result.articleids.find(
+      (id: any) => id.idtype === 'doi'
+    );
+    if (doiEntry) return doiEntry.value;
+  }
+
+  return null;
+}
+
+/**
  * Fetch PubMed article with retry logic for rate limiting
+ * Calls PubMed E-utilities API directly (same as deprecated version)
  */
 async function fetchPubMedArticleWithRetry(
   pmid: string,
@@ -36,14 +102,51 @@ async function fetchPubMedArticleWithRetry(
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch(`/api/pubmed/${pmid}`);
-      
+      const url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${pmid}&retmode=json`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+        },
+      });
+
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        if (response.status === 429) {
+          throw new Error(
+            `Rate limit exceeded. Please wait before making another request.`
+          );
+        } else {
+          throw new Error(
+            `PubMed API error: ${response.status} ${response.statusText}`
+          );
+        }
       }
 
       const data = await response.json();
-      return data;
+
+      if (data.error) {
+        throw new Error(`PubMed API returned error: ${data.error}`);
+      }
+
+      // Extract article data
+      const result = data.result[pmid];
+      if (!result) {
+        throw new Error('Article not found in PubMed');
+      }
+
+      // Format article data to match expected structure
+      const articleData: PubMedArticle = {
+        pmid: pmid,
+        title: result.title || 'Title not available',
+        authors: formatAuthors(result.authors || []),
+        journal: result.source || result.fulljournalname || 'Journal not available',
+        year: formatPubDate(result),
+        abstract: result.abstract || undefined,
+        url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
+      };
+
+      return articleData;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
 
@@ -58,7 +161,7 @@ async function fetchPubMedArticleWithRetry(
         lastError.message.includes('rate limit') ||
         lastError.message.includes('fetch')
       ) {
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         delay *= 2; // Exponential backoff
       } else {
         // For other errors (like article not found), don't retry

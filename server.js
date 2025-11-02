@@ -300,8 +300,13 @@ async function serveReactAppWithMetaTags(req, res) {
         const host = req.get('host');
         const baseUrl = `${protocol}://${host}`;
         
+        // Use PUBLIC_BASE_URL for canonical URLs if set, otherwise use request-based URL
+        const publicBaseUrl = process.env.PUBLIC_BASE_URL || baseUrl;
+        // Remove trailing slash from PUBLIC_BASE_URL if present
+        const canonicalBaseUrl = publicBaseUrl.replace(/\/$/, '');
+        
         // Always set og:url and canonical for the base page (even without doc param)
-        const currentUrl = `${protocol}://${host}${req.originalUrl}`;
+        const currentUrl = `${canonicalBaseUrl}${req.originalUrl}`;
         const escapedCurrentUrl = escapeHtml(currentUrl);
         
         // Convert default image to absolute URL
@@ -310,12 +315,13 @@ async function serveReactAppWithMetaTags(req, res) {
         
         // Update og:url and canonical for base page
         html = updateOrInsertMetaTag(html, 'property', 'og:url', escapedCurrentUrl);
-        if (html.includes('<link rel="canonical"')) {
-            html = html.replace(
-                /<link rel="canonical" href=".*?"\s*\/?>/,
-                `<link rel="canonical" href="${escapedCurrentUrl}">`
-            );
-        } else {
+        // Always replace canonical URL - handle both empty href="" and any existing href
+        html = html.replace(
+            /<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i,
+            `<link rel="canonical" href="${escapedCurrentUrl}">`
+        );
+        // If no canonical tag exists at all, insert it
+        if (!html.includes('<link rel="canonical"')) {
             html = html.replace(
                 /<\/head>/i,
                 `    <link rel="canonical" href="${escapedCurrentUrl}">\n</head>`
@@ -361,8 +367,8 @@ async function serveReactAppWithMetaTags(req, res) {
                     const escapedTitle = escapeHtml(combinedTitle);
                     const escapedDescription = escapeHtml(metaDescription);
                     
-                    // Get the current URL for og:url and canonical
-                    const url = `${protocol}://${host}${req.originalUrl}`;
+                    // Get the current URL for og:url and canonical (use PUBLIC_BASE_URL if set)
+                    const url = `${canonicalBaseUrl}${req.originalUrl}`;
                     const escapedUrl = escapeHtml(url);
                     
                     // Get cover image if available (for og:image)
@@ -408,13 +414,13 @@ async function serveReactAppWithMetaTags(req, res) {
                         html = updateOrInsertMetaTag(html, 'name', 'twitter:image:alt', escapedTitle, '<meta name="twitter:image"');
                     }
                     
-                    // Add canonical URL
-                    if (html.includes('<link rel="canonical"')) {
-                        html = html.replace(
-                            /<link rel="canonical" href=".*?"\s*\/?>/,
-                            `<link rel="canonical" href="${escapedUrl}">`
-                        );
-                    } else {
+                    // Always replace canonical URL - handle both empty href="" and any existing href
+                    html = html.replace(
+                        /<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i,
+                        `<link rel="canonical" href="${escapedUrl}">`
+                    );
+                    // If no canonical tag exists at all, insert it
+                    if (!html.includes('<link rel="canonical"')) {
                         html = html.replace(
                             /<\/head>/i,
                             `    <link rel="canonical" href="${escapedUrl}">\n</head>`
@@ -422,7 +428,7 @@ async function serveReactAppWithMetaTags(req, res) {
                     }
                     
                     // Add document-specific structured data
-                    const structuredData = generateDocumentStructuredData(validConfigs, escapedUrl, baseUrl);
+                    const structuredData = generateDocumentStructuredData(validConfigs, escapedUrl, canonicalBaseUrl);
                     html = updateOrInsertStructuredData(html, structuredData);
                     
                     console.log(`✅ Serving React app with dynamic meta tags for: ${combinedTitle}`);
@@ -462,6 +468,73 @@ app.get('/app/*', async (req, res) => {
         return res.status(404).send('Asset not found');
     }
     await serveReactAppWithMetaTags(req, res);
+});
+
+// Serve landing page with dynamic canonical URL
+// IMPORTANT: This must be BEFORE express.static middleware for public directory
+app.get('/', async (req, res, next) => {
+    console.log(`🏠 Home page route hit - ${req.method} ${req.path}`);
+    
+    try {
+        // Check if running from dist directory (production) or root (development)
+        const isDist = __dirname.endsWith('/dist');
+        const indexPath = path.join(__dirname, 'public/index.html');
+        
+        if (!fs.existsSync(indexPath)) {
+            console.error(`❌ Landing page not found at: ${indexPath}`);
+            // Fallback to static file
+            return res.sendFile(indexPath);
+        }
+        
+        let html = fs.readFileSync(indexPath, 'utf8');
+        
+        // Use PUBLIC_BASE_URL for canonical URLs if set, otherwise use request-based URL
+        const protocol = req.protocol;
+        const host = req.get('host');
+        const baseUrl = `${protocol}://${host}`;
+        const publicBaseUrl = process.env.PUBLIC_BASE_URL || baseUrl;
+        const canonicalBaseUrl = publicBaseUrl.replace(/\/$/, '');
+        
+        // Set canonical URL for home page
+        const canonicalUrl = canonicalBaseUrl;
+        const escapedCanonicalUrl = escapeHtml(canonicalUrl);
+        
+        console.log(`🏠 Setting canonical URL for home page: ${canonicalUrl} (from ${indexPath})`);
+        
+        // Always replace canonical URL - handle both empty href="" and any existing href
+        // Match various formats: <link rel="canonical" href="" /> or <link rel="canonical" href="">
+        const canonicalRegex = /<link\s+rel=["']canonical["'][^>]*>/i;
+        const originalCanonical = html.match(canonicalRegex);
+        
+        if (originalCanonical) {
+            console.log(`🔍 Found canonical tag: ${originalCanonical[0]}`);
+            html = html.replace(canonicalRegex, `<link rel="canonical" href="${escapedCanonicalUrl}">`);
+            const afterReplace = html.match(canonicalRegex);
+            if (afterReplace) {
+                console.log(`✅ Replaced canonical tag: ${afterReplace[0]}`);
+            } else {
+                console.warn('⚠️  Canonical URL replacement may have failed');
+            }
+        } else {
+            console.log('⚠️  No canonical tag found, will insert one');
+        }
+        
+        // If no canonical tag exists at all, insert it
+        if (!html.includes('<link rel="canonical"')) {
+            html = html.replace(
+                /<\/head>/i,
+                `    <link rel="canonical" href="${escapedCanonicalUrl}">\n</head>`
+            );
+        }
+        
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+    } catch (error) {
+        console.error('❌ Error serving landing page with canonical URL:', error);
+        // Fallback to static file on error
+        const isDist = __dirname.endsWith('/dist');
+        res.sendFile(path.join(__dirname, 'public/index.html'));
+    }
 });
 
 // Serve static files for main app BEFORE dynamic routes

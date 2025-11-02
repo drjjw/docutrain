@@ -23,7 +23,10 @@ export function ChatHeader({ documentSlug }: ChatHeaderProps) {
   // Document owner is in config.ownerInfo?.slug or config.owner
   const documentOwnerSlug = docConfig?.ownerInfo?.slug || docConfig?.owner || null;
   const ownerModeSlug = searchParams.get('owner'); // This is for owner mode, separate from document owner
-  const hasPubMed = !!docConfig?.metadata?.pubmed_pmid;
+  // Check for PubMed ID in multiple possible field names (pmid, pubmed_id, pubmed_pmid, PMID)
+  const metadata = docConfig?.metadata || {};
+  const pubmedId = metadata.pmid || metadata.pubmed_id || metadata.pubmed_pmid || metadata.PMID;
+  const hasPubMed = !!pubmedId;
   
   // Determine if document selector should show (same logic as DocumentSelector)
   // For mobile menu visibility check - actual visibility is managed inside DocumentSelector
@@ -39,23 +42,27 @@ export function ChatHeader({ documentSlug }: ChatHeaderProps) {
   const logoOwnerSlug = ownerModeSlug || documentOwnerSlug;
 
   return (
-    <header className="bg-white text-gray-900 border-b border-gray-200 shadow-sm transition-all z-[100] backdrop-blur-sm
-      py-2 md:py-7 px-3 md:px-5
-      overflow-hidden">
+    <header 
+      className="fixed top-0 left-0 right-0 text-gray-900 border-b border-gray-200 z-[100]
+        py-3 md:py-6 px-4 md:px-6
+        overflow-hidden"
+      style={{
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)'
+      }}
+    >
       {/* Desktop: Single row layout */}
       <div className="hidden md:flex items-center justify-between gap-4">
         <div className="flex-shrink-0">
           <OwnerLogo ownerSlug={logoOwnerSlug} />
         </div>
         <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-center px-4">
-          <div className="flex items-center justify-center gap-3 w-full">
-            <DocumentTitle documentSlug={documentSlug} ownerSlug={ownerModeSlug} />
-            {hasPubMed && docConfig && (
-              <div className="flex-shrink-0">
-                <PubMedButton pmid={docConfig.metadata!.pubmed_pmid!} />
-              </div>
-            )}
-          </div>
+          <DocumentTitle 
+            documentSlug={documentSlug} 
+            ownerSlug={ownerModeSlug}
+            pubmedButton={hasPubMed && pubmedId ? <PubMedButton pmid={pubmedId} /> : undefined}
+          />
         </div>
         <div className="flex-shrink-0">
           <CombinedHeaderMenu
@@ -84,7 +91,11 @@ export function ChatHeader({ documentSlug }: ChatHeaderProps) {
 
         {/* Row 2: Title - Full width, centered */}
         <div className="flex flex-col items-center justify-center w-full min-w-0">
-          <DocumentTitle documentSlug={documentSlug} ownerSlug={ownerModeSlug} />
+          <DocumentTitle 
+            documentSlug={documentSlug} 
+            ownerSlug={ownerModeSlug}
+            pubmedButton={hasPubMed && pubmedId ? <PubMedButton pmid={pubmedId} /> : undefined}
+          />
         </div>
       </div>
     </header>

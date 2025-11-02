@@ -13,6 +13,7 @@ import { InlineEditor } from './InlineEditor';
 interface DocumentTitleProps {
   documentSlug: string | null;
   ownerSlug?: string | null;
+  pubmedButton?: React.ReactNode;
 }
 
 /**
@@ -54,7 +55,7 @@ async function saveDocumentField(
   return true;
 }
 
-export function DocumentTitle({ documentSlug, ownerSlug }: DocumentTitleProps) {
+export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton }: DocumentTitleProps) {
   const { config, loading } = useDocumentConfig(documentSlug || '');
   const { config: ownerConfig } = useOwnerLogo(ownerSlug);
   const [searchParams] = useSearchParams();
@@ -149,12 +150,16 @@ export function DocumentTitle({ documentSlug, ownerSlug }: DocumentTitleProps) {
   // For multi-doc, show document count
   let subtitleContent: React.ReactNode = null;
   
-  if (config.showDocumentSelector) {
+  // Check if this is actually a multi-document search (doc param contains + separator)
+  const docParam = searchParams.get('doc');
+  const isMultiDocSearch = docParam?.includes('+');
+  
+  if (isMultiDocSearch) {
     // Multi-doc mode - show document count
-    // TODO: Get actual count when multi-doc is implemented
+    const docCount = docParam?.split('+').filter(Boolean).length || 0;
     subtitleContent = (
       <p className="text-xs md:text-base text-gray-600 font-medium tracking-wide truncate max-w-full">
-          Multi-document search
+          Multi-document search across {docCount} document{docCount !== 1 ? 's' : ''}
       </p>
     );
   } else if (config.category || config.year) {
@@ -214,6 +219,14 @@ export function DocumentTitle({ documentSlug, ownerSlug }: DocumentTitleProps) {
                 )}
               </React.Fragment>
             ))}
+            {pubmedButton && (
+              <>
+                <span className="text-gray-300 font-light mx-0.5 md:mx-1 flex-shrink-0">|</span>
+                <div className="flex-shrink-0">
+                  {pubmedButton}
+                </div>
+              </>
+            )}
           </div>
         </div>
       );
@@ -222,18 +235,28 @@ export function DocumentTitle({ documentSlug, ownerSlug }: DocumentTitleProps) {
     // Fallback to original subtitle if no category/year
     subtitleContent = (
       <div className="text-xs md:text-base text-gray-600 mt-0.5 md:mt-1 font-medium tracking-wide overflow-hidden flex items-center justify-center gap-1 md:gap-2 max-w-full">
-        {canEdit ? (
-          <InlineEditor
-            id="headerSubtitle"
-            value={config.subtitle}
-            field="subtitle"
-            documentSlug={documentSlug}
-            onSave={(value) => handleSave('subtitle', value)}
-            className="text-xs md:text-base text-gray-600 font-medium tracking-wide truncate"
-          />
-        ) : (
-          <p className="text-xs md:text-base text-gray-600 font-medium tracking-wide truncate max-w-full">{config.subtitle}</p>
-        )}
+        <div className="flex items-center gap-1 md:gap-2">
+          {canEdit ? (
+            <InlineEditor
+              id="headerSubtitle"
+              value={config.subtitle}
+              field="subtitle"
+              documentSlug={documentSlug}
+              onSave={(value) => handleSave('subtitle', value)}
+              className="text-xs md:text-base text-gray-600 font-medium tracking-wide truncate"
+            />
+          ) : (
+            <p className="text-xs md:text-base text-gray-600 font-medium tracking-wide truncate max-w-full">{config.subtitle}</p>
+          )}
+          {pubmedButton && (
+            <>
+              <span className="text-gray-300 font-light mx-0.5 md:mx-1 flex-shrink-0">|</span>
+              <div className="flex-shrink-0">
+                {pubmedButton}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     );
   }
