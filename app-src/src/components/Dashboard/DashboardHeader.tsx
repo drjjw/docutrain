@@ -80,11 +80,19 @@ export function DashboardHeader() {
       <header className="bg-white border-b border-gray-200/60 shadow-sm sticky top-0 z-50 backdrop-blur-sm bg-white/95">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
-            <img
-              src={docutrainLogoUrl}
-              alt="DocuTrain Logo"
-              className="h-14 w-auto"
-            />
+            <button
+              onClick={() => {
+                window.location.href = '/';
+              }}
+              className="cursor-pointer hover:opacity-80 transition-opacity"
+              aria-label="Go to home"
+            >
+              <img
+                src={docutrainLogoUrl}
+                alt="DocuTrain Logo"
+                className="h-14 w-auto"
+              />
+            </button>
             
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-1">
@@ -204,11 +212,19 @@ export function DashboardHeader() {
             <div className="flex flex-col h-full">
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                <img
-                  src={docutrainLogoUrl}
-                  alt="DocuTrain Logo"
-                  className="h-10 w-auto"
-                />
+                <button
+                  onClick={() => {
+                    window.location.href = '/';
+                  }}
+                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                  aria-label="Go to home"
+                >
+                  <img
+                    src={docutrainLogoUrl}
+                    alt="DocuTrain Logo"
+                    className="h-10 w-auto"
+                  />
+                </button>
                 <button
                   onClick={() => setMobileMenuOpen(false)}
                   className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
