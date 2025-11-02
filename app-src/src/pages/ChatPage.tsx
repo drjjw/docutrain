@@ -19,6 +19,7 @@ import { PasscodeModal } from '@/components/Chat/PasscodeModal';
 import { DocumentOwnerModal } from '@/components/Chat/DocumentOwnerModal';
 import { DocumentSelector } from '@/components/Chat/DocumentSelector';
 import { DocutrainFooter } from '@/components/Chat/DocutrainFooter';
+import { DocumentMeta } from '@/components/Chat/DocumentMeta';
 import { Spinner } from '@/components/UI/Spinner';
 import { useDocumentConfig } from '@/hooks/useDocumentConfig';
 import { useOwnerLogo } from '@/hooks/useOwnerLogo';
@@ -499,6 +500,9 @@ export function ChatPage() {
   
   return (
     <div className="flex flex-col h-screen overflow-x-hidden">
+      {/* Document Meta Tags - updates title and meta tags dynamically */}
+      <DocumentMeta documentSlug={documentSlug} />
+      
       {/* Passcode Modal - shown when passcode is required */}
       {shouldShowPasscodeModal && (
         <PasscodeModal

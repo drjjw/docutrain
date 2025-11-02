@@ -103,10 +103,16 @@ async function ensureLocalEmbeddings() {
 
 // Initialize Supabase client
 // Use service role key for server-side operations to bypass RLS
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseKeyType = process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SERVICE_ROLE' : 'ANON';
 const supabase = createClient(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
+    supabaseKey
 );
+console.log(`✓ Supabase client initialized with ${supabaseKeyType} key`);
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn('⚠️  SUPABASE_SERVICE_ROLE_KEY not set - using ANON key (RLS policies will apply)');
+}
 
 // Initialize document registry
 const documentRegistry = require('./lib/document-registry');

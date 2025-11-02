@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const OpenAI = require('openai');
 const { createClient } = require('@supabase/supabase-js');
@@ -194,15 +195,154 @@ app.use('/api', (err, req, res, next) => {
     });
 });
 
-// Serve React app at /app route
+// Helper function to serve React app index.html with dynamic meta tags
+async function serveReactAppWithMetaTags(req, res) {
+    try {
+        const indexPath = path.join(__dirname, 'dist/app/index.html');
+        let html = fs.readFileSync(indexPath, 'utf8');
+        
+        // Check if doc parameter is provided
+        const docParam = req.query.doc;
+        
+        console.log(`📄 Serving React app - URL: ${req.originalUrl}, doc param: ${docParam || 'none'}`);
+        
+        if (docParam) {
+            // Parse multiple documents (support for + separator)
+            const docSlugs = docParam.split(/[\s+]+/).map(s => s.trim()).filter(s => s);
+            
+            if (docSlugs.length > 0) {
+                // Fetch document configs
+                const docConfigs = await Promise.all(
+                    docSlugs.map(slug => documentRegistry.getDocumentBySlug(slug))
+                );
+                
+                // Filter out null results
+                const validConfigs = docConfigs.filter(c => c !== null);
+                
+                console.log(`📄 Found ${validConfigs.length} valid config(s) for ${docSlugs.length} slug(s)`);
+                
+                if (validConfigs.length > 0) {
+                    // Build title and description
+                    const isMultiDoc = validConfigs.length > 1;
+                    const combinedTitle = validConfigs.map(c => c.title).join(' + ');
+                    const metaDescription = isMultiDoc 
+                        ? `Multi-document search across ${validConfigs.length} documents: ${combinedTitle}`
+                        : (validConfigs[0].subtitle || validConfigs[0].welcome_message || 'AI-powered document assistant');
+                    
+                    // Escape HTML to prevent XSS
+                    const escapedTitle = escapeHtml(combinedTitle);
+                    const escapedDescription = escapeHtml(metaDescription);
+                    
+                    // Get the current URL for og:url
+                    const protocol = req.protocol;
+                    const host = req.get('host');
+                    const url = `${protocol}://${host}${req.originalUrl}`;
+                    const escapedUrl = escapeHtml(url);
+                    
+                    // Get cover image if available (for og:image)
+                    const coverImage = validConfigs[0].cover || null;
+                    const ogImage = coverImage ? escapeHtml(coverImage) : '';
+                    
+                    // Replace meta tags in HTML (handle both self-closing /> and regular >)
+                    html = html.replace(
+                        /<title>.*?<\/title>/,
+                        `<title>${escapedTitle}</title>`
+                    );
+                    
+                    html = html.replace(
+                        /<meta name="description" content=".*?"\s*\/?>/,
+                        `<meta name="description" content="${escapedDescription}">`
+                    );
+                    
+                    // Open Graph meta tags
+                    html = html.replace(
+                        /<meta property="og:title" content=".*?"\s*\/?>/,
+                        `<meta property="og:title" content="${escapedTitle}">`
+                    );
+                    
+                    html = html.replace(
+                        /<meta property="og:description" content=".*?"\s*\/?>/,
+                        `<meta property="og:description" content="${escapedDescription}">`
+                    );
+                    
+                    // Add og:url if not present, or update if present
+                    if (html.includes('<meta property="og:url"')) {
+                        html = html.replace(
+                            /<meta property="og:url" content=".*?"\s*\/?>/,
+                            `<meta property="og:url" content="${escapedUrl}">`
+                        );
+                    } else {
+                        // Insert after og:description
+                        html = html.replace(
+                            /(<meta property="og:description" content=".*?"\s*\/?>)/,
+                            `$1\n    <meta property="og:url" content="${escapedUrl}">`
+                        );
+                    }
+                    
+                    // Add og:image if cover is available
+                    if (ogImage) {
+                        if (html.includes('<meta property="og:image"')) {
+                            html = html.replace(
+                                /<meta property="og:image" content=".*?"\s*\/?>/,
+                                `<meta property="og:image" content="${ogImage}">`
+                            );
+                        } else {
+                            // Insert after og:url
+                            html = html.replace(
+                                /(<meta property="og:url" content=".*?"\s*\/?>)/,
+                                `$1\n    <meta property="og:image" content="${ogImage}">`
+                            );
+                        }
+                    }
+                    
+                    // Twitter Card meta tags
+                    html = html.replace(
+                        /<meta name="twitter:title" content=".*?"\s*\/?>/,
+                        `<meta name="twitter:title" content="${escapedTitle}">`
+                    );
+                    
+                    html = html.replace(
+                        /<meta name="twitter:description" content=".*?"\s*\/?>/,
+                        `<meta name="twitter:description" content="${escapedDescription}">`
+                    );
+                    
+                    console.log(`✅ Serving React app with dynamic meta tags for: ${combinedTitle}`);
+                } else {
+                    console.warn(`⚠️  No valid configs found for slugs: ${docSlugs.join(', ')}`);
+                }
+            }
+        }
+        
+        // Send the modified HTML
+        res.send(html);
+    } catch (error) {
+        console.error('❌ Error serving React app with dynamic meta tags:', error);
+        // Fallback to static file on error
+        const indexPath = path.join(__dirname, 'dist/app/index.html');
+        res.sendFile(indexPath);
+    }
+}
+
+// Serve React app static assets FIRST (so JS/CSS files are served correctly)
 app.use('/app', express.static(path.join(__dirname, 'dist/app')));
 
-// Handle React Router - serve index.html for all /app routes and subroutes
-app.get('/app', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist/app/index.html'));
+// Handle React Router - serve index.html for all /app routes and subroutes with dynamic meta tags
+// These must come AFTER static middleware so asset requests (JS/CSS) are handled first
+// Only match routes that don't have file extensions (to avoid catching asset requests)
+app.get('/app/chat', async (req, res) => {
+    await serveReactAppWithMetaTags(req, res);
 });
-app.get('/app/*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist/app/index.html'));
+app.get('/app', async (req, res) => {
+    await serveReactAppWithMetaTags(req, res);
+});
+// Catch-all for React Router routes (but NOT for assets - those are handled by static middleware above)
+app.get('/app/*', async (req, res) => {
+    // Skip if this is an asset request (has a file extension)
+    const pathname = req.path;
+    if (pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/i)) {
+        return res.status(404).send('Asset not found');
+    }
+    await serveReactAppWithMetaTags(req, res);
 });
 
 // Serve static files for main app BEFORE dynamic routes
