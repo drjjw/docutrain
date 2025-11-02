@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { clearDocumentConfigCaches } from '@/utils/documentCache';
 
 export interface SignUpData {
   email: string;
@@ -76,7 +77,21 @@ export async function signOut() {
   // Also clear session storage
   sessionStorage.clear();
   
+  // Clear document config caches to prevent re-accessing documents after logout
+  clearDocumentConfigCaches();
+  
+  // Also clear any document-related localStorage caches
+  const documentCacheKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key.startsWith('ukidney-documents-cache') || key.startsWith('passcode:'))) {
+      documentCacheKeys.push(key);
+    }
+  }
+  documentCacheKeys.forEach(key => localStorage.removeItem(key));
+  
   console.log('🟡 Cleared local/session storage keys:', keysToRemove);
+  console.log('🟡 Cleared document cache keys:', documentCacheKeys);
 }
 
 /**

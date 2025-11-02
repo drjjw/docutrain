@@ -127,9 +127,10 @@ export function DocumentTitle({ documentSlug, ownerSlug }: DocumentTitleProps) {
   }
 
   if (!config) {
+    // Don't show "Document Not Found" - just return empty or loading state
     return (
       <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-center w-full">
-        <h1 className="m-0 text-sm md:text-2xl font-semibold text-gray-900 line-clamp-2 md:line-clamp-none leading-tight md:leading-normal"
+        <h1 className="m-0 text-sm md:text-2xl font-semibold text-gray-400 line-clamp-2 md:line-clamp-none leading-tight md:leading-normal"
           style={{
             display: '-webkit-box',
             WebkitLineClamp: 2,
@@ -137,7 +138,7 @@ export function DocumentTitle({ documentSlug, ownerSlug }: DocumentTitleProps) {
             overflow: 'hidden',
           }}
         >
-          Document Not Found
+          Loading...
         </h1>
       </div>
     );

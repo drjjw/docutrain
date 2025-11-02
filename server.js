@@ -103,10 +103,16 @@ async function ensureLocalEmbeddings() {
 
 // Initialize Supabase client
 // Use service role key for server-side operations to bypass RLS
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseKeyType = process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SERVICE_ROLE' : 'ANON';
 const supabase = createClient(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
+    supabaseKey
 );
+console.log(`✓ Supabase client initialized with ${supabaseKeyType} key`);
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn('⚠️  SUPABASE_SERVICE_ROLE_KEY not set - using ANON key (RLS policies will apply)');
+}
 
 // Initialize document registry
 const documentRegistry = require('./lib/document-registry');
@@ -202,9 +208,19 @@ app.get('/app/*', (req, res) => {
 // Serve static files for main app BEFORE dynamic routes
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve chat interface at /chat with dynamic meta tags
+// DEPRECATED: Redirect /chat to React app (/app/chat)
+// The vanilla JS chat.html is deprecated - all functionality migrated to React
 app.get('/chat', async (req, res) => {
-    const chatPath = path.join(__dirname, 'public/chat.html');
+    // Redirect to React app, preserving query parameters
+    const queryString = new URLSearchParams(req.query).toString();
+    const redirectUrl = `/app/chat${queryString ? '?' + queryString : ''}`;
+    console.log(`🔄 Redirecting deprecated /chat route to React app: ${redirectUrl}`);
+    return res.redirect(redirectUrl);
+    
+    // OLD CODE BELOW - Kept for reference but never executed
+    // NOTE: Files have been moved to deprecated/public/chat.html
+    /*
+    const chatPath = path.join(__dirname, 'deprecated/public/chat.html');
     
     // If there's a doc parameter, inject dynamic meta tags
     if (req.query.doc) {
@@ -281,6 +297,7 @@ app.get('/chat', async (req, res) => {
         // No doc parameter, just serve the chat page
         res.sendFile(chatPath);
     }
+    */
 });
 
 // Document routes for main app (after static files so dynamic meta injection still works)

@@ -7,13 +7,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
 import { UserMenu } from './UserMenu';
 import { DocumentSelector } from './DocumentSelector';
 
 interface CombinedHeaderMenuProps {
-  documentSlug: string;
+  documentSlug: string | null; // Can be null when no document is selected
   ownerSlug?: string | null;
   shouldShowDocumentSelector: boolean;
 }
@@ -24,12 +23,20 @@ export function CombinedHeaderMenu({
   shouldShowDocumentSelector 
 }: CombinedHeaderMenuProps) {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const portalRootRef = useRef<HTMLDivElement | null>(null);
+  
+  // Check if we're in modal mode (owner param present with no doc param)
+  // In modal mode, DocumentSelector is rendered from ChatPage, not from header
+  const ownerParam = searchParams.get('owner');
+  const docParam = searchParams.get('doc');
+  const isModalMode = !!ownerParam && !docParam;
+  const shouldShowInHeader = shouldShowDocumentSelector && !isModalMode;
 
   // Check if mobile view
   useEffect(() => {
@@ -123,15 +130,15 @@ export function CombinedHeaderMenu({
     };
   }, [isMobileMenuOpen]);
 
-  // Only show mobile menu if we have user OR document selector
-  const shouldShowMobileMenu = isMobile && (!!user || shouldShowDocumentSelector);
+  // Only show mobile menu if we have user OR document selector (but not in modal mode)
+  const shouldShowMobileMenu = isMobile && (!!user || shouldShowInHeader);
 
   if (!shouldShowMobileMenu) {
     // Desktop view: show separate components
     return (
       <div className="flex items-center gap-2 flex-shrink-0">
         <UserMenu />
-        {shouldShowDocumentSelector && (
+        {shouldShowInHeader && (
           <DocumentSelector
             ownerSlug={ownerSlug}
             currentDocSlug={documentSlug}
@@ -220,7 +227,7 @@ export function CombinedHeaderMenu({
             <div className="flex-1 overflow-y-hidden min-h-0 flex flex-col">
               <div className="flex-1 flex flex-col min-h-0">
                 {/* Document Selector Section - can be scrollable if needed */}
-                {shouldShowDocumentSelector && (
+                {shouldShowInHeader && (
                   <div className="flex-1 flex flex-col min-h-0 border-b border-gray-200">
                     <div className="flex-shrink-0 px-4 pt-4 pb-3">
                       <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">

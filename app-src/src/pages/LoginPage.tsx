@@ -58,6 +58,18 @@ export function LoginPage() {
     const hasToken = urlSearchParams.get('token') || hashParamsForToken.get('access_token');
     const isSignupType = urlSearchParams.get('type') === 'signup' || hashParamsForToken.get('type') === 'signup';
     
+    // Check for returnUrl in URL query params and store in sessionStorage
+    const returnUrlParam = urlSearchParams.get('returnUrl');
+    if (returnUrlParam) {
+      // Decode and store in sessionStorage for use after login
+      const decodedUrl = decodeURIComponent(returnUrlParam);
+      sessionStorage.setItem('auth_return_url', decodedUrl);
+      // Remove returnUrl from URL to keep it clean
+      urlSearchParams.delete('returnUrl');
+      const newUrl = window.location.pathname + (urlSearchParams.toString() ? '?' + urlSearchParams.toString() : '') + window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+    }
+    
     // Check if we have a session (user just confirmed email)
     // If user has a session and there's a token/type=signup, they just verified
     if (!loading && session && user && (hasToken || isSignupType)) {

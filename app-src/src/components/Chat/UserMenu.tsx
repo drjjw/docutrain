@@ -256,26 +256,15 @@ export function UserMenu({ inline = false, onItemClick }: UserMenuProps = {}) {
   // Define handleSignOut function before inline check so it's accessible
   const handleSignOut = async () => {
     try {
-      // Clear all Supabase auth keys from localStorage
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('sb-')) {
-          keysToRemove.push(key);
-        }
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-
-      // Clear session storage
-      sessionStorage.clear();
-
-      // Sign out via auth context
+      // Sign out via auth context (this will clear all caches including document configs)
       await signOut();
 
-      // Redirect to login
+      // Force full page reload to ensure clean state
+      // Use window.location.href instead of navigate to ensure complete reload
       window.location.href = '/app/login?logout=true';
     } catch (error) {
       console.error('Error signing out:', error);
+      // Even on error, redirect to login with full reload
       window.location.href = '/app/login?logout=true';
     }
   };

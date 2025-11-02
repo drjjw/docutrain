@@ -202,9 +202,19 @@ app.get('/app/*', (req, res) => {
 // Serve static files for main app BEFORE dynamic routes
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve chat interface at /chat with dynamic meta tags
+// DEPRECATED: Redirect /chat to React app (/app/chat)
+// The vanilla JS chat.html is deprecated - all functionality migrated to React
 app.get('/chat', async (req, res) => {
-    const chatPath = path.join(__dirname, 'public/chat.html');
+    // Redirect to React app, preserving query parameters
+    const queryString = new URLSearchParams(req.query).toString();
+    const redirectUrl = `/app/chat${queryString ? '?' + queryString : ''}`;
+    console.log(`🔄 Redirecting deprecated /chat route to React app: ${redirectUrl}`);
+    return res.redirect(redirectUrl);
+    
+    // OLD CODE BELOW - Kept for reference but never executed
+    // NOTE: Files have been moved to deprecated/public/chat.html
+    /*
+    const chatPath = path.join(__dirname, 'deprecated/public/chat.html');
     
     // If there's a doc parameter, inject dynamic meta tags
     if (req.query.doc) {
@@ -281,6 +291,7 @@ app.get('/chat', async (req, res) => {
         // No doc parameter, just serve the chat page
         res.sendFile(chatPath);
     }
+    */
 });
 
 // Document routes for main app (after static files so dynamic meta injection still works)

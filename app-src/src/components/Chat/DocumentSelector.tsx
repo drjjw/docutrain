@@ -23,7 +23,7 @@ interface Document {
 
 interface DocumentSelectorProps {
   ownerSlug?: string | null; // For future use if needed
-  currentDocSlug: string;
+  currentDocSlug: string | null; // Can be null when no document is selected
   inline?: boolean; // If true, renders content only (no button/dropdown) for inline use
   onItemClick?: () => void; // Callback when document is selected (useful for closing mobile menu)
 }
@@ -49,9 +49,15 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
   const passcodeParam = searchParams.get('passcode');
   const docParam = searchParams.get('doc'); // Check if document is already selected
   
-  // In owner mode, use modal mode (centered, non-dismissible)
-  // But only auto-open modal if no document is selected yet
+  // In owner mode (with no doc param), use modal mode (centered, non-dismissible)
+  // NOTE: When no owner param and no doc param, DocumentOwnerModal shows instead, not this component
   const isModalMode = !!ownerParam && !docParam;
+  
+  // Reset isOpen when URL changes back to modal mode (for browser back button)
+  // This handles navigation back to the page with owner param
+  useEffect(() => {
+    setIsOpen(isModalMode);
+  }, [isModalMode]); // Set isOpen directly based on isModalMode
   
   // Synchronous check to prevent flashing during navigation
   // If we have doc param but no owner param, immediately hide (transitioning out of owner mode)
@@ -75,12 +81,20 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
         
         if (ownerParam) {
           apiUrl += `?owner=${encodeURIComponent(ownerParam)}`;
+          if (passcodeParam) {
+            apiUrl += `&passcode=${encodeURIComponent(passcodeParam)}`;
+          }
+        } else if (currentDocSlug) {
+          // If we have a document slug, fetch that specific document
+          apiUrl += `?doc=${encodeURIComponent(currentDocSlug)}`;
+          if (passcodeParam) {
+            apiUrl += `&passcode=${encodeURIComponent(passcodeParam)}`;
+          }
         } else {
-          apiUrl += `?doc=${encodeURIComponent(currentDocSlug || 'smh')}`;
-        }
-
-        if (passcodeParam) {
-          apiUrl += `&passcode=${encodeURIComponent(passcodeParam)}`;
+          // No doc param and no owner param: load all documents to show in selector
+          if (passcodeParam) {
+            apiUrl += `?passcode=${encodeURIComponent(passcodeParam)}`;
+          }
         }
 
         // Get JWT token if available
@@ -108,16 +122,18 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
         setDocuments(loadedDocuments);
 
         // Determine if selector should be shown (matches vanilla JS logic)
-        // Priority: URL parameter (true/false) > owner mode (only if no doc selected) > database value > default (false)
+        // Priority: URL parameter (true/false) > owner mode (with no doc) > database value > default (false)
+        // NOTE: Do NOT show when no doc param AND no owner param - that's when DocumentOwnerModal shows
         let showSelector = false;
         
         if (documentSelectorParam !== null) {
           // URL parameter explicitly set - it overrides everything
           showSelector = documentSelectorParam === 'true';
         } else if (ownerParam && !docParam) {
-          // Owner mode shows selector ONLY when no document is selected yet (modal mode)
+          // Show selector ONLY when in owner mode with no doc selected
+          // When no owner param and no doc param, DocumentOwnerModal shows instead
           showSelector = true;
-        } else {
+        } else if (currentDocSlug) {
           // Check database value for current document
           const currentDoc = loadedDocuments.find((d: Document) => d.slug === currentDocSlug);
           showSelector = currentDoc?.showDocumentSelector || false;
@@ -143,19 +159,15 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
     }
 
     loadDocuments();
-  }, [ownerParam, currentDocSlug, passcodeParam, documentSelectorParam]);
+  }, [ownerParam, currentDocSlug, passcodeParam, documentSelectorParam, docParam]);
 
-  // Auto-open in owner mode (modal mode) - open immediately, even while loading
-  // But only if no document is selected yet
+  // Ensure modal is open when shouldShow becomes true (after documents load)
+  // This is a secondary check in case documents load after URL change
   useEffect(() => {
-    if (shouldShow && ownerParam && !docParam && !isOpen) {
+    if (shouldShow && isModalMode) {
       setIsOpen(true);
     }
-    // Close if document is selected (in owner mode with modal, close when doc appears in URL)
-    if (docParam && isOpen && ownerParam) {
-      setIsOpen(false);
-    }
-  }, [shouldShow, ownerParam, docParam, isOpen]);
+  }, [shouldShow, isModalMode]);
 
   // Create modal root for portal when in modal mode
   useEffect(() => {
@@ -309,11 +321,16 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
     return null;
   }
   
+  // Also hide if no doc param and no owner param - DocumentOwnerModal shows instead
+  if (!docParam && !ownerParam && !inline) {
+    return null;
+  }
+  
   if (!shouldShow && !inline) {
     return null;
   }
 
-  const currentDoc = documents.find(d => d.slug === currentDocSlug);
+  const currentDoc = currentDocSlug ? documents.find(d => d.slug === currentDocSlug) : null;
 
   // Filter documents based on search query
   const filteredDocuments = documents.filter(doc =>
@@ -647,6 +664,53 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
             </div>
           )}
         </div>
+        
+        {/* Footer with escape links - only shown in modal mode */}
+        {isModalMode && (
+          <div className="flex-shrink-0 px-8 py-4 border-t border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-center gap-6">
+              <a
+                href="/app/login"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                  />
+                </svg>
+                Login
+              </a>
+              <span className="text-gray-300">|</span>
+              <a
+                href="/app/dashboard"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                  />
+                </svg>
+                Home
+              </a>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

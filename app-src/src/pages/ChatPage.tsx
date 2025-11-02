@@ -15,8 +15,14 @@ import { ChatHeader } from '@/components/Chat/ChatHeader';
 import { LoadingMessage } from '@/components/Chat/LoadingMessage';
 import { CoverAndWelcome } from '@/components/Chat/CoverAndWelcome';
 import { DownloadsAndKeywords } from '@/components/Chat/DownloadsAndKeywords';
+import { PasscodeModal } from '@/components/Chat/PasscodeModal';
+import { DocumentOwnerModal } from '@/components/Chat/DocumentOwnerModal';
+import { DocumentSelector } from '@/components/Chat/DocumentSelector';
+import { DocutrainFooter } from '@/components/Chat/DocutrainFooter';
+import { Spinner } from '@/components/UI/Spinner';
 import { useDocumentConfig } from '@/hooks/useDocumentConfig';
 import { useOwnerLogo } from '@/hooks/useOwnerLogo';
+import { useAuth } from '@/hooks/useAuth';
 import { setAccentColorVariables, setDefaultAccentColors } from '@/utils/accentColor';
 import '@/styles/messages.css';
 import '@/styles/loading.css';
@@ -28,14 +34,12 @@ import '@/styles/send-button.css';
 
 export function ChatPage() {
   const [searchParams] = useSearchParams();
-  
-  // Check for owner parameter first (same as vanilla JS document-init.js)
-  const ownerParam = searchParams.get('owner');
+  const { user, loading: authLoading } = useAuth();
   
   // Get document parameter (same as vanilla JS)
-  // In owner mode without doc param, don't default to 'smh' - let user select
+  // If no doc param, set to null to show document selector (matches vanilla JS behavior)
   const docParam = searchParams.get('doc');
-  const [documentSlug, setDocumentSlug] = useState(docParam || (ownerParam ? null : 'smh'));
+  const [documentSlug, setDocumentSlug] = useState(docParam || null);
   
   // Get embedding type from URL parameter (same as vanilla JS)
   // Default: 'openai' for most docs, 'local' for ckd-dc-2025
@@ -167,23 +171,25 @@ export function ChatPage() {
   
   // Update document slug, embedding type, and model when URL param changes
   useEffect(() => {
-    const owner = searchParams.get('owner');
     const doc = searchParams.get('doc');
-    // In owner mode without doc param, don't default to 'smh' - let user select
-    setDocumentSlug(doc || (owner ? null : 'smh'));
+    // If no doc param, set to null to show document selector (matches vanilla JS behavior)
+    setDocumentSlug(doc || null);
     setEmbeddingType(getEmbeddingType());
     setSelectedModel(getModel());
   }, [searchParams]);
   
   // Get document config (includes cover, introMessage, etc.)
-  // Only fetch if we have a document slug (not in owner mode without doc selected)
-  const { config: docConfig } = useDocumentConfig(documentSlug || '');
-
-  // Get document owner for accent color
+  // Only fetch if we have a document slug - don't fetch when null (shows modal instead)
+  const { config: docConfig, errorDetails, loading: configLoading } = useDocumentConfig(documentSlug);
+  
+  // Passcode modal handling (no verbose logging)
+  
+  // Get document owner for accent color (must be called before early return)
   const documentOwnerSlug = docConfig?.ownerInfo?.slug || docConfig?.owner || null;
   const { config: ownerLogoConfig } = useOwnerLogo(documentOwnerSlug);
-
+  
   // Set accent color CSS variables based on document owner (ported from vanilla JS)
+  // Must be called before early return to follow Rules of Hooks
   useEffect(() => {
     // Set default colors first to prevent flashing
     setDefaultAccentColors();
@@ -193,14 +199,78 @@ export function ChatPage() {
       setAccentColorVariables(ownerLogoConfig.accentColor);
     }
   }, [ownerLogoConfig?.accentColor]);
+  
+  // Auto-scroll to bottom (ported from vanilla JS)
+  // Use useLayoutEffect for synchronous scroll after DOM updates (better sync with content)
+  // Must be called before early return to follow Rules of Hooks
+  useLayoutEffect(() => {
+    // During streaming, let streaming handler manage scroll to avoid conflicts
+    // But allow scroll for initial loading message and final message updates
+    if (isStreamingRef.current && messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      // Skip if actively streaming (has content and not in loading state)
+      if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.isLoading && lastMsg.content) {
+        return;
+      }
+    }
+    
+    // Cancel any pending scroll from streaming handler
+    if (scrollAnimationFrameRef.current !== null) {
+      cancelAnimationFrame(scrollAnimationFrameRef.current);
+      scrollAnimationFrameRef.current = null;
+    }
+    
+    // Scroll immediately - useLayoutEffect runs synchronously after DOM mutations
+    // This keeps scroll in sync with React's DOM updates
+    if (chatContainerRef.current && shouldAutoScroll()) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
+  
+  // Show loading spinner while auth is loading OR while checking document access
+  // This prevents flash of content when redirecting to login for restricted documents
+  // Show loading if:
+  // 1. Auth is still loading, OR
+  // 2. We have a document slug but no user and (config is loading OR no config yet and no error)
+  //    This covers the case where we're waiting for the access check to complete
+  // NOTE: Must be after all hooks are called to follow Rules of Hooks
+  const isCheckingAccess = documentSlug && !user && (configLoading || (!docConfig && !errorDetails));
+  if (authLoading || isCheckingAccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Spinner size="lg" />
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Check if we should show passcode modal
+  const shouldShowPasscodeModal = errorDetails?.type === 'passcode_required' && !!documentSlug;
+  
+  // Check if we should show the document/owner selection modal
+  // Show when no document is selected and no owner parameter is present
+  const ownerParam = searchParams.get('owner');
+  const shouldShowDocumentOwnerModal = !documentSlug && !ownerParam;
+
+  // When owner param is present but no doc is selected, DocumentSelector should show as modal
+  // DocumentSelector handles its own modal rendering when in modal mode
+  const shouldShowDocumentSelectorModal = !!ownerParam && !documentSlug;
 
   // Check if we should show cover and welcome (single document, not multi-doc)
   // Vanilla JS always shows cover section for single documents, using placeholder if no cover
   // Don't show cover/welcome if in owner mode without a document selected
-  const shouldShowCoverAndWelcome = documentSlug && docConfig && !docConfig.showDocumentSelector;
+  // Note: showDocumentSelector controls header dropdown visibility, NOT cover visibility
+  // Cover should always show for single documents regardless of showDocumentSelector
+  const shouldShowCoverAndWelcome = documentSlug && docConfig;
 
   // Determine if we should use maker theme (special case for maker owner)
   const isMakerTheme = documentOwnerSlug === 'maker';
+
+  // Check if footer should be shown (default: true, hide with footer=false)
+  const footerParam = searchParams.get('footer');
+  const shouldShowFooter = footerParam !== 'false';
 
   // Send message (ported from vanilla JS chat.js)
   const handleSendMessage = async () => {
@@ -250,7 +320,10 @@ export function ChatPage() {
       };
       
       // Get passcode from URL if present (same as vanilla JS)
-      const passcode = searchParams.get('passcode');
+      // Also check localStorage as fallback
+      const passcodeFromUrl = searchParams.get('passcode');
+      const passcodeFromStorage = documentSlug ? localStorage.getItem(`passcode:${documentSlug}`) : null;
+      const passcode = passcodeFromUrl || passcodeFromStorage;
       
       const requestBody: any = {
         message: userMessage,
@@ -266,7 +339,6 @@ export function ChatPage() {
       // Add passcode if present (same as vanilla JS)
       if (passcode) {
         requestBody.passcode = passcode;
-        console.log('🔐 Including passcode in chat API request');
       }
       
       const response = await fetch(`/api/chat/stream?embedding=${embeddingType}`, {
@@ -329,9 +401,7 @@ export function ChatPage() {
               }
               
               if (data.type === 'done') {
-                console.log('✅ Streaming completed');
-
-                // Log the actual model being used and detect overrides
+                // Log technical details: model used and RAG performance
                 if (data.metadata && data.metadata.model) {
                   const actualModel = data.metadata.model;
                   const requestedModel = selectedModel;
@@ -343,29 +413,24 @@ export function ChatPage() {
                   const wasOverridden = expectedActual !== actualModel;
 
                   if (wasOverridden) {
-                    console.log('\n🔒 MODEL OVERRIDE DETECTED:');
-                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    console.log(`  Requested:  ${requestedModel} (${expectedActual})`);
-                    console.log(`  Actually used: ${actualModel}`);
-                    console.log(`  Reason: Owner-configured safety mechanism`);
-                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+                    console.warn('🔒 Model override detected:', {
+                      requested: `${requestedModel} (${expectedActual})`,
+                      actual: actualModel,
+                      reason: 'Owner-configured safety mechanism'
+                    });
                   } else {
-                    console.log(`🤖 Response generated using: ${actualModel}`);
+                    console.log(`🤖 Model used: ${actualModel}`);
                   }
                 }
 
-                // Log metadata
-                console.log(`📊 Metadata:`, data.metadata);
-
-                // Log RAG performance if chunksUsed is present
-                if (data.metadata && data.metadata.chunksUsed) {
+                // Log RAG performance metrics
+                if (data.metadata && data.metadata.chunksUsed !== undefined) {
                   console.log('📊 RAG Performance:', {
                     chunks: data.metadata.chunksUsed,
                     retrievalTime: data.metadata.retrievalTime,
                     totalTime: data.metadata.responseTime,
                     isMultiDocument: data.metadata.isMultiDocument,
-                    documentSlugs: data.metadata.documentSlugs,
-                    similarities: data.metadata.chunkSimilarities
+                    documentSlugs: data.metadata.documentSlugs
                   });
                 }
 
@@ -429,36 +494,28 @@ export function ChatPage() {
     return {};
   };
   
-  // Auto-scroll to bottom (ported from vanilla JS)
-  // Use useLayoutEffect for synchronous scroll after DOM updates (better sync with content)
-  useLayoutEffect(() => {
-    // During streaming, let streaming handler manage scroll to avoid conflicts
-    // But allow scroll for initial loading message and final message updates
-    if (isStreamingRef.current && messages.length > 0) {
-      const lastMsg = messages[messages.length - 1];
-      // Skip if actively streaming (has content and not in loading state)
-      if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.isLoading && lastMsg.content) {
-        return;
-      }
-    }
-    
-    // Cancel any pending scroll from streaming handler
-    if (scrollAnimationFrameRef.current !== null) {
-      cancelAnimationFrame(scrollAnimationFrameRef.current);
-      scrollAnimationFrameRef.current = null;
-    }
-    
-    // Scroll immediately - useLayoutEffect runs synchronously after DOM mutations
-    // This keeps scroll in sync with React's DOM updates
-    if (chatContainerRef.current && shouldAutoScroll()) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [messages]);
-  
   return (
     <div className="flex flex-col h-screen overflow-x-hidden">
+      {/* Passcode Modal - shown when passcode is required */}
+      {shouldShowPasscodeModal && (
+        <PasscodeModal
+          isOpen={true}
+          documentSlug={documentSlug!}
+          documentTitle={errorDetails.documentInfo?.title || documentSlug!}
+        />
+      )}
+      
+      {/* Document/Owner Selection Modal - shown when no document is selected and no owner param */}
+      <DocumentOwnerModal isOpen={shouldShowDocumentOwnerModal} />
+      
+      {/* Document Selector Modal - shown when owner param is present but no doc is selected */}
+      {/* DocumentSelector renders its own modal via portal when in modal mode */}
+      {shouldShowDocumentSelectorModal && (
+        <DocumentSelector currentDocSlug={null} />
+      )}
+      
       {/* Header */}
-      <ChatHeader documentSlug={documentSlug || ''} />
+      <ChatHeader documentSlug={documentSlug} />
       
       {/* Messages container - port from vanilla JS */}
       <div 
@@ -466,7 +523,7 @@ export function ChatPage() {
         className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4"
       >
         {/* Cover and Welcome Message - shown for single documents */}
-        {shouldShowCoverAndWelcome && (
+        {shouldShowCoverAndWelcome && docConfig && (
           <>
             <CoverAndWelcome
               cover={docConfig.cover}
@@ -543,6 +600,9 @@ export function ChatPage() {
           </button>
         </form>
       </div>
+      
+      {/* Footer - subtle indication this is a Docutrain article */}
+      {shouldShowFooter && <DocutrainFooter />}
     </div>
   );
 }

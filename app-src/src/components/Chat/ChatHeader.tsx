@@ -31,8 +31,9 @@ export function ChatHeader({ documentSlug }: ChatHeaderProps) {
   const docParam = searchParams.get('doc');
   const shouldShowDocumentSelector = 
     documentSelectorParam === 'true' || 
-    (!!ownerModeSlug && !docParam) ||
+    (!!ownerModeSlug && !docParam) || // Owner mode with no doc: show selector
     (docConfig?.showDocumentSelector || false);
+  // NOTE: When no doc param and no owner param, DocumentOwnerModal shows instead, not DocumentSelector
 
   // In owner mode, show owner from URL. Otherwise, show owner from document
   const logoOwnerSlug = ownerModeSlug || documentOwnerSlug;
