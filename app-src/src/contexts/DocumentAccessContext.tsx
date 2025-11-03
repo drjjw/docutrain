@@ -469,6 +469,16 @@ export function DocumentAccessProvider({ children, documentSlug }: DocumentAcces
         const documents = data.documents || [];
         const doc = documents.find((d: DocumentConfig) => d.slug === documentSlug);
         
+        // Debug: Log downloads to verify attachment_id is present
+        if (doc && doc.downloads && doc.downloads.length > 0) {
+          console.log('[DocumentAccessContext] 📥 DEBUG - Downloads received from API:', {
+            count: doc.downloads.length,
+            firstDownload: doc.downloads[0],
+            hasAttachmentId: doc.downloads[0]?.attachment_id ? true : false,
+            attachmentId: doc.downloads[0]?.attachment_id
+          });
+        }
+        
         if (!cancelled) {
           if (doc) {
             setConfig(doc);

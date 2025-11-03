@@ -98,6 +98,14 @@ export function DownloadsSection({ downloads, isMultiDoc = false, isExpanded = t
   const handleDownload = async (download: DownloadWithDocTitle) => {
     const downloadKey = download.url;
     
+    // Debug: Log download info
+    console.log('📥 Download initiated:', {
+      title: download.title,
+      url: download.url,
+      attachment_id: download.attachment_id,
+      hasAttachmentId: !!download.attachment_id
+    });
+    
     try {
       // Set downloading state
       setDownloadingStates(prev => ({ ...prev, [downloadKey]: 'downloading' }));
@@ -105,11 +113,15 @@ export function DownloadsSection({ downloads, isMultiDoc = false, isExpanded = t
       // Track download event if attachment_id is available
       if (download.attachment_id) {
         try {
+          console.log('📊 Tracking download for attachment_id:', download.attachment_id);
           await trackAttachmentDownload(download.attachment_id);
+          console.log('✅ Download tracked successfully');
         } catch (trackingError) {
           // Don't fail download if tracking fails
-          console.warn('Failed to track download:', trackingError);
+          console.warn('⚠️ Failed to track download:', trackingError);
         }
+      } else {
+        console.warn('⚠️ No attachment_id found - download will not be tracked');
       }
       
       // Extract filename from URL

@@ -724,14 +724,27 @@ export async function trackAttachmentDownload(attachmentId: string): Promise<voi
     headers['Authorization'] = `Bearer ${session.access_token}`;
   }
 
-  const response = await fetch(`/api/attachments/${attachmentId}/track-download`, {
-    method: 'POST',
-    headers,
-  });
+  try {
+    const response = await fetch(`/api/attachments/${attachmentId}/track-download`, {
+      method: 'POST',
+      headers,
+    });
 
-  // Don't throw on error - tracking failures shouldn't break downloads
-  if (!response.ok) {
-    console.warn('Failed to track download event');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.warn('Failed to track download event:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      return;
+    }
+
+    const result = await response.json();
+    console.log('✅ Download tracked successfully:', result);
+  } catch (error) {
+    console.warn('Error tracking download:', error);
+    // Don't throw - tracking failures shouldn't break downloads
   }
 }
 
