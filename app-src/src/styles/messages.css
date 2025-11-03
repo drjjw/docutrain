@@ -8,6 +8,11 @@
   animation: fadeIn 0.3s ease-in;
 }
 
+/* Disable animation during streaming to prevent jitter */
+.message.streaming {
+  animation: none !important;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -39,6 +44,14 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+/* Optimize rendering during streaming - prevent unnecessary reflows */
+.message.streaming .message-content {
+  /* Use transform instead of layout properties to reduce reflow */
+  transform: translateZ(0);
+  /* Backface visibility hint for GPU acceleration */
+  backface-visibility: hidden;
 }
 
 /* User Message Styling */
@@ -336,17 +349,10 @@ hr.references-separator {
   scroll-behavior: smooth;
 }
 
-/* Wiping animation for streaming messages - subtle fade-in */
-@keyframes messageWipe {
-  from {
-    opacity: 0.7;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
+/* Streaming messages - no animation to prevent jittering */
+/* Animation disabled during streaming to prevent visual jitter */
 .message.assistant.streaming {
-  animation: messageWipe 0.15s ease-out;
+  /* Intentionally empty - no animation during streaming */
+  /* Full styling will be applied after streaming completes */
 }
 

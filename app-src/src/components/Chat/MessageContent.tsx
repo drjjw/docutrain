@@ -5,11 +5,12 @@
 
 import { useEffect, useLayoutEffect, useRef, memo } from 'react';
 import { marked } from 'marked';
-import { styleReferences, wrapDrugConversionContent } from '@/utils/messageStyling';
+import { styleReferences, wrapDrugConversionContent, updateCitationStyles } from '@/utils/messageStyling';
 
 interface MessageContentProps {
   content: string;
   role: 'user' | 'assistant';
+  isStreaming?: boolean; // Flag to skip expensive DOM manipulation during streaming
 }
 
 // Configure marked (same as vanilla JS)
@@ -22,7 +23,7 @@ marked.setOptions({
 // Key: content hash, Value: Map of container index -> expanded state
 const globalCollapsedState = new Map<string, Map<number, boolean>>();
 
-function MessageContentComponent({ content, role }: MessageContentProps) {
+function MessageContentComponent({ content, role, isStreaming = false }: MessageContentProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const previousContentRef = useRef<string>('');
   
@@ -72,11 +73,38 @@ function MessageContentComponent({ content, role }: MessageContentProps) {
     });
   };
 
+  // Lightweight helper to ensure references containers stay collapsed during streaming
+  // Only does minimal DOM manipulation - just ensures existing containers are collapsed
+  const ensureCollapsedDuringStreaming = () => {
+    if (!contentRef.current) return;
+    
+    const containers = contentRef.current.querySelectorAll('.references-container');
+    if (containers.length === 0) return; // No containers yet, nothing to do
+    
+    // For each existing container, ensure it's collapsed
+    containers.forEach((container) => {
+      const contentWrapper = container.querySelector('.references-content');
+      const toggle = container.querySelector('.references-toggle');
+      const plusIcon = toggle?.querySelector('.plus') as HTMLElement;
+      const minusIcon = toggle?.querySelector('.minus') as HTMLElement;
+      
+      if (contentWrapper && toggle) {
+        // Ensure collapsed state (lightweight - just class manipulation)
+        contentWrapper.classList.remove('expanded');
+        contentWrapper.classList.add('collapsed');
+        toggle.setAttribute('aria-expanded', 'false');
+        if (plusIcon) plusIcon.style.display = '';
+        if (minusIcon) minusIcon.style.display = 'none';
+      }
+    });
+  };
+
   // Preserve collapsed state before React replaces HTML
   useLayoutEffect(() => {
-    if (!contentRef.current || role !== 'assistant' || !content) return;
+    if (!contentRef.current || role !== 'assistant' || !content || isStreaming) return;
     
     // Cleanup: preserve state before React replaces HTML (runs before next render)
+    // Only run if we're NOT streaming (containers won't exist during streaming anyway)
     return () => {
       if (!contentRef.current || role !== 'assistant') return;
       
@@ -100,11 +128,24 @@ function MessageContentComponent({ content, role }: MessageContentProps) {
         });
       }
     };
-  }, [content, role]);
+  }, [content, role, isStreaming]);
 
   useEffect(() => {
     if (!contentRef.current || role !== 'assistant' || !content) return;
 
+    // During streaming, do minimal work: only ensure references containers stay collapsed
+    // This is lightweight (just class manipulation on existing elements) and prevents
+    // references from expanding during streaming updates
+    if (isStreaming) {
+      // Use requestAnimationFrame to batch DOM updates with React's render
+      requestAnimationFrame(() => {
+        ensureCollapsedDuringStreaming();
+      });
+      previousContentRef.current = content;
+      return;
+    }
+
+    // FULL PROCESSING: Only when NOT streaming (after stream completes)
     // Use requestAnimationFrame to ensure DOM is updated before styling
     requestAnimationFrame(() => {
       if (!contentRef.current) return;
@@ -149,7 +190,7 @@ function MessageContentComponent({ content, role }: MessageContentProps) {
       // Update previous content ref after processing
       previousContentRef.current = content;
     });
-  }, [content, role]);
+  }, [content, role, isStreaming]);
 
   // Render markdown for assistant messages, plain text for user (same as vanilla JS)
   if (role === 'assistant') {

@@ -1,15 +1,14 @@
 /**
  * ChatPage - React version of vanilla JS chat interface
+ * Refactored into modular hooks for easier maintenance
  * 
- * Migration strategy:
- * 1. Start with basic structure matching vanilla JS
- * 2. Port features component-by-component
- * 3. Use same API calls as vanilla JS version
- * 4. Test side-by-side with vanilla JS version
+ * Architecture:
+ * - Custom hooks handle specific concerns (URL params, messages, modals, etc.)
+ * - Main component orchestrates hooks and renders UI
+ * - All functionality preserved from original implementation
  */
 
-import { useEffect, useLayoutEffect, useState, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useRef, useEffect } from 'react';
 import { MessageContent } from '@/components/Chat/MessageContent';
 import { ChatHeader } from '@/components/Chat/ChatHeader';
 import { LoadingMessage } from '@/components/Chat/LoadingMessage';
@@ -25,8 +24,12 @@ import { useDocumentConfig } from '@/hooks/useDocumentConfig';
 import { useOwnerLogo } from '@/hooks/useOwnerLogo';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
-import { supabase } from '@/lib/supabase/client';
-import { setAccentColorVariables, setDefaultAccentColors } from '@/utils/accentColor';
+import { useSessionId } from '@/hooks/useSessionId';
+import { useChatUrlParams } from '@/hooks/useChatUrlParams';
+import { useRealtimeDocumentSync } from '@/hooks/useRealtimeDocumentSync';
+import { useAccentColor } from '@/hooks/useAccentColor';
+import { useModalState } from '@/hooks/useModalState';
+import { useChatMessages } from '@/hooks/useChatMessages';
 import '@/styles/messages.css';
 import '@/styles/loading.css';
 import '@/styles/cover-and-welcome.css';
@@ -36,275 +39,169 @@ import '@/styles/inline-editor.css';
 import '@/styles/send-button.css';
 
 export function ChatPage() {
-  const [searchParams] = useSearchParams();
+  // ============================================================================
+  // SECTION 1: Core Hooks (Auth & Permissions)
+  // ============================================================================
   const { user, loading: authLoading } = useAuth();
   const permissions = usePermissions();
   
-  // Get document parameter (same as vanilla JS)
-  // If no doc param, set to null to show document selector (matches vanilla JS behavior)
-  const docParam = searchParams.get('doc');
-  const [documentSlug, setDocumentSlug] = useState(docParam || null);
+  // ============================================================================
+  // SECTION 2: URL Parameters
+  // ============================================================================
+  const {
+    documentSlug,
+    embeddingType,
+    selectedModel,
+    shouldShowFooter,
+    ownerParam,
+  } = useChatUrlParams();
   
-  // Get embedding type from URL parameter (same as vanilla JS)
-  // Default: 'openai' for most docs, 'local' for ckd-dc-2025
-  const getEmbeddingType = () => {
-    const embeddingParam = searchParams.get('embedding');
-    if (embeddingParam === 'local' || embeddingParam === 'openai') {
-      return embeddingParam;
-    }
-    // Default to 'local' for ckd-dc-2025, 'openai' for others
-    if (docParam?.includes('ckd-dc-2025')) {
-      return 'local';
-    }
-    return 'openai';
-  };
-  const [embeddingType, setEmbeddingType] = useState(getEmbeddingType());
-
-  // Get model from URL parameter (same as vanilla JS)
-  // Default: 'grok' (same as vanilla JS main.js)
-  const getModel = () => {
-    const modelParam = searchParams.get('model');
-    if (modelParam && (modelParam === 'gemini' || modelParam === 'grok' || modelParam === 'grok-reasoning')) {
-      return modelParam;
-    }
-    return 'grok'; // Default to 'grok' (same as vanilla JS)
-  };
-  const [selectedModel, setSelectedModel] = useState(getModel());
+  // ============================================================================
+  // SECTION 3: Session Management
+  // ============================================================================
+  const { sessionId } = useSessionId();
   
-  // Chat state
-  const [messages, setMessages] = useState<Array<{
-    id: string;
-    role: 'user' | 'assistant';
-    content: string;
-    timestamp: Date;
-    isLoading?: boolean; // Flag for loading message with fun facts
-  }>>([]);
-  
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  
-  // Scroll management (ported from vanilla JS chat.js)
-  const userHasScrolledRef = useRef(false);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const scrollAnimationFrameRef = useRef<number | null>(null);
-  const isStreamingRef = useRef(false); // Track if we're currently streaming
-  const scrollThrottleRef = useRef<number | null>(null); // Throttle scroll updates
-  
-  // Initialize session ID (same as vanilla JS)
-  useEffect(() => {
-    const generateSessionId = () => {
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-        const r = (Math.random() * 16) | 0;
-        const v = c === 'x' ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-      });
-    };
-    
-    const storedSessionId = localStorage.getItem('chat-session-id');
-    if (storedSessionId) {
-      setSessionId(storedSessionId);
-    } else {
-      const newSessionId = generateSessionId();
-      localStorage.setItem('chat-session-id', newSessionId);
-      setSessionId(newSessionId);
-    }
-  }, []);
-  
-  // Setup scroll interrupt detection (ported from vanilla JS)
-  useEffect(() => {
-    const chatContainer = chatContainerRef.current;
-    if (!chatContainer) return;
-    
-    // Detect user scroll via wheel/trackpad
-    const handleWheel = () => {
-      userHasScrolledRef.current = true;
-    };
-    
-    // Detect user scroll via touch (mobile/trackpad gestures)
-    const handleTouchMove = () => {
-      userHasScrolledRef.current = true;
-    };
-    
-    // Detect manual scrollbar dragging or keyboard scrolling
-    const handleScroll = () => {
-      // Clear any existing timeout
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-      
-      // Set a timeout to detect if this was user-initiated
-      // (auto-scroll happens immediately, user scroll has momentum/continuation)
-      scrollTimeoutRef.current = setTimeout(() => {
-        if (!chatContainer) return;
-        const isAtBottom = Math.abs(
-          chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight
-        ) < 50; // 50px threshold
-        
-        if (!isAtBottom && !userHasScrolledRef.current) {
-          userHasScrolledRef.current = true;
-        }
-      }, 100);
-    };
-    
-    chatContainer.addEventListener('wheel', handleWheel, { passive: true });
-    chatContainer.addEventListener('touchmove', handleTouchMove, { passive: true });
-    chatContainer.addEventListener('scroll', handleScroll, { passive: true });
-    
-    return () => {
-      chatContainer.removeEventListener('wheel', handleWheel);
-      chatContainer.removeEventListener('touchmove', handleTouchMove);
-      chatContainer.removeEventListener('scroll', handleScroll);
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-    };
-  }, []);
-  
-  // Helper to check if we should auto-scroll
-  const shouldAutoScroll = () => {
-    return !userHasScrolledRef.current;
-  };
-  
-  // Reset auto-scroll for new response
-  const resetAutoScroll = () => {
-    userHasScrolledRef.current = false;
-  };
-  
-  // Update document slug, embedding type, and model when URL param changes
-  useEffect(() => {
-    const doc = searchParams.get('doc');
-    // If no doc param, set to null to show document selector (matches vanilla JS behavior)
-    setDocumentSlug(doc || null);
-    setEmbeddingType(getEmbeddingType());
-    setSelectedModel(getModel());
-  }, [searchParams]);
-  
-  // Log model choice when it changes
-  useEffect(() => {
-    const modelParam = searchParams.get('model');
-    console.log(`🤖 Model choice: ${selectedModel}${modelParam ? '' : ' (default)'}`);
-  }, [selectedModel, searchParams]);
-  
+  // ============================================================================
+  // SECTION 4: Document Configuration
+  // ============================================================================
   // Get document config (includes cover, introMessage, etc.)
   // Only fetch if we have a document slug - don't fetch when null (shows modal instead)
   const { config: docConfig, errorDetails, loading: configLoading } = useDocumentConfig(documentSlug);
   
-  // CENTRALIZED Realtime subscription for document updates
-  // This is the ONLY place we subscribe to avoid duplicate subscriptions
-  // (useDocumentConfig is called by 8+ components, which would create 8+ subscriptions)
-  useEffect(() => {
-    // Wait for auth and permissions to fully load, and ensure we have a document
-    if (!documentSlug || authLoading || permissions.loading) {
-      console.log(`[ChatPage] Skipping Realtime setup - waiting. documentSlug: ${documentSlug}, authLoading: ${authLoading}, permissions.loading: ${permissions.loading}`);
-      return;
-    }
-
-    console.log(`[ChatPage] 🔌 Setting up Realtime subscription for document: ${documentSlug}`);
-    
-    const channel = supabase
-      .channel(`document_${documentSlug}_changes`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'documents',
-          filter: `slug=eq.${documentSlug}`,
-        },
-        (payload) => {
-          console.log(`[ChatPage] 📡 Realtime update received for ${documentSlug}:`, payload);
-          // Dispatch browser event to notify all useDocumentConfig instances
-          window.dispatchEvent(new CustomEvent('document-updated', {
-            detail: { documentSlug }
-          }));
-        }
-      )
-      .subscribe((status) => {
-        console.log(`[ChatPage] Realtime subscription status for ${documentSlug}:`, status);
-      });
-
-    return () => {
-      console.log(`[ChatPage] 🔌 Cleaning up Realtime subscription for ${documentSlug}`);
-      supabase.removeChannel(channel);
-    };
-  }, [documentSlug, authLoading, permissions.loading]);
-  
-  // Passcode modal handling (no verbose logging)
-  
+  // ============================================================================
+  // SECTION 5: Owner Logo & Accent Color
+  // ============================================================================
   // Get document owner for accent color (must be called before early return)
   const documentOwnerSlug = docConfig?.ownerInfo?.slug || docConfig?.owner || null;
   const { config: ownerLogoConfig } = useOwnerLogo(documentOwnerSlug);
   
-  // Set accent color CSS variables based on document owner (ported from vanilla JS)
-  // Must be called before early return to follow Rules of Hooks
-  useEffect(() => {
-    // Set default colors first to prevent flashing
-    setDefaultAccentColors();
-
-    // Update accent colors if owner logo config has accent color
-    if (ownerLogoConfig?.accentColor) {
-      setAccentColorVariables(ownerLogoConfig.accentColor);
-    }
-  }, [ownerLogoConfig?.accentColor]);
+  // Set accent color CSS variables based on document owner
+  useAccentColor(ownerLogoConfig?.accentColor);
   
-  // Auto-scroll to bottom (ported from vanilla JS)
-  // Use useLayoutEffect for synchronous scroll after DOM updates (better sync with content)
-  // Must be called before early return to follow Rules of Hooks
-  useLayoutEffect(() => {
-    // During streaming, let streaming handler manage scroll to avoid conflicts
-    // But allow scroll for initial loading message and final message updates
-    if (isStreamingRef.current && messages.length > 0) {
-      const lastMsg = messages[messages.length - 1];
-      // Skip if actively streaming (has content and not in loading state)
-      if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.isLoading && lastMsg.content) {
-        return;
-      }
-    }
+  // ============================================================================
+  // SECTION 6: Realtime Document Sync
+  // ============================================================================
+  // CENTRALIZED Realtime subscription for document updates
+  // This is the ONLY place we subscribe to avoid duplicate subscriptions
+  useRealtimeDocumentSync(documentSlug, authLoading, permissions.loading);
+  
+  // ============================================================================
+  // SECTION 7: Chat Messages
+  // ============================================================================
+  // Get passcode from URL or localStorage
+  const passcodeFromStorage = documentSlug ? localStorage.getItem(`passcode:${documentSlug}`) : null;
+  
+  const {
+    messages,
+    inputValue,
+    setInputValue,
+    isLoading,
+    isStreamingRef,
+    handleSendMessage,
+  } = useChatMessages({
+    documentSlug,
+    sessionId,
+    embeddingType,
+    selectedModel,
+    docConfig,
+    passcode: passcodeFromStorage,
+  });
+  
+  // ============================================================================
+  // SECTION 8: Modal State
+  // ============================================================================
+  const {
+    shouldShowPasscodeModal,
+    shouldShowDocumentOwnerModal,
+    shouldShowDocumentSelectorModal,
+    isDocumentNotFound,
+  } = useModalState(errorDetails, documentSlug, ownerParam);
+  
+  // ============================================================================
+  // SECTION 9: Refs
+  // ============================================================================
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const lastUserMessageRef = useRef<string | null>(null);
+  
+  // ============================================================================
+  // SECTION 9.5: Auto-scroll to user message when streaming starts
+  // ============================================================================
+  // Scroll to position user message just below header when streaming begins
+  useEffect(() => {
+    // Find the last user message (should be the one that triggered streaming)
+    const lastUserMessage = messages.filter(m => m.role === 'user').slice(-1)[0];
     
-    // Cancel any pending scroll from streaming handler
-    if (scrollAnimationFrameRef.current !== null) {
-      cancelAnimationFrame(scrollAnimationFrameRef.current);
-      scrollAnimationFrameRef.current = null;
-    }
+    if (!lastUserMessage || !chatContainerRef.current) return;
     
-    // Cancel any pending scroll throttle
-    if (scrollThrottleRef.current !== null) {
-      clearTimeout(scrollThrottleRef.current);
-      scrollThrottleRef.current = null;
-    }
+    // Check if this is a new user message (not the one we already scrolled to)
+    if (lastUserMessage.id === lastUserMessageRef.current) return;
     
-    // Scroll immediately - useLayoutEffect runs synchronously after DOM mutations
-    // This keeps scroll in sync with React's DOM updates
-    // Only scroll if not actively streaming (streaming uses smooth scroll)
-    if (chatContainerRef.current && shouldAutoScroll() && !isStreamingRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    // Check if streaming is about to start (loading message exists right after user message)
+    const hasLoadingMessage = messages.some(m => m.isLoading);
+    
+    // Find the index of the last user message
+    const lastUserIndex = messages.findIndex(m => m.id === lastUserMessage.id);
+    // Check if there's a loading message right after it (streaming started)
+    const nextMessage = messages[lastUserIndex + 1];
+    const isStreamStarting = nextMessage?.isLoading === true || hasLoadingMessage;
+    
+    if (isStreamStarting) {
+      // Mark this message as handled
+      lastUserMessageRef.current = lastUserMessage.id;
+      
+      // Use setTimeout with requestAnimationFrame to ensure DOM is fully updated
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (!chatContainerRef.current) return;
+          
+          // Find the user message element in the DOM
+          // Messages are rendered in order, so we can find it by index
+          const messageElements = chatContainerRef.current.querySelectorAll('.message.user');
+          const userMessages = messages.filter(m => m.role === 'user');
+          const lastUserMsgIndex = userMessages.length - 1;
+          
+          if (messageElements[lastUserMsgIndex]) {
+            const userMessageElement = messageElements[lastUserMsgIndex] as HTMLElement;
+            
+            // Get header height (matches paddingTop in chat container)
+            const headerHeight = 100;
+            
+            // Calculate scroll position: position message top at header height + small buffer
+            const containerRect = chatContainerRef.current.getBoundingClientRect();
+            const messageRect = userMessageElement.getBoundingClientRect();
+            
+            // Calculate how much we need to scroll
+            const messageTopRelativeToContainer = messageRect.top - containerRect.top;
+            const scrollOffset = messageTopRelativeToContainer - headerHeight - 10; // 10px buffer
+            const newScrollTop = chatContainerRef.current.scrollTop + scrollOffset;
+            
+            chatContainerRef.current.scrollTo({
+              top: Math.max(0, newScrollTop),
+              behavior: 'smooth'
+            });
+          }
+        }, 50); // Small delay to ensure DOM is updated
+      });
     }
   }, [messages]);
   
-  // Cleanup scroll throttle on unmount
-  useEffect(() => {
-    return () => {
-      if (scrollThrottleRef.current !== null) {
-        clearTimeout(scrollThrottleRef.current);
-      }
-      if (scrollAnimationFrameRef.current !== null) {
-        cancelAnimationFrame(scrollAnimationFrameRef.current);
-      }
-    };
-  }, []);
-  
+  // ============================================================================
+  // SECTION 10: Derived State & Conditions
+  // ============================================================================
   // Show loading spinner while auth is loading OR while checking document access
   // This prevents flash of content when redirecting to login for restricted documents
-  // Show loading if:
-  // 1. Auth is still loading, OR
-  // 2. We have a document slug but no user and (config is loading OR no config yet and no error)
-  //    This covers the case where we're waiting for the access check to complete
-  // NOTE: Must be after all hooks are called to follow Rules of Hooks
   const isCheckingAccess = documentSlug && !user && (configLoading || (!docConfig && !errorDetails));
+  
+  // Check if we should show cover and welcome (single document, not multi-doc)
+  const shouldShowCoverAndWelcome = documentSlug && docConfig;
+
+  // Determine if we should use maker theme (special case for maker owner)
+  const isMakerTheme = documentOwnerSlug === 'maker';
+  
+  // ============================================================================
+  // SECTION 11: Early Returns (Loading States)
+  // ============================================================================
   if (authLoading || isCheckingAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -316,304 +213,9 @@ export function ChatPage() {
     );
   }
   
-  // Check if we should show passcode modal
-  const shouldShowPasscodeModal = errorDetails?.type === 'passcode_required' && !!documentSlug;
-  
-  // Check if we should show the document/owner selection modal
-  // Show when:
-  // 1. No document is selected and no owner parameter is present, OR
-  // 2. Document was not found (404 error)
-  const ownerParam = searchParams.get('owner');
-  const isDocumentNotFound = errorDetails?.type === 'document_not_found';
-  const shouldShowDocumentOwnerModal = (!documentSlug && !ownerParam) || isDocumentNotFound;
-
-  // When owner param is present but no doc is selected, DocumentSelector should show as modal
-  // DocumentSelector handles its own modal rendering when in modal mode
-  const shouldShowDocumentSelectorModal = !!ownerParam && !documentSlug;
-
-  // Check if we should show cover and welcome (single document, not multi-doc)
-  // Vanilla JS always shows cover section for single documents, using placeholder if no cover
-  // Don't show cover/welcome if in owner mode without a document selected
-  // Note: showDocumentSelector controls header dropdown visibility, NOT cover visibility
-  // Cover should always show for single documents regardless of showDocumentSelector
-  const shouldShowCoverAndWelcome = documentSlug && docConfig;
-
-  // Determine if we should use maker theme (special case for maker owner)
-  const isMakerTheme = documentOwnerSlug === 'maker';
-
-  // Check if footer should be shown (default: true, hide with footer=false)
-  const footerParam = searchParams.get('footer');
-  const shouldShowFooter = footerParam !== 'false';
-
-  // Send message (ported from vanilla JS chat.js)
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading || !sessionId) return;
-    
-    // Don't allow sending messages if no document is selected (owner mode)
-    if (!documentSlug) {
-      console.warn('Cannot send message: No document selected');
-      return;
-    }
-    
-    const userMessage = inputValue.trim();
-    setInputValue('');
-    
-    // Add user message to UI
-    const userMsg = {
-      id: Date.now().toString(),
-      role: 'user' as const,
-      content: userMessage,
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, userMsg]);
-    
-    // Set loading state
-    setIsLoading(true);
-    isStreamingRef.current = false; // Reset streaming flag (will be set when first chunk arrives)
-
-    // Reset auto-scroll for new response (same as vanilla JS)
-    resetAutoScroll();
-
-    // Add loading message with fun facts IMMEDIATELY (same as vanilla JS addLoading)
-    const loadingMsgId = `loading-${Date.now()}`;
-    setMessages(prev => [...prev, {
-      id: loadingMsgId,
-      role: 'assistant' as const,
-      content: '',
-      timestamp: new Date(),
-      isLoading: true, // Flag to render LoadingMessage component
-    }]);
-
-    try {
-      // Call streaming API with embedding type (same as vanilla JS)
-      const authHeaders = getAuthHeaders();
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        ...(authHeaders.Authorization ? { Authorization: authHeaders.Authorization } : {}),
-      };
-      
-      // Get passcode from URL if present (same as vanilla JS)
-      // Also check localStorage as fallback
-      const passcodeFromUrl = searchParams.get('passcode');
-      const passcodeFromStorage = documentSlug ? localStorage.getItem(`passcode:${documentSlug}`) : null;
-      const passcode = passcodeFromUrl || passcodeFromStorage;
-      
-      const requestBody: any = {
-        message: userMessage,
-        history: messages.map(m => ({
-          role: m.role,
-          content: m.content,
-        })),
-        model: selectedModel, // Include model parameter (defaults to 'grok' same as vanilla JS)
-        doc: documentSlug,
-        sessionId: sessionId,
-      };
-      
-      // Add passcode if present (same as vanilla JS)
-      if (passcode) {
-        requestBody.passcode = passcode;
-      }
-      
-      const response = await fetch(`/api/chat/stream?embedding=${embeddingType}`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(requestBody),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      // Handle streaming response (ported from vanilla JS)
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let assistantContent = '';
-      
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
-          
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = JSON.parse(line.slice(6));
-              
-              if (data.type === 'content' && data.chunk) {
-                assistantContent += data.chunk;
-                isStreamingRef.current = true; // Mark as streaming
-                
-                // Replace loading message with accumulated content
-                setMessages(prev => prev.map(msg => 
-                  msg.id === loadingMsgId
-                    ? { ...msg, content: assistantContent, isLoading: false }
-                    : msg
-                ));
-                
-                // Smooth auto-scroll with throttling to reduce shuddering
-                // Use scrollIntoView with smooth behavior for a wiping animation effect
-                if (shouldAutoScroll() && chatContainerRef.current) {
-                  // Throttle scroll updates to reduce frequency (every ~50ms instead of every chunk)
-                  if (scrollThrottleRef.current === null) {
-                    scrollThrottleRef.current = window.setTimeout(() => {
-                      scrollThrottleRef.current = null;
-                      
-                      // Use requestAnimationFrame to ensure DOM is updated
-                      if (scrollAnimationFrameRef.current !== null) {
-                        cancelAnimationFrame(scrollAnimationFrameRef.current);
-                      }
-                      
-                      scrollAnimationFrameRef.current = requestAnimationFrame(() => {
-                        if (chatContainerRef.current && shouldAutoScroll()) {
-                          // Find the last message element for smooth scrollIntoView
-                          const messages = chatContainerRef.current.querySelectorAll('.message');
-                          const lastMessage = messages[messages.length - 1] as HTMLElement;
-                          
-                          if (lastMessage) {
-                            // Use scrollIntoView with smooth behavior for wiping effect
-                            lastMessage.scrollIntoView({ 
-                              behavior: 'smooth', 
-                              block: 'end',
-                              inline: 'nearest'
-                            });
-                          } else {
-                            // Fallback to direct scroll if no message found
-                            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-                          }
-                        }
-                        scrollAnimationFrameRef.current = null;
-                      });
-                    }, 50); // Throttle to ~20 updates per second max
-                  }
-                }
-              }
-              
-              if (data.type === 'done') {
-                // Clear scroll throttle when streaming completes
-                if (scrollThrottleRef.current !== null) {
-                  clearTimeout(scrollThrottleRef.current);
-                  scrollThrottleRef.current = null;
-                }
-                
-                // Final scroll to ensure we're at the bottom
-                if (chatContainerRef.current && shouldAutoScroll()) {
-                  requestAnimationFrame(() => {
-                    if (chatContainerRef.current && shouldAutoScroll()) {
-                      const messages = chatContainerRef.current.querySelectorAll('.message');
-                      const lastMessage = messages[messages.length - 1] as HTMLElement;
-                      if (lastMessage) {
-                        lastMessage.scrollIntoView({ 
-                          behavior: 'smooth', 
-                          block: 'end',
-                          inline: 'nearest'
-                        });
-                      }
-                    }
-                  });
-                }
-                
-                isStreamingRef.current = false; // Mark streaming as complete
-                // Log technical details: model used and RAG performance
-                const actualModel = data.metadata?.model;
-                const requestedModel = selectedModel;
-                const expectedActual = requestedModel === 'grok' ? 'grok-4-fast-non-reasoning' :
-                                     requestedModel === 'grok-reasoning' ? 'grok-4-fast-reasoning' :
-                                     'gemini-2.5-flash';
-                const wasOverridden = actualModel && expectedActual !== actualModel;
-
-                // Log model override if detected
-                if (wasOverridden && actualModel) {
-                  console.warn('🔒 Model override detected:', {
-                    requested: `${requestedModel} (${expectedActual})`,
-                    actual: actualModel,
-                    reason: 'Owner-configured safety mechanism'
-                  });
-                }
-
-                // Log RAG performance metrics with model choice
-                if (data.metadata && data.metadata.chunksUsed !== undefined) {
-                  const performanceData: any = {
-                    chunks: data.metadata.chunksUsed,
-                    retrievalTime: data.metadata.retrievalTime,
-                    totalTime: data.metadata.responseTime,
-                    isMultiDocument: data.metadata.isMultiDocument,
-                    documentSlugs: data.metadata.documentSlugs
-                  };
-                  
-                  // Add model information to RAG performance log
-                  if (actualModel) {
-                    performanceData.model = actualModel;
-                    performanceData.modelChoice = requestedModel;
-                    if (wasOverridden) {
-                      performanceData.modelOverride = true;
-                    }
-                  }
-                  
-                  console.log('📊 RAG Performance:', performanceData);
-                }
-
-                setIsLoading(false);
-                isStreamingRef.current = false; // Mark streaming as complete
-                // Convert loading message to final message
-                setMessages(prev => prev.map(msg => 
-                  msg.id === loadingMsgId
-                    ? { ...msg, content: assistantContent, id: `msg-${Date.now()}`, isLoading: false }
-                    : msg
-                ));
-              }
-              
-              if (data.type === 'error') {
-                setIsLoading(false);
-                isStreamingRef.current = false; // Reset streaming flag on error
-                setMessages(prev => prev.filter(msg => msg.id !== loadingMsgId));
-                throw new Error(data.error || 'Unknown error');
-              }
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Chat error:', error);
-      setIsLoading(false);
-      isStreamingRef.current = false; // Reset streaming flag on error
-      // Remove loading message if it exists
-      setMessages(prev => {
-        const loadingMsg = prev.find(msg => msg.isLoading);
-        if (loadingMsg) {
-          return prev.filter(msg => msg.id !== loadingMsg.id);
-        }
-        return prev;
-      });
-      
-      // Add error message
-      setMessages(prev => [...prev, {
-        id: `error-${Date.now()}`,
-        role: 'assistant',
-        content: `Error: ${error instanceof Error ? error.message : 'Failed to get response'}`,
-        timestamp: new Date(),
-      }]);
-    }
-  };
-  
-  // Get auth headers (same logic as vanilla JS)
-  const getAuthHeaders = () => {
-    try {
-      const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
-      const sessionData = localStorage.getItem(sessionKey);
-      if (sessionData) {
-        const session = JSON.parse(sessionData);
-        if (session?.access_token) {
-          return { 'Authorization': `Bearer ${session.access_token}` };
-        }
-      }
-    } catch (e) {
-      // Ignore
-    }
-    return {};
-  };
-  
+  // ============================================================================
+  // SECTION 12: Render
+  // ============================================================================
   return (
     <div className="flex flex-col h-screen overflow-x-hidden">
       {/* Document Meta Tags - updates title and meta tags dynamically */}
@@ -624,7 +226,7 @@ export function ChatPage() {
         <PasscodeModal
           isOpen={true}
           documentSlug={documentSlug!}
-          documentTitle={errorDetails.documentInfo?.title || documentSlug!}
+          documentTitle={errorDetails?.documentInfo?.title || documentSlug!}
         />
       )}
       
@@ -703,7 +305,7 @@ export function ChatPage() {
               key={msg.id}
               className={`message ${msg.role} ${isStreaming ? 'streaming' : ''}`}
             >
-              <MessageContent content={msg.content} role={msg.role} />
+              <MessageContent content={msg.content} role={msg.role} isStreaming={isStreaming} />
             </div>
           );
         })}

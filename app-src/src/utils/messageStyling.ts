@@ -227,7 +227,7 @@ export function styleReferences(contentDiv: HTMLElement): void {
  * Update citation styles only (used when container already exists)
  * This prevents nested containers during streaming
  */
-function updateCitationStyles(contentDiv: HTMLElement): void {
+export function updateCitationStyles(contentDiv: HTMLElement): void {
   // Only update citations that aren't already styled
   const allParagraphs = contentDiv.querySelectorAll('p:not(.reference-item)');
   const allListItems = contentDiv.querySelectorAll('li');
