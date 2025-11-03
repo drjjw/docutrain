@@ -253,7 +253,7 @@ export function ChatPage() {
         className={`flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 space-y-4 chat-main-container ${
           isStreamingRef.current ? 'chat-container-streaming' : ''
         }`}
-        style={{ paddingTop: '100px', paddingBottom: '100px' }}
+        style={{ paddingTop: '100px', paddingBottom: shouldShowFooter ? '160px' : '100px' }}
       >
         {/* Cover and Welcome Message - shown for single documents */}
         {shouldShowCoverAndWelcome && docConfig && (
@@ -328,49 +328,55 @@ export function ChatPage() {
       
       {/* Input - port from vanilla JS */}
       <div 
-        className="fixed bottom-0 left-0 right-0 border-t border-gray-200 p-4 z-[100]"
-        style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.7)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)'
-        }}
+        className="fixed bottom-0 left-0 right-0 z-[100]"
       >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSendMessage();
+        {/* Chat input form */}
+        <div 
+          className="border-t border-gray-200 p-4"
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.7)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)'
           }}
-          className="flex gap-3 max-w-4xl mx-auto"
         >
-          <input
-            ref={inputRef}
-            id="messageInput"
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder={documentSlug ? "Ask a question..." : "Select a document to start chatting..."}
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all shadow-sm hover:shadow-md focus:shadow-md"
-            disabled={isLoading || !documentSlug}
-          />
-          <button
-            type="submit"
-            id="sendButton"
-            disabled={isLoading || !inputValue.trim() || !documentSlug}
-            className={isMakerTheme ? 'maker-theme' : ''}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendMessage();
+            }}
+            className="flex gap-3 max-w-4xl mx-auto"
           >
-            <span className="send-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </span>
-            Send
-          </button>
-        </form>
+            <input
+              ref={inputRef}
+              id="messageInput"
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={documentSlug ? "Ask a question..." : "Select a document to start chatting..."}
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all shadow-sm hover:shadow-md focus:shadow-md"
+              disabled={isLoading || !documentSlug}
+            />
+            <button
+              type="submit"
+              id="sendButton"
+              disabled={isLoading || !inputValue.trim() || !documentSlug}
+              className={isMakerTheme ? 'maker-theme' : ''}
+            >
+              <span className="send-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </span>
+              Send
+            </button>
+          </form>
+        </div>
+        
+        {/* Footer - subtle indication this is a Docutrain article */}
+        {/* Positioned below the input field */}
+        {shouldShowFooter && <DocutrainFooter />}
       </div>
-      
-      {/* Footer - subtle indication this is a Docutrain article */}
-      {shouldShowFooter && <DocutrainFooter />}
     </div>
   );
 }

@@ -4,6 +4,7 @@
 /* Container wrapper for mobile collapse */
 .downloads-keywords-wrapper {
   width: 100%;
+  padding-bottom: 5%; /* Add a little space below the downloads/keywords box */
 }
 
 /* Container header - shown on all screen sizes */
@@ -12,7 +13,7 @@
   width: 100%;
   padding: 14px 24px;
   margin: 0;
-  background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f5 100%);
+  background: #ffffff !important;
   border: 1px solid #e9ecef;
   border-radius: 8px;
   cursor: pointer;
@@ -34,7 +35,7 @@
 }
 
 .downloads-keywords-container-header:hover {
-  background: linear-gradient(135deg, #f1f3f5 0%, #e9ecef 100%);
+  background: #f8f9fa !important;
   border-color: #dee2e6;
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);

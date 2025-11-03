@@ -7,7 +7,13 @@ import { docutrainIconUrl } from '@/assets';
 
 export function DocutrainFooter() {
   return (
-    <div className="border-t border-gray-100 bg-gray-50/50 py-3 px-4">
+    <div 
+      className="py-3 px-4"
+      style={{
+        background: '#ffffff',
+        border: '1px solid #e6e6e6'
+      }}
+    >
       <div className="flex flex-wrap items-center justify-center gap-0.5 sm:gap-1 text-xs text-gray-500 px-2 sm:px-0">
         <img 
           src={docutrainIconUrl}
