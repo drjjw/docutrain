@@ -1,11 +1,14 @@
 import React from 'react';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { PermissionsProvider } from '@/contexts/PermissionsContext';
 import { AppRouter } from '@/routes/AppRouter';
 
 function App() {
   return (
     <AuthProvider>
-      <AppRouter />
+      <PermissionsProvider>
+        <AppRouter />
+      </PermissionsProvider>
     </AuthProvider>
   );
 }

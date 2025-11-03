@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Dashboard } from '@/components/Dashboard/Dashboard';
+import { PublicHeader } from '@/components/Layout/PublicHeader';
+import { PublicFooter } from '@/components/Layout/PublicFooter';
 import { Button } from '@/components/UI/Button';
 import { Input } from '@/components/UI/Input';
 import { Spinner } from '@/components/UI/Spinner';
@@ -102,19 +103,12 @@ export function ContactPage() {
   };
 
   return (
-    <Dashboard>
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <PublicHeader />
+      
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
         {/* Header */}
         <div className="mb-8">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-4 transition-colors"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back
-          </button>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Contact Us</h1>
           <p className="text-gray-600">
             Have a question or feedback? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
@@ -271,8 +265,11 @@ export function ContactPage() {
             </div>
           </div>
         </div>
-      </div>
-    </Dashboard>
+      </main>
+      
+      {/* Public Footer */}
+      <PublicFooter />
+    </div>
   );
 }
 

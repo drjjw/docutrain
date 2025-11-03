@@ -49,6 +49,11 @@ body {
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scroll-padding-top: 100px; /* Account for fixed header when scrolling to anchors */
+}
+
+html {
+    scroll-padding-top: 100px; /* Account for fixed header when scrolling to anchors */
 }
 
 /* ==================== NAVIGATION ==================== */

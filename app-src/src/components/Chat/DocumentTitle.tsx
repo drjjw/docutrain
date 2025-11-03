@@ -14,6 +14,7 @@ interface DocumentTitleProps {
   documentSlug: string | null;
   ownerSlug?: string | null;
   pubmedButton?: React.ReactNode;
+  showSubtitle?: boolean; // Control whether to show subtitle (default: true)
 }
 
 /**
@@ -55,7 +56,7 @@ async function saveDocumentField(
   return true;
 }
 
-export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton }: DocumentTitleProps) {
+export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubtitle = true }: DocumentTitleProps) {
   const { config, loading } = useDocumentConfig(documentSlug || '');
   const { config: ownerConfig } = useOwnerLogo(ownerSlug);
   const [searchParams] = useSearchParams();
@@ -303,7 +304,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton }: Documen
           </h1>
         )}
       </div>
-      {subtitleContent && (
+      {showSubtitle && subtitleContent && (
         <div className="w-full min-w-0 overflow-hidden mt-0.5">
           {subtitleContent}
         </div>

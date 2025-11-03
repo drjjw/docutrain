@@ -8,6 +8,7 @@ import { ProfilePage } from '@/pages/ProfilePage';
 import { LogoutPage } from '@/pages/LogoutPage';
 import { ChatPage } from '@/pages/ChatPage';
 import { ContactPage } from '@/pages/ContactPage';
+import { TermsPage } from '@/pages/TermsPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export function AppRouter() {
@@ -57,6 +58,11 @@ export function AppRouter() {
         <Route
           path="/contact"
           element={<ContactPage />}
+        />
+        {/* Terms of Service page - public access */}
+        <Route
+          path="/terms"
+          element={<TermsPage />}
         />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

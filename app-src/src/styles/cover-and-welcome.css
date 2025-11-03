@@ -7,6 +7,7 @@
   flex-wrap: nowrap !important;
   gap: 24px;
   margin: 24px -20px; /* Negative margin to counteract parent padding */
+  margin-top: 0; /* Don't use negative top margin - respect header offset */
   padding: 0 20px; /* Add back padding for content */
   width: calc(100% + 40px); /* Account for negative margins */
   box-sizing: border-box;
@@ -133,7 +134,7 @@
   .document-cover-and-welcome {
     flex-direction: column !important;
     gap: 16px;
-    margin: 16px 16px;
+    margin: 0 16px; /* No top margin on mobile either - respect header offset */
     padding: 0;
     width: auto;
     align-items: stretch;
@@ -199,7 +200,7 @@
 
 @media (max-width: 480px) {
   .document-cover-and-welcome {
-    margin: 12px 12px;
+    margin: 0 12px; /* No top margin on small screens - respect header offset */
     padding: 0;
     gap: 12px;
     width: auto;

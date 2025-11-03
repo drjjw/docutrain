@@ -19,6 +19,7 @@ import { DocumentOwnerModal } from '@/components/Chat/DocumentOwnerModal';
 import { DocumentSelector } from '@/components/Chat/DocumentSelector';
 import { DocutrainFooter } from '@/components/Chat/DocutrainFooter';
 import { DocumentMeta } from '@/components/Chat/DocumentMeta';
+import { DisclaimerModal, useDisclaimer } from '@/components/Auth/DisclaimerModal';
 import { Spinner } from '@/components/UI/Spinner';
 import { useDocumentConfig } from '@/hooks/useDocumentConfig';
 import { useOwnerLogo } from '@/hooks/useOwnerLogo';
@@ -84,6 +85,19 @@ export function ChatPage() {
   // CENTRALIZED Realtime subscription for document updates
   // This is the ONLY place we subscribe to avoid duplicate subscriptions
   useRealtimeDocumentSync(documentSlug, authLoading, permissions.loading);
+  
+  // ============================================================================
+  // SECTION 6.5: Disclaimer Management
+  // ============================================================================
+  // Check if document(s) require disclaimer (e.g., ukidney medical documents)
+  // Supports multi-document scenarios - if ANY document requires disclaimer, show it
+  const {
+    needsDisclaimer,
+    disclaimerAccepted,
+    isChecking: isCheckingDisclaimer,
+    handleAccept: handleDisclaimerAccept,
+    handleDecline: handleDisclaimerDecline,
+  } = useDisclaimer(documentSlug);
   
   // ============================================================================
   // SECTION 7: Chat Messages
@@ -165,7 +179,8 @@ export function ChatPage() {
             const userMessageElement = messageElements[lastUserMsgIndex] as HTMLElement;
             
             // Get header height (matches paddingTop in chat container)
-            const headerHeight = 100;
+            // Mobile header is two rows (~145px), desktop is ~135px
+            const headerHeight = window.innerWidth < 768 ? 145 : 135;
             
             // Calculate scroll position: position message top at header height + small buffer
             const containerRect = chatContainerRef.current.getBoundingClientRect();
@@ -221,6 +236,13 @@ export function ChatPage() {
       {/* Document Meta Tags - updates title and meta tags dynamically */}
       <DocumentMeta documentSlug={documentSlug} />
       
+      {/* Disclaimer Modal - shown for medical/educational documents (e.g., ukidney) */}
+      <DisclaimerModal
+        shouldShow={needsDisclaimer && !disclaimerAccepted}
+        onAccept={handleDisclaimerAccept}
+        onDecline={handleDisclaimerDecline}
+      />
+      
       {/* Passcode Modal - shown when passcode is required */}
       {shouldShowPasscodeModal && (
         <PasscodeModal
@@ -253,7 +275,7 @@ export function ChatPage() {
         className={`flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 space-y-4 chat-main-container ${
           isStreamingRef.current ? 'chat-container-streaming' : ''
         }`}
-        style={{ paddingTop: '100px', paddingBottom: shouldShowFooter ? '160px' : '100px' }}
+        style={{ paddingBottom: shouldShowFooter ? '160px' : '100px' }}
       >
         {/* Cover and Welcome Message - shown for single documents */}
         {shouldShowCoverAndWelcome && docConfig && (

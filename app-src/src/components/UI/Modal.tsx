@@ -39,16 +39,19 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', allowClos
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto"
+      className="fixed inset-0 z-[9999] overflow-y-auto"
       onClick={(e) => {
         if (allowClose && e.target === e.currentTarget) {
           onClose();
         }
       }}
     >
+      {/* Backdrop - must be before content to be behind it */}
+      <div className="fixed inset-0 bg-black bg-opacity-50" aria-hidden="true" />
+      
       <div className="flex min-h-screen items-center justify-center p-4">
         <div
-          className={`relative bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]}`}
+          className={`relative bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} z-10`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -73,9 +76,6 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', allowClos
           </div>
         </div>
       </div>
-
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 -z-10" />
     </div>
   );
 

@@ -43,7 +43,7 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         e.preventDefault();
         const target = document.querySelector(href);
         if (target) {
-            const offsetTop = target.offsetTop - 80; // Account for fixed nav
+            const offsetTop = target.offsetTop - 100; // Account for fixed nav (80px header + 20px padding)
             window.scrollTo({
                 top: offsetTop,
                 behavior: 'smooth'
@@ -51,6 +51,32 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         }
     });
 });
+
+// Handle hash navigation on page load (for links from other pages)
+function handleHashNavigation() {
+    if (window.location.hash) {
+        const hash = window.location.hash;
+        const target = document.querySelector(hash);
+        if (target) {
+            // Wait for page to fully render
+            setTimeout(() => {
+                const headerHeight = 100; // Account for fixed nav (80px header + 20px padding)
+                const offsetTop = target.getBoundingClientRect().top + window.pageYOffset - headerHeight;
+                window.scrollTo({
+                    top: offsetTop,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        }
+    }
+}
+
+// Run on page load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', handleHashNavigation);
+} else {
+    handleHashNavigation();
+}
 
 // Add scroll effect to navigation
 let lastScroll = 0;

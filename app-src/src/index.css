@@ -21,6 +21,16 @@ code {
   background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f5 50%, #f8f9fa 100%);
   background-size: 200% 200%;
   animation: gradientShift 20s ease infinite;
+  /* Responsive padding-top to account for fixed header height */
+  /* Mobile: header is two rows (title on top, logo+menu on bottom) ~130px */
+  /* Desktop: header is single row with py-6 (~24px top + ~24px bottom) + content height ~110-120px */
+  padding-top: 145px !important; /* Mobile: two-row header (default) - use !important to override Tailwind padding */
+}
+
+@media (min-width: 768px) {
+  .chat-main-container {
+    padding-top: 135px !important; /* Desktop: single row header with padding - use !important to override Tailwind padding */
+  }
 }
 
 @keyframes gradientShift {

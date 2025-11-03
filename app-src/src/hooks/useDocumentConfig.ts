@@ -86,13 +86,16 @@ export function useDocumentConfig(documentSlug: string | null) {
   const permissions = usePermissions();
   const redirectAttemptedRef = useRef<string | null>(null);
   const passcodeRequiredRef = useRef<boolean>(false);
+  const isSuperAdminRef = useRef<boolean>(false);
+  const fetchInProgressRef = useRef<boolean>(false);
   
   // Extract passcode value
   const passcodeFromUrl = searchParams.get('passcode');
   const passcodeFromStorage = documentSlug ? localStorage.getItem(`passcode:${documentSlug}`) : null;
   const passcode = passcodeFromUrl || passcodeFromStorage;
   
-  const isSuperAdmin = permissions.isSuperAdmin;
+  // Update ref when permissions change (doesn't trigger re-render)
+  isSuperAdminRef.current = permissions.isSuperAdmin;
   const isLoading = authLoading || permissions.loading;
 
   // Listen for document-updated events (same browser window)
@@ -125,7 +128,7 @@ export function useDocumentConfig(documentSlug: string | null) {
 
   // Main effect to load document config
   useEffect(() => {
-    devLog(`[useDocumentConfig] Effect running for: ${documentSlug}, isLoading: ${isLoading}, user: ${user?.id || 'null'}`);
+    console.log(`[useDocumentConfig] Effect running for: ${documentSlug}, isLoading: ${isLoading}, user: ${user?.id || 'null'}, permissions.loading: ${permissions.loading}`);
     
     if (!documentSlug) {
       setConfig(null);
@@ -139,7 +142,13 @@ export function useDocumentConfig(documentSlug: string | null) {
 
     // Wait for auth and permissions to finish loading
     if (isLoading) {
-      devLog(`[useDocumentConfig] Still loading (auth or permissions), waiting...`);
+      console.log(`[useDocumentConfig] Still loading (auth: ${authLoading}, permissions: ${permissions.loading}), waiting...`);
+      return;
+    }
+
+    // If a fetch is already in progress, don't start a new one
+    if (fetchInProgressRef.current) {
+      console.log(`[useDocumentConfig] Fetch already in progress for ${documentSlug}, skipping...`);
       return;
     }
 
@@ -167,10 +176,11 @@ export function useDocumentConfig(documentSlug: string | null) {
 
     async function loadConfig(): Promise<DocumentConfig | null> {
       try {
-        devLog(`[useDocumentConfig] Loading config for: ${documentSlug}`);
+        console.log(`[useDocumentConfig] Loading config for: ${documentSlug}`);
+        fetchInProgressRef.current = true;
         
         const currentPasscode = passcodeFromUrl || passcodeFromStorage;
-        devLog(`[useDocumentConfig] Passcode check - URL: ${passcodeFromUrl || 'none'}, localStorage: ${passcodeFromStorage || 'none'}`);
+        console.log(`[useDocumentConfig] Passcode check - URL: ${passcodeFromUrl || 'none'}, localStorage: ${passcodeFromStorage || 'none'}`);
         
         setLoading(true);
         setError(null);
@@ -206,9 +216,21 @@ export function useDocumentConfig(documentSlug: string | null) {
           // Ignore token errors
         }
         
-        devLog(`[useDocumentConfig] Fetching: ${url}`);
-        const response = await fetch(url, { headers });
-        devLog(`[useDocumentConfig] Response status: ${response.status}`);
+        console.log(`[useDocumentConfig] Fetching: ${url}`);
+        
+        // Add timeout for mobile (20s mobile, 10s desktop)
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const timeout = isMobile ? 20000 : 10000;
+        
+        const fetchWithTimeout = Promise.race([
+          fetch(url, { headers }),
+          new Promise<Response>((_, reject) => 
+            setTimeout(() => reject(new Error(`Document config fetch timed out after ${timeout}ms`)), timeout)
+          )
+        ]);
+        
+        const response = await fetchWithTimeout;
+        console.log(`[useDocumentConfig] Response status: ${response.status}`);
         
         if (!response.ok) {
           if (response.status === 403 || response.status === 404) {
@@ -257,7 +279,7 @@ export function useDocumentConfig(documentSlug: string | null) {
             // For authenticated users with 403, set error
             if (response.status === 403 && user) {
               if (!cancelled) {
-                const errorMessage = isSuperAdmin 
+                const errorMessage = isSuperAdminRef.current 
                   ? 'Unable to access document. This may be a server issue.' 
                   : 'You do not have permission to access this document';
                 setError(errorMessage);
@@ -379,6 +401,7 @@ export function useDocumentConfig(documentSlug: string | null) {
     // Create and track the request promise
     const requestPromise = loadConfig().finally(() => {
       pendingRequests.delete(requestKey);
+      fetchInProgressRef.current = false;
     });
     
     pendingRequests.set(requestKey, requestPromise);
@@ -400,11 +423,17 @@ export function useDocumentConfig(documentSlug: string | null) {
     window.addEventListener('passcode-stored', handlePasscodeStored as EventListener);
 
     return () => {
-      cancelled = true;
+      // Only cancel if no fetch is in progress
+      // This prevents cancelling a fetch that's already running
+      if (!fetchInProgressRef.current) {
+        cancelled = true;
+        console.log(`[useDocumentConfig] Effect cleanup for: ${documentSlug} (no fetch in progress)`);
+      } else {
+        console.log(`[useDocumentConfig] Effect cleanup for: ${documentSlug} (fetch in progress, NOT cancelling)`);
+      }
       window.removeEventListener('passcode-stored', handlePasscodeStored as EventListener);
-      devLog(`[useDocumentConfig] Effect cleanup for: ${documentSlug}`);
     };
-  }, [documentSlug, user?.id, isLoading, isSuperAdmin, passcode, refreshTrigger, navigate, passcodeFromUrl, passcodeFromStorage]);
+  }, [documentSlug, user?.id, isLoading, passcode, refreshTrigger, navigate, passcodeFromUrl, passcodeFromStorage]); // Added isLoading back but using fetchInProgressRef to prevent duplicate fetches
 
   return { config, loading, error, errorDetails };
 }
