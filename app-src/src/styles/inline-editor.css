@@ -1,5 +1,17 @@
 /* Inline Editor Styles - Ported from vanilla JS public/css/components.css */
 
+/* WYSIWYG Editor Container - prevent overflow from parent containers */
+.inline-wysiwyg-editor {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  /* Ensure editor doesn't break out of message containers */
+  overflow: visible;
+  /* Prevent toolbar from causing layout shifts */
+  z-index: 10;
+}
+
 .inline-edit-icon {
     position: absolute;
     top: 4px;

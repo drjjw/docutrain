@@ -129,6 +129,26 @@
   box-sizing: border-box;
 }
 
+/* Ensure WYSIWYG editor stays within message container bounds */
+.welcome-message-section .message.assistant .message-content .inline-wysiwyg-editor {
+  max-width: 100%;
+  width: 100%;
+  /* Allow the editor to expand but prevent it from breaking out of the container */
+  position: relative;
+  /* Ensure toolbar doesn't cause overflow issues */
+  z-index: 10;
+}
+
+/* Ensure the editor content area doesn't exceed container bounds */
+.welcome-message-section .message.assistant .message-content .inline-editor-active[contenteditable="true"] {
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  /* Prevent the editor from expanding beyond the message content area */
+  max-height: calc(100vh - 200px); /* Reasonable max height to prevent excessive expansion */
+  overflow-y: auto; /* Allow scrolling if content is too tall */
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .document-cover-and-welcome {
