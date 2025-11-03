@@ -255,6 +255,7 @@
 .download-button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 10px 16px;
   background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
@@ -264,7 +265,7 @@
   transition: all 0.2s ease;
   color: #495057;
   cursor: pointer;
-  width: auto;
+  width: calc(50% - 4px);
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
