@@ -39,3 +39,4 @@ CREATE POLICY "Service role can manage profiles" ON user_profiles
 COMMENT ON TABLE user_profiles IS 'User profile data including TOS acceptance tracking';
 COMMENT ON COLUMN user_profiles.tos_accepted_at IS 'Timestamp when user accepted Terms of Service';
 COMMENT ON COLUMN user_profiles.tos_version IS 'Version of TOS that was accepted (e.g., effective date)';
+

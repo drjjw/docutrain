@@ -133,12 +133,33 @@ export function DisclaimerModal({ shouldShow, onAccept, onDecline }: DisclaimerM
  * 
  * @param documentSlug - Single slug or comma-separated slugs (e.g., "doc1,doc2,doc3")
  */
-export function useDisclaimer(documentSlug: string | null | undefined) {
+interface UseDisclaimerOptions {
+  documentSlug: string | null | undefined;
+  hasAuthError?: boolean; // Skip fetch if we already know auth is required
+}
+
+export function useDisclaimer(options: string | null | undefined | UseDisclaimerOptions) {
+  // Support both old signature (string) and new signature (object)
+  const documentSlug = typeof options === 'string' || options === null || options === undefined 
+    ? options 
+    : options.documentSlug;
+  const hasAuthError = typeof options === 'object' && options !== null 
+    ? options.hasAuthError 
+    : false;
+    
   const [needsDisclaimer, setNeedsDisclaimer] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
   useEffect(() => {
+    // Skip if auth error already detected (passcode required, access denied, etc.)
+    if (hasAuthError) {
+      console.log('[useDisclaimer] Auth error detected, skipping disclaimer check');
+      setNeedsDisclaimer(false);
+      setDisclaimerAccepted(true);
+      return;
+    }
+    
     if (!documentSlug) {
       setNeedsDisclaimer(false);
       setDisclaimerAccepted(true); // No document = no disclaimer needed
@@ -183,7 +204,12 @@ export function useDisclaimer(documentSlug: string | null | undefined) {
         const response = await fetch(apiUrl, { headers });
         
         if (!response.ok) {
-          console.warn('[useDisclaimer] Failed to fetch documents, skipping disclaimer check');
+          if (response.status === 403) {
+            // Passcode required or access denied - skip disclaimer check, user will see auth modal
+            console.log('[useDisclaimer] Document requires authentication, skipping disclaimer check');
+          } else {
+            console.warn(`[useDisclaimer] Failed to fetch documents (${response.status}), skipping disclaimer check`);
+          }
           setNeedsDisclaimer(false);
           setDisclaimerAccepted(true);
           return;
@@ -215,7 +241,7 @@ export function useDisclaimer(documentSlug: string | null | undefined) {
     }
 
     checkDocuments();
-  }, [documentSlug]);
+  }, [documentSlug, hasAuthError]);
 
   const handleAccept = () => {
     setDisclaimerAccepted(true);

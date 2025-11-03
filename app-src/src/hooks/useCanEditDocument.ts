@@ -99,3 +99,4 @@ export function useCanEditDocument(documentSlug: string | null) {
 
   return { canEdit, loading, clearCache };
 }
+

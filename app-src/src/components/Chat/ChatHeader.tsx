@@ -107,9 +107,10 @@ function DocumentSubtitle({ documentSlug }: { documentSlug: string | null }) {
 
 interface ChatHeaderProps {
   documentSlug: string | null;
+  hasAuthError?: boolean;
 }
 
-export function ChatHeader({ documentSlug }: ChatHeaderProps) {
+export function ChatHeader({ documentSlug, hasAuthError = false }: ChatHeaderProps) {
   const [searchParams] = useSearchParams();
   const { config: docConfig } = useDocumentConfig(documentSlug || '');
   
@@ -163,6 +164,7 @@ export function ChatHeader({ documentSlug }: ChatHeaderProps) {
             documentSlug={documentSlug || ''}
             ownerSlug={ownerModeSlug}
             shouldShowDocumentSelector={shouldShowDocumentSelector}
+            hasAuthError={hasAuthError}
           />
         </div>
       </div>
@@ -189,6 +191,7 @@ export function ChatHeader({ documentSlug }: ChatHeaderProps) {
             documentSlug={documentSlug || ''}
             ownerSlug={ownerModeSlug}
             shouldShowDocumentSelector={shouldShowDocumentSelector}
+            hasAuthError={hasAuthError}
           />
         </div>
       </div>
@@ -243,6 +246,7 @@ export function ChatHeader({ documentSlug }: ChatHeaderProps) {
             documentSlug={documentSlug || ''}
             ownerSlug={ownerModeSlug}
             shouldShowDocumentSelector={shouldShowDocumentSelector}
+            hasAuthError={hasAuthError}
           />
         </div>
       </div>

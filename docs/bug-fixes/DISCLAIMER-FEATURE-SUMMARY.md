@@ -120,3 +120,4 @@ The feature is complete and ready for testing. Consider:
 - Testing multi-document scenarios
 - Checking mobile responsiveness
 - Verifying TOS link works correctly
+

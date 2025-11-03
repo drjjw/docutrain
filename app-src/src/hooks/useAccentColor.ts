@@ -18,3 +18,4 @@ export function useAccentColor(accentColor?: string) {
     }
   }, [accentColor]);
 }
+

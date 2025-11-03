@@ -15,12 +15,14 @@ interface CombinedHeaderMenuProps {
   documentSlug: string | null; // Can be null when no document is selected
   ownerSlug?: string | null;
   shouldShowDocumentSelector: boolean;
+  hasAuthError?: boolean;
 }
 
 export function CombinedHeaderMenu({ 
   documentSlug, 
   ownerSlug,
-  shouldShowDocumentSelector 
+  shouldShowDocumentSelector,
+  hasAuthError = false
 }: CombinedHeaderMenuProps) {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
@@ -142,6 +144,7 @@ export function CombinedHeaderMenu({
           <DocumentSelector
             ownerSlug={ownerSlug}
             currentDocSlug={documentSlug}
+            hasAuthError={hasAuthError}
           />
         )}
       </div>
@@ -240,6 +243,7 @@ export function CombinedHeaderMenu({
                         ownerSlug={ownerSlug}
                         currentDocSlug={documentSlug}
                         inline={true}
+                        hasAuthError={hasAuthError}
                         onItemClick={() => setIsMobileMenuOpen(false)}
                       />
                     </div>

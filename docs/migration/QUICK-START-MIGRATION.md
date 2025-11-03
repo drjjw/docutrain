@@ -85,3 +85,4 @@ Once React version matches vanilla JS:
 3. Port auto-scroll logic
 4. Test thoroughly
 5. Gradually roll out
+

@@ -64,3 +64,4 @@ export function PublicFooter() {
     </footer>
   );
 }
+

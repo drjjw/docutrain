@@ -16,8 +16,15 @@ import { supabase } from '@/lib/supabase/client';
 // @ts-ignore - import.meta.env is available in Vite
 const isDev = import.meta.env?.DEV || import.meta.env?.MODE === 'development' || false;
 
+// Type for request deduplication - includes both config and error state
+type RequestResult = {
+  config: DocumentConfig | null;
+  errorDetails: DocumentConfigError | null;
+  error: string | null;
+};
+
 // Module-level request deduplication to prevent multiple simultaneous requests
-const pendingRequests = new Map<string, Promise<DocumentConfig | null>>();
+const pendingRequests = new Map<string, Promise<RequestResult>>();
 
 /**
  * Log helper - only logs in development mode
@@ -162,11 +169,16 @@ export function useDocumentConfig(documentSlug: string | null) {
     if (existingRequest) {
       devLog(`[useDocumentConfig] Reusing existing request for: ${requestKey}`);
       existingRequest.then((result) => {
-        if (!cancelled && result) {
-          setConfig(result);
+        if (!cancelled) {
+          devLog(`[useDocumentConfig] Setting state from reused request:`, {
+            hasConfig: !!result.config,
+            hasError: !!result.error,
+            errorType: result.errorDetails?.type
+          });
+          setConfig(result.config);
+          setErrorDetails(result.errorDetails);
+          setError(result.error);
           setLoading(false);
-          setError(null);
-          setErrorDetails(null);
         }
       }).catch(() => {
         // Error handled by the original request
@@ -174,7 +186,7 @@ export function useDocumentConfig(documentSlug: string | null) {
       return;
     }
 
-    async function loadConfig(): Promise<DocumentConfig | null> {
+    async function loadConfig(): Promise<RequestResult> {
       try {
         console.log(`[useDocumentConfig] Loading config for: ${documentSlug}`);
         fetchInProgressRef.current = true;
@@ -247,19 +259,26 @@ export function useDocumentConfig(documentSlug: string | null) {
             
             // Check for passcode_required error
             if (errorData.error_type === 'passcode_required') {
+              const errorMsg = errorData.error || 'This document requires a passcode to access';
+              const errorDetailsValue = {
+                type: 'passcode_required' as const,
+                message: errorMsg,
+                documentInfo: errorData.document_info
+              };
+              
               if (!cancelled) {
                 passcodeRequiredRef.current = true;
-                const errorDetailsValue = {
-                  type: 'passcode_required' as const,
-                  message: errorData.error || 'This document requires a passcode to access',
-                  documentInfo: errorData.document_info
-                };
                 setErrorDetails(errorDetailsValue);
-                setError(errorData.error || 'This document requires a passcode to access');
+                setError(errorMsg);
                 setConfig(null);
                 setLoading(false);
               }
-              return;
+              
+              return {
+                config: null,
+                errorDetails: errorDetailsValue,
+                error: errorMsg
+              };
             }
             
             // If user is not authenticated and access is denied, redirect to login
@@ -272,46 +291,60 @@ export function useDocumentConfig(documentSlug: string | null) {
                 const returnUrl = encodeURIComponent(currentUrl);
                 devLog(`[useDocumentConfig] REDIRECTING TO LOGIN`);
                 navigate(`/login?returnUrl=${returnUrl}`, { replace: true });
-                return;
+                return { config: null, errorDetails: null, error: null };
               }
             }
             
             // For authenticated users with 403, set error
             if (response.status === 403 && user) {
+              const errorMessage = isSuperAdminRef.current 
+                ? 'Unable to access document. This may be a server issue.' 
+                : 'You do not have permission to access this document';
+              const errorDetailsValue = {
+                type: 'access_denied' as const,
+                message: errorMessage
+              };
+              
               if (!cancelled) {
-                const errorMessage = isSuperAdminRef.current 
-                  ? 'Unable to access document. This may be a server issue.' 
-                  : 'You do not have permission to access this document';
                 setError(errorMessage);
-                setErrorDetails({
-                  type: 'access_denied',
-                  message: errorMessage
-                });
+                setErrorDetails(errorDetailsValue);
                 setConfig(null);
                 setLoading(false);
-                return;
               }
+              
+              return {
+                config: null,
+                errorDetails: errorDetailsValue,
+                error: errorMessage
+              };
             }
             
             // For 404 errors
             if (response.status === 404) {
+              const errorMessage = errorData.error || `Document "${documentSlug}" not found`;
+              const errorDetailsValue = {
+                type: 'document_not_found' as const,
+                message: errorMessage
+              };
+              
               if (!cancelled) {
-                const errorMessage = errorData.error || `Document "${documentSlug}" not found`;
-                const errorDetailsValue = {
-                  type: 'document_not_found' as const,
-                  message: errorMessage
-                };
                 setErrorDetails(errorDetailsValue);
                 setError(errorMessage);
                 setConfig(null);
                 setLoading(false);
               }
+              
+              return {
+                config: null,
+                errorDetails: errorDetailsValue,
+                error: errorMessage
+              };
             }
             
             if (response.status !== 403 && response.status !== 404) {
               throw new Error(`HTTP ${response.status}`);
             }
-            return;
+            return { config: null, errorDetails: null, error: null };
           }
           
           throw new Error(`HTTP ${response.status}`);
@@ -353,7 +386,11 @@ export function useDocumentConfig(documentSlug: string | null) {
             passcodeRequiredRef.current = false;
             setErrorDetails(null);
             setError(null);
-            return doc;
+            return {
+              config: doc,
+              errorDetails: null,
+              error: null
+            };
           } else {
             devLog(`[useDocumentConfig] Document not found in array`);
             
@@ -366,7 +403,7 @@ export function useDocumentConfig(documentSlug: string | null) {
                 const returnUrl = encodeURIComponent(currentUrl);
                 devLog(`[useDocumentConfig] REDIRECTING TO LOGIN - no documents found`);
                 navigate(`/login?returnUrl=${returnUrl}`, { replace: true });
-                return null;
+                return { config: null, errorDetails: null, error: null };
               }
             }
             
@@ -376,25 +413,32 @@ export function useDocumentConfig(documentSlug: string | null) {
               setErrorDetails(null);
             }
             setLoading(false);
-            return null;
+            return { config: null, errorDetails: null, error: null };
           }
         }
-        return null;
+        return { config: null, errorDetails: null, error: null };
       } catch (err) {
         if (!cancelled) {
           const isExpectedError = err instanceof Error && (err.message.includes('HTTP 403') || err.message.includes('HTTP 404'));
           if (!isExpectedError) {
             console.error('[useDocumentConfig] Unexpected error:', err);
-            setError(err instanceof Error ? err.message : 'Failed to load document config');
-            setErrorDetails({
-              type: 'unknown',
-              message: err instanceof Error ? err.message : 'Failed to load document config'
-            });
+            const errorMsg = err instanceof Error ? err.message : 'Failed to load document config';
+            const errorDetailsValue = {
+              type: 'unknown' as const,
+              message: errorMsg
+            };
+            setError(errorMsg);
+            setErrorDetails(errorDetailsValue);
             setConfig(null);
             setLoading(false);
+            return {
+              config: null,
+              errorDetails: errorDetailsValue,
+              error: errorMsg
+            };
           }
         }
-        return null;
+        return { config: null, errorDetails: null, error: null };
       }
     }
 

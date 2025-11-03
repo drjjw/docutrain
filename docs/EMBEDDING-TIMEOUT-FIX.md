@@ -190,3 +190,4 @@ ERROR: Hard timeout: OpenAI embedding API call exceeded 45 seconds
 - No permission changes
 - No access control changes
 - Only affects how API timeouts are handled
+

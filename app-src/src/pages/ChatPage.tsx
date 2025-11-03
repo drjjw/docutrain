@@ -92,13 +92,19 @@ export function ChatPage() {
   // ============================================================================
   // Check if document(s) require disclaimer (e.g., ukidney medical documents)
   // Supports multi-document scenarios - if ANY document requires disclaimer, show it
+  // Skip if we already have an auth error (passcode required, access denied, etc.)
+  const hasAuthError = !!errorDetails && (
+    errorDetails.type === 'passcode_required' || 
+    errorDetails.type === 'access_denied'
+  );
+  
   const {
     needsDisclaimer,
     disclaimerAccepted,
     isChecking: isCheckingDisclaimer,
     handleAccept: handleDisclaimerAccept,
     handleDecline: handleDisclaimerDecline,
-  } = useDisclaimer(documentSlug);
+  } = useDisclaimer({ documentSlug, hasAuthError });
   
   // ============================================================================
   // SECTION 7: Chat Messages
@@ -459,11 +465,11 @@ export function ChatPage() {
       {/* Document Selector Modal - shown when owner param is present but no doc is selected */}
       {/* DocumentSelector renders its own modal via portal when in modal mode */}
       {shouldShowDocumentSelectorModal && (
-        <DocumentSelector currentDocSlug={null} />
+        <DocumentSelector currentDocSlug={null} hasAuthError={hasAuthError} />
       )}
       
       {/* Header - Fixed position */}
-      <ChatHeader documentSlug={documentSlug} />
+      <ChatHeader documentSlug={documentSlug} hasAuthError={hasAuthError} />
       
       {/* Messages container - port from vanilla JS */}
       <div 

@@ -196,3 +196,4 @@ if (userDoc.status === 'processing') {
 - Consider adding a "Last Activity" timestamp for more accurate stuck detection
 - Could add automatic stuck document detection/notification in the future
 - The "Force Retry" button is intentionally labeled differently to indicate it will reset the job
+

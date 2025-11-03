@@ -141,3 +141,4 @@ When permissions loaded, `isSuperAdmin` changed from `false` to `true`, which:
 ✅ Ready for production  
 
 The mobile app is now fully functional! 🚀
+

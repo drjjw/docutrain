@@ -237,3 +237,4 @@ This fix complements:
 - Most documents process in 10-60 seconds, so 5 minutes is a safe buffer
 - The delete button warning is informational only - it doesn't prevent deletion
 - Consider adding a confirmation dialog for deleting processing documents in the future
+

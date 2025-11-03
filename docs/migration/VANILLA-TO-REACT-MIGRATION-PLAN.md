@@ -257,3 +257,4 @@ app-src/src/
 4. **Incremental changes** - Small PRs, frequent deploys
 5. **Easy rollback** - Feature flag = instant rollback
 6. **Monitor closely** - Watch for errors, performance issues
+

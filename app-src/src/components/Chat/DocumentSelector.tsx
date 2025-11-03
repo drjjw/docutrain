@@ -26,9 +26,10 @@ interface DocumentSelectorProps {
   currentDocSlug: string | null; // Can be null when no document is selected
   inline?: boolean; // If true, renders content only (no button/dropdown) for inline use
   onItemClick?: () => void; // Callback when document is selected (useful for closing mobile menu)
+  hasAuthError?: boolean; // Skip fetch if we already know auth is required
 }
 
-export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }: DocumentSelectorProps) {
+export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, hasAuthError = false }: DocumentSelectorProps) {
   const [searchParams] = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -87,6 +88,15 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
   useEffect(() => {
     async function loadDocuments() {
       try {
+        // Skip if auth error already detected (passcode required, access denied, etc.)
+        if (hasAuthError) {
+          console.log('[DocumentSelector] Auth error detected, skipping document fetch');
+          setDocuments([]);
+          setShouldShow(false);
+          setLoading(false);
+          return;
+        }
+        
         setLoading(true);
 
         let apiUrl = '/api/documents';
@@ -129,6 +139,21 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
         }
 
         const response = await fetch(apiUrl, { headers });
+        
+        // Handle non-OK responses gracefully (e.g., 403 for passcode-protected docs)
+        if (!response.ok) {
+          if (response.status === 403) {
+            // Passcode required or access denied - don't show selector, user will see modal
+            console.log('[DocumentSelector] Document requires authentication, skipping selector');
+            setDocuments([]);
+            setShouldShow(false);
+            return;
+          }
+          console.warn(`[DocumentSelector] Failed to fetch documents: ${response.status}`);
+          setDocuments([]);
+          return;
+        }
+        
         const data = await response.json();
         const loadedDocuments = data.documents || [];
         setDocuments(loadedDocuments);
@@ -162,7 +187,8 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
           setDocuments(ownerData.documents || []);
         }
       } catch (error) {
-        console.error('Error loading documents:', error);
+        // Silently handle errors - passcode/auth errors are expected and handled by modal
+        console.log('[DocumentSelector] Error loading documents (may be expected for passcode-protected docs)');
         setDocuments([]);
         setShouldShow(false);
       } finally {
@@ -171,7 +197,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick }
     }
 
     loadDocuments();
-  }, [ownerParam, currentDocSlug, passcodeParam, documentSelectorParam, docParam]);
+  }, [ownerParam, currentDocSlug, passcodeParam, documentSelectorParam, docParam, hasAuthError]);
 
   // Ensure modal is open when shouldShow becomes true (after documents load)
   // This is a secondary check in case documents load after URL change
