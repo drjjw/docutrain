@@ -331,7 +331,7 @@ async function getDocumentsByEmbeddingType(embeddingType) {
 /**
  * Get document metadata for frontend API
  * Returns only the fields needed by the frontend
- * Includes owner information
+ * Includes owner information and attachments
  */
 async function getDocumentsForAPI() {
     const documents = await loadDocuments();
@@ -354,6 +354,33 @@ async function getDocumentsForAPI() {
         }
     }
 
+    // Get all document IDs
+    const documentIds = documents.map(doc => doc.id).filter(id => id);
+    
+    // Fetch attachments for all documents
+    let attachmentsMap = {};
+    if (documentIds.length > 0) {
+        const { data: attachmentsData, error: attachmentsError } = await supabase
+            .from('document_attachments')
+            .select('id, document_id, title, url, display_order')
+            .in('document_id', documentIds)
+            .order('display_order', { ascending: true });
+        
+        if (!attachmentsError && attachmentsData) {
+            // Group attachments by document_id
+            attachmentsData.forEach(attachment => {
+                if (!attachmentsMap[attachment.document_id]) {
+                    attachmentsMap[attachment.document_id] = [];
+                }
+                attachmentsMap[attachment.document_id].push({
+                    title: attachment.title,
+                    url: attachment.url,
+                    attachment_id: attachment.id // Include attachment ID for tracking
+                });
+            });
+        }
+    }
+
     return documents.map(doc => {
         const ownerInfo = doc.owner_id ? ownersMap[doc.owner_id] : null;
         
@@ -372,6 +399,11 @@ async function getDocumentsForAPI() {
         const keywords = doc.metadata?.keywords || null;
         console.log(`🔑 [DEBUG] Document ${doc.slug}: keywords=${keywords ? keywords.length : 'null'}`);
         
+        // Get attachments for this document, fallback to legacy downloads JSONB if no attachments
+        const attachments = attachmentsMap[doc.id] || [];
+        const legacyDownloads = doc.downloads || [];
+        const downloads = attachments.length > 0 ? attachments : legacyDownloads;
+        
         return {
             slug: doc.slug,
             title: doc.title,
@@ -387,7 +419,7 @@ async function getDocumentsForAPI() {
             owner: doc.owner,
             metadata: doc.metadata || {},
             keywords: keywords, // Extract keywords for easy access
-            downloads: doc.downloads || [], // Download URLs for the document
+            downloads: downloads, // Attachments from new table, fallback to legacy JSONB
             showDocumentSelector: doc.show_document_selector !== false, // Controls document selector visibility (default true)
             showKeywords: doc.show_keywords !== false, // Controls keywords visibility (default true)
             showDownloads: doc.show_downloads !== false, // Controls downloads visibility (default true)
