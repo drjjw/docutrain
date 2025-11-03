@@ -172,6 +172,20 @@ function ChatPageContent({
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastUserMessageRef = useRef<string | null>(null);
+
+  // ============================================================================
+  // SECTION 9.1: Desktop Detection for Hints
+  // ============================================================================
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth > 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // ============================================================================
   // SECTION 9.25: Text Selection Prompt
@@ -197,8 +211,24 @@ function ChatPageContent({
 
     const handleMouseUp = () => {
       isSelectingRef.current = false;
-      
+
       // After mouse up, check if there's a selection (but wait a bit for selection to settle)
+      setTimeout(() => {
+        checkSelection();
+      }, 50);
+    };
+
+    // Touch event handlers for mobile devices
+    const handleTouchStart = () => {
+      // Track when touch starts to differentiate keyboard vs touch selection
+      lastMouseDownRef.current = Date.now();
+      isSelectingRef.current = true;
+    };
+
+    const handleTouchEnd = () => {
+      isSelectingRef.current = false;
+
+      // After touch end, check if there's a selection (but wait a bit for selection to settle)
       setTimeout(() => {
         checkSelection();
       }, 50);
@@ -275,6 +305,13 @@ function ChatPageContent({
         return;
       }
 
+      // Check if selection is within any contentEditable element (like inline WYSIWYG editor)
+      const element = selectionNode.nodeType === Node.TEXT_NODE ? selectionNode.parentElement : (selectionNode as Element);
+      if (element && element.closest('[contenteditable="true"]')) {
+        setSelectionPrompt(null);
+        return;
+      }
+
       // Only show prompt after selection is complete (not while actively selecting)
       if (isSelectingRef.current) {
         // User is still selecting, wait until they're done
@@ -318,7 +355,11 @@ function ChatPageContent({
     // Track mouse events
     document.addEventListener('mousedown', handleMouseDown);
     document.addEventListener('mouseup', handleMouseUp);
-    
+
+    // Track touch events for mobile devices
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+
     // Track keyboard events for selection
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
@@ -340,6 +381,8 @@ function ChatPageContent({
     return () => {
       document.removeEventListener('mousedown', handleMouseDown);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
       document.removeEventListener('selectionchange', handleSelectionChange);
@@ -365,6 +408,8 @@ function ChatPageContent({
 
   // Handle selection prompt cancel
   const handleSelectionCancel = () => {
+    // Clear the text selection first to prevent re-triggering
+    window.getSelection()?.removeAllRanges();
     setSelectionPrompt(null);
   };
 
@@ -627,8 +672,17 @@ function ChatPageContent({
               Send
             </button>
           </form>
+
+          {/* Text Selection Hint - Only show on desktop */}
+          {isDesktop && (
+            <div className="mt-2 text-center">
+              <p className="text-xs text-gray-500">
+                💡 Hint: You can highlight any response by the chat bot and it will search for that selection
+              </p>
+            </div>
+          )}
         </div>
-        
+
         {/* Footer - subtle indication this is a Docutrain article */}
         {/* Positioned below the input field */}
         {shouldShowFooter && <DocutrainFooter />}
