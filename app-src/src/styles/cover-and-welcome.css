@@ -115,6 +115,19 @@
   box-sizing: border-box;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  /* Prevent WYSIWYG editor from breaking out of container */
+  overflow: visible;
+  position: relative;
+}
+
+/* Prevent WYSIWYG editor from causing layout issues */
+.welcome-message-section .inline-wysiwyg-editor {
+  /* Ensure the editor doesn't break out of its container */
+  contain: layout style;
+  /* Prevent the editor from affecting parent container height */
+  position: relative;
+  /* Ensure proper z-indexing */
+  z-index: 10;
 }
 
 .welcome-message-section .message.assistant .message-content:hover {
@@ -137,6 +150,11 @@
   position: relative;
   /* Ensure toolbar doesn't cause overflow issues */
   z-index: 10;
+  /* Constrain the editor within its parent */
+  box-sizing: border-box;
+  /* Limit the overall height of the editor */
+  max-height: 500px;
+  overflow: hidden;
 }
 
 /* Ensure the editor content area doesn't exceed container bounds */
@@ -145,8 +163,11 @@
   width: 100%;
   box-sizing: border-box;
   /* Prevent the editor from expanding beyond the message content area */
-  max-height: calc(100vh - 200px); /* Reasonable max height to prevent excessive expansion */
+  max-height: 400px; /* Fixed max height to prevent breaking out */
   overflow-y: auto; /* Allow scrolling if content is too tall */
+  /* Ensure the editor stays within bounds */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Mobile responsiveness */
