@@ -3,6 +3,23 @@ export interface DownloadLink {
   title: string;
 }
 
+export interface DocumentAttachment {
+  id: string;
+  document_id: string;
+  title: string;
+  url: string;
+  storage_path?: string;
+  file_size?: number;
+  mime_type?: string;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+  created_by_user_id?: string;
+}
+
+// For backward compatibility, DownloadLink can be used where attachments are displayed
+// The backend will convert attachments to DownloadLink[] format
+
 export interface Owner {
   id: string;
   slug: string;

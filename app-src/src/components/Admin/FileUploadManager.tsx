@@ -1,7 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/UI/Button';
 import { supabase } from '@/lib/supabase/client';
-import type { DownloadLink } from '@/types/admin';
+import { 
+  getDocumentAttachments, 
+  createDocumentAttachment, 
+  updateDocumentAttachment, 
+  deleteDocumentAttachment 
+} from '@/lib/supabase/admin';
+import type { DownloadLink, DocumentAttachment } from '@/types/admin';
 
 interface FileUploadManagerProps {
   downloads: DownloadLink[];
@@ -18,25 +24,37 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingTitle, setPendingTitle] = useState<string>('');
   const [showTitlePrompt, setShowTitlePrompt] = useState(false);
+  const [attachments, setAttachments] = useState<DocumentAttachment[]>([]);
+  const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Debug component lifecycle
-  React.useEffect(() => {
-    console.log('FileUploadManager mounted for document:', documentId);
-    console.log('Initial downloads:', downloads);
-    
-    return () => {
-      console.log('FileUploadManager unmounting for document:', documentId);
+  // Fetch attachments on mount and when documentId changes
+  useEffect(() => {
+    const fetchAttachments = async () => {
+      try {
+        setLoading(true);
+        const fetchedAttachments = await getDocumentAttachments(documentId);
+        setAttachments(fetchedAttachments);
+        // Convert to DownloadLink[] format for parent component
+        const downloadsList = fetchedAttachments.map(att => ({
+          title: att.title,
+          url: att.url
+        }));
+        onChange(downloadsList);
+      } catch (error) {
+        console.error('Failed to fetch attachments:', error);
+        // Fallback to props downloads if fetch fails
+        setAttachments([]);
+      } finally {
+        setLoading(false);
+      }
     };
-  }, []);
 
-  React.useEffect(() => {
-    console.log('FileUploadManager downloads changed:', downloads);
-  }, [downloads]);
-
-  React.useEffect(() => {
-    console.log('FileUploadManager uploading state changed:', uploading);
-  }, [uploading]);
+    if (documentId) {
+      fetchAttachments();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documentId]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -93,18 +111,19 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
 
       console.log('Public URL:', urlData.publicUrl);
 
-      // Add to downloads array with user-specified title
-      const newDownload: DownloadLink = {
-        url: urlData.publicUrl,
+      // Create attachment record via API
+      const newAttachment = await createDocumentAttachment(documentId, {
         title: pendingTitle.trim(),
-      };
+        url: urlData.publicUrl,
+        storage_path: filePath,
+        file_size: pendingFile.size,
+        mime_type: pendingFile.type || null,
+      });
 
-      console.log('Adding new download:', newDownload);
-      console.log('Current downloads before update:', downloads);
+      // Update local state
+      setAttachments(prev => [...prev, newAttachment].sort((a, b) => a.display_order - b.display_order));
 
-      onChange([...downloads, newDownload]);
-
-      console.log('Downloads updated, resetting file input');
+      console.log('Attachment created successfully');
 
       // Reset state
       setPendingFile(null);
@@ -134,49 +153,129 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
   };
 
   const handleRemove = async (index: number) => {
-    const download = downloads[index];
+    const attachment = attachments[index];
     
-    // Try to extract the file path from the URL to delete from storage
-    try {
-      const url = new URL(download.url);
-      const pathMatch = url.pathname.match(/\/storage\/v1\/object\/public\/downloads\/(.+)/);
-      
-      if (pathMatch) {
-        const filePath = pathMatch[1];
-        await supabase.storage
-          .from(DOWNLOADS_BUCKET)
-          .remove([filePath]);
-      }
-    } catch (error) {
-      console.error('Failed to delete file from storage:', error);
-      // Continue with removing from array even if storage deletion fails
-    }
+    if (!attachment) return;
 
-    // Remove from downloads array
-    const updated = downloads.filter((_, i) => i !== index);
-    onChange(updated);
+    try {
+      // Delete attachment via API (this will also handle storage deletion)
+      await deleteDocumentAttachment(attachment.id);
+      
+      // Update local state
+      setAttachments(prev => prev.filter((_, i) => i !== index));
+    } catch (error) {
+      console.error('Failed to delete attachment:', error);
+      setUploadError('Failed to delete attachment. Please try again.');
+      // Continue with local removal even if API call fails
+      setAttachments(prev => prev.filter((_, i) => i !== index));
+    }
   };
 
-  const handleTitleChange = (index: number, newTitle: string) => {
-    const updated = [...downloads];
-    updated[index] = { ...updated[index], title: newTitle };
-    onChange(updated);
-    setEditingIndex(null);
+  const handleTitleChange = async (index: number, newTitle: string) => {
+    const attachment = attachments[index];
+    if (!attachment) return;
+
+    try {
+      // Update attachment via API
+      const updated = await updateDocumentAttachment(attachment.id, {
+        title: newTitle.trim()
+      });
+      
+      // Update local state
+      setAttachments(prev => {
+        const updatedAttachments = [...prev];
+        updatedAttachments[index] = updated;
+        return updatedAttachments.sort((a, b) => a.display_order - b.display_order);
+      });
+      
+      setEditingIndex(null);
+    } catch (error) {
+      console.error('Failed to update attachment:', error);
+      setUploadError('Failed to update attachment. Please try again.');
+    }
   };
 
   const handleAddManualUrl = () => {
-    const newDownload: DownloadLink = {
-      url: '',
+    // Create a temporary attachment entry (will be saved when user fills in URL and title)
+    const tempAttachment: DocumentAttachment = {
+      id: `temp-${Date.now()}`,
+      document_id: documentId,
       title: '',
+      url: '',
+      display_order: attachments.length,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
-    onChange([...downloads, newDownload]);
-    setEditingIndex(downloads.length);
+    setAttachments(prev => [...prev, tempAttachment]);
+    setEditingIndex(attachments.length);
   };
 
-  const handleManualChange = (index: number, field: 'url' | 'title', value: string) => {
-    const updated = [...downloads];
-    updated[index] = { ...updated[index], [field]: value };
-    onChange(updated);
+  const handleManualChange = async (index: number, field: 'url' | 'title', value: string) => {
+    const attachment = attachments[index];
+    if (!attachment) return;
+
+    // For temporary attachments, update local state only
+    if (attachment.id.startsWith('temp-')) {
+      const updated = [...attachments];
+      updated[index] = { ...updated[index], [field]: value };
+      setAttachments(updated);
+      return;
+    }
+
+    // For existing attachments, update via API
+    try {
+      const updates: Partial<{ title: string; url: string }> = {};
+      updates[field] = value;
+      
+      const updated = await updateDocumentAttachment(attachment.id, updates);
+      
+      // Update local state
+      setAttachments(prev => {
+        const updatedAttachments = [...prev];
+        updatedAttachments[index] = updated;
+        return updatedAttachments.sort((a, b) => a.display_order - b.display_order);
+      });
+    } catch (error) {
+      console.error('Failed to update attachment:', error);
+      // Still update local state for better UX
+      const updated = [...attachments];
+      updated[index] = { ...updated[index], [field]: value };
+      setAttachments(updated);
+    }
+  };
+
+  const handleSaveManualEntry = async (index: number) => {
+    const attachment = attachments[index];
+    if (!attachment) return;
+
+    if (!attachment.url || !attachment.title || !isValidUrl(attachment.url)) {
+      return;
+    }
+
+    // If it's a temporary attachment, create it via API
+    if (attachment.id.startsWith('temp-')) {
+      try {
+        const newAttachment = await createDocumentAttachment(documentId, {
+          title: attachment.title,
+          url: attachment.url,
+        });
+        
+        // Replace temporary with real attachment
+        setAttachments(prev => {
+          const updated = [...prev];
+          updated[index] = newAttachment;
+          return updated.sort((a, b) => a.display_order - b.display_order);
+        });
+        
+        setEditingIndex(null);
+      } catch (error) {
+        console.error('Failed to create attachment:', error);
+        setUploadError('Failed to create attachment. Please try again.');
+      }
+    } else {
+      // Already exists, just exit edit mode
+      setEditingIndex(null);
+    }
   };
 
   const isValidUrl = (url: string): boolean => {
@@ -189,7 +288,21 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
     }
   };
 
-  console.log('FileUploadManager rendering - uploading:', uploading, 'downloads:', downloads.length);
+  console.log('FileUploadManager rendering - uploading:', uploading, 'attachments:', attachments.length);
+
+  if (loading) {
+    return (
+      <div className="text-center py-6 text-gray-500 text-sm">
+        Loading attachments...
+      </div>
+    );
+  }
+
+  // Convert attachments to downloads format for display
+  const downloadsForDisplay = attachments.map(att => ({
+    title: att.title,
+    url: att.url
+  }));
 
   return (
     <div className="space-y-4">
@@ -302,22 +415,23 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
       )}
 
       {/* Downloads List */}
-      {downloads.length > 0 && (
+      {attachments.length > 0 && (
         <div className="space-y-3">
           <h5 className="text-sm font-medium text-gray-900 flex items-center gap-2">
             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Download Links ({downloads.length})
+            Download Links ({attachments.length})
           </h5>
 
-          {downloads.map((download, index) => {
+          {attachments.map((attachment, index) => {
+            const download = downloadsForDisplay[index];
             const isEditing = editingIndex === index;
-            const isManualEntry = !download.url || !download.title;
+            const isManualEntry = attachment.id.startsWith('temp-') || !download.url || !download.title;
 
             return (
               <div
-                key={index}
+                key={attachment.id}
                 className="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-sm transition-shadow"
               >
                 {isEditing || isManualEntry ? (
@@ -354,7 +468,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={() => {
-                          if (!download.url || !download.title) {
+                          if (isManualEntry) {
                             handleRemove(index);
                           } else {
                             setEditingIndex(null);
@@ -365,7 +479,13 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
                         Cancel
                       </button>
                       <button
-                        onClick={() => setEditingIndex(null)}
+                        onClick={() => {
+                          if (isManualEntry) {
+                            handleSaveManualEntry(index);
+                          } else {
+                            setEditingIndex(null);
+                          }
+                        }}
                         disabled={!download.url || !download.title || !isValidUrl(download.url)}
                         className="px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -420,7 +540,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
         </div>
       )}
 
-      {downloads.length === 0 && (
+      {attachments.length === 0 && (
         <div className="text-center py-6 text-gray-500 text-sm">
           No downloads yet. Upload a file or add a manual URL to get started.
         </div>

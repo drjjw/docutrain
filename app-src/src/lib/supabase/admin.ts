@@ -1,6 +1,6 @@
 import { supabase } from './client';
 import { getUserPermissions } from './permissions';
-import type { Document, DocumentWithOwner, Owner, UserWithRoles, UserRole } from '@/types/admin';
+import type { Document, DocumentWithOwner, Owner, UserWithRoles, UserRole, DocumentAttachment } from '@/types/admin';
 
 /**
  * Get all documents based on user permissions
@@ -580,5 +580,158 @@ export async function getRetrainingStatus(userDocumentId: string): Promise<{
   }
 
   return response.json();
+}
+
+/**
+ * Get all attachments for a document
+ */
+export async function getDocumentAttachments(documentId: string): Promise<DocumentAttachment[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/attachments/${documentId}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to fetch attachments');
+  }
+
+  const data = await response.json();
+  return data.attachments || [];
+}
+
+/**
+ * Create a new attachment for a document
+ */
+export async function createDocumentAttachment(
+  documentId: string,
+  attachment: {
+    title: string;
+    url: string;
+    storage_path?: string;
+    file_size?: number;
+    mime_type?: string;
+    display_order?: number;
+  }
+): Promise<DocumentAttachment> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/attachments/${documentId}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(attachment),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to create attachment');
+  }
+
+  const data = await response.json();
+  return data.attachment;
+}
+
+/**
+ * Update an attachment
+ */
+export async function updateDocumentAttachment(
+  attachmentId: string,
+  updates: Partial<{
+    title: string;
+    url: string;
+    storage_path: string;
+    file_size: number;
+    mime_type: string;
+    display_order: number;
+  }>
+): Promise<DocumentAttachment> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/attachments/${attachmentId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to update attachment');
+  }
+
+  const data = await response.json();
+  return data.attachment;
+}
+
+/**
+ * Delete an attachment
+ */
+export async function deleteDocumentAttachment(attachmentId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/attachments/${attachmentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to delete attachment');
+  }
+}
+
+/**
+ * Track a download event for an attachment
+ */
+export async function trackAttachmentDownload(attachmentId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  // This endpoint allows anonymous downloads, so we don't require auth
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  }
+
+  const response = await fetch(`/api/attachments/${attachmentId}/track-download`, {
+    method: 'POST',
+    headers,
+  });
+
+  // Don't throw on error - tracking failures shouldn't break downloads
+  if (!response.ok) {
+    console.warn('Failed to track download event');
+  }
 }
 

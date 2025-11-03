@@ -27,6 +27,7 @@ export interface Keyword {
 export interface Download {
   url: string;
   title: string;
+  attachment_id?: string; // Optional attachment ID for tracking downloads
 }
 
 export interface DocumentConfig {

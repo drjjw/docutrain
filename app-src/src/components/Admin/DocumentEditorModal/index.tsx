@@ -159,7 +159,10 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         }
       }
 
-      await updateDocument(document.id, editingValues);
+      // Exclude downloads from document update - attachments are managed separately via FileUploadManager
+      const { downloads, ...documentUpdates } = editingValues;
+
+      await updateDocument(document.id, documentUpdates);
       
       // Dispatch document-updated event with slug so listeners can clear the right cache
       // Use a small delay to ensure backend cache refresh completes

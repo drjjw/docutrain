@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { Download } from '@/hooks/useDocumentConfig';
+import { trackAttachmentDownload } from '@/lib/supabase/admin';
 import {
   FileText,
   Presentation,
@@ -100,6 +101,16 @@ export function DownloadsSection({ downloads, isMultiDoc = false, isExpanded = t
     try {
       // Set downloading state
       setDownloadingStates(prev => ({ ...prev, [downloadKey]: 'downloading' }));
+      
+      // Track download event if attachment_id is available
+      if (download.attachment_id) {
+        try {
+          await trackAttachmentDownload(download.attachment_id);
+        } catch (trackingError) {
+          // Don't fail download if tracking fails
+          console.warn('Failed to track download:', trackingError);
+        }
+      }
       
       // Extract filename from URL
       const urlParts = download.url.split('/');
