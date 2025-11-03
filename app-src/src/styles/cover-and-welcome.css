@@ -152,9 +152,10 @@
   z-index: 10;
   /* Constrain the editor within its parent */
   box-sizing: border-box;
-  /* Limit the overall height of the editor */
+  /* Allow scrolling for the entire editor if content is too tall */
   max-height: 500px;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Ensure the editor content area doesn't exceed container bounds */
@@ -162,9 +163,10 @@
   max-width: 100%;
   width: 100%;
   box-sizing: border-box;
-  /* Prevent the editor from expanding beyond the message content area */
-  max-height: 400px; /* Fixed max height to prevent breaking out */
-  overflow-y: auto; /* Allow scrolling if content is too tall */
+  /* Allow natural height but ensure scrolling works */
+  min-height: 60px;
+  max-height: none; /* Allow the content to expand within the editor container */
+  overflow-y: visible; /* Let the parent container handle scrolling */
   /* Ensure the editor stays within bounds */
   word-wrap: break-word;
   overflow-wrap: break-word;
