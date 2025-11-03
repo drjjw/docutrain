@@ -136,14 +136,22 @@ export function DownloadsAndKeywords({
         const wasCollapsed = containerRef.current.classList.contains('collapsed');
         const originalMaxHeight = containerRef.current.style.maxHeight;
         const originalDisplay = containerRef.current.style.display;
+        const originalOverflow = containerRef.current.style.overflow;
         
         containerRef.current.classList.remove('collapsed');
         containerRef.current.style.maxHeight = 'none';
         containerRef.current.style.opacity = '0';
         containerRef.current.style.position = 'absolute';
         containerRef.current.style.visibility = 'hidden';
+        containerRef.current.style.overflow = 'visible';
         
-        const height = containerRef.current.scrollHeight;
+        // Measure both the container and its content wrapper for accurate height
+        const contentWrapper = containerRef.current.querySelector('.downloads-keywords-container-content');
+        const containerHeight = containerRef.current.scrollHeight;
+        const contentHeight = contentWrapper ? contentWrapper.scrollHeight : 0;
+        
+        // Use the larger of the two, and add a minimal buffer only to prevent rounding issues
+        const height = Math.max(containerHeight, contentHeight) + 2;
         
         // Restore original state
         containerRef.current.style.maxHeight = originalMaxHeight;
@@ -151,6 +159,7 @@ export function DownloadsAndKeywords({
         containerRef.current.style.position = '';
         containerRef.current.style.visibility = '';
         containerRef.current.style.display = originalDisplay;
+        containerRef.current.style.overflow = originalOverflow;
         if (wasCollapsed) {
           containerRef.current.classList.add('collapsed');
         }
@@ -226,6 +235,7 @@ export function DownloadsAndKeywords({
         aria-label={isContainerExpanded ? `Collapse ${headerText}` : `Expand ${headerText}`}
         type="button"
       >
+        <span>{headerText}</span>
         <div 
           className="collapse-icon" 
           style={{ 
@@ -271,7 +281,6 @@ export function DownloadsAndKeywords({
             />
           </div>
         </div>
-        <span>{headerText}</span>
       </button>
       <div
         ref={containerRef}

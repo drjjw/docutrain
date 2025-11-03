@@ -25,7 +25,7 @@
   letter-spacing: 0.5px;
   flex-direction: row;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   gap: 12px;
   pointer-events: auto;
   position: relative;
@@ -57,7 +57,7 @@
 .downloads-keywords-container-header .collapse-icon {
   flex-shrink: 0;
   color: #374151;
-  margin-left: 0;
+  margin-left: auto;
 }
 
 .downloads-keywords-container-header > span {
@@ -84,6 +84,14 @@
               margin 0.4s ease-out,
               padding 0.4s ease-out,
               opacity 0.35s ease-out;
+}
+
+/* On mobile, allow vertical scrolling when expanded to prevent content cutoff */
+@media (max-width: 768px) {
+  .downloads-keywords-container:not(.collapsed) {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
 }
 
 /* Header outside container - blends visually */
@@ -113,7 +121,7 @@
 /* Container collapse state */
 .downloads-keywords-container.collapsed {
   max-height: 0 !important;
-  overflow: hidden;
+  overflow: hidden !important;
   opacity: 0;
   margin: 0;
   padding: 0;
@@ -156,6 +164,7 @@
 .downloads-keywords-container-content > .downloads-section {
   margin: 0;
   padding: 0;
+  padding-bottom: 12px; /* Add padding at bottom */
   background: transparent;
   border: none;
   border-radius: 0;
@@ -297,6 +306,7 @@
   flex-wrap: wrap;
   gap: 8px;
   padding-top: 2px; /* Add padding to prevent border clipping on hover */
+  padding-bottom: 12px; /* Add padding below last button */
   margin-top: -2px; /* Compensate for padding */
 }
 
@@ -401,6 +411,14 @@
     flex: 1 1 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
+    /* Prevent content from being cut off */
+    overflow: visible;
+  }
+  
+  /* Ensure downloads section content is fully visible */
+  .downloads-keywords-container-content > .downloads-section .downloads-list {
+    width: 100%;
+    overflow: visible;
   }
 
   .downloads-keywords-container .downloads-header,

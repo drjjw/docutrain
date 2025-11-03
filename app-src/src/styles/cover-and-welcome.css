@@ -142,6 +142,10 @@
   box-sizing: border-box;
 }
 
+#welcomeIntroContent ul {
+  list-style: disc;
+}
+
 /* Ensure WYSIWYG editor stays within message container bounds */
 .welcome-message-section .message.assistant .message-content .inline-wysiwyg-editor {
   max-width: 100%;

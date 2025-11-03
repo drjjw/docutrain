@@ -195,7 +195,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
     // Multi-doc mode - show document count
     const docCount = docParam?.split('+').filter(Boolean).length || 0;
     subtitleContent = (
-      <p className="text-xs md:text-base text-gray-600 font-medium tracking-wide truncate max-w-full">
+      <p className="text-xs md:text-base text-gray-600 font-medium tracking-wide text-center w-full">
           Multi-document search across {docCount} document{docCount !== 1 ? 's' : ''}
       </p>
     );
@@ -246,45 +246,15 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
     
     if (subtitleParts.length > 0) {
       subtitleContent = (
-        <div className="text-xs md:text-base text-gray-600 mt-0.5 md:mt-1 font-medium tracking-wide overflow-hidden flex items-center justify-center gap-1 md:gap-2 max-w-full">
-          <div className="flex items-center gap-1 md:gap-2 truncate">
-            {subtitleParts.map((part, index) => (
-              <React.Fragment key={index}>
-                {part}
-                {index < subtitleParts.length - 1 && (
-                  <span className="text-gray-300 font-light mx-0.5 md:mx-1 flex-shrink-0">|</span>
-                )}
-              </React.Fragment>
-            ))}
-            {pubmedButton && (
-              <>
+        <div className="text-xs md:text-base text-gray-600 mt-0.5 md:mt-1 font-medium tracking-wide flex items-center justify-center gap-1 md:gap-2 w-full">
+          {subtitleParts.map((part, index) => (
+            <React.Fragment key={index}>
+              {part}
+              {index < subtitleParts.length - 1 && (
                 <span className="text-gray-300 font-light mx-0.5 md:mx-1 flex-shrink-0">|</span>
-                <div className="flex-shrink-0">
-                  {pubmedButton}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      );
-    }
-  } else if (config.subtitle) {
-    // Fallback to original subtitle if no category/year
-    subtitleContent = (
-      <div className="text-xs md:text-base text-gray-600 mt-0.5 md:mt-1 font-medium tracking-wide overflow-hidden flex items-center justify-center gap-1 md:gap-2 max-w-full">
-        <div className="flex items-center gap-1 md:gap-2">
-          {canEdit ? (
-            <InlineEditor
-              id="headerSubtitle"
-              value={config.subtitle}
-              field="subtitle"
-              documentSlug={documentSlug}
-              onSave={(value) => handleSave('subtitle', value)}
-              className="text-xs md:text-base text-gray-600 font-medium tracking-wide truncate"
-            />
-          ) : (
-            <p className="text-xs md:text-base text-gray-600 font-medium tracking-wide truncate max-w-full">{config.subtitle}</p>
-          )}
+              )}
+            </React.Fragment>
+          ))}
           {pubmedButton && (
             <>
               <span className="text-gray-300 font-light mx-0.5 md:mx-1 flex-shrink-0">|</span>
@@ -294,6 +264,32 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
             </>
           )}
         </div>
+      );
+    }
+  } else if (config.subtitle) {
+    // Fallback to original subtitle if no category/year
+    subtitleContent = (
+      <div className="text-xs md:text-base text-gray-600 mt-0.5 md:mt-1 font-medium tracking-wide flex items-center justify-center gap-1 md:gap-2 w-full">
+        {canEdit ? (
+          <InlineEditor
+            id="headerSubtitle"
+            value={config.subtitle}
+            field="subtitle"
+            documentSlug={documentSlug}
+            onSave={(value) => handleSave('subtitle', value)}
+            className="text-xs md:text-base text-gray-600 font-medium tracking-wide"
+          />
+        ) : (
+          <p className="text-xs md:text-base text-gray-600 font-medium tracking-wide">{config.subtitle}</p>
+        )}
+        {pubmedButton && (
+          <>
+            <span className="text-gray-300 font-light mx-0.5 md:mx-1 flex-shrink-0">|</span>
+            <div className="flex-shrink-0">
+              {pubmedButton}
+            </div>
+          </>
+        )}
       </div>
     );
   }
@@ -307,6 +303,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
     WebkitBoxOrient: 'vertical' as const,
     overflow: 'hidden' as const,
     wordBreak: 'break-word' as const,
+    textAlign: 'center' as const,
   } : {
     // Desktop: single line, no wrapping - override any word-break settings
     whiteSpace: 'nowrap' as const,
@@ -315,38 +312,37 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
     wordBreak: 'normal' as const,
     wordWrap: 'normal' as const,
     overflowWrap: 'normal' as const,
+    textAlign: 'center' as const,
   };
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-center w-full">
+    <div className="flex flex-col items-center justify-center flex-1 min-w-0 w-full">
       {/* Title with smart multi-line wrapping - shows 2 lines on mobile, full on desktop */}
-      <div className="flex items-center justify-center gap-2 md:gap-3 w-full min-w-0">
-        {canEdit ? (
-          <InlineEditor
-            id="headerTitle"
-            value={config.title}
-            field="title"
-            documentSlug={documentSlug}
-            onSave={(value) => handleSave('title', value)}
-            className="m-0 text-sm md:text-2xl font-semibold text-gray-900 w-full min-w-0
-              leading-tight md:leading-normal
-              text-center
-              mobile-title-clamp"
-            style={titleStyles}
-          />
-        ) : (
-          <h1 
-            className="m-0 text-sm md:text-2xl font-semibold text-gray-900 w-full min-w-0
-              leading-tight md:leading-normal
-              text-center
-              mobile-title-clamp"
-            title={config.title}
-            style={titleStyles}
-          >
-            {config.title}
-          </h1>
-        )}
-      </div>
+      {canEdit ? (
+        <InlineEditor
+          id="headerTitle"
+          value={config.title}
+          field="title"
+          documentSlug={documentSlug}
+          onSave={(value) => handleSave('title', value)}
+          className="m-0 text-sm md:text-2xl font-semibold text-gray-900 w-full min-w-0
+            leading-tight md:leading-normal
+            text-center
+            mobile-title-clamp"
+          style={titleStyles}
+        />
+      ) : (
+        <h1 
+          className="m-0 text-sm md:text-2xl font-semibold text-gray-900 w-full min-w-0
+            leading-tight md:leading-normal
+            text-center
+            mobile-title-clamp"
+          title={config.title}
+          style={titleStyles}
+        >
+          {config.title}
+        </h1>
+      )}
       {showSubtitle && subtitleContent && (
         <div className="w-full min-w-0 overflow-hidden mt-0.5">
           {subtitleContent}
