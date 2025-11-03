@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
 import { Toggle } from '@/components/UI/Toggle';
 import { DocumentEditorModal } from './DocumentEditorModal';
+import { DocumentConfigPromptModal } from './DocumentConfigPromptModal';
 import { getDocuments, deleteDocument, getOwners, updateDocument } from '@/lib/supabase/admin';
 import type { DocumentWithOwner, Owner } from '@/types/admin';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +16,7 @@ interface DocumentsTableProps {
 
 export interface DocumentsTableRef {
   refresh: () => Promise<void>;
+  openEditorModal: (documentId: string, showConfigPrompt?: boolean) => Promise<void>;
 }
 
 export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>((props, ref) => {
@@ -32,6 +34,9 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
   const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
   const [copiedSlugId, setCopiedSlugId] = useState<string | null>(null);
   const [updatingDocIds, setUpdatingDocIds] = useState<Set<string>>(new Set());
+  const [showConfigPrompt, setShowConfigPrompt] = useState(false);
+  const [configPromptDoc, setConfigPromptDoc] = useState<DocumentWithOwner | null>(null);
+  const documentsRef = useRef<DocumentWithOwner[]>([]);
 
   // Debug editorModalDoc changes
   React.useEffect(() => {
@@ -130,6 +135,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
         getOwners(),
       ]);
       setDocuments(docs);
+      documentsRef.current = docs; // Keep ref in sync
       setOwners(ownersList);
       console.log('DocumentsTable: loadData completed, documents loaded:', docs.length);
     } catch (err) {
@@ -142,10 +148,48 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
     }
   }, [user?.id]);
 
-  // Expose refresh method via ref
+  // Expose refresh method and openEditorModal via ref
   useImperativeHandle(ref, () => ({
     refresh: () => loadData(false),
-  }));
+    openEditorModal: async (documentId: string, showPrompt = false) => {
+      // Refresh documents to ensure we have the latest data
+      await loadData(false);
+      // Use setTimeout to ensure state has updated after loadData
+      setTimeout(() => {
+        // Find the document by ID from ref (which is updated synchronously)
+        const doc = documentsRef.current.find(d => d.id === documentId);
+        if (doc) {
+          if (showPrompt) {
+            // Show the prompt modal first
+            setConfigPromptDoc(doc);
+            setShowConfigPrompt(true);
+          } else {
+            // Open editor directly
+            setEditorModalDoc(doc);
+            setShowConfigPrompt(false);
+          }
+        } else {
+          console.warn(`Document not found: ${documentId}`);
+          // Retry after a longer delay in case document is still being created
+          setTimeout(async () => {
+            await loadData(false);
+            setTimeout(() => {
+              const retryDoc = documentsRef.current.find(d => d.id === documentId);
+              if (retryDoc) {
+                if (showPrompt) {
+                  setConfigPromptDoc(retryDoc);
+                  setShowConfigPrompt(true);
+                } else {
+                  setEditorModalDoc(retryDoc);
+                  setShowConfigPrompt(false);
+                }
+              }
+            }, 500);
+          }, 2000);
+        }
+      }, 500);
+    },
+  }), [loadData]);
 
   // Listen for document-updated events from inline edits in same browser window
   useEffect(() => {
@@ -442,7 +486,11 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
 
           {/* Edit All Button */}
           <button
-            onClick={() => setEditorModalDoc(doc)}
+            onClick={() => {
+              setShowConfigPrompt(false);
+              setConfigPromptDoc(null);
+              setEditorModalDoc(doc);
+            }}
             className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-[#3399ff] hover:bg-[#65ccff]/20 rounded-lg transition-colors"
             title="Edit all fields"
           >
@@ -526,7 +574,11 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
         {/* Edit All Button */}
         <div className="flex flex-col items-center gap-1">
           <button
-            onClick={() => setEditorModalDoc(doc)}
+            onClick={() => {
+              setShowConfigPrompt(false);
+              setConfigPromptDoc(null);
+              setEditorModalDoc(doc);
+            }}
             className="p-2.5 text-gray-400 hover:text-[#3399ff] hover:bg-[#65ccff]/20 rounded-xl transition-all duration-200 hover:shadow-md hover:scale-110"
             title="Edit all fields"
           >
@@ -1103,9 +1155,33 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
           isSuperAdmin={isSuperAdmin}
           onSave={() => {
             setEditorModalDoc(null);
+            setShowConfigPrompt(false);
+            setConfigPromptDoc(null);
             loadData(); // Refresh the data after saving
           }}
-          onCancel={() => setEditorModalDoc(null)}
+          onCancel={() => {
+            setEditorModalDoc(null);
+            setShowConfigPrompt(false);
+            setConfigPromptDoc(null);
+          }}
+        />
+      )}
+
+      {/* Configuration Prompt Modal */}
+      {configPromptDoc && (
+        <DocumentConfigPromptModal
+          document={configPromptDoc}
+          isOpen={showConfigPrompt}
+          onConfigure={() => {
+            // Close prompt modal and open editor modal
+            setShowConfigPrompt(false);
+            setConfigPromptDoc(null);
+            setEditorModalDoc(configPromptDoc);
+          }}
+          onDismiss={() => {
+            setShowConfigPrompt(false);
+            setConfigPromptDoc(null);
+          }}
         />
       )}
     </div>

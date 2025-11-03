@@ -11,6 +11,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Alert } from '@/components/UI/Alert';
 import { Spinner } from '@/components/UI/Spinner';
 import { getUserProfile } from '@/lib/supabase/database';
+import { getDocuments } from '@/lib/supabase/admin';
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -59,7 +60,7 @@ export function DashboardPage() {
   }, []); // Only run on mount
 
   // Handler for status changes from UserDocumentsTable
-  const handleStatusChange = React.useCallback(() => {
+  const handleStatusChange = React.useCallback(async (completedDocumentId?: string) => {
     if (userDocumentsTableRef.current && documentsTableRef.current) {
       const hasActive = userDocumentsTableRef.current.hasActiveDocuments();
       const prevHasActive = prevHasActiveRef.current;
@@ -68,7 +69,46 @@ export function DashboardPage() {
       
       // Refresh DocumentsTable on any status change
       // This ensures the main documents table updates when processing completes
-      console.log('📊 Status change detected:', { hasActive, prevHasActive });
+      console.log('📊 Status change detected:', { hasActive, prevHasActive, completedDocumentId });
+      
+      // If a document completed processing, find it in the documents table and open modal
+      if (completedDocumentId && user?.id) {
+        try {
+          // Wait a bit for document to be created in documents table
+          setTimeout(async () => {
+            const allDocuments = await getDocuments(user.id);
+            // Find document by matching metadata.user_document_id
+            const completedDoc = allDocuments.find(doc => {
+              const metadata = doc.metadata as Record<string, any> | null;
+              return metadata?.user_document_id === completedDocumentId;
+            });
+            
+            if (completedDoc) {
+              console.log('✅ Found completed document:', completedDoc.id, completedDoc.title);
+              // Check if document already has category configured
+              const needsConfig = !completedDoc.category;
+              // Open modal with config prompt if category is missing
+              await documentsTableRef.current?.openEditorModal(completedDoc.id, needsConfig);
+            } else {
+              console.warn('⚠️ Completed document not found in documents table yet, retrying...');
+              // Retry after longer delay
+              setTimeout(async () => {
+                const retryDocuments = await getDocuments(user.id);
+                const retryDoc = retryDocuments.find(doc => {
+                  const metadata = doc.metadata as Record<string, any> | null;
+                  return metadata?.user_document_id === completedDocumentId;
+                });
+                if (retryDoc) {
+                  const needsConfig = !retryDoc.category;
+                  await documentsTableRef.current?.openEditorModal(retryDoc.id, needsConfig);
+                }
+              }, 2000);
+            }
+          }, 1500);
+        } catch (error) {
+          console.error('Error finding completed document:', error);
+        }
+      }
       
       // Clear any pending refresh to debounce
       if (refreshTimeoutRef.current) {
@@ -81,7 +121,7 @@ export function DashboardPage() {
         documentsTableRef.current?.refresh();
       }, 1500);
     }
-  }, []);
+  }, [user?.id]);
 
   // Set active tab based on current route
   React.useEffect(() => {

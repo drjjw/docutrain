@@ -48,7 +48,7 @@ export interface UserDocumentsTableRef {
 }
 
 interface UserDocumentsTableProps {
-  onStatusChange?: () => void;
+  onStatusChange?: (completedDocumentId?: string) => void;
 }
 
 export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocumentsTableProps>((props, ref) => {
@@ -61,6 +61,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
   const [logsMap, setLogsMap] = useState<Record<string, ProcessingLog[]>>({});
   const documentsRef = useRef<UserDocument[]>([]);
+  const previousDocumentsRef = useRef<UserDocument[]>([]);
 
   // Filter to show only documents that are actively processing (not ready)
   const activeDocuments = documents.filter(
@@ -108,8 +109,24 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
 
       const result = await response.json();
       const loadedDocuments: UserDocument[] = result.documents || [];
+      const previousDocuments = previousDocumentsRef.current;
+      
+      // Detect documents that transitioned from 'processing' to 'ready'
+      const completedDocumentIds: string[] = [];
+      if (previousDocuments.length > 0) {
+        previousDocuments.forEach(prevDoc => {
+          if (prevDoc.status === 'processing') {
+            const currentDoc = loadedDocuments.find(d => d.id === prevDoc.id);
+            if (currentDoc && currentDoc.status === 'ready') {
+              completedDocumentIds.push(currentDoc.id);
+            }
+          }
+        });
+      }
+      
       setDocuments(loadedDocuments);
       documentsRef.current = loadedDocuments; // Keep ref in sync
+      previousDocumentsRef.current = loadedDocuments; // Store for next comparison
       setError(null);
       
       // Fetch logs for any documents currently in processing state
@@ -130,9 +147,9 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         });
       }
       
-      // Notify parent of status change
+      // Notify parent of status change, passing the first completed document ID if any
       if (onStatusChange) {
-        onStatusChange();
+        onStatusChange(completedDocumentIds.length > 0 ? completedDocumentIds[0] : undefined);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load documents');
@@ -167,11 +184,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         },
         (payload) => {
           console.log('📡 Realtime update received:', payload);
-          loadDocuments(false).then(() => {
-            if (onStatusChange) {
-              onStatusChange();
-            }
-          });
+          loadDocuments(false);
         }
       )
       .subscribe();
@@ -203,10 +216,6 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
             });
             return updated;
           });
-        }
-        
-        if (onStatusChange) {
-          onStatusChange();
         }
       }
     }, 3000); // Poll every 3 seconds for more responsive updates
@@ -254,11 +263,6 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
       if (response.ok) {
         // Success - reload documents to get actual status
         await loadDocuments(false);
-        
-        // Notify parent of status change
-        if (onStatusChange) {
-          onStatusChange();
-        }
       } else if (response.status === 503 && attempt === 1) {
         // Server busy on first attempt - start automatic retry
         const errorData = await response.json().catch(() => ({}));
@@ -309,11 +313,6 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
       
       // Reload documents to reflect the deletion
       await loadDocuments(false);
-      
-      // Notify parent of status change
-      if (onStatusChange) {
-        onStatusChange();
-      }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete document');
       console.error(err);

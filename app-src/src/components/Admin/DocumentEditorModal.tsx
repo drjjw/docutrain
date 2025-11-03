@@ -7,7 +7,7 @@ import { FileUploadManager } from './FileUploadManager';
 import { CoverImageUploader } from './CoverImageUploader';
 import { DocumentRetrainer } from './DocumentRetrainer';
 import { updateDocument, checkSlugUniqueness } from '@/lib/supabase/admin';
-import type { DocumentWithOwner, Owner, DocumentAccessLevel } from '@/types/admin';
+import type { DocumentWithOwner, Owner } from '@/types/admin';
 
 interface DocumentEditorModalProps {
   document: DocumentWithOwner | null;
@@ -24,6 +24,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   const [retraining, setRetraining] = useState(false);
   const [showRetrainSection, setShowRetrainSection] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [yearError, setYearError] = useState<string | null>(null);
 
   console.log('DocumentEditorModal rendering - document:', document?.id, 'editingValues.downloads:', editingValues.downloads?.length);
 
@@ -106,11 +107,29 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         intro_message: document.intro_message || '',
         downloads: document.downloads || [],
       });
+      setYearError(null); // Clear year error when document changes
     }
   }, [document]);
 
   const handleFieldChange = (field: string, value: any) => {
     console.log('DocumentEditorModal: Field change:', field, value);
+    
+    // Validate year field
+    if (field === 'year') {
+      if (value === null || value === '') {
+        setYearError(null);
+      } else {
+        const yearNum = typeof value === 'number' ? value : parseInt(value);
+        if (isNaN(yearNum)) {
+          setYearError('Year must be a valid number');
+        } else if (yearNum < 1900 || yearNum > 2100) {
+          setYearError('Year must be between 1900 and 2100');
+        } else {
+          setYearError(null);
+        }
+      }
+    }
+    
     setEditingValues(prev => ({ ...prev, [field]: value }));
   };
 
@@ -120,6 +139,17 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
       setSaving(true);
       setError(null);
 
+      // Validate year before saving
+      const yearValue = editingValues.year;
+      if (yearValue !== null && yearValue !== undefined && yearValue !== '') {
+        const yearNum = typeof yearValue === 'number' ? yearValue : parseInt(yearValue);
+        if (isNaN(yearNum) || yearNum < 1900 || yearNum > 2100) {
+          setError('Please enter a valid year between 1900 and 2100');
+          setSaving(false);
+          return;
+        }
+      }
+
       // Validate slug uniqueness if slug has been changed
       const newSlug = editingValues.slug?.trim();
       const originalSlug = document.slug;
@@ -128,6 +158,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         const isUnique = await checkSlugUniqueness(newSlug, document.id);
         if (!isUnique) {
           setError('This slug is already taken. Please choose a different slug.');
+          setSaving(false);
           return;
         }
       }
@@ -169,6 +200,27 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         );
 
       case 'number':
+        // Special handling for year field with validation
+        if (field === 'year') {
+          return (
+            <div>
+              <input
+                type="number"
+                value={value ?? ''}
+                onChange={(e) => {
+                  const inputValue = e.target.value === '' ? null : parseInt(e.target.value) || null;
+                  handleFieldChange(field, inputValue);
+                }}
+                min="1900"
+                max="2100"
+                className={`${inputClasses.replace('w-full', 'w-32')} ${yearError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+              />
+              {yearError && (
+                <p className="text-xs text-red-600 mt-1">{yearError}</p>
+              )}
+            </div>
+          );
+        }
         return (
           <input
             type="number"
@@ -411,6 +463,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Slug</label>
                     {renderField('slug', 'Slug')}
+                    <p className="text-xs text-gray-500 mt-2">A URL-friendly identifier used to access this document (e.g., "kdigo-ckd-2024")</p>
                   </div>
                   {isSuperAdmin && (
                     <div>
