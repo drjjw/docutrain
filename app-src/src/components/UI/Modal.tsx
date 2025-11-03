@@ -8,9 +8,10 @@ interface ModalProps {
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   allowClose?: boolean; // If false, prevents closing via backdrop click or close button
+  fullscreen?: boolean; // If true, modal takes nearly full viewport width and height
 }
 
-export function Modal({ isOpen, onClose, title, children, size = 'md', allowClose = true }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, size = 'md', allowClose = true, fullscreen = false }: ModalProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -49,13 +50,17 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', allowClos
       {/* Backdrop - must be before content to be behind it */}
       <div className="fixed inset-0 bg-black bg-opacity-50" aria-hidden="true" />
       
-      <div className="flex min-h-screen items-center justify-center p-4">
+      <div className={`flex min-h-screen ${fullscreen ? 'items-start p-2' : 'items-center justify-center p-4'}`}>
         <div
-          className={`relative bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} z-10`}
+          className={`relative bg-white rounded-lg shadow-xl w-full z-10 ${
+            fullscreen 
+              ? 'h-[calc(100vh-1rem)] max-h-[calc(100vh-1rem)] flex flex-col' 
+              : sizeClasses[size]
+          }`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
+          <div className={`flex items-center justify-between border-b ${fullscreen ? 'p-4' : 'p-6'}`}>
             <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
             {allowClose && (
               <button
@@ -71,7 +76,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', allowClos
           </div>
 
           {/* Content */}
-          <div className="p-6">
+          <div className={`${fullscreen ? 'p-4 flex-1 overflow-y-auto' : 'p-6'}`}>
             {children}
           </div>
         </div>

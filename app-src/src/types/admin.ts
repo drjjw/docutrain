@@ -135,3 +135,53 @@ export interface UserWithRoles extends User {
   statistics?: UserStatistics;
 }
 
+export interface ConversationStats {
+  total: number;
+  uniqueUsers: number;
+  uniqueIPs: number;
+}
+
+export interface Conversation {
+  id: string;
+  question: string;
+  response: string;
+  user_email?: string;
+  user_name?: string;
+  ip_address?: string;
+  created_at: string;
+  model: string;
+  session_id: string;
+}
+
+export interface DownloadStats {
+  total: number;
+  uniqueUsers: number;
+  uniqueIPs: number;
+}
+
+export interface Download {
+  id: string;
+  attachment_title: string;
+  attachment_url: string;
+  user_email?: string;
+  user_name?: string;
+  ip_address?: string;
+  downloaded_at: string;
+}
+
+export interface PaginationInfo {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
+export interface DocumentAnalytics {
+  conversationStats: ConversationStats;
+  conversations: Conversation[];
+  conversationPagination: PaginationInfo;
+  downloadStats: DownloadStats;
+  downloads: Download[];
+  downloadPagination: PaginationInfo;
+}
+

@@ -102,3 +102,4 @@ return () => {
 ✅ Ready for production
 
 Mobile users can now enjoy the full text selection to search experience! 🎉
+

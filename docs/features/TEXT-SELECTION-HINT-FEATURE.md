@@ -102,3 +102,4 @@ useEffect(() => {
 ✅ Ready for production
 
 Desktop users will now see a helpful hint about the text selection feature right in the chat input area! 💡
+

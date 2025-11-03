@@ -37,3 +37,4 @@ COMMENT ON TABLE user_roles IS 'User roles within owner groups. New users should
 COMMENT ON TABLE user_owner_access IS 'Registered user access to owner groups. New users start with no access and must be assigned by an admin.';
 
 
+

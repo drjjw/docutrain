@@ -735,3 +735,43 @@ export async function trackAttachmentDownload(attachmentId: string): Promise<voi
   }
 }
 
+/**
+ * Get document analytics including conversations and downloads
+ */
+export async function getDocumentAnalytics(
+  documentId: string,
+  conversationOffset: number = 0,
+  downloadOffset: number = 0,
+  conversationLimit: number = 100,
+  downloadLimit: number = 100
+): Promise<import('@/types/admin').DocumentAnalytics> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const params = new URLSearchParams({
+    limit: conversationLimit.toString(),
+    offset: conversationOffset.toString(),
+    downloadLimit: downloadLimit.toString(),
+    downloadOffset: downloadOffset.toString(),
+  });
+
+  const response = await fetch(`/api/documents/${documentId}/analytics?${params.toString()}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to fetch document analytics');
+  }
+
+  const data = await response.json();
+  return data;
+}
+

@@ -217,3 +217,4 @@ The `ON DELETE CASCADE` means if we delete a document, all its chunks are automa
 5. **Monitoring is critical** - This would have been caught immediately with proper error tracking
 
 
+

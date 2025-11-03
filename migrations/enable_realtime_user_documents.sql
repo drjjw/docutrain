@@ -8,3 +8,4 @@ ALTER PUBLICATION supabase_realtime ADD TABLE user_documents;
 -- You can check with: SELECT * FROM pg_publication_tables WHERE pubname = 'supabase_realtime';
 
 
+

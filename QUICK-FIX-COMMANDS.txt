@@ -18,3 +18,4 @@ scp -i ~/.ssh/drjjw.pub -P 7022 .env root@162.246.254.111:/home/docutrainio/publ
 # 6. After copying .env, restart:
 ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111 'cd /home/docutrainio/public_html && pm2 restart docutrainio-bot && sleep 3 && pm2 logs docutrainio-bot --lines 30 --nostream'
 
+

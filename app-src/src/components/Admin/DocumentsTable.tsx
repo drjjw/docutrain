@@ -5,6 +5,7 @@ import { Alert } from '@/components/UI/Alert';
 import { Toggle } from '@/components/UI/Toggle';
 import { DocumentEditorModal } from './DocumentEditorModal';
 import { DocumentConfigPromptModal } from './DocumentConfigPromptModal';
+import { DocumentAnalyticsModal } from './DocumentAnalyticsModal';
 import { getDocuments, deleteDocument, getOwners, updateDocument } from '@/lib/supabase/admin';
 import type { DocumentWithOwner, Owner } from '@/types/admin';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,6 +37,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
   const [updatingDocIds, setUpdatingDocIds] = useState<Set<string>>(new Set());
   const [showConfigPrompt, setShowConfigPrompt] = useState(false);
   const [configPromptDoc, setConfigPromptDoc] = useState<DocumentWithOwner | null>(null);
+  const [analyticsDoc, setAnalyticsDoc] = useState<DocumentWithOwner | null>(null);
   const documentsRef = useRef<DocumentWithOwner[]>([]);
 
   // Debug editorModalDoc changes
@@ -436,7 +438,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
     if (isMobile) {
       // Mobile: horizontal layout with icons and text
       return (
-        <div className="grid grid-cols-5 gap-1">
+        <div className="flex flex-wrap gap-1">
           {/* View Button */}
           <button
             onClick={() => window.open(`/app/chat?doc=${doc.slug}`, '_blank')}
@@ -482,6 +484,18 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
               </svg>
             )}
             <span className="text-xs text-gray-500">Copy</span>
+          </button>
+
+          {/* Analytics Button */}
+          <button
+            onClick={() => setAnalyticsDoc(doc)}
+            className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+            title="View analytics"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <span className="text-xs text-gray-500">Analytics</span>
           </button>
 
           {/* Edit All Button */}
@@ -569,6 +583,20 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
             )}
           </button>
           <span className="text-xs text-gray-500 font-medium">Copy</span>
+        </div>
+
+        {/* Analytics Button */}
+        <div className="flex flex-col items-center gap-1">
+          <button
+            onClick={() => setAnalyticsDoc(doc)}
+            className="p-2.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50/80 rounded-xl transition-all duration-200 hover:shadow-md hover:scale-110"
+            title="View analytics"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </button>
+          <span className="text-xs text-gray-500 font-medium">Analytics</span>
         </div>
 
         {/* Edit All Button */}
@@ -1182,6 +1210,15 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
             setShowConfigPrompt(false);
             setConfigPromptDoc(null);
           }}
+        />
+      )}
+
+      {/* Analytics Modal */}
+      {analyticsDoc && (
+        <DocumentAnalyticsModal
+          document={analyticsDoc}
+          isOpen={!!analyticsDoc}
+          onClose={() => setAnalyticsDoc(null)}
         />
       )}
     </div>

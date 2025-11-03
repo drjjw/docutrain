@@ -65,3 +65,4 @@ echo "Full restart:"
 echo "ssh -i $SSH_KEY -p $SSH_PORT $SSH_HOST 'cd $REMOTE_PATH && pm2 delete docutrainio-bot && pm2 start server.js --name docutrainio-bot && pm2 save && sleep 3 && pm2 logs docutrainio-bot --lines 20'"
 echo ""
 
+
