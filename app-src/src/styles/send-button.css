@@ -3,27 +3,32 @@
 
 #sendButton {
     padding: 12px 24px;
-    background: var(--accent-color, #495057);
+    background: linear-gradient(135deg, var(--accent-color, #495057) 0%, var(--accent-color-hover, #343a40) 100%);
     color: white;
     border: none;
     border-radius: 6px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    transition: all 0.2s ease;
     letter-spacing: 0.3px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 #sendButton:hover:not(:disabled) {
-    background: var(--accent-color-hover, #343a40);
+    background: linear-gradient(135deg, var(--accent-color-hover, #343a40) 0%, var(--accent-color-active, #212529) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 #sendButton:active:not(:disabled) {
     background: var(--accent-color-active, #212529);
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 #sendButton:disabled {

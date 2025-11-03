@@ -306,6 +306,25 @@ export function useDocumentConfig(documentSlug: string | null) {
 
         if (!cancelled) {
           if (doc) {
+            // DEBUG: Log keywords from API response
+            console.log('[useDocumentConfig] 🔍 DEBUG - Keywords in API response:', {
+              hasKeywords: !!doc.keywords,
+              keywordsType: typeof doc.keywords,
+              isArray: Array.isArray(doc.keywords),
+              keywordsLength: Array.isArray(doc.keywords) ? doc.keywords.length : 'N/A',
+              keywords: doc.keywords,
+              keywordsDetails: Array.isArray(doc.keywords) ? doc.keywords.map((k: any, i: number) => ({
+                index: i,
+                keyword: k,
+                hasTerm: !!k?.term,
+                term: k?.term,
+                termType: typeof k?.term,
+                weight: k?.weight
+              })) : 'N/A',
+              showKeywords: doc.showKeywords,
+              fullDoc: doc
+            });
+            
             devLog(`[useDocumentConfig] Setting config to:`, doc);
             setConfig(doc);
             setLoading(false);

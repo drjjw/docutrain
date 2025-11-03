@@ -250,7 +250,7 @@ export function ChatPage() {
       {/* Messages container - port from vanilla JS */}
       <div 
         ref={chatContainerRef}
-        className={`flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 space-y-4 bg-gray-50 ${
+        className={`flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 space-y-4 chat-main-container ${
           isStreamingRef.current ? 'chat-container-streaming' : ''
         }`}
         style={{ paddingTop: '100px', paddingBottom: '100px' }}
@@ -272,7 +272,22 @@ export function ChatPage() {
             {/* Hide only if both are explicitly set to false */}
             {(docConfig.showKeywords !== false || docConfig.showDownloads !== false) && (
               <DownloadsAndKeywords
-                keywords={docConfig.showKeywords !== false ? docConfig.keywords : undefined}
+                keywords={(() => {
+                  const keywordsToPass = docConfig.showKeywords !== false ? docConfig.keywords : undefined;
+                  console.log('[ChatPage] 🔍 DEBUG - Keywords being passed to DownloadsAndKeywords:', {
+                    showKeywords: docConfig.showKeywords,
+                    keywordsRaw: docConfig.keywords,
+                    keywordsType: typeof docConfig.keywords,
+                    isArray: Array.isArray(docConfig.keywords),
+                    keywordsLength: Array.isArray(docConfig.keywords) ? docConfig.keywords.length : 'N/A',
+                    keywordsToPass,
+                    keywordsToPassType: typeof keywordsToPass,
+                    keywordsToPassIsArray: Array.isArray(keywordsToPass),
+                    keywordsToPassLength: Array.isArray(keywordsToPass) ? keywordsToPass.length : 'N/A',
+                    fullDocConfig: docConfig
+                  });
+                  return keywordsToPass;
+                })()}
                 downloads={docConfig.showDownloads !== false ? docConfig.downloads : undefined}
                 isMultiDoc={false}
                 inputRef={inputRef}
@@ -334,7 +349,7 @@ export function ChatPage() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={documentSlug ? "Ask a question..." : "Select a document to start chatting..."}
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-colors"
+            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all shadow-sm hover:shadow-md focus:shadow-md"
             disabled={isLoading || !documentSlug}
           />
           <button

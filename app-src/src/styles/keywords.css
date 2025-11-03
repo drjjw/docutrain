@@ -1,181 +1,102 @@
-/* Keywords Styles - Ported from public/css/keywords.css */
-/* Modern flat design - no gradients */
+/* Keywords Section - Clean rebuild */
 
-.document-keywords {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
+.keywords-section {
+  background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  padding: 20px;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* When in downloads-keywords-container, remove top margin/border but keep padding */
-.downloads-keywords-container .document-keywords {
-  margin-top: 0;
-  border-top: none;
-  /* padding: 20px is set in layout.css - don't override it */
+.keywords-section:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-/* Unified header styling - see layout.css for main styles */
-/* Keywords title should match downloads header text size */
-.keywords-title {
-  font-size: 14px;
-}
-
-/* Collapsible header button */
-.document-keywords-header.collapsible-header {
-  cursor: pointer;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-}
-
-.document-keywords-header.collapsible-header:hover {
-  opacity: 0.8;
-}
-
-/* Collapse icon */
-.collapse-icon {
-  margin-left: auto;
-  transition: transform 0.3s ease;
-  flex-shrink: 0;
-}
-
-/* In downloads-keywords-container, use the styled header from downloads.css */
-.downloads-keywords-container .document-keywords-header.collapsible-header {
+.keywords-header {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 16px;
-  margin-top: 0;
   padding: 8px 16px;
   font-size: 12px;
   font-weight: 600;
   color: #495057;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
-  position: relative;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-  cursor: pointer;
-  width: 100%;
-  align-self: flex-start;
-  justify-content: flex-start;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  border-left: 5px solid var(--accent-color, #495057);
+  box-shadow: none;
+  transition: border-left-color 0.2s ease;
 }
 
-.downloads-keywords-container .document-keywords-header.collapsible-header:hover {
-  background: #f1f3f5;
-  border-color: #dee2e6;
+.keywords-header svg {
+  width: 16px;
+  height: 16px;
+  color: #6c757d;
+  flex-shrink: 0;
+  stroke-width: 2;
 }
 
-.downloads-keywords-container .collapse-icon {
-  color: #495057;
+.keywords-header span {
+  font-weight: 700;
+  color: #374151;
+  letter-spacing: 1.2px;
 }
 
-/* Keywords content wrapper */
-.keywords-content {
-  overflow: visible;
-  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
-}
-
-.keywords-content.expanded {
-  max-height: 2000px;
-  opacity: 1;
-  overflow: visible;
-}
-
-.keywords-content.collapsed {
-  max-height: 0;
-  opacity: 0;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
-/* Subtle hint message for Key Topics */
 .keywords-hint {
   font-size: 12px;
-  color: var(--text-color-secondary, #666);
-  margin-top: 4px;
-  margin-bottom: 8px;
-  opacity: 0.7;
+  color: #666;
   font-style: italic;
-  line-height: 1.4;
+  margin-bottom: 12px;
+  opacity: 0.8;
 }
 
-.document-keywords-wordcloud {
-  margin-top: 12px;
-  line-height: 2;
-  text-align: left;
-  overflow: visible;
+.keywords-list {
+  line-height: 1.6;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  margin-bottom: 12px;
 }
 
-.keyword-word {
-  display: inline-block;
-  color: var(--text-color, #333);
-  transition: all 0.2s ease;
+.keywords-footnote {
+  font-size: 11px;
+  color: #666;
+  font-style: italic;
+  margin-top: 8px;
+}
+
+.keyword-item {
+  display: inline;
+  color: #333;
   cursor: pointer;
-  margin-right: 0.25em;
-  white-space: nowrap;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  position: relative;
 }
 
-.keyword-word:hover {
+.keyword-item:hover {
   color: var(--accent-color, #3b82f6);
-  opacity: 1 !important;
-  transform: scale(1.05);
+  text-decoration-color: var(--accent-color, #3b82f6);
+  transform: translateY(-1px);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.keyword-weight {
+  display: inline;
+  color: #666;
+  font-size: 0.9em;
+  margin-left: 4px;
 }
 
 .keyword-separator {
-  display: inline-block;
-  color: var(--text-color-secondary, #999);
-  opacity: 0.5;
-  margin: 0 0.3em;
-  font-size: 0.9em;
-  font-weight: normal;
-  user-select: none;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .document-keywords {
-    margin-top: 20px;
-    padding-top: 16px;
-  }
-  
-  .document-keywords-header {
-    font-size: 12px;
-    margin-bottom: 10px;
-  }
-  
-  .keywords-icon {
-    width: 14px;
-    height: 14px;
-  }
-  
-  .document-keywords-wordcloud {
-    line-height: 2;
-    word-spacing: 0.25em;
-    text-align: left;
-  }
-  
-  .keywords-hint {
-    font-size: 11px;
-    margin-top: 3px;
-    margin-bottom: 6px;
-  }
-}
-
-/* Ensure keywords display nicely in welcome message sections */
-.welcome-message-section .document-keywords,
-.message.assistant .document-keywords {
-  margin-top: 20px;
+  display: inline;
+  color: #999;
+  margin: 0;
 }

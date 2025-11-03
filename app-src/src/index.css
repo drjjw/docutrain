@@ -16,3 +16,15 @@ code {
     monospace;
 }
 
+/* Enhanced chat container with subtle gradient background */
+.chat-main-container {
+  background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f5 50%, #f8f9fa 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 20s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+

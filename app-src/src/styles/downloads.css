@@ -12,7 +12,7 @@
   width: 100%;
   padding: 14px 24px;
   margin: 0;
-  background: #f8f9fa;
+  background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f5 100%);
   border: 1px solid #e9ecef;
   border-radius: 8px;
   cursor: pointer;
@@ -24,21 +24,31 @@
   letter-spacing: 0.5px;
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  justify-content: flex-start;
+  gap: 12px;
+  transition: all 0.2s ease;
   pointer-events: auto;
   position: relative;
   z-index: 2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .downloads-keywords-container-header:hover {
-  background: #f1f3f5;
+  background: linear-gradient(135deg, #f1f3f5 0%, #e9ecef 100%);
   border-color: #dee2e6;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .downloads-keywords-container-header .collapse-icon {
   flex-shrink: 0;
   color: #374151;
+  margin-left: 0;
+}
+
+.downloads-keywords-container-header > span {
+  flex: 0 1 auto;
+  white-space: nowrap;
 }
 
 .downloads-keywords-container {
@@ -82,74 +92,44 @@
 }
 
 /* Key Topics takes 3/5 (60%), Downloads takes 2/5 (40%) */
-.downloads-keywords-container > .document-keywords:not(:only-child) {
-  flex: 0 0 calc(60% - 6px); /* 60% minus proportional gap */
+.downloads-keywords-container > .keywords-section:not(:only-child) {
+  flex: 0 0 calc(60% - 6px);
   min-width: calc(60% - 6px);
   max-width: calc(60% - 6px);
-  min-height: 100%; /* Fill container height */
-  display: flex;
-  flex-direction: column; /* Stack content vertically inside */
-  overflow: visible;
 }
 
 .downloads-keywords-container > .downloads-section:not(:only-child) {
-  flex: 0 0 calc(40% - 4px); /* 40% minus proportional gap */
+  flex: 0 0 calc(40% - 4px);
   min-width: calc(40% - 4px);
   max-width: calc(40% - 4px);
-  height: 100%; /* Fill container height */
-  display: flex;
-  flex-direction: column; /* Stack content vertically inside */
 }
 
 /* When only one is present, it takes 100% width */
 .downloads-keywords-container > .downloads-section:only-child,
-.downloads-keywords-container > .document-keywords:only-child {
+.downloads-keywords-container > .keywords-section:only-child {
   flex: 1 1 100%;
   min-width: 100%;
 }
 
-/* Downloads Section - In new container */
-.downloads-keywords-container .downloads-section {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: none;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-  padding: 20px;
-  /* Ensure content fills available height */
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  transition: none !important;
-  animation: none !important;
-}
-
-/* Keywords in new container */
-.downloads-keywords-container .document-keywords {
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-  padding: 20px;
-  /* Ensure content fills available height */
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: visible;
-  transition: none !important;
-  animation: none !important;
-}
-
-/* Legacy: Downloads Section - Inside Welcome Message (kept for backwards compatibility) */
+/* Downloads Section */
 .downloads-section {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
+  background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  padding: 20px;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.downloads-section:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 /* Unified header styling for downloads and keywords */
 .downloads-keywords-container .downloads-header,
-.downloads-keywords-container .document-keywords-header {
+.downloads-keywords-container .keywords-header {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -161,19 +141,21 @@
   color: #495057;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  border-left: 5px solid var(--accent-color, #495057);
   position: relative;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: border-left-color 0.2s ease;
   cursor: default;
   width: fit-content;
   align-self: flex-start;
+  box-shadow: none;
 }
 
 /* Collapsible header button */
 .downloads-keywords-container .downloads-header.collapsible-header,
-.downloads-keywords-container .document-keywords-header.collapsible-header {
+.downloads-keywords-container .keywords-header.collapsible-header {
   cursor: pointer;
   user-select: none;
   width: 100%;
@@ -184,14 +166,16 @@
 }
 
 .downloads-keywords-container .downloads-header.collapsible-header:hover,
-.downloads-keywords-container .document-keywords-header.collapsible-header:hover {
-  background: #f1f3f5;
-  border-color: #dee2e6;
+.downloads-keywords-container .keywords-header.collapsible-header:hover {
+  background: transparent;
+  border-left-color: var(--accent-color-hover, #343a40);
+  transform: none;
+  box-shadow: none;
 }
 
 /* Ensure ::before pseudo-element doesn't block clicks */
 .downloads-keywords-container .downloads-header.collapsible-header::before,
-.downloads-keywords-container .document-keywords-header.collapsible-header::before {
+.downloads-keywords-container .keywords-header.collapsible-header::before {
   pointer-events: none;
 }
 
@@ -223,18 +207,18 @@
 
 
 .downloads-keywords-container .downloads-header:hover,
-.downloads-keywords-container .document-keywords-header:hover {
-  background: #f1f3f5;
-  border-color: #dee2e6;
+.downloads-keywords-container .keywords-header:hover {
+  background: transparent;
+  border-left-color: var(--accent-color-hover, #343a40);
 }
 
 .downloads-keywords-container .downloads-header:active,
-.downloads-keywords-container .document-keywords-header:active {
-  background: #e9ecef;
+.downloads-keywords-container .keywords-header:active {
+  background: transparent;
 }
 
 .downloads-header svg,
-.document-keywords-header svg {
+.keywords-header svg {
   width: 16px;
   height: 16px;
   color: #6c757d;
@@ -247,12 +231,12 @@
 }
 
 .downloads-keywords-container .downloads-header:hover svg,
-.downloads-keywords-container .document-keywords-header:hover svg {
+.downloads-keywords-container .keywords-header:hover svg {
   color: #495057;
 }
 
 .downloads-header span,
-.document-keywords-header .keywords-title {
+.keywords-header span {
   font-weight: 700;
   color: #374151;
   letter-spacing: 1.2px;
@@ -273,27 +257,32 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
   border: 1px solid #dee2e6;
   border-radius: 6px;
   text-decoration: none;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: all 0.2s ease;
   color: #495057;
   cursor: pointer;
   width: auto;
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .download-button:hover {
-  background: #f8f9fa;
+  background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f5 100%);
   border-color: #adb5bd;
   color: #212529;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .download-button:active {
   background: #e9ecef;
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .download-button.downloading {
@@ -350,18 +339,18 @@
   }
 
   .downloads-keywords-container > .downloads-section,
-  .downloads-keywords-container > .document-keywords {
+  .downloads-keywords-container > .keywords-section {
     flex: 1 1 100% !important;
     min-width: 100% !important;
   }
 
   .downloads-keywords-container .downloads-section,
-  .downloads-keywords-container .document-keywords {
+  .downloads-keywords-container .keywords-section {
     padding: 15px;
   }
 
   .downloads-keywords-container .downloads-header,
-  .downloads-keywords-container .document-keywords-header {
+  .downloads-keywords-container .keywords-header {
     font-size: 13px;
     margin-bottom: 18px;
     padding: 8px 16px;
@@ -369,7 +358,7 @@
   }
 
   .downloads-keywords-container .downloads-header.collapsible-header,
-  .downloads-keywords-container .document-keywords-header.collapsible-header {
+  .downloads-keywords-container .keywords-header.collapsible-header {
     width: 100%;
   }
 
@@ -394,7 +383,7 @@
   }
 
   .downloads-keywords-container .downloads-section,
-  .downloads-keywords-container .document-keywords {
+  .downloads-keywords-container .keywords-section {
     padding: 15px;
   }
 }
