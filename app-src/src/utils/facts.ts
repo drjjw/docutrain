@@ -121,4 +121,3 @@ export function getRandomFact(owner: string | null = null): string | null {
   const fact = factsToUse[Math.floor(Math.random() * factsToUse.length)];
   return getRandomPrefix() + fact;
 }
-

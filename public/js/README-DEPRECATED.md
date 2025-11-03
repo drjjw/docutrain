@@ -41,4 +41,3 @@ If you're looking for current chat functionality:
 ---
 
 **Last Updated**: Migration completed - React version is now the active implementation
-

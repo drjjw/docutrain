@@ -30,4 +30,3 @@ export function useSessionId() {
   
   return { sessionId };
 }
-

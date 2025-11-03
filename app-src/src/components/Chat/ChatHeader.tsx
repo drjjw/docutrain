@@ -147,18 +147,18 @@ export function ChatHeader({ documentSlug }: ChatHeaderProps) {
       }}
     >
       {/* Desktop: Single row layout */}
-      <div className="hidden md:flex items-center justify-between gap-4">
-        <div className="flex-shrink-0">
+      <div className="hidden md:grid grid-cols-3 items-center gap-4">
+        <div className="flex-shrink-0 flex justify-start">
           <OwnerLogo ownerSlug={logoOwnerSlug} />
         </div>
-        <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-center px-4">
+        <div className="flex flex-col items-center justify-center min-w-0 text-center px-4">
           <DocumentTitle 
             documentSlug={documentSlug} 
             ownerSlug={ownerModeSlug}
             pubmedButton={hasPubMed && pubmedId ? <PubMedButton pmid={pubmedId} /> : undefined}
           />
         </div>
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 flex justify-end">
           <CombinedHeaderMenu
             documentSlug={documentSlug || ''}
             ownerSlug={ownerModeSlug}

@@ -171,8 +171,3 @@ export function ResetPasswordPage() {
     </AuthLayout>
   );
 }
-
-
-
-
-

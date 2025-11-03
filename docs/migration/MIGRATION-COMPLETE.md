@@ -73,4 +73,3 @@ If you need to understand how something worked:
 - Debugging chat functionality
 - Understanding the application architecture
 - Onboarding new developers
-

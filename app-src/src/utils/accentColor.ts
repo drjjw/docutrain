@@ -79,4 +79,3 @@ export function setDefaultAccentColors() {
   root.style.setProperty('--accent-color-hover', '#555555');
   root.style.setProperty('--accent-color-shadow', 'rgba(102, 102, 102, 0.2)');
 }
-
