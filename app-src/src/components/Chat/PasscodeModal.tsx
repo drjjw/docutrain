@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { getAuthHeaders } from '@/lib/api/authService';
+import { DocumentAccessContext } from '@/contexts/DocumentAccessContext';
 
 interface PasscodeModalProps {
   isOpen: boolean;
@@ -15,7 +17,14 @@ export function PasscodeModal({ isOpen, documentSlug, documentTitle, onClose }: 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  if (!isOpen) return null;
+  // Get document access context for refreshing after successful validation
+  const documentContext = useContext(DocumentAccessContext);
+
+  // Force close modal if context no longer requires passcode
+  const stillRequiresPasscode = documentContext?.errorDetails?.type === 'passcode_required';
+  const shouldBeOpen = isOpen && stillRequiresPasscode;
+
+  if (!shouldBeOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,11 +39,7 @@ export function PasscodeModal({ isOpen, documentSlug, documentTitle, onClose }: 
 
     try {
       // Check access with the provided passcode
-      const authHeaders = getAuthHeaders();
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        ...(authHeaders.Authorization ? { Authorization: authHeaders.Authorization } : {}),
-      };
+      const headers = getAuthHeaders();
 
       const response = await fetch(`/api/permissions/check-access/${documentSlug}`, {
         method: 'POST',
@@ -48,14 +53,29 @@ export function PasscodeModal({ isOpen, documentSlug, documentTitle, onClose }: 
         // Access granted - store passcode in localStorage
         const passcodeKey = `passcode:${documentSlug}`;
         localStorage.setItem(passcodeKey, passcode);
-        console.log(`[PasscodeModal] Stored passcode for ${documentSlug} in localStorage`);
-        
-        // Use window.location to do a full reload with passcode in URL
-        // This ensures everything is in sync and avoids React Router navigation issues
+
+        // Dispatch passcode-stored event for other components to refresh
+        window.dispatchEvent(new CustomEvent('passcode-stored', {
+          detail: { documentSlug }
+        }));
+
+        // Update URL with passcode (without full page reload)
         const newParams = new URLSearchParams(searchParams);
+        newParams.set('doc', documentSlug); // Ensure doc param is set
         newParams.set('passcode', passcode);
-        const newUrl = `/app/chat?doc=${documentSlug}&${newParams.toString()}`;
-        window.location.href = newUrl;
+
+        // Use React Router navigation instead of window.location for smoother UX
+        navigate(`?${newParams.toString()}`, { replace: true });
+
+        // Refresh document context to load the document config now that we have access
+        if (documentContext?.refresh) {
+          documentContext.refresh();
+        }
+
+        // Close modal via callback if provided
+        if (onClose) {
+          onClose();
+        }
       } else {
         if (data.error_type === 'passcode_incorrect') {
           setError('Incorrect passcode. Please try again.');
@@ -77,22 +97,6 @@ export function PasscodeModal({ isOpen, documentSlug, documentTitle, onClose }: 
     } else {
       navigate(-1);
     }
-  };
-
-  const getAuthHeaders = () => {
-    try {
-      const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
-      const sessionData = localStorage.getItem(sessionKey);
-      if (sessionData) {
-        const session = JSON.parse(sessionData);
-        if (session?.access_token) {
-          return { 'Authorization': `Bearer ${session.access_token}` };
-        }
-      }
-    } catch (e) {
-      // Ignore
-    }
-    return {};
   };
 
   return (

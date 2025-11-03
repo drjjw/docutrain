@@ -5,9 +5,10 @@
  * In owner mode, shows as centered modal (non-dismissible)
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import { DocumentAccessContext } from '@/contexts/DocumentAccessContext';
 
 interface Document {
   slug: string;
@@ -43,6 +44,9 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
   const dropdownRootRef = useRef<HTMLDivElement>(null); // Ref for dropdown portal root
   const dropdownRef = useRef<HTMLDivElement>(null); // Ref for dropdown to prevent click propagation
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right?: number; left?: number } | null>(null);
+  
+  // Try to get document context if available (may be undefined if not in provider)
+  const documentContext = useContext(DocumentAccessContext) || undefined;
 
   const documentSelectorParam = searchParams.get('document_selector');
   const ownerParam = searchParams.get('owner');
@@ -96,95 +100,125 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
           setLoading(false);
           return;
         }
-        
-        setLoading(true);
 
-        let apiUrl = '/api/documents';
-        
-        if (ownerParam) {
-          apiUrl += `?owner=${encodeURIComponent(ownerParam)}`;
-          if (passcodeParam) {
-            apiUrl += `&passcode=${encodeURIComponent(passcodeParam)}`;
-          }
-        } else if (currentDocSlug) {
-          // If we have a document slug, fetch that specific document
-          apiUrl += `?doc=${encodeURIComponent(currentDocSlug)}`;
-          if (passcodeParam) {
-            apiUrl += `&passcode=${encodeURIComponent(passcodeParam)}`;
-          }
-        } else {
-          // No doc param and no owner param: load all documents to show in selector
-          if (passcodeParam) {
-            apiUrl += `?passcode=${encodeURIComponent(passcodeParam)}`;
-          }
-        }
+        // If we have document context and config, use that instead of fetching
+        // This eliminates duplicate API calls, but we still need to check for owner expansion
+        if (documentContext?.config && currentDocSlug) {
+          console.log('[DocumentSelector] Using document from context instead of fetching');
+          const contextDoc = documentContext.config;
+          setDocuments([contextDoc]);
+          setShouldShow(contextDoc.showDocumentSelector !== false);
+          setLoading(false);
 
-        // Get JWT token if available
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-        };
+          // Still check for owner expansion even when using context
+          // This ensures passcode-protected pages show other owner documents
+          if (contextDoc.ownerInfo && contextDoc.showDocumentSelector !== false) {
+            try {
+              console.log('[DocumentSelector] Attempting owner expansion for passcode-protected document');
+              const ownerApiUrl = `/api/documents?owner=${encodeURIComponent(contextDoc.ownerInfo.slug)}${passcodeParam ? `&passcode=${encodeURIComponent(passcodeParam)}` : ''}`;
 
-        try {
-          const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
-          const sessionData = localStorage.getItem(sessionKey);
-          if (sessionData) {
-            const session = JSON.parse(sessionData);
-            const token = session?.access_token;
-            if (token) {
-              headers['Authorization'] = `Bearer ${token}`;
+              // Get auth headers using centralized service
+              const { getAuthHeaders } = await import('@/lib/api/authService');
+              const authHeaders = getAuthHeaders();
+
+              const ownerResponse = await fetch(ownerApiUrl, { headers: authHeaders });
+
+              if (ownerResponse.ok) {
+                const ownerData = await ownerResponse.json();
+                const ownerDocs = ownerData.documents || [];
+                console.log(`[DocumentSelector] Owner expansion successful, found ${ownerDocs.length} documents`);
+                setDocuments(ownerDocs.length > 0 ? ownerDocs : [contextDoc]); // Use owner docs if available, fallback to context doc
+                // When we have multiple documents from owner expansion, always show the selector
+                if (ownerDocs.length > 1) {
+                  setShouldShow(true);
+                }
+              } else {
+                console.log(`[DocumentSelector] Owner expansion failed with status ${ownerResponse.status}, keeping single document`);
+                // Keep the single document from context
+              }
+            } catch (error) {
+              console.log('[DocumentSelector] Owner expansion error, keeping single document:', error);
+              // Keep the single document from context
             }
           }
-        } catch (error) {
-          // Ignore token errors
-        }
 
-        const response = await fetch(apiUrl, { headers });
-        
-        // Handle non-OK responses gracefully (e.g., 403 for passcode-protected docs)
-        if (!response.ok) {
-          if (response.status === 403) {
-            // Passcode required or access denied - don't show selector, user will see modal
-            console.log('[DocumentSelector] Document requires authentication, skipping selector');
-            setDocuments([]);
-            setShouldShow(false);
-            return;
-          }
-          console.warn(`[DocumentSelector] Failed to fetch documents: ${response.status}`);
-          setDocuments([]);
           return;
         }
-        
-        const data = await response.json();
-        const loadedDocuments = data.documents || [];
-        setDocuments(loadedDocuments);
 
-        // Determine if selector should be shown (matches vanilla JS logic)
-        // Priority: URL parameter (true/false) > owner mode (with no doc) > database value > default (false)
-        // NOTE: Do NOT show when no doc param AND no owner param - that's when DocumentOwnerModal shows
-        let showSelector = false;
-        
-        if (documentSelectorParam !== null) {
-          // URL parameter explicitly set - it overrides everything
-          showSelector = documentSelectorParam === 'true';
-        } else if (ownerParam && !docParam) {
-          // Show selector ONLY when in owner mode with no doc selected
-          // When no owner param and no doc param, DocumentOwnerModal shows instead
-          showSelector = true;
-        } else if (currentDocSlug) {
-          // Check database value for current document
-          const currentDoc = loadedDocuments.find((d: Document) => d.slug === currentDocSlug);
-          showSelector = currentDoc?.showDocumentSelector !== false; // Default to true if not explicitly false
-        }
+        // If we're in owner mode or document selector mode, we need to load documents
+        if (ownerParam || (!currentDocSlug && !ownerParam)) {
+          setLoading(true);
 
-        setShouldShow(showSelector);
+          let apiUrl = '/api/documents';
 
-        // If we only fetched one document and should expand to owner documents, fetch all from the same owner
-        // Use ownerInfo (matches vanilla JS logic)
-        if (loadedDocuments.length === 1 && showSelector && loadedDocuments[0].ownerInfo) {
-          const ownerApiUrl = `/api/documents?owner=${encodeURIComponent(loadedDocuments[0].ownerInfo.slug)}${passcodeParam ? `&passcode=${encodeURIComponent(passcodeParam)}` : ''}`;
-          const ownerResponse = await fetch(ownerApiUrl, { headers });
-          const ownerData = await ownerResponse.json();
-          setDocuments(ownerData.documents || []);
+          if (ownerParam) {
+            apiUrl += `?owner=${encodeURIComponent(ownerParam)}`;
+            if (passcodeParam) {
+              apiUrl += `&passcode=${encodeURIComponent(passcodeParam)}`;
+            }
+          } else {
+            // No doc param and no owner param: load all documents to show in selector
+            if (passcodeParam) {
+              apiUrl += `?passcode=${encodeURIComponent(passcodeParam)}`;
+            }
+          }
+
+          // Get auth headers using centralized service
+          const { getAuthHeaders } = await import('@/lib/api/authService');
+          const headers = getAuthHeaders();
+
+          const response = await fetch(apiUrl, { headers });
+
+          // Handle non-OK responses gracefully (e.g., 403 for passcode-protected docs)
+          if (!response.ok) {
+            if (response.status === 403) {
+              // Passcode required or access denied - don't show selector, user will see modal
+              console.log('[DocumentSelector] Document requires authentication, skipping selector');
+              setDocuments([]);
+              setShouldShow(false);
+              return;
+            }
+            console.warn(`[DocumentSelector] Failed to fetch documents: ${response.status}`);
+            setDocuments([]);
+            return;
+          }
+
+          const data = await response.json();
+          const loadedDocuments = data.documents || [];
+          setDocuments(loadedDocuments);
+
+          // Determine if selector should be shown (matches vanilla JS logic)
+          // Priority: URL parameter (true/false) > owner mode (with no doc) > database value > default (false)
+          // NOTE: Do NOT show when no doc param AND no owner param - that's when DocumentOwnerModal shows
+          let showSelector = false;
+
+          if (documentSelectorParam !== null) {
+            // URL parameter explicitly set - it overrides everything
+            showSelector = documentSelectorParam === 'true';
+          } else if (ownerParam && !docParam) {
+            // Show selector ONLY when in owner mode with no doc selected
+            // When no owner param and no doc param, DocumentOwnerModal shows instead
+            showSelector = true;
+          } else if (currentDocSlug) {
+            // Check database value for current document
+            const currentDoc = loadedDocuments.find((d: Document) => d.slug === currentDocSlug);
+            showSelector = currentDoc?.showDocumentSelector !== false; // Default to true if not explicitly false
+          }
+
+          setShouldShow(showSelector);
+
+          // If we only fetched one document and should expand to owner documents, fetch all from the same owner
+          // Use ownerInfo (matches vanilla JS logic)
+          if (loadedDocuments.length === 1 && showSelector && loadedDocuments[0].ownerInfo) {
+            const ownerApiUrl = `/api/documents?owner=${encodeURIComponent(loadedDocuments[0].ownerInfo.slug)}${passcodeParam ? `&passcode=${encodeURIComponent(passcodeParam)}` : ''}`;
+            const ownerResponse = await fetch(ownerApiUrl, { headers });
+            const ownerData = await ownerResponse.json();
+            setDocuments(ownerData.documents || []);
+          }
+        } else {
+          // Single document mode - use context if available, otherwise no documents to show
+          setDocuments([]);
+          setShouldShow(false);
         }
       } catch (error) {
         // Silently handle errors - passcode/auth errors are expected and handled by modal
@@ -197,7 +231,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
     }
 
     loadDocuments();
-  }, [ownerParam, currentDocSlug, passcodeParam, documentSelectorParam, docParam, hasAuthError]);
+  }, [ownerParam, currentDocSlug, passcodeParam, documentSelectorParam, docParam, hasAuthError, documentContext?.config]);
 
   // Ensure modal is open when shouldShow becomes true (after documents load)
   // This is a secondary check in case documents load after URL change

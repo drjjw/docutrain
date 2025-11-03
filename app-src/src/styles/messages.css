@@ -137,7 +137,7 @@
 /* Mobile responsive: scale down strong text on smaller screens */
 @media (max-width: 768px) {
   .message.assistant .message-content strong {
-    font-size: 1.25em;
+    
   }
 }
 

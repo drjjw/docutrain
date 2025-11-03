@@ -22,6 +22,7 @@ import { DocumentMeta } from '@/components/Chat/DocumentMeta';
 import { DisclaimerModal, useDisclaimer } from '@/components/Auth/DisclaimerModal';
 import { SelectionPrompt } from '@/components/Chat/SelectionPrompt';
 import { Spinner } from '@/components/UI/Spinner';
+import { DocumentAccessProvider } from '@/contexts/DocumentAccessContext';
 import { useDocumentConfig } from '@/hooks/useDocumentConfig';
 import { useOwnerLogo } from '@/hooks/useOwnerLogo';
 import { useAuth } from '@/hooks/useAuth';
@@ -42,13 +43,7 @@ import '@/styles/send-button.css';
 
 export function ChatPage() {
   // ============================================================================
-  // SECTION 1: Core Hooks (Auth & Permissions)
-  // ============================================================================
-  const { user, loading: authLoading } = useAuth();
-  const permissions = usePermissions();
-  
-  // ============================================================================
-  // SECTION 2: URL Parameters
+  // SECTION 1: URL Parameters (needed for provider)
   // ============================================================================
   const {
     documentSlug,
@@ -57,6 +52,39 @@ export function ChatPage() {
     shouldShowFooter,
     ownerParam,
   } = useChatUrlParams();
+  
+  // Wrap everything in DocumentAccessProvider
+  return (
+    <DocumentAccessProvider documentSlug={documentSlug}>
+      <ChatPageContent
+        documentSlug={documentSlug}
+        embeddingType={embeddingType}
+        selectedModel={selectedModel}
+        shouldShowFooter={shouldShowFooter}
+        ownerParam={ownerParam}
+      />
+    </DocumentAccessProvider>
+  );
+}
+
+function ChatPageContent({
+  documentSlug,
+  embeddingType,
+  selectedModel,
+  shouldShowFooter,
+  ownerParam,
+}: {
+  documentSlug: string | null;
+  embeddingType: string;
+  selectedModel: string;
+  shouldShowFooter: boolean;
+  ownerParam: string | null;
+}) {
+  // ============================================================================
+  // SECTION 1: Core Hooks (Auth & Permissions)
+  // ============================================================================
+  const { user, loading: authLoading } = useAuth();
+  const permissions = usePermissions();
   
   // ============================================================================
   // SECTION 3: Session Management
@@ -451,6 +479,10 @@ export function ChatPage() {
           isOpen={true}
           documentSlug={documentSlug!}
           documentTitle={errorDetails?.documentInfo?.title || documentSlug!}
+          onClose={() => {
+            // Force modal close - context should handle clearing errorDetails
+            // This prevents modal from re-opening if there's a timing issue
+          }}
         />
       )}
       

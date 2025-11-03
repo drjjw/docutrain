@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
+import { getAuthToken } from '@/lib/api/authService';
 
 /**
  * Hook to check if user can edit a document
@@ -35,17 +36,8 @@ export function useCanEditDocument(documentSlug: string | null) {
 
     async function checkPermissions() {
       try {
-        // Get auth token
-        const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
-        const sessionData = localStorage.getItem(sessionKey);
-        if (!sessionData) {
-          setCanEdit(false);
-          setLoading(false);
-          return;
-        }
-
-        const session = JSON.parse(sessionData);
-        const token = session?.access_token;
+        // Get auth token using centralized service
+        const token = getAuthToken();
         
         if (!token) {
           setCanEdit(false);

@@ -7,11 +7,12 @@
  * Uses session cookies to remember consent (expires when browser closes)
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import Cookies from 'js-cookie';
 import { Modal } from '@/components/UI/Modal';
 import { Button } from '@/components/UI/Button';
 import { AlertTriangle } from 'lucide-react';
+import { DocumentAccessContext } from '@/contexts/DocumentAccessContext';
 
 const COOKIE_NAME = '_ukidney_disclaimer_agree';
 
@@ -150,6 +151,9 @@ export function useDisclaimer(options: string | null | undefined | UseDisclaimer
   const [needsDisclaimer, setNeedsDisclaimer] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  
+  // Get document context (now the single source of truth)
+  const documentContext = useContext(DocumentAccessContext) || undefined;
 
   useEffect(() => {
     // Skip if auth error already detected (passcode required, access denied, etc.)
@@ -157,91 +161,62 @@ export function useDisclaimer(options: string | null | undefined | UseDisclaimer
       console.log('[useDisclaimer] Auth error detected, skipping disclaimer check');
       setNeedsDisclaimer(false);
       setDisclaimerAccepted(true);
-      return;
-    }
-    
-    if (!documentSlug) {
-      setNeedsDisclaimer(false);
-      setDisclaimerAccepted(true); // No document = no disclaimer needed
+      setIsChecking(false);
       return;
     }
 
-    // Parse document slugs (could be comma-separated for multi-doc)
-    const slugs = documentSlug.split(',').map(s => s.trim()).filter(Boolean);
-    
-    if (slugs.length === 0) {
+    if (!documentSlug) {
+      setNeedsDisclaimer(false);
+      setDisclaimerAccepted(true); // No document = no disclaimer needed
+      setIsChecking(false);
+      return;
+    }
+
+    // Wait for document context to be ready
+    if (!documentContext || documentContext.loading) {
+      setIsChecking(true);
+      return;
+    }
+
+    setIsChecking(false);
+
+    // If we have document config, check if it requires disclaimer
+    if (documentContext.config) {
+      console.log('[useDisclaimer] Using document from context');
+      const requiresDisclaimer = documentContext.config.owner === 'ukidney';
+
+      if (requiresDisclaimer) {
+        console.log('[useDisclaimer] Ukidney document detected, disclaimer required');
+        setNeedsDisclaimer(true);
+        setDisclaimerAccepted(false);
+      } else {
+        console.log('[useDisclaimer] No ukidney document, disclaimer not required');
+        setNeedsDisclaimer(false);
+        setDisclaimerAccepted(true);
+      }
+      return;
+    }
+
+    // If no config but no error (document doesn't exist or access denied), skip disclaimer
+    if (!documentContext.config && !documentContext.error) {
+      console.log('[useDisclaimer] No document config available, skipping disclaimer');
       setNeedsDisclaimer(false);
       setDisclaimerAccepted(true);
       return;
     }
 
-    // Check if any document requires disclaimer
-    async function checkDocuments() {
-      setIsChecking(true);
-      try {
-        // Fetch document info from API
-        const apiUrl = `/api/documents?doc=${encodeURIComponent(documentSlug)}`;
-        
-        // Get JWT token if available
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-        };
-
-        try {
-          const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
-          const sessionData = localStorage.getItem(sessionKey);
-          if (sessionData) {
-            const session = JSON.parse(sessionData);
-            const token = session?.access_token;
-            if (token) {
-              headers['Authorization'] = `Bearer ${token}`;
-            }
-          }
-        } catch (error) {
-          // Ignore token errors
-        }
-
-        const response = await fetch(apiUrl, { headers });
-        
-        if (!response.ok) {
-          if (response.status === 403) {
-            // Passcode required or access denied - skip disclaimer check, user will see auth modal
-            console.log('[useDisclaimer] Document requires authentication, skipping disclaimer check');
-          } else {
-            console.warn(`[useDisclaimer] Failed to fetch documents (${response.status}), skipping disclaimer check`);
-          }
-          setNeedsDisclaimer(false);
-          setDisclaimerAccepted(true);
-          return;
-        }
-
-        const data = await response.json();
-        const documents = data.documents || [];
-
-        // Check if ANY document has owner === 'ukidney'
-        const requiresDisclaimer = documents.some((doc: any) => doc.owner === 'ukidney');
-
-        if (requiresDisclaimer) {
-          console.log('[useDisclaimer] At least one ukidney document detected, disclaimer required');
-          setNeedsDisclaimer(true);
-          setDisclaimerAccepted(false);
-        } else {
-          console.log('[useDisclaimer] No ukidney documents, disclaimer not required');
-          setNeedsDisclaimer(false);
-          setDisclaimerAccepted(true);
-        }
-      } catch (error) {
-        console.error('[useDisclaimer] Error checking documents:', error);
-        // On error, don't block the user - skip disclaimer
-        setNeedsDisclaimer(false);
-        setDisclaimerAccepted(true);
-      } finally {
-        setIsChecking(false);
-      }
+    // If there's an error (passcode required, access denied, etc.), skip disclaimer
+    if (documentContext.errorDetails) {
+      console.log('[useDisclaimer] Document access error, skipping disclaimer check');
+      setNeedsDisclaimer(false);
+      setDisclaimerAccepted(true);
+      return;
     }
 
-    checkDocuments();
-  }, [documentSlug, hasAuthError]);
+    // Default: no disclaimer needed
+    setNeedsDisclaimer(false);
+    setDisclaimerAccepted(true);
+  }, [documentSlug, hasAuthError, documentContext?.config, documentContext?.loading, documentContext?.errorDetails]);
 
   const handleAccept = () => {
     setDisclaimerAccepted(true);
