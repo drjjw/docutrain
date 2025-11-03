@@ -31,6 +31,11 @@ code {
   .chat-main-container {
     padding-top: 135px !important; /* Desktop: single row header with padding - use !important to override Tailwind padding */
   }
+  
+  /* When header has a subtitle (3 rows: logo, title, subtitle), add extra padding on desktop */
+  .chat-main-container.has-subtitle-offset {
+    padding-top: 165px !important; /* Add ~30px extra for subtitle row */
+  }
 }
 
 @keyframes gradientShift {

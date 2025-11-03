@@ -523,10 +523,12 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                         {renderField('year', 'Year', 'number')}
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Back Link</label>
-                      {renderField('back_link', 'Back Link')}
-                    </div>
+                    {isSuperAdmin && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Back Link</label>
+                        {renderField('back_link', 'Back Link')}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -547,14 +549,18 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                       <label className="block text-sm font-medium text-gray-700 mb-2">PDF Filename</label>
                       {renderField('pdf_filename', 'PDF Filename')}
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">PDF Subdirectory</label>
-                      {renderField('pdf_subdirectory', 'PDF Subdirectory')}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Embedding Type</label>
-                      {renderField('embedding_type', 'Embedding Type', 'select')}
-                    </div>
+                    {isSuperAdmin && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">PDF Subdirectory</label>
+                          {renderField('pdf_subdirectory', 'PDF Subdirectory')}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Embedding Type</label>
+                          {renderField('embedding_type', 'Embedding Type', 'select')}
+                        </div>
+                      </>
+                    )}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Cover Image</label>
                       <CoverImageUploader
@@ -759,25 +765,27 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                         )}
                       </div>
 
-                  {/* Technical Configuration */}
-                  <div className="mb-6">
-                    <h5 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
-                      <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      Technical Configuration
-                    </h5>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">Chunk Limit Override</label>
-                      <div className="max-w-xs">
-                        {renderField('chunk_limit_override', 'Chunk Limit Override', 'number')}
+                  {/* Technical Configuration - Super Admin Only */}
+                  {isSuperAdmin && (
+                    <div className="mb-6">
+                      <h5 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Technical Configuration
+                      </h5>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">Chunk Limit Override</label>
+                        <div className="max-w-xs">
+                          {renderField('chunk_limit_override', 'Chunk Limit Override', 'number')}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Override the default maximum number of chunks to process (leave empty for default)
+                        </p>
                       </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Override the default maximum number of chunks to process (leave empty for default)
-                      </p>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -867,7 +875,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                     </div>
                     <div>
                       <h4 className="text-lg font-semibold text-gray-900">Downloadable Files</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">Upload files to Supabase storage or add external URLs</p>
+                      <p className="text-xs text-gray-600 mt-0.5">Upload supporting documents that will be available for download within your document chatbot interface</p>
                     </div>
                   </div>
                 </div>
@@ -880,69 +888,71 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                 </div>
               </div>
 
-              {/* Metadata & Timestamps Card */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-slate-100 rounded-lg">
-                      <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                    <h4 className="text-lg font-semibold text-gray-900">Metadata & Timestamps</h4>
-                  </div>
-                </div>
-                <div className="px-6 py-4">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div>
-                      <h5 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              {/* Metadata & Timestamps Card - Super Admin Only */}
+              {isSuperAdmin && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-slate-100 rounded-lg">
+                        <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
-                        Timestamps
-                      </h5>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Created:</span>
-                          <span className="text-gray-900 font-medium">{new Date(document.created_at).toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Updated:</span>
-                          <span className="text-gray-900 font-medium">{new Date(document.updated_at).toLocaleString()}</span>
-                        </div>
-                        {document.uploaded_by_user_id && (
-                          <div className="flex justify-between items-start pt-2 border-t border-gray-200">
-                            <span className="text-gray-600">Uploaded by:</span>
-                            <div className="text-right">
-                              <div className="text-gray-900 font-medium font-mono text-xs break-all max-w-[200px]">
-                                {document.uploaded_by_user_id}
-                              </div>
-                              {isSuperAdmin && (
-                                <div className="text-xs text-gray-500 mt-0.5">
-                                  (User ID - email available in user management)
-                                </div>
-                              )}
-                            </div>
+                      </div>
+                      <h4 className="text-lg font-semibold text-gray-900">Metadata & Timestamps</h4>
+                    </div>
+                  </div>
+                  <div className="px-6 py-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Timestamps
+                        </h5>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Created:</span>
+                            <span className="text-gray-900 font-medium">{new Date(document.created_at).toLocaleString()}</span>
                           </div>
-                        )}
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Updated:</span>
+                            <span className="text-gray-900 font-medium">{new Date(document.updated_at).toLocaleString()}</span>
+                          </div>
+                          {document.uploaded_by_user_id && (
+                            <div className="flex justify-between items-start pt-2 border-t border-gray-200">
+                              <span className="text-gray-600">Uploaded by:</span>
+                              <div className="text-right">
+                                <div className="text-gray-900 font-medium font-mono text-xs break-all max-w-[200px]">
+                                  {document.uploaded_by_user_id}
+                                </div>
+                                {isSuperAdmin && (
+                                  <div className="text-xs text-gray-500 mt-0.5">
+                                    (User ID - email available in user management)
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <h5 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-                        </svg>
-                        Document Metadata
-                      </h5>
-                      <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
-                        <pre className="text-xs text-gray-700 whitespace-pre-wrap">
-                          {JSON.stringify(document.metadata, null, 2)}
-                        </pre>
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                          </svg>
+                          Document Metadata
+                        </h5>
+                        <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
+                          <pre className="text-xs text-gray-700 whitespace-pre-wrap">
+                            {JSON.stringify(document.metadata, null, 2)}
+                          </pre>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 

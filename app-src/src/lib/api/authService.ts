@@ -58,3 +58,4 @@ export function isAuthenticated(): boolean {
   return getAuthToken() !== null;
 }
 
+

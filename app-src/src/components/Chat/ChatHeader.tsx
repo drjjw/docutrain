@@ -4,7 +4,7 @@
  * Ported from vanilla JS header implementation
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { OwnerLogo } from './OwnerLogo';
 import { DocumentTitle } from './DocumentTitle';
@@ -108,11 +108,21 @@ function DocumentSubtitle({ documentSlug }: { documentSlug: string | null }) {
 interface ChatHeaderProps {
   documentSlug: string | null;
   hasAuthError?: boolean;
+  onSubtitlePresence?: (hasSubtitle: boolean) => void;
 }
 
-export function ChatHeader({ documentSlug, hasAuthError = false }: ChatHeaderProps) {
+export function ChatHeader({ documentSlug, hasAuthError = false, onSubtitlePresence }: ChatHeaderProps) {
   const [searchParams] = useSearchParams();
   const { config: docConfig } = useDocumentConfig(documentSlug || '');
+  const [hasSubtitle, setHasSubtitle] = useState(false);
+  
+  // Notify parent component about subtitle presence
+  const handleSubtitlePresence = (hasSubtitle: boolean) => {
+    setHasSubtitle(hasSubtitle);
+    if (onSubtitlePresence) {
+      onSubtitlePresence(hasSubtitle);
+    }
+  };
   
   // Get owner from document config (not URL param) - URL param is for owner mode
   // Document owner is in config.ownerInfo?.slug or config.owner
@@ -138,9 +148,9 @@ export function ChatHeader({ documentSlug, hasAuthError = false }: ChatHeaderPro
 
   return (
     <header 
-      className="fixed top-0 left-0 right-0 text-gray-900 border-b border-gray-200 z-[100]
+      className={`fixed top-0 left-0 right-0 text-gray-900 border-b border-gray-200 z-[100]
         py-3 md:py-6 px-4 md:px-6
-        overflow-hidden"
+        overflow-hidden ${hasSubtitle ? 'has-subtitle' : ''}`}
       style={{
         backgroundColor: 'rgba(255, 255, 255, 0.7)',
         backdropFilter: 'blur(12px)',
@@ -157,6 +167,7 @@ export function ChatHeader({ documentSlug, hasAuthError = false }: ChatHeaderPro
             documentSlug={documentSlug} 
             ownerSlug={ownerModeSlug}
             pubmedButton={hasPubMed && pubmedId ? <PubMedButton pmid={pubmedId} /> : undefined}
+            onSubtitlePresence={handleSubtitlePresence}
           />
         </div>
         <div className="flex-shrink-0 flex justify-end">

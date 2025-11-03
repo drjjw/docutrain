@@ -206,3 +206,4 @@ WHERE id = '<your-document-id>';
 
 **Summary**: Enabled Supabase Realtime for `user_documents` table. UI now auto-refreshes instantly when document processing completes. No code changes needed - just database configuration.
 
+

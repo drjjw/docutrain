@@ -238,3 +238,4 @@ This fix complements:
 - The delete button warning is informational only - it doesn't prevent deletion
 - Consider adding a confirmation dialog for deleting processing documents in the future
 
+

@@ -1,16 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * Regenerate Abstracts for Maker Documents
+ * Regenerate Document Abstracts
  * 
- * This script regenerates AI-generated abstracts for all Maker Pizza documents
- * using their existing chunks. It does NOT reprocess the PDFs or regenerate chunks.
+ * This script regenerates AI-generated abstracts for documents using their existing chunks.
+ * It does NOT reprocess the PDFs or regenerate chunks.
  * 
- * Usage: node scripts/regenerate-maker-abstracts.js [--dry-run] [--slug SLUG]
+ * Usage: node scripts/regenerate-abstracts.js [--dry-run] [--slug SLUG] [--owner OWNER]
  * 
  * Options:
  *   --dry-run    Show what would be done without making changes
  *   --slug SLUG  Only process documents matching this slug
+ *   --owner OWNER Owner slug to filter by (defaults to "maker")
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -185,28 +186,33 @@ async function main() {
     const args = process.argv.slice(2);
     const dryRun = args.includes('--dry-run');
     const slugArg = args.find(arg => arg.startsWith('--slug='));
+    const ownerArg = args.find(arg => arg.startsWith('--owner='));
     
     const slugFilter = slugArg ? slugArg.split('=')[1] : null;
+    const ownerSlug = ownerArg ? ownerArg.split('=')[1] : 'maker';
     
-    console.log('📝 Regenerate Abstracts for Maker Documents');
+    console.log('📝 Regenerate Abstracts for Documents');
     console.log('='.repeat(60));
     if (dryRun) {
         console.log('🔍 DRY RUN MODE - No changes will be made\n');
+    }
+    if (ownerSlug !== 'maker') {
+        console.log(`🏢 Filtering by owner: ${ownerSlug}\n`);
     }
     if (slugFilter) {
         console.log(`🎯 Filtering by slug: ${slugFilter}\n`);
     }
     
-    // Find all Maker documents (by owner slug)
-    // First get the maker owner ID
+    // Find documents by owner slug
+    // First get the owner ID
     const { data: ownerData, error: ownerError } = await supabase
         .from('owners')
         .select('id')
-        .eq('slug', 'maker')
+        .eq('slug', ownerSlug)
         .single();
     
     if (ownerError || !ownerData) {
-        console.error('❌ Error fetching maker owner:', ownerError?.message || 'Not found');
+        console.error(`❌ Error fetching owner "${ownerSlug}":`, ownerError?.message || 'Not found');
         process.exit(1);
     }
     
@@ -228,11 +234,11 @@ async function main() {
     }
     
     if (!documents || documents.length === 0) {
-        console.log('✓ No Maker documents found');
+        console.log(`✓ No documents found for owner "${ownerSlug}"`);
         return;
     }
     
-    console.log(`📋 Found ${documents.length} Maker document(s)\n`);
+    console.log(`📋 Found ${documents.length} document(s)\n`);
     
     let successCount = 0;
     let failureCount = 0;

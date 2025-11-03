@@ -36,3 +36,4 @@ DELETE FROM owners WHERE slug = 'default';
 COMMENT ON TABLE user_roles IS 'User roles within owner groups. New users should NOT be auto-assigned to any owner - they remain in holding state (no roles) until admin explicitly assigns them through the UI.';
 COMMENT ON TABLE user_owner_access IS 'Registered user access to owner groups. New users start with no access and must be assigned by an admin.';
 
+

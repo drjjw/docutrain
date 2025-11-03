@@ -3,18 +3,38 @@
  * Ported from vanilla JS ui-document.js
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDocumentConfig } from '@/hooks/useDocumentConfig';
 import { useOwnerLogo } from '@/hooks/useOwnerLogo';
 import { useSearchParams } from 'react-router-dom';
 import { useCanEditDocument } from '@/hooks/useCanEditDocument';
 import { InlineEditor } from './InlineEditor';
 
+// Hook to detect if screen is mobile (≤768px)
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 768;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return isMobile;
+}
+
 interface DocumentTitleProps {
   documentSlug: string | null;
   ownerSlug?: string | null;
   pubmedButton?: React.ReactNode;
   showSubtitle?: boolean; // Control whether to show subtitle (default: true)
+  onSubtitlePresence?: (hasSubtitle: boolean) => void; // Callback to notify parent about subtitle presence
 }
 
 /**
@@ -56,12 +76,13 @@ async function saveDocumentField(
   return true;
 }
 
-export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubtitle = true }: DocumentTitleProps) {
+export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubtitle = true, onSubtitlePresence }: DocumentTitleProps) {
   const { config, loading } = useDocumentConfig(documentSlug || '');
   const { config: ownerConfig } = useOwnerLogo(ownerSlug);
   const [searchParams] = useSearchParams();
   const { canEdit } = useCanEditDocument(documentSlug || '');
   const [refreshKey, setRefreshKey] = useState(0);
+  const isMobile = useIsMobile();
 
   // Force refresh of document config after save
   const handleSave = useCallback(async (field: string, value: string) => {
@@ -80,6 +101,25 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
     return success;
   }, [documentSlug]);
 
+  // Calculate if subtitle will be present (must be done before any early returns to satisfy Rules of Hooks)
+  const docParam = searchParams.get('doc');
+  const isMultiDocSearch = docParam?.includes('+');
+  const hasSubtitleContent = !!(
+    isMultiDocSearch || 
+    config?.category || 
+    config?.year || 
+    config?.subtitle
+  );
+
+  // Notify parent about subtitle presence for layout adjustments
+  // This must be called before any early returns (Rules of Hooks)
+  useEffect(() => {
+    if (onSubtitlePresence) {
+      const hasSubtitle = showSubtitle && hasSubtitleContent;
+      onSubtitlePresence(hasSubtitle);
+    }
+  }, [showSubtitle, hasSubtitleContent, onSubtitlePresence]);
+
   // In owner mode (URL has ?owner=), show "{Owner Name} Documents"
   const ownerMode = searchParams.get('owner');
   if (ownerMode && ownerSlug) {
@@ -94,16 +134,18 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
       ownerDisplayName = 'UKidney Medical';
     }
     
+    const ownerTitleStyles = isMobile ? {
+      display: '-webkit-box' as const,
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: 'vertical' as const,
+      overflow: 'hidden' as const,
+    } : {};
+    
     return (
       <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-center w-full">
         <div className="flex items-center justify-center gap-2 md:gap-3 w-full">
           <h1 className="m-0 text-sm md:text-2xl font-semibold text-gray-900 line-clamp-2 md:line-clamp-none leading-tight md:leading-normal"
-            style={{
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }}
+            style={ownerTitleStyles}
           >
             {ownerDisplayName} Documents
           </h1>
@@ -112,16 +154,18 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
     );
   }
 
+  const loadingStyles = isMobile ? {
+    display: '-webkit-box' as const,
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical' as const,
+    overflow: 'hidden' as const,
+  } : {};
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-center w-full">
         <h1 className="m-0 text-sm md:text-2xl font-semibold text-gray-400 animate-pulse line-clamp-2 md:line-clamp-none leading-tight md:leading-normal"
-          style={{
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
+          style={loadingStyles}
         >
           Loading...
         </h1>
@@ -134,12 +178,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
     return (
       <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-center w-full">
         <h1 className="m-0 text-sm md:text-2xl font-semibold text-gray-400 line-clamp-2 md:line-clamp-none leading-tight md:leading-normal"
-          style={{
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
+          style={loadingStyles}
         >
           Loading...
         </h1>
@@ -151,10 +190,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
   // For multi-doc, show document count
   let subtitleContent: React.ReactNode = null;
   
-  // Check if this is actually a multi-document search (doc param contains + separator)
-  const docParam = searchParams.get('doc');
-  const isMultiDocSearch = docParam?.includes('+');
-  
+  // Note: docParam and isMultiDocSearch are already declared at the top for hook calculation
   if (isMultiDocSearch) {
     // Multi-doc mode - show document count
     const docCount = docParam?.split('+').filter(Boolean).length || 0;
@@ -262,6 +298,25 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
     );
   }
 
+  // Conditional styles for mobile vs desktop
+  // On mobile: clamp to 2 lines
+  // On desktop: single line with ellipsis if too long (no wrapping)
+  const titleStyles = isMobile ? {
+    display: '-webkit-box' as const,
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical' as const,
+    overflow: 'hidden' as const,
+    wordBreak: 'break-word' as const,
+  } : {
+    // Desktop: single line, no wrapping - override any word-break settings
+    whiteSpace: 'nowrap' as const,
+    overflow: 'hidden' as const,
+    textOverflow: 'ellipsis' as const,
+    wordBreak: 'normal' as const,
+    wordWrap: 'normal' as const,
+    overflowWrap: 'normal' as const,
+  };
+
   return (
     <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-center w-full">
       {/* Title with smart multi-line wrapping - shows 2 lines on mobile, full on desktop */}
@@ -277,13 +332,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
               leading-tight md:leading-normal
               text-center
               mobile-title-clamp"
-            style={{
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              wordBreak: 'break-word',
-            }}
+            style={titleStyles}
           />
         ) : (
           <h1 
@@ -292,13 +341,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
               text-center
               mobile-title-clamp"
             title={config.title}
-            style={{
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              wordBreak: 'break-word',
-            }}
+            style={titleStyles}
           >
             {config.title}
           </h1>

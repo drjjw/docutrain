@@ -1,0 +1,29 @@
+# Commands to run on remote server (already SSH'd in)
+
+# 1. Get the actual error logs (MOST IMPORTANT - shows why it's crashing)
+pm2 logs docutrainio-bot --lines 100 --nostream
+
+# 2. Get error details from PM2
+pm2 info docutrainio-bot
+
+# 3. Try running server.js directly to see immediate error
+cd /home/docutrainio/public_html
+node server.js
+
+# 4. Check if .env file exists and has content
+ls -la .env
+cat .env | head -10
+
+# 5. Check for syntax errors in server.js
+node -c server.js
+
+# 6. Check if required files exist
+ls -la server.js package.json lib/
+
+# 7. Check if node_modules exists
+ls -la node_modules | head -3
+
+# 8. Check environment variables are loaded
+cd /home/docutrainio/public_html
+node -e "require('dotenv').config(); console.log('PORT:', process.env.PORT); console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? 'SET' : 'MISSING');"
+

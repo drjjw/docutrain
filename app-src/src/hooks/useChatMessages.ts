@@ -4,7 +4,7 @@
  * Ported from ChatPage.tsx
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { DocumentConfig } from './useDocumentConfig';
 
 interface Message {
@@ -39,6 +39,12 @@ export function useChatMessages({
   // Track if we're currently streaming (for CSS styling)
   const isStreamingRef = useRef(false);
   
+  // Rate limiting state
+  const [rateLimitError, setRateLimitError] = useState<string | null>(null);
+  const [retryAfter, setRetryAfter] = useState<number>(0);
+  const messageTimestamps = useRef<number[]>([]);
+  const countdownInterval = useRef<NodeJS.Timeout | null>(null);
+  
   // Get auth headers (same logic as vanilla JS)
   const getAuthHeaders = () => {
     try {
@@ -56,9 +62,109 @@ export function useChatMessages({
     return {};
   };
   
+  // Client-side rate limit check (mirrors backend logic)
+  const checkRateLimit = (): { allowed: boolean; retryAfter: number; reason?: string } => {
+    const now = Date.now();
+    const oneMinuteAgo = now - 60 * 1000;
+    const tenSecondsAgo = now - 10 * 1000;
+    // Enable debug logging if explicitly enabled via env var, or in development mode
+    const debugEnabled = (import.meta as any).env?.VITE_DEBUG === 'true' || (import.meta as any).env?.DEV;
+    
+    // Clean up old timestamps
+    messageTimestamps.current = messageTimestamps.current.filter(ts => ts > oneMinuteAgo);
+    
+    const messagesInLastMinute = messageTimestamps.current.length;
+    const messagesInLastTenSeconds = messageTimestamps.current.filter(ts => ts > tenSecondsAgo).length;
+    
+    // Debug logging (only if enabled)
+    if (debugEnabled) {
+      console.log('🔍 Frontend Rate Limit Check:');
+      console.log(`   📊 Last minute: ${messagesInLastMinute}/10 messages`);
+      console.log(`   ⚡ Last 10 sec: ${messagesInLastTenSeconds}/3 messages`);
+      console.log(`   ✅ Status: ${messagesInLastMinute < 10 && messagesInLastTenSeconds < 3 ? 'WITHIN LIMITS' : 'APPROACHING/EXCEEDED'}`);
+    }
+    
+    // Check 10-second burst limit (3 messages)
+    if (messagesInLastTenSeconds >= 3) {
+      const oldestInBurst = messageTimestamps.current.filter(ts => ts > tenSecondsAgo)[0];
+      const retryAfter = Math.ceil((oldestInBurst + 10 * 1000 - now) / 1000);
+      
+      if (debugEnabled) {
+        console.log(`   ❌ BURST LIMIT EXCEEDED: ${messagesInLastTenSeconds}/3 in 10 seconds`);
+        console.log(`   ⏱️  Retry after: ${retryAfter} seconds`);
+      }
+      
+      return { allowed: false, retryAfter: Math.max(retryAfter, 1), reason: 'burst' };
+    }
+    
+    // Check per-minute limit (10 messages)
+    if (messagesInLastMinute >= 10) {
+      const oldestInMinute = messageTimestamps.current[0];
+      const retryAfter = Math.ceil((oldestInMinute + 60 * 1000 - now) / 1000);
+      
+      if (debugEnabled) {
+        console.log(`   ❌ RATE LIMIT EXCEEDED: ${messagesInLastMinute}/10 in 1 minute`);
+        console.log(`   ⏱️  Retry after: ${retryAfter} seconds`);
+      }
+      
+      return { allowed: false, retryAfter: Math.max(retryAfter, 1), reason: 'rate' };
+    }
+    
+    if (debugEnabled) {
+      console.log(`   ✅ Request ALLOWED - Will record timestamp`);
+    }
+    
+    return { allowed: true, retryAfter: 0 };
+  };
+  
   // Send message (ported from vanilla JS chat.js)
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading || !sessionId) return;
+    
+    // Client-side rate limit check
+    const rateLimitCheck = checkRateLimit();
+    if (!rateLimitCheck.allowed) {
+      const errorMsg = rateLimitCheck.reason === 'burst' 
+        ? `Please slow down. Wait ${rateLimitCheck.retryAfter} seconds before sending another message.`
+        : `Rate limit reached. Please wait ${rateLimitCheck.retryAfter} seconds before sending another message.`;
+      
+      setRateLimitError(errorMsg);
+      setRetryAfter(rateLimitCheck.retryAfter);
+      
+      // Clear any existing countdown interval
+      if (countdownInterval.current) {
+        clearInterval(countdownInterval.current);
+      }
+      
+      // Update countdown every second
+      let remainingSeconds = rateLimitCheck.retryAfter;
+      countdownInterval.current = setInterval(() => {
+        remainingSeconds--;
+        if (remainingSeconds <= 0) {
+          setRateLimitError(null);
+          setRetryAfter(0);
+          if (countdownInterval.current) {
+            clearInterval(countdownInterval.current);
+            countdownInterval.current = null;
+          }
+        } else {
+          setRetryAfter(remainingSeconds);
+        }
+      }, 1000);
+      
+      return;
+    }
+    
+    // Record this message timestamp
+    const timestamp = Date.now();
+    messageTimestamps.current.push(timestamp);
+    
+    const debugEnabled = (import.meta as any).env?.VITE_DEBUG === 'true' || (import.meta as any).env?.DEV;
+    if (debugEnabled) {
+      const messagesInLastMinute = messageTimestamps.current.filter(ts => ts > timestamp - 60 * 1000).length;
+      const messagesInLastTenSeconds = messageTimestamps.current.filter(ts => ts > timestamp - 10 * 1000).length;
+      console.log(`   📈 Timestamp recorded - New counts: ${messagesInLastMinute}/10 (minute), ${messagesInLastTenSeconds}/3 (10sec)`);
+    }
     
     // Don't allow sending messages if no document is selected (owner mode)
     if (!documentSlug) {
@@ -125,6 +231,39 @@ export function useChatMessages({
         headers,
         body: JSON.stringify(requestBody),
       });
+      
+      // Handle rate limit response (429)
+      if (response.status === 429) {
+        const errorData = await response.json();
+        setRateLimitError(errorData.error || 'Rate limit exceeded');
+        const retrySeconds = errorData.retryAfter || 30;
+        setRetryAfter(retrySeconds);
+        
+        // Clear any existing countdown interval
+        if (countdownInterval.current) {
+          clearInterval(countdownInterval.current);
+        }
+        
+        // Update countdown every second
+        let remainingSeconds = retrySeconds;
+        countdownInterval.current = setInterval(() => {
+          remainingSeconds--;
+          if (remainingSeconds <= 0) {
+            setRateLimitError(null);
+            setRetryAfter(0);
+            if (countdownInterval.current) {
+              clearInterval(countdownInterval.current);
+              countdownInterval.current = null;
+            }
+          } else {
+            setRetryAfter(remainingSeconds);
+          }
+        }, 1000);
+        
+        setIsLoading(false);
+        setMessages(prev => prev.filter(msg => msg.id !== loadingMsgId));
+        return;
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -214,6 +353,37 @@ export function useChatMessages({
                 setIsLoading(false);
                 isStreamingRef.current = false; // Reset streaming flag on error
                 setMessages(prev => prev.filter(msg => msg.id !== loadingMsgId));
+                
+                // Handle rate limit errors from backend
+                if (data.rateLimitExceeded) {
+                  setRateLimitError(data.error || 'Rate limit exceeded');
+                  const retrySeconds = data.retryAfter || 30;
+                  setRetryAfter(retrySeconds);
+                  
+                  // Clear any existing countdown interval
+                  if (countdownInterval.current) {
+                    clearInterval(countdownInterval.current);
+                  }
+                  
+                  // Update countdown every second
+                  let remainingSeconds = retrySeconds;
+                  countdownInterval.current = setInterval(() => {
+                    remainingSeconds--;
+                    if (remainingSeconds <= 0) {
+                      setRateLimitError(null);
+                      setRetryAfter(0);
+                      if (countdownInterval.current) {
+                        clearInterval(countdownInterval.current);
+                        countdownInterval.current = null;
+                      }
+                    } else {
+                      setRetryAfter(remainingSeconds);
+                    }
+                  }, 1000);
+                  
+                  return; // Don't throw error for rate limits
+                }
+                
                 throw new Error(data.error || 'Unknown error');
               }
             }
@@ -243,6 +413,15 @@ export function useChatMessages({
     }
   };
   
+  // Cleanup countdown interval on unmount
+  useEffect(() => {
+    return () => {
+      if (countdownInterval.current) {
+        clearInterval(countdownInterval.current);
+      }
+    };
+  }, []);
+  
   return {
     messages,
     inputValue,
@@ -250,6 +429,9 @@ export function useChatMessages({
     isLoading,
     isStreamingRef,
     handleSendMessage,
+    rateLimitError,
+    retryAfter,
   };
 }
+
 

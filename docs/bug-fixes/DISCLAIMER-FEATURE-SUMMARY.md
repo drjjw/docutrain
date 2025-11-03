@@ -121,3 +121,4 @@ The feature is complete and ready for testing. Consider:
 - Checking mobile responsiveness
 - Verifying TOS link works correctly
 
+

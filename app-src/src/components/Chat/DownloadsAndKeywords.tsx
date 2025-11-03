@@ -8,6 +8,7 @@ import { Minus, Plus } from 'lucide-react';
 import { KeywordsCloud } from './KeywordsCloud';
 import { DownloadsSection } from './DownloadsSection';
 import { Keyword, Download } from '@/hooks/useDocumentConfig';
+import { debugLog } from '@/utils/debug';
 
 /**
  * Hook to detect mobile viewport
@@ -45,48 +46,7 @@ interface DownloadsAndKeywordsProps {
   onKeywordClick?: (term: string) => void; // Callback for keyword clicks
 }
 
-/**
- * Equalize heights of downloads and keywords containers on desktop
- * Matches vanilla JS equalizeDownloadsKeywordsHeights function
- */
-function equalizeDownloadsKeywordsHeights() {
-  const container = document.getElementById('downloadsKeywordsContainer');
-  if (!container) return;
-  
-  // Only equalize when both are present (side-by-side)
-  const downloadsSection = container.querySelector('.downloads-section');
-  const keywordsSection = container.querySelector('.document-keywords');
-  
-  if (!downloadsSection || !keywordsSection) {
-    // If only one is present, reset heights
-    if (downloadsSection) (downloadsSection as HTMLElement).style.height = '';
-    if (keywordsSection) (keywordsSection as HTMLElement).style.height = '';
-    return;
-  }
-  
-  // Only equalize on desktop (> 768px) - mobile uses vertical stacking
-  const isMobile = window.innerWidth <= 768;
-  if (isMobile) {
-    (downloadsSection as HTMLElement).style.height = '';
-    (keywordsSection as HTMLElement).style.height = '';
-    return;
-  }
-  
-  // Desktop: Reset any previously set heights to get natural heights
-  (downloadsSection as HTMLElement).style.height = '';
-  (keywordsSection as HTMLElement).style.height = '';
-  
-  // Get natural heights
-  const downloadsHeight = (downloadsSection as HTMLElement).offsetHeight;
-  const keywordsHeight = (keywordsSection as HTMLElement).offsetHeight;
-  
-  // Set both to the maximum height
-  const maxHeight = Math.max(downloadsHeight, keywordsHeight);
-  if (maxHeight > 0) {
-    (downloadsSection as HTMLElement).style.height = `${maxHeight}px`;
-    (keywordsSection as HTMLElement).style.height = `${maxHeight}px`;
-  }
-}
+// Height equalization no longer needed with unified container
 
 export function DownloadsAndKeywords({
   keywords,
@@ -106,7 +66,7 @@ export function DownloadsAndKeywords({
   
   // DEBUG: Log keywords received
   useEffect(() => {
-    console.log('[DownloadsAndKeywords] 🔍 DEBUG - Keywords received:', {
+    debugLog('[DownloadsAndKeywords] 🔍 DEBUG - Keywords received:', {
       keywords,
       keywordsType: typeof keywords,
       isArray: Array.isArray(keywords),
@@ -130,7 +90,7 @@ export function DownloadsAndKeywords({
     const hasValidTerms = hasLength && keywords.some(k => k && k.term && k.term.trim().length > 0);
     const result = isArray && hasLength && hasValidTerms;
     
-    console.log('[DownloadsAndKeywords] 🔍 DEBUG - hasKeywords calculation:', {
+    debugLog('[DownloadsAndKeywords] 🔍 DEBUG - hasKeywords calculation:', {
       isArray,
       hasLength,
       hasValidTerms,
@@ -215,60 +175,11 @@ export function DownloadsAndKeywords({
     }
   }, [hasKeywords, hasDownloads, keywords, downloads, isContainerExpanded, containerHeight]);
 
-  // Equalize heights after render and on window resize
-  useEffect(() => {
-    if (!hasKeywords && !hasDownloads) return;
-    
-    // Equalize after initial render - use longer delay to ensure keywords are fully rendered
-    // Use requestAnimationFrame + setTimeout to ensure DOM is fully updated
-    // Increased delay to ensure keywords are fully rendered in DOM
-    const timeoutId = setTimeout(() => {
-      requestAnimationFrame(() => {
-        // Double RAF to ensure all rendering is complete
-        requestAnimationFrame(() => {
-          // Additional check to ensure keywords element exists before equalizing
-          const keywordsSection = document.querySelector('.document-keywords');
-          if (hasKeywords && keywordsSection) {
-            // Verify keywords are actually rendered by checking for wordcloud content
-            const wordcloud = keywordsSection.querySelector('.document-keywords-wordcloud');
-            if (wordcloud && wordcloud.children.length === 0) {
-              // Keywords container exists but is empty - wait a bit more
-              setTimeout(() => {
-                equalizeDownloadsKeywordsHeights();
-              }, 100);
-              return;
-            }
-          }
-          equalizeDownloadsKeywordsHeights();
-        });
-      });
-    }, 200); // Increased from 150ms to 200ms to give more time for async keywords
-
-    // Handle window resize with debounce
-    let resizeTimeout: NodeJS.Timeout;
-    const handleResize = () => {
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            equalizeDownloadsKeywordsHeights();
-          });
-        });
-      }, 250);
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      clearTimeout(timeoutId);
-      clearTimeout(resizeTimeout);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [hasKeywords, hasDownloads, keywords, downloads]);
+  // Height equalization no longer needed with unified container
 
   // Don't render if neither keywords nor downloads are present
   if (!hasKeywords && !hasDownloads) {
-    console.log('[DownloadsAndKeywords] 🔍 DEBUG - Not rendering (no keywords or downloads):', {
+    debugLog('[DownloadsAndKeywords] 🔍 DEBUG - Not rendering (no keywords or downloads):', {
       hasKeywords,
       hasDownloads,
       keywordsLength: Array.isArray(keywords) ? keywords.length : 0,
@@ -277,7 +188,7 @@ export function DownloadsAndKeywords({
     return null;
   }
   
-  console.log('[DownloadsAndKeywords] 🔍 DEBUG - Rendering component:', {
+  debugLog('[DownloadsAndKeywords] 🔍 DEBUG - Rendering component:', {
     hasKeywords,
     hasDownloads,
     isContainerExpanded,
@@ -291,10 +202,20 @@ export function DownloadsAndKeywords({
     documentTitle: isMultiDoc && documentTitles[index] ? documentTitles[index] : undefined,
   }));
 
+  // Determine header text based on what's available
+  let headerText = '';
+  if (hasKeywords && hasDownloads) {
+    headerText = 'Downloads & Key Topics';
+  } else if (hasKeywords) {
+    headerText = 'Key Topics';
+  } else if (hasDownloads) {
+    headerText = 'Downloads';
+  }
+
   return (
     <div className="downloads-keywords-wrapper">
       <button
-        className="downloads-keywords-container-header"
+        className={`downloads-keywords-container-header ${isContainerExpanded ? 'expanded' : ''}`}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -302,7 +223,7 @@ export function DownloadsAndKeywords({
           setIsContainerExpanded(!isContainerExpanded);
         }}
         aria-expanded={isContainerExpanded}
-        aria-label={isContainerExpanded ? 'Collapse Downloads & Topics' : 'Expand Downloads & Topics'}
+        aria-label={isContainerExpanded ? `Collapse ${headerText}` : `Expand ${headerText}`}
         type="button"
       >
         <div 
@@ -350,7 +271,7 @@ export function DownloadsAndKeywords({
             />
           </div>
         </div>
-        <span>Downloads & Key Topics</span>
+        <span>{headerText}</span>
       </button>
       <div
         ref={containerRef}
@@ -359,33 +280,34 @@ export function DownloadsAndKeywords({
         style={{ 
           display: hasKeywords || hasDownloads ? 'flex' : 'none',
           maxHeight: isContainerExpanded && containerHeight ? `${containerHeight}px` : '0px',
-          opacity: isContainerExpanded ? 1 : undefined,
         }}
       >
-        {hasKeywords && keywords && (() => {
-          console.log('[DownloadsAndKeywords] 🔍 DEBUG - About to render KeywordsCloud:', {
-            hasKeywords,
-            keywordsExists: !!keywords,
-            keywordsLength: Array.isArray(keywords) ? keywords.length : 'N/A',
-            isExpanded: isContainerExpanded,
-            keywordsPreview: Array.isArray(keywords) ? keywords.slice(0, 3) : 'N/A'
-          });
-          return (
-            <KeywordsCloud 
-              keywords={keywords} 
-              inputRef={inputRef} 
-              onKeywordClick={onKeywordClick}
+        <div className="downloads-keywords-container-content">
+          {hasKeywords && keywords && (() => {
+            debugLog('[DownloadsAndKeywords] 🔍 DEBUG - About to render KeywordsCloud:', {
+              hasKeywords,
+              keywordsExists: !!keywords,
+              keywordsLength: Array.isArray(keywords) ? keywords.length : 'N/A',
+              isExpanded: isContainerExpanded,
+              keywordsPreview: Array.isArray(keywords) ? keywords.slice(0, 3) : 'N/A'
+            });
+            return (
+              <KeywordsCloud 
+                keywords={keywords} 
+                inputRef={inputRef} 
+                onKeywordClick={onKeywordClick}
+                isExpanded={isContainerExpanded}
+              />
+            );
+          })()}
+          {hasDownloads && downloadsWithTitles && (
+            <DownloadsSection 
+              downloads={downloadsWithTitles} 
+              isMultiDoc={isMultiDoc}
               isExpanded={isContainerExpanded}
             />
-          );
-        })()}
-        {hasDownloads && downloadsWithTitles && (
-          <DownloadsSection 
-            downloads={downloadsWithTitles} 
-            isMultiDoc={isMultiDoc}
-            isExpanded={isContainerExpanded}
-          />
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

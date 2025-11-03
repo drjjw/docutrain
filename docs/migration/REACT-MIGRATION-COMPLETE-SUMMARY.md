@@ -90,3 +90,4 @@ This document summarizes the changes made to mark the vanilla JavaScript chat co
 - Consider archiving `public/js/` to a separate `archive/` folder in the future if desired
 - Remove old migration plan docs once confident the migration is stable
 
+

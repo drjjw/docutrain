@@ -80,6 +80,10 @@ export function SelectionPrompt({ selectedText, position, onConfirm, onCancel }:
         fontSize: '14px',
         maxWidth: '300px',
       }}
+      onClick={(e) => {
+        // Prevent clicks on the prompt from bubbling up and potentially triggering selection events
+        e.stopPropagation();
+      }}
     >
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 500, marginBottom: '4px', color: '#111827' }}>
@@ -91,7 +95,11 @@ export function SelectionPrompt({ selectedText, position, onConfirm, onCancel }:
       </div>
       <div style={{ display: 'flex', gap: '8px' }}>
         <button
-          onClick={onConfirm}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onConfirm();
+          }}
           style={{
             padding: '6px 12px',
             backgroundColor: '#3b82f6',
@@ -112,7 +120,11 @@ export function SelectionPrompt({ selectedText, position, onConfirm, onCancel }:
           Yes
         </button>
         <button
-          onClick={onCancel}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent event bubbling
+            e.preventDefault(); // Prevent default behavior
+            onCancel();
+          }}
           style={{
             padding: '6px 12px',
             backgroundColor: '#f3f4f6',

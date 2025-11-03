@@ -30,6 +30,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState<DocumentWithOwner | null>(null);
   const [editorModalDoc, setEditorModalDoc] = useState<DocumentWithOwner | null>(null);
   const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
+  const [copiedSlugId, setCopiedSlugId] = useState<string | null>(null);
   const [updatingDocIds, setUpdatingDocIds] = useState<Set<string>>(new Set());
 
   // Debug editorModalDoc changes
@@ -221,6 +222,28 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
         setTimeout(() => setCopiedDocId(null), 2000);
       } catch (fallbackErr) {
         setError('Failed to copy link to clipboard');
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
+  const handleCopySlug = async (doc: DocumentWithOwner) => {
+    try {
+      await navigator.clipboard.writeText(doc.slug);
+      setCopiedSlugId(doc.id);
+      setTimeout(() => setCopiedSlugId(null), 2000); // Reset after 2 seconds
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = doc.slug;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopiedSlugId(doc.id);
+        setTimeout(() => setCopiedSlugId(null), 2000);
+      } catch (fallbackErr) {
+        setError('Failed to copy slug to clipboard');
       }
       document.body.removeChild(textArea);
     }
@@ -754,8 +777,53 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                         <div className="font-bold text-gray-900 text-base">
                           {doc.title || 'Untitled Document'}
                         </div>
-                        <div className="text-sm text-gray-500 truncate font-medium mt-0.5">
-                          {doc.subtitle || doc.slug}
+                        <div className="text-sm text-gray-500 font-medium mt-0.5 flex items-center gap-1.5 min-w-0 flex-wrap">
+                          {(() => {
+                            // Always show subtitle/category/year if available, then always show slug with copy button
+                            const parts: React.ReactNode[] = [];
+                            
+                            // Add subtitle, category, or year if available
+                            if (doc.subtitle) {
+                              parts.push(<span key="subtitle" className="truncate">{doc.subtitle}</span>);
+                            } else {
+                              const metaParts: string[] = [];
+                              if (doc.category) metaParts.push(doc.category);
+                              if (doc.year) metaParts.push(doc.year);
+                              if (metaParts.length > 0) {
+                                parts.push(<span key="meta" className="truncate">{metaParts.join(' • ')}</span>);
+                              }
+                            }
+                            
+                            // Always show slug with copy button
+                            const hasOtherContent = parts.length > 0;
+                            parts.push(
+                              <div key="slug" className="flex items-center gap-1.5 min-w-0 flex-shrink-0">
+                                {hasOtherContent && <span className="text-gray-300 mx-1">•</span>}
+                                <span className="text-gray-400">slug:</span>
+                                <span className="truncate">{doc.slug}</span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCopySlug(doc);
+                                  }}
+                                  className="flex-shrink-0 p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
+                                  title="Copy slug"
+                                >
+                                  {copiedSlugId === doc.id ? (
+                                    <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                  )}
+                                </button>
+                              </div>
+                            );
+                            
+                            return parts;
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -773,11 +841,6 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  {doc.year && (
-                    <div className="text-xs text-gray-500">
-                      Year: {doc.year}
-                    </div>
-                  )}
                   {renderActionButtons(doc, true)}
                 </div>
               </div>
@@ -796,14 +859,54 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                       <div className="font-bold text-gray-900 text-base">
                         {doc.title || 'Untitled Document'}
                       </div>
-                      <div className="text-sm text-gray-600 truncate font-medium mt-0.5">
-                        {doc.subtitle || doc.slug}
+                      <div className="text-sm text-gray-600 font-medium mt-0.5 flex items-center gap-1.5 min-w-0 flex-wrap">
+                        {(() => {
+                          // Always show subtitle/category/year if available, then always show slug with copy button
+                          const parts: React.ReactNode[] = [];
+                          
+                          // Add subtitle, category, or year if available
+                          if (doc.subtitle) {
+                            parts.push(<span key="subtitle" className="truncate">{doc.subtitle}</span>);
+                          } else {
+                            const metaParts: string[] = [];
+                            if (doc.category) metaParts.push(doc.category);
+                            if (doc.year) metaParts.push(doc.year);
+                            if (metaParts.length > 0) {
+                              parts.push(<span key="meta" className="truncate">{metaParts.join(' • ')}</span>);
+                            }
+                          }
+                          
+                          // Always show slug with copy button
+                          const hasOtherContent = parts.length > 0;
+                          parts.push(
+                            <div key="slug" className="flex items-center gap-1.5 min-w-0 flex-shrink-0">
+                              {hasOtherContent && <span className="text-gray-300 mx-1">•</span>}
+                              <span className="text-gray-400">slug:</span>
+                              <span className="truncate">{doc.slug}</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopySlug(doc);
+                                }}
+                                className="flex-shrink-0 p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
+                                title="Copy slug"
+                              >
+                                {copiedSlugId === doc.id ? (
+                                  <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
+                          );
+                          
+                          return parts;
+                        })()}
                       </div>
-                      {doc.year && (
-                        <div className="text-xs text-gray-400 font-medium mt-1">
-                          {doc.year}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>

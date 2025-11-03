@@ -127,3 +127,4 @@ When making changes to document processing:
 - ✅ No permission changes
 - ✅ Only affects how page numbers are calculated during chunking
 
+

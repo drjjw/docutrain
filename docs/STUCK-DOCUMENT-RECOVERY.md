@@ -197,3 +197,4 @@ if (userDoc.status === 'processing') {
 - Could add automatic stuck document detection/notification in the future
 - The "Force Retry" button is intentionally labeled differently to indicate it will reset the job
 
+
