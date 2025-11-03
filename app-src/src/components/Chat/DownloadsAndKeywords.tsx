@@ -206,23 +206,10 @@ export function DownloadsAndKeywords({
   });
 
   // Prepare downloads with document titles for multi-doc
-  const downloadsWithTitles = downloads?.map((download, index) => {
-    // Debug: Log download data to verify attachment_id is present
-    if (index === 0) {
-      debugLog('[DownloadsAndKeywords] 📥 DEBUG - First download:', {
-        title: download.title,
-        url: download.url,
-        attachment_id: download.attachment_id,
-        hasAttachmentId: !!download.attachment_id,
-        fullDownload: download
-      });
-    }
-    
-    return {
-      ...download,
-      documentTitle: isMultiDoc && documentTitles[index] ? documentTitles[index] : undefined,
-    };
-  });
+  const downloadsWithTitles = downloads?.map((download, index) => ({
+    ...download,
+    documentTitle: isMultiDoc && documentTitles[index] ? documentTitles[index] : undefined,
+  }));
 
   // Determine header text based on what's available
   let headerText = '';

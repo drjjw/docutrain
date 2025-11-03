@@ -188,7 +188,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
         return updatedAttachments.sort((a, b) => a.display_order - b.display_order);
       });
       
-      setEditingIndex(null);
+    setEditingIndex(null);
     } catch (error) {
       console.error('Failed to update attachment:', error);
       setUploadError('Failed to update attachment. Please try again.');
@@ -239,7 +239,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
       console.error('Failed to update attachment:', error);
       // Still update local state for better UX
       const updated = [...attachments];
-      updated[index] = { ...updated[index], [field]: value };
+    updated[index] = { ...updated[index], [field]: value };
       setAttachments(updated);
     }
   };
