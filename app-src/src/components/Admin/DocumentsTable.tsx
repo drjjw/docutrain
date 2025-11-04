@@ -531,7 +531,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
     
     // Desktop: original layout
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3 pl-2">
         {/* View Button */}
         <div className="flex flex-col items-center gap-1">
           <button
@@ -827,14 +827,14 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
         <div className="space-y-4">
           {/* Table Header Row */}
           <div className="hidden lg:grid grid-cols-12 gap-4 px-5 py-4 bg-gray-50 rounded-xl border border-gray-200/60 shadow-sm">
-            <div className="col-span-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Document</div>
-            <div className="col-span-2 text-xs font-bold text-gray-600 uppercase tracking-wider">Status</div>
-            <div className="col-span-2 text-xs font-bold text-gray-600 uppercase tracking-wider">Visibility</div>
-            <div className="col-span-2 text-xs font-bold text-gray-600 uppercase tracking-wider">Category</div>
+            <div className={`${isSuperAdmin ? 'col-span-4' : 'col-span-5'} text-xs font-bold text-gray-600 uppercase tracking-wider`}>Document</div>
+            <div className="col-span-2 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Status</div>
+            <div className="col-span-1 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Visibility</div>
+            <div className="col-span-1 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Category</div>
             {isSuperAdmin && (
-              <div className="col-span-1 text-xs font-bold text-gray-600 uppercase tracking-wider">Owner</div>
+              <div className="col-span-1 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Owner</div>
             )}
-            <div className="col-span-2 text-xs font-bold text-gray-600 uppercase tracking-wider flex justify-center">Actions</div>
+            <div className={`${isSuperAdmin ? 'col-span-3' : 'col-span-3'} text-xs font-bold text-gray-600 uppercase tracking-wider flex justify-center`}>Actions</div>
           </div>
 
           {/* Document Rows */}
@@ -874,33 +874,33 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                               }
                             }
                             
-                            // Always show slug with copy button
-                            const hasOtherContent = parts.length > 0;
-                            parts.push(
-                              <div key="slug" className="flex items-center gap-1.5 min-w-0 flex-shrink-0">
-                                {hasOtherContent && <span className="text-gray-300 mx-1">•</span>}
-                                <span className="text-gray-400">slug:</span>
-                                <span className="truncate">{doc.slug}</span>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCopySlug(doc);
-                                  }}
-                                  className="flex-shrink-0 p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
-                                  title="Copy slug"
-                                >
-                                  {copiedSlugId === doc.id ? (
-                                    <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  ) : (
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                    </svg>
-                                  )}
-                                </button>
-                              </div>
-                            );
+                          // Always show slug with copy button
+                          const hasOtherContent = parts.length > 0;
+                          parts.push(
+                            <div key="slug" className="flex items-center gap-1.5 min-w-0 flex-shrink-0 max-w-full">
+                              {hasOtherContent && <span className="text-gray-300 mx-1 flex-shrink-0">•</span>}
+                              <span className="text-gray-400 flex-shrink-0">slug:</span>
+                              <span className="truncate max-w-[120px]">{doc.slug}</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopySlug(doc);
+                                }}
+                                className="flex-shrink-0 p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
+                                title="Copy slug"
+                              >
+                                {copiedSlugId === doc.id ? (
+                                  <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
+                          );
                             
                             return parts;
                           })()}
@@ -928,7 +928,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
               {/* Desktop Grid View */}
               <div className="hidden lg:grid grid-cols-12 gap-4 p-5">
                 {/* Document Info */}
-                <div className="col-span-3">
+                <div className={`${isSuperAdmin ? 'col-span-4' : 'col-span-5'}`}>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 shadow-sm">
                       <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -959,10 +959,10 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                           // Always show slug with copy button
                           const hasOtherContent = parts.length > 0;
                           parts.push(
-                            <div key="slug" className="flex items-center gap-1.5 min-w-0 flex-shrink-0">
-                              {hasOtherContent && <span className="text-gray-300 mx-1">•</span>}
-                              <span className="text-gray-400">slug:</span>
-                              <span className="truncate">{doc.slug}</span>
+                            <div key="slug" className="flex items-center gap-1.5 min-w-0 flex-shrink-0 max-w-full">
+                              {hasOtherContent && <span className="text-gray-300 mx-1 flex-shrink-0">•</span>}
+                              <span className="text-gray-400 flex-shrink-0">slug:</span>
+                              <span className="truncate max-w-[120px]">{doc.slug}</span>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -992,17 +992,17 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                 </div>
 
                 {/* Status */}
-                <div className="col-span-2">
+                <div className="col-span-2 flex items-center justify-center">
                   {renderStatusToggle(doc)}
                 </div>
 
                 {/* Visibility */}
-                <div className="col-span-2">
+                <div className="col-span-1 flex items-center justify-center">
                   {renderVisibilityBadge(doc.access_level || 'public')}
                 </div>
 
                 {/* Category */}
-                <div className="col-span-2 flex items-center">
+                <div className="col-span-1 flex items-center justify-center">
                   {doc.category ? (
                     <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200/50 shadow-sm">
                       {doc.category}
@@ -1031,7 +1031,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                 )}
 
                 {/* Actions */}
-                <div className="col-span-2 flex justify-center">
+                <div className={`${isSuperAdmin ? 'col-span-3' : 'col-span-3'} flex justify-center pl-4`}>
                   {renderActionButtons(doc)}
                 </div>
               </div>

@@ -117,7 +117,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
         url: urlData.publicUrl,
         storage_path: filePath,
         file_size: pendingFile.size,
-        mime_type: pendingFile.type || null,
+        mime_type: pendingFile.type || undefined,
       });
 
       // Update local state
