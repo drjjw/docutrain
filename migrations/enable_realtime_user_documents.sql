@@ -9,3 +9,4 @@ ALTER PUBLICATION supabase_realtime ADD TABLE user_documents;
 
 
 
+

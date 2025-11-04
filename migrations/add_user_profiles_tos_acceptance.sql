@@ -42,3 +42,4 @@ COMMENT ON COLUMN user_profiles.tos_version IS 'Version of TOS that was accepted
 
 
 
+

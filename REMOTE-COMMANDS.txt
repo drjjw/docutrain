@@ -56,3 +56,4 @@ pm2 logs docutrainio-bot --lines 30 --nostream
 journalctl -u pm2-root -n 50 --no-pager 2>/dev/null || dmesg | tail -20
 
 
+

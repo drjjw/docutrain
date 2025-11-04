@@ -28,3 +28,4 @@ cd /home/docutrainio/public_html
 node -e "require('dotenv').config(); console.log('PORT:', process.env.PORT); console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? 'SET' : 'MISSING');"
 
 
+

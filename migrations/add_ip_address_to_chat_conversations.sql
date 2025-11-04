@@ -13,3 +13,4 @@ ON chat_conversations (ip_address);
 -- Add comment for documentation
 COMMENT ON COLUMN chat_conversations.ip_address IS 'IP address for conversation tracking. NULL for legacy records or when IP cannot be determined.';
 
+
