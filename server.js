@@ -19,6 +19,7 @@ const { createPermissionsRouter } = require('./lib/routes/permissions');
 const { createUsersRouter } = require('./lib/routes/users');
 const { createProcessingRouter } = require('./lib/routes/processing');
 const { createContactRouter } = require('./lib/routes/contact');
+const { createMonitoringRouter } = require('./lib/routes/monitoring');
 const rag = require('./lib/rag');
 
 const app = express();
@@ -184,6 +185,7 @@ app.use('/api', createRatingRouter(supabase));
 app.use('/api', createCacheRouter(embeddingCache));
 app.use('/api', createHealthRouter(supabase, documentRegistry, registryState));
 app.use('/api', createContactRouter());
+app.use('/api/monitoring', createMonitoringRouter(supabase));
 
 // Global error handler for API routes
 app.use('/api', (err, req, res, next) => {

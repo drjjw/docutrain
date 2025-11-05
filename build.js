@@ -220,6 +220,17 @@ const logoFiles = [
     { from: 'app-src/public/chat-cover-place.jpeg', to: 'public/chat-cover-place.jpeg' }
 ];
 
+// Copy monitoring dashboard
+console.log('\n📊 Copying monitoring dashboard:');
+const monitorHtmlSource = path.join(__dirname, 'public/monitor.html');
+const monitorHtmlDest = path.join(publicDistDir, 'monitor.html');
+if (fs.existsSync(monitorHtmlSource)) {
+    fs.copyFileSync(monitorHtmlSource, monitorHtmlDest);
+    console.log('✓ Copied monitor.html (monitoring dashboard)');
+} else {
+    console.log('⚠️  Warning: monitor.html not found - monitoring dashboard will not be available');
+}
+
 // Copy lib directory (for local embeddings module)
 console.log('\n📦 Copying lib directory:');
 const libSourceDir = path.join(__dirname, 'lib');
