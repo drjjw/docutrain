@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/UI/Button';
+import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/UI/Tabs';
 import { updateDocument, checkSlugUniqueness } from '@/lib/supabase/admin';
 import { DocumentOverviewSection } from './DocumentOverviewSection';
 import { DocumentRetrainSection } from './DocumentRetrainSection';
@@ -18,7 +19,6 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retraining, setRetraining] = useState(false);
-  const [showRetrainSection, setShowRetrainSection] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [yearError, setYearError] = useState<string | null>(null);
 
@@ -299,111 +299,131 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
             </div>
           )}
 
-          {/* Scrollable content area */}
+          {/* Scrollable content area with tabs */}
           <div className="flex-1 overflow-y-auto px-6 py-6">
-            <div className="space-y-8">
-              {/* Document Overview */}
-              <DocumentOverviewSection
-                documentId={document.id}
-                slug={editingValues.slug || ''}
-                onSlugChange={(value) => handleFieldChange('slug', value)}
-                ownerId={editingValues.owner_id}
-                onOwnerChange={(value) => handleFieldChange('owner_id', value || null)}
-                owners={owners}
-                isSuperAdmin={isSuperAdmin}
-              />
+            <Tabs defaultIndex={0}>
+              <TabList>
+                <Tab index={0}>Overview</Tab>
+                <Tab index={1}>Basic Information</Tab>
+                <Tab index={2}>Settings & Access</Tab>
+                <Tab index={3}>UI & Downloads</Tab>
+                {isSuperAdmin && <Tab index={4}>Metadata</Tab>}
+              </TabList>
 
-              {/* Retrain Document Section */}
-              <DocumentRetrainSection
-                document={document}
-                showSection={showRetrainSection}
-                onToggleSection={() => setShowRetrainSection(!showRetrainSection)}
-                retraining={retraining}
-                onRetrainStart={() => {
-                  setRetraining(true);
-                  setError(null);
-                }}
-                onRetrainSuccess={() => {
-                  setRetraining(false);
-                  setShowRetrainSection(false);
-                  onSave(); // Refresh the document list
-                }}
-                onRetrainError={(err) => {
-                  setRetraining(false);
-                  setError(err);
-                }}
-              />
+              <TabPanels>
+                {/* Tab 1: Overview */}
+                <TabPanel>
+                  <div className="space-y-8">
+                    <DocumentOverviewSection
+                      documentId={document.id}
+                      slug={editingValues.slug || ''}
+                      onSlugChange={(value) => handleFieldChange('slug', value)}
+                      ownerId={editingValues.owner_id}
+                      onOwnerChange={(value) => handleFieldChange('owner_id', value || null)}
+                      owners={owners}
+                      isSuperAdmin={isSuperAdmin}
+                    />
 
-              {/* Main Content Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Basic Information Card */}
-                <DocumentBasicInfoCard
-                  title={editingValues.title || ''}
-                  subtitle={editingValues.subtitle || ''}
-                  category={editingValues.category}
-                  year={editingValues.year}
-                  backLink={editingValues.back_link || ''}
-                  onFieldChange={handleFieldChange}
-                  isSuperAdmin={isSuperAdmin}
-                  yearError={yearError}
-                />
+                    <DocumentRetrainSection
+                      document={document}
+                      retraining={retraining}
+                      onRetrainStart={() => {
+                        setRetraining(true);
+                        setError(null);
+                      }}
+                      onRetrainSuccess={() => {
+                        setRetraining(false);
+                        onSave(); // Refresh the document list
+                      }}
+                      onRetrainError={(err) => {
+                        setRetraining(false);
+                        setError(err);
+                      }}
+                    />
+                  </div>
+                </TabPanel>
 
-                {/* File & Technical Details Card */}
-                <DocumentFileDetailsCard
-                  pdfFilename={editingValues.pdf_filename || ''}
-                  pdfSubdirectory={editingValues.pdf_subdirectory || ''}
-                  embeddingType={editingValues.embedding_type || 'openai'}
-                  cover={editingValues.cover || ''}
-                  onFieldChange={handleFieldChange}
-                  onCoverChange={(url) => handleFieldChange('cover', url)}
-                  documentId={document.id}
-                  isSuperAdmin={isSuperAdmin}
-                />
-              </div>
+                {/* Tab 2: Basic Information */}
+                <TabPanel>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <DocumentBasicInfoCard
+                      title={editingValues.title || ''}
+                      subtitle={editingValues.subtitle || ''}
+                      category={editingValues.category}
+                      year={editingValues.year}
+                      backLink={editingValues.back_link || ''}
+                      onFieldChange={handleFieldChange}
+                      isSuperAdmin={isSuperAdmin}
+                      yearError={yearError}
+                    />
 
-              {/* Settings & Permissions Card */}
-              <DocumentSettingsCard
-                active={editingValues.active ?? true}
-                accessLevel={editingValues.access_level || 'public'}
-                passcode={editingValues.passcode || ''}
-                ownerId={editingValues.owner_id}
-                owners={owners}
-                chunkLimitOverride={editingValues.chunk_limit_override}
-                onFieldChange={handleFieldChange}
-                isSuperAdmin={isSuperAdmin}
-              />
+                    <DocumentFileDetailsCard
+                      pdfFilename={editingValues.pdf_filename || ''}
+                      pdfSubdirectory={editingValues.pdf_subdirectory || ''}
+                      embeddingType={editingValues.embedding_type || 'openai'}
+                      cover={editingValues.cover || ''}
+                      onFieldChange={handleFieldChange}
+                      onCoverChange={(url) => handleFieldChange('cover', url)}
+                      documentId={document.id}
+                      isSuperAdmin={isSuperAdmin}
+                    />
+                  </div>
+                </TabPanel>
 
-              {/* UI Configuration Card */}
-              <DocumentUIConfigCard
-                showDocumentSelector={editingValues.show_document_selector || false}
-                showKeywords={editingValues.show_keywords !== false}
-                showDownloads={editingValues.show_downloads !== false}
-                showReferences={editingValues.show_references !== false}
-                onFieldChange={handleFieldChange}
-              />
+                {/* Tab 3: Settings & Access */}
+                <TabPanel>
+                  <div className="space-y-8">
+                    <DocumentSettingsCard
+                      active={editingValues.active ?? true}
+                      accessLevel={editingValues.access_level || 'public'}
+                      passcode={editingValues.passcode || ''}
+                      ownerId={editingValues.owner_id}
+                      owners={owners}
+                      chunkLimitOverride={editingValues.chunk_limit_override}
+                      onFieldChange={handleFieldChange}
+                      isSuperAdmin={isSuperAdmin}
+                    />
+                  </div>
+                </TabPanel>
 
-              {/* Content Messages Card */}
-              <DocumentMessagesCard
-                welcomeMessage={editingValues.welcome_message || ''}
-                introMessage={editingValues.intro_message || ''}
-                onFieldChange={handleFieldChange}
-              />
+                {/* Tab 4: UI & Downloads */}
+                <TabPanel>
+                  <div className="space-y-8">
+                    <DocumentUIConfigCard
+                      showDocumentSelector={editingValues.show_document_selector || false}
+                      showKeywords={editingValues.show_keywords !== false}
+                      showDownloads={editingValues.show_downloads !== false}
+                      showReferences={editingValues.show_references !== false}
+                      onFieldChange={handleFieldChange}
+                    />
 
-              {/* Downloads Card */}
-              <DocumentDownloadsCard
-                downloads={editingValues.downloads || []}
-                onDownloadsChange={(downloads) => handleFieldChange('downloads', downloads)}
-                documentId={document.id}
-              />
+                    <DocumentMessagesCard
+                      welcomeMessage={editingValues.welcome_message || ''}
+                      introMessage={editingValues.intro_message || ''}
+                      onFieldChange={handleFieldChange}
+                    />
 
-              {/* Metadata & Timestamps Card - Super Admin Only */}
-              {isSuperAdmin && (
-                <DocumentMetadataCard
-                  document={document}
-                  isSuperAdmin={isSuperAdmin}
-                />
-              )}
-            </div>
+                    <DocumentDownloadsCard
+                      downloads={editingValues.downloads || []}
+                      onDownloadsChange={(downloads) => handleFieldChange('downloads', downloads)}
+                      documentId={document.id}
+                    />
+                  </div>
+                </TabPanel>
+
+                {/* Tab 5: Metadata (Super Admin Only) */}
+                {isSuperAdmin && (
+                  <TabPanel>
+                    <div className="space-y-8">
+                      <DocumentMetadataCard
+                        document={document}
+                        isSuperAdmin={isSuperAdmin}
+                      />
+                    </div>
+                  </TabPanel>
+                )}
+              </TabPanels>
+            </Tabs>
           </div>
 
           {/* Footer */}

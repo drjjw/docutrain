@@ -22,8 +22,6 @@ export interface DocumentOverviewSectionProps {
 
 export interface DocumentRetrainSectionProps {
   document: DocumentWithOwner;
-  showSection: boolean;
-  onToggleSection: () => void;
   retraining: boolean;
   onRetrainStart: () => void;
   onRetrainSuccess: () => void;
