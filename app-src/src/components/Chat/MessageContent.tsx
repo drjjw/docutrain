@@ -6,7 +6,7 @@
 import { useEffect, useLayoutEffect, useRef, memo, useState } from 'react';
 import { marked } from 'marked';
 import { Copy, Check } from 'lucide-react';
-import { styleReferences, wrapDrugConversionContent, updateCitationStyles } from '@/utils/messageStyling';
+import { styleReferences, wrapDrugConversionContent } from '@/utils/messageStyling';
 
 interface MessageContentProps {
   content: string;
@@ -24,6 +24,73 @@ marked.setOptions({
 // Global state map to persist collapsed state across re-renders
 // Key: content hash, Value: Map of container index -> expanded state
 const globalCollapsedState = new Map<string, Map<number, boolean>>();
+
+/**
+ * Remove references from markdown content before parsing
+ * This prevents references from appearing in the DOM at all when showReferences is false
+ */
+function removeReferencesFromMarkdown(markdown: string): string {
+  const lines = markdown.split('\n');
+  const cleanedLines: string[] = [];
+  let inReferencesSection = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const originalLine = lines[i];
+    const trimmed = originalLine.trim();
+    
+    // Check if this line starts a references section
+    // Match: "References", "**References**", "# References", "## References", etc.
+    if (trimmed.toLowerCase() === 'references' || 
+        trimmed.toLowerCase() === '**references**' ||
+        /^#+\s*references$/i.test(trimmed) ||
+        /^\*\*references\*\*$/i.test(trimmed)) {
+      inReferencesSection = true;
+      continue; // Skip the references heading
+    }
+    
+    // If we're in references section
+    if (inReferencesSection) {
+      // Check if this line is a reference item (starts with [number])
+      if (/^\[\d+\]/.test(trimmed)) {
+        continue; // Skip reference items
+      }
+      
+      // Check if this is an empty line or whitespace
+      if (!trimmed) {
+        // Keep empty lines but they won't end the section yet
+        // We'll continue until we find non-reference content
+        continue;
+      }
+      
+      // Check if this line looks like it's still part of references
+      // (e.g., continuation lines, numbered lists that might be references)
+      if (/^\d+\.\s*\[/.test(trimmed)) {
+        continue; // Skip numbered list references
+      }
+      
+      // If we get here and the line has substantial content, we've likely left the references section
+      // Reset the flag and include this line (it's probably new content)
+      if (trimmed.length > 20 && !trimmed.toLowerCase().includes('reference')) {
+        inReferencesSection = false;
+        // Include this line after removing inline citations
+        cleanedLines.push(originalLine.replace(/\[\d+\]/g, ''));
+      } else {
+        // Still might be a reference, skip it
+        continue;
+      }
+    } else {
+      // Not in references section - include the line but remove inline citations
+      cleanedLines.push(originalLine.replace(/\[\d+\]/g, ''));
+    }
+  }
+  
+  // Join and clean up excessive blank lines
+  let result = cleanedLines.join('\n');
+  // Remove more than 2 consecutive newlines
+  result = result.replace(/\n{3,}/g, '\n\n');
+  
+  return result;
+}
 
 function MessageContentComponent({ content, role, isStreaming = false, showReferences = true }: MessageContentProps) {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -144,59 +211,9 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
       requestAnimationFrame(() => {
         if (showReferences) {
           ensureCollapsedDuringStreaming();
-        } else {
-          // Hide references during streaming if disabled
-          const containers = contentRef.current?.querySelectorAll('.references-container');
-          containers?.forEach(container => {
-            (container as HTMLElement).style.display = 'none';
-          });
-          
-          // Hide reference paragraphs and list items
-          const allElements = contentRef.current?.querySelectorAll('p, li, div');
-          allElements?.forEach(el => {
-            const text = el.textContent?.trim() || '';
-            const html = el.innerHTML.toLowerCase();
-            const hasStrong = el.querySelector('strong');
-            const strongText = hasStrong?.textContent?.trim().toLowerCase() || '';
-            
-            const isReferencesHeading = text === 'References' || 
-                                        text === '**References**' ||
-                                        strongText === 'references' ||
-                                        html.includes('<strong>references</strong>') ||
-                                        html.includes('**references**');
-            
-            const startsWithReference = text.match(/^\[\d+\]/);
-            const isInReferencesContainer = el.closest('.references-container');
-            
-            if (isReferencesHeading || startsWithReference || isInReferencesContainer) {
-              (el as HTMLElement).style.display = 'none';
-            }
-          });
-          
-          // Remove inline citations from HTML completely
-          const textElements = contentRef.current?.querySelectorAll('p, li, span, div, strong, em');
-          textElements?.forEach(el => {
-            const html = el.innerHTML;
-            if (html.includes('[')) {
-              const newHtml = html.replace(/\[\d+\]/g, '');
-              if (newHtml !== html) {
-                el.innerHTML = newHtml;
-              }
-            }
-          });
-          
-          // Hide any citation spans that were already styled
-          const citationSpans = contentRef.current?.querySelectorAll('.reference-citation');
-          citationSpans?.forEach(span => {
-            (span as HTMLElement).style.display = 'none';
-          });
-          
-          // Hide reference items and headings
-          const referenceItems = contentRef.current?.querySelectorAll('.reference-item, .references-heading, .references-heading-wrapper');
-          referenceItems?.forEach(item => {
-            (item as HTMLElement).style.display = 'none';
-          });
         }
+        // When showReferences is false, references are already removed from markdown before parsing
+        // so no need to hide anything during streaming
       });
       previousContentRef.current = content;
       return;
@@ -218,49 +235,11 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
           // Content hasn't changed and container exists - restore state immediately
           restoreCollapsedState(contentRef.current.querySelectorAll('.references-container'));
           // Only update citations for new content, don't reorganize
-        } else {
-          // Hide references if disabled - hide container and remove citations
-          existingContainer.style.display = 'none';
-          
-          // Hide all reference paragraphs and list items
-          const allElements = contentRef.current.querySelectorAll('p, li, div');
-          allElements.forEach(el => {
-            const text = el.textContent?.trim() || '';
-            const html = el.innerHTML.toLowerCase();
-            const hasStrong = el.querySelector('strong');
-            const strongText = hasStrong?.textContent?.trim().toLowerCase() || '';
-            
-            const isReferencesHeading = text === 'References' || 
-                                        text === '**References**' ||
-                                        strongText === 'references' ||
-                                        html.includes('<strong>references</strong>') ||
-                                        html.includes('**references**');
-            
-            const startsWithReference = text.match(/^\[\d+\]/);
-            const isInReferencesContainer = el.closest('.references-container');
-            
-            if (isReferencesHeading || startsWithReference || isInReferencesContainer) {
-              (el as HTMLElement).style.display = 'none';
-            }
-          });
-          
-          // Remove inline citations from the content
-          const textElements = contentRef.current.querySelectorAll('p, li, span, div, strong, em');
-          textElements.forEach(el => {
-            const html = el.innerHTML;
-            if (html.includes('[')) {
-              const newHtml = html.replace(/\[\d+\]/g, '');
-              if (newHtml !== html) {
-                el.innerHTML = newHtml;
-              }
-            }
-          });
-          
-          // Hide citation spans
-          const citationSpans = contentRef.current.querySelectorAll('.reference-citation');
-          citationSpans.forEach(span => {
-            (span as HTMLElement).style.display = 'none';
-          });
+        }
+        // When showReferences is false, references are already removed from markdown before parsing
+        // so containers shouldn't exist, but if they do (from previous render), remove them
+        if (!showReferences && existingContainer) {
+          existingContainer.remove();
         }
         return;
       }
@@ -280,71 +259,9 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
       wrapDrugConversionContent(contentRef.current);
 
       // Style references section (only if showReferences is enabled)
+      // When showReferences is false, references are already removed from markdown before parsing
       if (showReferences) {
         styleReferences(contentRef.current);
-      } else {
-        // COMPLETELY REMOVE references if disabled
-        
-        // 1. Hide/remove reference containers
-        const referencesContainers = contentRef.current.querySelectorAll('.references-container');
-        referencesContainers.forEach(container => {
-          (container as HTMLElement).style.display = 'none';
-        });
-        
-        // 2. Hide reference paragraphs (References heading, [1] text, etc.)
-        // Also check list items and other elements that might contain references
-        const allElements = contentRef.current.querySelectorAll('p, li, div');
-        allElements.forEach(el => {
-          const text = el.textContent?.trim() || '';
-          const html = el.innerHTML.toLowerCase();
-          const hasStrong = el.querySelector('strong');
-          const strongText = hasStrong?.textContent?.trim().toLowerCase() || '';
-          
-          // Check if element contains "References" heading (various formats)
-          const isReferencesHeading = text === 'References' || 
-                                      text === '**References**' ||
-                                      strongText === 'references' ||
-                                      html.includes('<strong>references</strong>') ||
-                                      html.includes('**references**');
-          
-          // Check if element starts with [number] pattern (reference item)
-          // This is the most reliable indicator of a reference item
-          const startsWithReference = text.match(/^\[\d+\]/);
-          
-          // Check if inside a references container (should already be hidden, but double-check)
-          const isInReferencesContainer = el.closest('.references-container');
-          
-          // Hide if it's a references heading, starts with [number], or is in a references container
-          if (isReferencesHeading || startsWithReference || isInReferencesContainer) {
-            (el as HTMLElement).style.display = 'none';
-          }
-        });
-        
-        // 3. Remove inline citations [1], [2], etc. from HTML completely
-        // Process all text-containing elements
-        const textElements = contentRef.current.querySelectorAll('p, li, span, div, strong, em');
-        textElements.forEach(el => {
-          const html = el.innerHTML;
-          // Remove [number] patterns from HTML
-          if (html.includes('[')) {
-            const newHtml = html.replace(/\[\d+\]/g, '');
-            if (newHtml !== html) {
-              el.innerHTML = newHtml;
-            }
-          }
-        });
-        
-        // 4. Hide any citation spans that were already styled
-        const citationSpans = contentRef.current.querySelectorAll('.reference-citation');
-        citationSpans.forEach(span => {
-          (span as HTMLElement).style.display = 'none';
-        });
-        
-        // 5. Hide reference items and headings
-        const referenceItems = contentRef.current.querySelectorAll('.reference-item, .references-heading, .references-heading-wrapper');
-        referenceItems.forEach(item => {
-          (item as HTMLElement).style.display = 'none';
-        });
       }
       
       // Always restore state after styleReferences runs (for both new and existing content)
@@ -360,6 +277,86 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
       previousContentRef.current = content;
     });
   }, [content, role, isStreaming, showReferences]);
+
+  // Helper function to remove references from a cloned DOM element
+  const removeReferencesFromClone = (element: HTMLElement): void => {
+    // 1. Remove all reference containers (this removes everything inside them including .references-content, .reference-item, etc.)
+    const referencesContainers = element.querySelectorAll('.references-container');
+    referencesContainers.forEach(container => {
+      container.remove();
+    });
+    
+    // 2. Remove reference separator horizontal rules
+    const referenceSeparators = element.querySelectorAll('.references-separator');
+    referenceSeparators.forEach(hr => {
+      hr.remove();
+    });
+    
+    // 3. Remove any remaining reference items, headings, and wrappers that might exist outside containers
+    const referenceItems = element.querySelectorAll('.reference-item, .references-heading, .references-heading-wrapper, .references-content');
+    referenceItems.forEach(item => {
+      item.remove();
+    });
+    
+    // 4. Remove citation spans (inline citations like [1])
+    const citationSpans = element.querySelectorAll('.reference-citation');
+    citationSpans.forEach(span => {
+      span.remove();
+    });
+    
+    // 5. Remove any paragraphs/list items that look like references (but weren't styled yet)
+    // Use Array.from to get a snapshot before iterating (since we're removing elements)
+    const allElements = Array.from(element.querySelectorAll('p, li'));
+    allElements.forEach(el => {
+      const text = el.textContent?.trim() || '';
+      const html = el.innerHTML.toLowerCase();
+      const hasStrong = el.querySelector('strong');
+      const strongText = hasStrong?.textContent?.trim().toLowerCase() || '';
+      
+      // Check if element contains "References" heading (various formats)
+      const isReferencesHeading = text === 'References' || 
+                                  text === '**References**' ||
+                                  strongText === 'references' ||
+                                  html.includes('<strong>references</strong>') ||
+                                  html.includes('**references**');
+      
+      // Check if element starts with [number] pattern (reference item)
+      // Also check if it's mostly just a reference (contains [number] and is short)
+      const startsWithReference = /^\[\d+\]/.test(text);
+      const isReferenceLike = /^\[\d+\]/.test(text) && text.length < 200; // Reference items are usually short
+      
+      // Remove if it's a references heading or looks like a reference item
+      if (isReferencesHeading || startsWithReference || isReferenceLike) {
+        el.remove();
+      }
+    });
+    
+    // 6. Remove inline citations [1], [2], etc. from remaining HTML content
+    // This must be done after removing citation spans, as they might contain the pattern
+    const textElements = element.querySelectorAll('p, li, span, div, strong, em, h1, h2, h3, h4, h5, h6');
+    textElements.forEach(el => {
+      const html = el.innerHTML;
+      if (html.includes('[')) {
+        // Remove citation patterns like [1], [2], etc. but preserve other brackets
+        // Match [ followed by one or more digits followed by ]
+        const newHtml = html.replace(/\[\d+\]/g, '');
+        if (newHtml !== html) {
+          el.innerHTML = newHtml;
+        }
+      }
+    });
+    
+    // 7. Clean up any empty paragraphs or list items that might remain
+    const emptyElements = Array.from(element.querySelectorAll('p, li'));
+    emptyElements.forEach(el => {
+      const text = el.textContent?.trim() || '';
+      const html = el.innerHTML.trim();
+      // Remove if empty or only contains whitespace/line breaks
+      if (!text && (!html || html === '<br>' || html === '<br/>')) {
+        el.remove();
+      }
+    });
+  };
 
   // Helper function to convert HTML to formatted plain text
   const htmlToText = (html: string): string => {
@@ -446,8 +443,17 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
     if (!contentRef.current) return;
     
     try {
-      // Get the HTML content from the rendered element
-      const htmlContent = contentRef.current.innerHTML;
+      // Clone the element to avoid modifying the original DOM
+      const clonedElement = contentRef.current.cloneNode(true) as HTMLElement;
+      
+      // If references are disabled, they should already be removed from markdown before parsing
+      // But as a safety net, remove any references that might have slipped through
+      if (!showReferences) {
+        removeReferencesFromClone(clonedElement);
+      }
+      
+      // Get the HTML content from the cloned element
+      const htmlContent = clonedElement.innerHTML;
       
       // Convert HTML to formatted plain text
       const textContent = htmlToText(htmlContent);
@@ -461,7 +467,16 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
     } catch (err) {
       // Fallback for older browsers
       try {
-        const textContent = htmlToText(contentRef.current.innerHTML);
+        // Clone the element for fallback as well
+        const clonedElement = contentRef.current.cloneNode(true) as HTMLElement;
+        
+        // If references are disabled, they should already be removed from markdown before parsing
+        // But as a safety net, remove any references that might have slipped through
+        if (!showReferences) {
+          removeReferencesFromClone(clonedElement);
+        }
+        
+        const textContent = htmlToText(clonedElement.innerHTML);
         const textArea = document.createElement('textarea');
         textArea.value = textContent;
         textArea.style.position = 'fixed';
@@ -481,14 +496,14 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
 
   // Render markdown for assistant messages, plain text for user (same as vanilla JS)
   if (role === 'assistant') {
-    const html = marked.parse(content);
-    // Add class to hide references if disabled
-    const contentClassName = `message-content${!showReferences ? ' no-references' : ''}`;
+    // Remove references from markdown before parsing if showReferences is false
+    const contentToRender = showReferences ? content : removeReferencesFromMarkdown(content);
+    const html = marked.parse(contentToRender);
     return (
       <div className="message-content-wrapper">
         <div
           ref={contentRef}
-          className={contentClassName}
+          className="message-content"
           dangerouslySetInnerHTML={{ __html: html }}
         />
         <button
