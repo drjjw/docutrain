@@ -106,6 +106,91 @@ export function useUpload() {
     }
   };
 
+  const uploadText = async (textContent: string, title: string) => {
+    if (!user) {
+      setError('You must be logged in to upload');
+      return null;
+    }
+
+    if (!title.trim()) {
+      setError('Title is required');
+      return null;
+    }
+
+    if (!textContent.trim()) {
+      setError('Text content is required');
+      return null;
+    }
+
+    if (textContent.trim().length < 10) {
+      setError('Text content must be at least 10 characters long');
+      return null;
+    }
+
+    if (textContent.length > 5000000) {
+      setError('Text content exceeds maximum length of 5,000,000 characters');
+      return null;
+    }
+
+    const words = textContent.trim().split(/\s+/).filter(word => word.length > 0);
+    if (words.length < 5) {
+      setError('Text content must contain at least 5 words');
+      return null;
+    }
+
+    try {
+      setUploading(true);
+      setError(null);
+      setSuccess(false);
+      setUploadedDocument(null);
+      setProgress(0);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Authentication required');
+      }
+
+      setProgress(30);
+
+      // Upload text directly to backend
+      const response = await fetch('/api/upload-text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          content: textContent.trim()
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const result = await response.json();
+      console.log('✅ Text upload successful:', result);
+
+      setProgress(100);
+      setSuccess(true);
+      setUploadedDocument({
+        id: result.user_document_id,
+        title: title.trim()
+      });
+
+      return { id: result.user_document_id, title: title.trim() };
+    } catch (err) {
+      const errorMessage = getUploadErrorMessage(err instanceof Error ? err : String(err));
+      setError(errorMessage);
+      return null;
+    } finally {
+      setUploading(false);
+      setTimeout(() => setProgress(0), 1000);
+    }
+  };
+
   const upload = async (file: File, title?: string) => {
     if (!user) {
       setError('You must be logged in to upload files');
@@ -285,6 +370,7 @@ export function useUpload() {
 
   return {
     upload,
+    uploadText,
     uploading,
     progress,
     error,

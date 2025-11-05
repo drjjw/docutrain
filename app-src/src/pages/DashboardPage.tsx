@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Dashboard } from '@/components/Dashboard/Dashboard';
-import { UploadZone } from '@/components/Upload/UploadZone';
+import { CombinedUploadZone } from '@/components/Upload/CombinedUploadZone';
 import { DocumentsTable, DocumentsTableRef } from '@/components/Admin/DocumentsTable';
 import { UserDocumentsTable, UserDocumentsTableRef } from '@/components/Admin/UserDocumentsTable';
 import { UsersTable } from '@/components/Admin/UsersTable';
@@ -326,11 +326,11 @@ export function DashboardPage() {
                   Upload New Document
                 </h2>
                 <p className="text-sm text-gray-600 mt-1.5">
-                  Upload PDF documents to make them available in the system
+                  Upload PDF documents or paste text content to make them available in the system
                 </p>
               </div>
               <div className="p-5 sm:p-7">
-                <UploadZone onUploadSuccess={() => {
+                <CombinedUploadZone onUploadSuccess={() => {
                   // Immediately show the processing section (upload always creates active doc)
                   setHasActiveDocuments(true);
                   // Wait 200ms before first refresh to avoid race condition with database commit
