@@ -279,14 +279,20 @@ export function DocumentAccessProvider({ children, documentSlug }: DocumentAcces
           };
         }
 
-        if (accessData.requires_auth && !user) {
+        // If requires_auth is true OR user doesn't have access and is not authenticated, redirect to login
+        // This handles owner-restricted documents that require authentication
+        if ((accessData.requires_auth || (!accessData.has_access && !user)) && !user) {
           // Auth required but user not logged in
           if (!cancelled && redirectAttemptedRef.current !== documentSlug) {
             redirectAttemptedRef.current = documentSlug;
             setLoading(false);
-            const currentUrl = window.location.pathname + window.location.search;
+            // Remove /app prefix since router basename is /app
+            const currentPath = window.location.pathname.replace(/^\/app/, '') || '/';
+            const currentSearch = window.location.search;
+            const currentUrl = currentPath + currentSearch;
             const returnUrl = encodeURIComponent(currentUrl);
-            navigate(`/login?returnUrl=${returnUrl}`, { replace: true });
+            // Use window.location.href instead of navigate to preserve query params
+            window.location.href = `/app/login?returnUrl=${returnUrl}`;
             return { config: null, errorDetails: null, error: null };
           }
         }
@@ -405,9 +411,13 @@ export function DocumentAccessProvider({ children, documentSlug }: DocumentAcces
               if (!cancelled && redirectAttemptedRef.current !== documentSlug) {
                 redirectAttemptedRef.current = documentSlug;
                 setLoading(false);
-                const currentUrl = window.location.pathname + window.location.search;
+                // Remove /app prefix since router basename is /app
+                const currentPath = window.location.pathname.replace(/^\/app/, '') || '/';
+                const currentSearch = window.location.search;
+                const currentUrl = currentPath + currentSearch;
                 const returnUrl = encodeURIComponent(currentUrl);
-                navigate(`/login?returnUrl=${returnUrl}`, { replace: true });
+                // Use window.location.href instead of navigate to preserve query params
+                window.location.href = `/app/login?returnUrl=${returnUrl}`;
                 return { config: null, errorDetails: null, error: null };
               }
             }
@@ -487,9 +497,13 @@ export function DocumentAccessProvider({ children, documentSlug }: DocumentAcces
               if (!cancelled && redirectAttemptedRef.current !== documentSlug) {
                 redirectAttemptedRef.current = documentSlug;
                 setLoading(false);
-                const currentUrl = window.location.pathname + window.location.search;
+                // Remove /app prefix since router basename is /app
+                const currentPath = window.location.pathname.replace(/^\/app/, '') || '/';
+                const currentSearch = window.location.search;
+                const currentUrl = currentPath + currentSearch;
                 const returnUrl = encodeURIComponent(currentUrl);
-                navigate(`/login?returnUrl=${returnUrl}`, { replace: true });
+                // Use window.location.href instead of navigate to preserve query params
+                window.location.href = `/app/login?returnUrl=${returnUrl}`;
                 return { config: null, errorDetails: null, error: null };
               }
             }

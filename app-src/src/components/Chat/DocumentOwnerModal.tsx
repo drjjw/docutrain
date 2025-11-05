@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { docutrainIconUrl } from '@/assets';
 
 interface DocumentOwnerModalProps {
@@ -16,6 +16,7 @@ interface DocumentOwnerModalProps {
 
 export function DocumentOwnerModal({ isOpen, customMessage, attemptedSlug }: DocumentOwnerModalProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [documentSlug, setDocumentSlug] = useState(attemptedSlug || '');
   const [ownerSlug, setOwnerSlug] = useState('');
   const [availableOwners, setAvailableOwners] = useState<string[]>([]);
@@ -79,7 +80,12 @@ export function DocumentOwnerModal({ isOpen, customMessage, attemptedSlug }: Doc
       return;
     }
     setErrorMessage(null);
-    navigate(`/chat?doc=${encodeURIComponent(slug)}`);
+    // Preserve existing URL parameters (like document_selector)
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('doc', slug);
+    // Remove owner param when selecting a document
+    newParams.delete('owner');
+    navigate(`/chat?${newParams.toString()}`);
   };
 
   const handleLoadOwner = () => {
@@ -89,7 +95,12 @@ export function DocumentOwnerModal({ isOpen, customMessage, attemptedSlug }: Doc
       return;
     }
     setErrorMessage(null);
-    navigate(`/chat?owner=${encodeURIComponent(owner)}`);
+    // Preserve existing URL parameters (like document_selector)
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('owner', owner);
+    // Remove doc param when selecting an owner
+    newParams.delete('doc');
+    navigate(`/chat?${newParams.toString()}`);
   };
 
   const handleDocumentKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {

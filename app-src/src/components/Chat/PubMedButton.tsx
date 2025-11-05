@@ -13,7 +13,6 @@ interface PubMedButtonProps {
 
 export function PubMedButton({ pmid }: PubMedButtonProps) {
   const { article, loading, error, isOpen, openPopup, closePopup } = usePubMedPopup();
-  const [isHovering, setIsHovering] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const portalRootRef = useRef<HTMLDivElement | null>(null);
 
@@ -54,29 +53,18 @@ export function PubMedButton({ pmid }: PubMedButtonProps) {
     };
   }, [isOpen]);
 
-  const handleMouseEnter = () => {
-    setIsHovering(true);
+  const handleClick = () => {
     if (!isOpen && !loading && !article) {
       openPopup(pmid);
+    } else if (isOpen) {
+      closePopup();
     }
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovering(false);
-    // Small delay before closing to allow moving to popup
-    setTimeout(() => {
-      if (!isHovering && !document.querySelector('#pubmed-popup-portal-root:hover')) {
-        closePopup();
-      }
-    }, 100);
   };
 
   const popupContent = isOpen ? (
     <div
       className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
       onClick={closePopup}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={handleMouseLeave}
     >
       <div
         className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col"
@@ -171,11 +159,13 @@ export function PubMedButton({ pmid }: PubMedButtonProps) {
       <button
         className="flex items-center gap-1 text-gray-600 hover:text-gray-900 transition-colors px-1 py-0.5 rounded-md hover:bg-gray-100"
         title="View PubMed information"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        onClick={handleClick}
         aria-label="View PubMed article information"
       >
-        <span className="text-xs md:text-sm font-medium">PubMed ID: {pmid}</span>
+        <span className="text-xs md:text-sm font-medium border-b border-dotted border-gray-500 md:border-b-0 pb-0.5 md:pb-0">
+          PubMed ID: {pmid}
+        </span>
+        {/* Hide icon on mobile, show on desktop */}
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -183,7 +173,7 @@ export function PubMedButton({ pmid }: PubMedButtonProps) {
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="w-3 h-3 md:w-3.5 md:h-3.5 flex-shrink-0"
+          className="hidden md:block w-3 h-3 md:w-3.5 md:h-3.5 flex-shrink-0"
         >
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>

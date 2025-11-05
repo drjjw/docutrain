@@ -249,8 +249,67 @@ async function generateKeywords(chunks: Array<{ content: string }>, documentTitl
   console.log(`   Total chunks available: ${chunks.length}`);
   
   try {
-    // Take the first 30 chunks (or all if less than 30) to get a good overview
-    const chunksForKeywords = chunks.slice(0, Math.min(30, chunks.length));
+    // Sample chunks from across the entire document for better keyword density analysis
+    // Strategy: sample evenly across the document for comprehensive coverage
+    let chunksForKeywords: Array<{ content: string }> = [];
+    const totalChunks = chunks.length;
+    
+    if (totalChunks <= 50) {
+      // If document is small, use all chunks
+      chunksForKeywords = chunks;
+    } else {
+      // For larger documents, sample more chunks for better keyword density analysis
+      // Target: Use ~10% of chunks, up to 300 chunks (to stay within token limits)
+      const targetSampleSize = Math.min(300, Math.max(100, Math.floor(totalChunks * 0.1)));
+      
+      // Sample evenly across the document for comprehensive coverage
+      const step = Math.floor(totalChunks / targetSampleSize);
+      const usedIndices = new Set<number>();
+      
+      for (let i = 0; i < totalChunks && chunksForKeywords.length < targetSampleSize; i += step) {
+        if (!usedIndices.has(i)) {
+          chunksForKeywords.push(chunks[i]);
+          usedIndices.add(i);
+        }
+      }
+      
+      // Ensure we have samples from beginning, middle, and end
+      if (chunksForKeywords.length < targetSampleSize) {
+        // Add beginning chunks if not already included
+        for (let i = 0; i < Math.min(30, totalChunks) && chunksForKeywords.length < targetSampleSize; i++) {
+          if (!usedIndices.has(i)) {
+            chunksForKeywords.push(chunks[i]);
+            usedIndices.add(i);
+          }
+        }
+        
+        // Add middle chunks
+        const middleStart = Math.floor(totalChunks / 2) - 15;
+        for (let i = middleStart; i < middleStart + 30 && chunksForKeywords.length < targetSampleSize && i < totalChunks; i++) {
+          if (!usedIndices.has(i)) {
+            chunksForKeywords.push(chunks[i]);
+            usedIndices.add(i);
+          }
+        }
+        
+        // Add end chunks
+        for (let i = Math.max(0, totalChunks - 30); i < totalChunks && chunksForKeywords.length < targetSampleSize; i++) {
+          if (!usedIndices.has(i)) {
+            chunksForKeywords.push(chunks[i]);
+            usedIndices.add(i);
+          }
+        }
+      }
+      
+      // Sort by original index to maintain some order
+      chunksForKeywords.sort((a, b) => {
+        const aIndex = chunks.indexOf(a);
+        const bIndex = chunks.indexOf(b);
+        return aIndex - bIndex;
+      });
+    }
+    
+    console.log(`   📋 Sampling ${chunksForKeywords.length} chunks from across document`);
     
     // Combine chunk content
     const combinedText = chunksForKeywords
@@ -258,7 +317,10 @@ async function generateKeywords(chunks: Array<{ content: string }>, documentTitl
       .join('\n\n');
     
     // Truncate if too long (to stay within token limits)
-    const maxChars = 20000; // ~5000 tokens
+    // gpt-4o-mini has 128k context window, so we can use more
+    // Reserve ~25k tokens for system prompt, user prompt template, and response
+    // That leaves ~100k tokens (~400k chars) for document content
+    const maxChars = 400000; // ~100k tokens (leaving room for prompts and response)
     const textForKeywords = combinedText.length > maxChars 
       ? combinedText.substring(0, maxChars) + '...'
       : combinedText;
@@ -276,7 +338,7 @@ async function generateKeywords(chunks: Array<{ content: string }>, documentTitl
         }
       ],
       temperature: 0.7,
-      max_tokens: 500,
+      max_tokens: 800, // Increased to avoid truncation
       response_format: { type: "json_object" }
     });
     

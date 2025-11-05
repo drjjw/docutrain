@@ -4,10 +4,12 @@ import { createDocument } from '@/lib/supabase/database';
 import { getFileValidationError } from '@/lib/utils/validation';
 import { getUploadErrorMessage } from '@/lib/utils/errors';
 import { useAuth } from './useAuth';
+import { usePermissions } from './usePermissions';
 import { supabase } from '@/lib/supabase/client';
 
 export function useUpload() {
   const { user } = useAuth();
+  const { isSuperAdmin } = usePermissions();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +113,7 @@ export function useUpload() {
     }
 
     // Validate file
-    const validationError = getFileValidationError(file);
+    const validationError = getFileValidationError(file, isSuperAdmin);
     if (validationError) {
       setError(validationError);
       return null;

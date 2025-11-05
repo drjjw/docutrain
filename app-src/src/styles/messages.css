@@ -35,9 +35,18 @@
   line-height: 1.6;
 }
 
+/* Message content wrapper for assistant messages (to position copy button) */
+.message.assistant .message-content-wrapper {
+  position: relative;
+  max-width: min(120ch, 1400px);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Assistant messages use full width */
 .message.assistant .message-content {
-  max-width: 90%;
+  max-width: min(120ch, 1400px);
   padding: 20px 24px;
   border-radius: 8px;
   height: 100%;
@@ -59,6 +68,7 @@
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   color: #212529;
   border: 1px solid #e9ecef;
+  border-left: 3px solid #6c757d; /* Subtle gray accent for user messages */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -66,6 +76,7 @@
 .message.user .message-content:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.08);
+  border-left-color: #5a6268; /* Slightly darker on hover */
 }
 
 /* Assistant Message Styling */
@@ -73,13 +84,15 @@
   background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
   color: #212529;
   border: 1px solid #e9ecef;
+  border-left: 3px solid var(--accent-color, #34a2ff); /* Document owner accent color, defaults to #34a2ff */
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05), 0 1px 4px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-left-color 0.2s ease;
 }
 
 .message.assistant .message-content:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-left-color: var(--accent-color-hover, #2c89d8); /* Darker accent on hover, defaults to darker #34a2ff */
 }
 
 /* Markdown styling for assistant messages */
@@ -373,6 +386,54 @@ hr.references-separator {
 /* Smooth scrolling for chat container during streaming */
 .chat-container-streaming {
   scroll-behavior: smooth;
+}
+
+/* Copy button for assistant messages */
+.message-copy-button {
+  align-self: flex-end;
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #6c757d;
+  transition: all 0.2s ease;
+  font-size: 0.85em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-height: 28px;
+}
+
+.message-copy-button .copy-button-text {
+  font-weight: 500;
+}
+
+.message-copy-button:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: var(--accent-color, #34a2ff);
+  color: var(--accent-color, #34a2ff);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.message-copy-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Show button when copied state */
+.message-copy-button[aria-label*="Copied"] {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: #22c55e;
+}
+
+.message-copy-button[aria-label*="Copied"] .copy-button-text,
+.message-copy-button[aria-label*="Copied"] svg {
+  color: #22c55e;
 }
 
 /* Streaming messages - no animation to prevent jittering */

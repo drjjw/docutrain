@@ -9,6 +9,7 @@
  */
 
 import { useRef, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MessageContent } from '@/components/Chat/MessageContent';
 import { ChatHeader } from '@/components/Chat/ChatHeader';
 import { LoadingMessage } from '@/components/Chat/LoadingMessage';
@@ -86,6 +87,8 @@ function ChatPageContent({
   // ============================================================================
   const { user, loading: authLoading } = useAuth();
   const permissions = usePermissions();
+  const navigate = useNavigate();
+  const [checkingOwnerAccess, setCheckingOwnerAccess] = useState(false);
   
   // ============================================================================
   // SECTION 3: Session Management
@@ -109,6 +112,64 @@ function ChatPageContent({
   // Set accent color CSS variables based on document owner
   useAccentColor(ownerLogoConfig?.accentColor);
   
+  // ============================================================================
+  // SECTION 5.5: Early Owner Access Check (Before Any Rendering)
+  // ============================================================================
+  // If user is not authenticated and we're in owner mode, check for public docs
+  // This prevents any UI flash before redirect
+  useEffect(() => {
+    // Only check if we're in owner mode, auth has finished loading, user is not authenticated, and no document is selected
+    if (!ownerParam || authLoading || user || documentSlug) {
+      setCheckingOwnerAccess(false);
+      return;
+    }
+
+    // User is not authenticated and we're in owner mode without a document - check if public docs exist
+    async function checkOwnerAccess() {
+      setCheckingOwnerAccess(true);
+      try {
+        const apiUrl = `/api/documents?owner=${encodeURIComponent(ownerParam)}`;
+        const { getAuthHeaders } = await import('@/lib/api/authService');
+        const headers = getAuthHeaders();
+        
+        const response = await fetch(apiUrl, { headers });
+        
+        if (response.status === 403) {
+          // Try to parse error response
+          let errorData;
+          try {
+            errorData = await response.json();
+          } catch (e) {
+            errorData = { error_type: 'access_denied' };
+          }
+          
+          // If requires_auth is true, redirect immediately
+          if (errorData.requires_auth === true) {
+            // Capture the full URL including pathname and search params
+            // Remove /app prefix since router basename is /app
+            const currentPath = window.location.pathname.replace(/^\/app/, '') || '/';
+            const currentSearch = window.location.search;
+            const currentUrl = currentPath + currentSearch;
+            const returnUrl = encodeURIComponent(currentUrl);
+            // Use window.location.href instead of navigate to ensure URL params are preserved
+            window.location.href = `/app/login?returnUrl=${returnUrl}`;
+            return;
+          }
+        }
+        
+        // If we got here, either there are public docs or it's a different error
+        // Let the normal flow handle it
+        setCheckingOwnerAccess(false);
+      } catch (error) {
+        // On error, let the normal flow handle it
+        console.error('[ChatPage] Early owner access check error:', error);
+        setCheckingOwnerAccess(false);
+      }
+    }
+
+    checkOwnerAccess();
+  }, [ownerParam, authLoading, user, documentSlug]);
+
   // ============================================================================
   // SECTION 6: Realtime Document Sync
   // ============================================================================
@@ -218,7 +279,7 @@ function ChatPageContent({
   // ============================================================================
   // SECTION 11: Early Returns (Loading States)
   // ============================================================================
-  if (authLoading || isCheckingAccess) {
+  if (authLoading || isCheckingAccess || checkingOwnerAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -362,6 +423,7 @@ function ChatPageContent({
           onCancel={handleSelectionCancel}
         />
       )}
+
     </div>
   );
 }

@@ -134,6 +134,11 @@ export function CombinedHeaderMenu({
 
   // Only show mobile menu if we have user OR document selector (but not in modal mode)
   const shouldShowMobileMenu = isMobile && (!!user || shouldShowInHeader);
+  
+  // On mobile, if there's nothing to show, return null
+  if (isMobile && !shouldShowMobileMenu) {
+    return null;
+  }
 
   if (!shouldShowMobileMenu) {
     // Desktop view: show separate components

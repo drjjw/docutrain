@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Alert } from '@/components/UI/Alert';
 import { useUpload } from '@/hooks/useUpload';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface UploadZoneProps {
   onUploadSuccess?: () => void;
@@ -11,6 +12,7 @@ export function UploadZone({ onUploadSuccess }: UploadZoneProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { upload, uploading, progress, error, success, uploadedDocument, retryingProcessing, retryMessage, reset } = useUpload();
+  const { isSuperAdmin } = usePermissions();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -94,7 +96,9 @@ export function UploadZone({ onUploadSuccess }: UploadZoneProps) {
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            PDF files only, max {import.meta.env.PROD ? '50' : '200'}MB
+            PDF files only, max {isSuperAdmin 
+              ? (import.meta.env.PROD ? '75' : '200')
+              : (import.meta.env.PROD ? '50' : '200')}MB
           </p>
         </div>
 

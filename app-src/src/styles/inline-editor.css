@@ -30,18 +30,30 @@
 }
 
 /* Edit icon when positioned inline (for headerTitle and welcomeTitle) */
+/* Now uses absolute positioning to keep title centered */
 .header-title-wrapper .inline-edit-icon,
 .welcome-title-wrapper .inline-edit-icon {
-    position: static;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
     flex-shrink: 0;
-    align-self: center;
+}
+
+/* Header title wrapper styling */
+.header-title-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
 }
 
 /* Welcome title wrapper styling */
 .welcome-title-wrapper {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    position: relative;
     margin-bottom: 12px;
 }
 

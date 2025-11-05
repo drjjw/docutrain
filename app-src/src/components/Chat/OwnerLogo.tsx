@@ -27,14 +27,27 @@ export function OwnerLogo({ ownerSlug }: OwnerLogoProps) {
       e.preventDefault();
       return;
     }
-    // Navigate to owner page
-    navigate(`/app/chat?owner=${encodeURIComponent(ownerSlug)}`);
+    // Navigate to owner page, preserving existing URL parameters (like document_selector)
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('owner', ownerSlug);
+    // Remove doc param when selecting an owner
+    newParams.delete('doc');
+    navigate(`/app/chat?${newParams.toString()}`);
+  };
+
+  // Build href with preserved parameters
+  const buildHref = () => {
+    if (ownerLinkDisabled) return '#';
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('owner', ownerSlug);
+    newParams.delete('doc');
+    return `/app/chat?${newParams.toString()}`;
   };
 
   return (
     <div className="flex items-center justify-start flex-shrink-0 w-full h-full">
       <a
-        href={ownerLinkDisabled ? '#' : `/app/chat?owner=${encodeURIComponent(ownerSlug)}`}
+        href={buildHref()}
         onClick={handleClick}
         className={`flex items-center transition-opacity hover:opacity-80 w-full ${
           ownerLinkDisabled ? 'cursor-default' : ''

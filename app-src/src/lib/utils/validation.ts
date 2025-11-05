@@ -33,11 +33,19 @@ export function validateFileType(file: File): boolean {
 }
 
 /**
- * Validate file size (environment-aware: 200MB dev, 50MB prod)
+ * Validate file size (environment-aware: 200MB dev, 50MB prod, 75MB for superadmin)
  */
-export function validateFileSize(file: File, maxSizeMB?: number): boolean {
-  // Use 200MB for development, 50MB for production
-  const defaultMaxSize = import.meta.env.PROD ? 50 : 200;
+export function validateFileSize(file: File, maxSizeMB?: number, isSuperAdmin?: boolean): boolean {
+  let defaultMaxSize: number;
+  
+  if (isSuperAdmin) {
+    // Superadmin: 75MB in production, 200MB in development
+    defaultMaxSize = import.meta.env.PROD ? 75 : 200;
+  } else {
+    // Regular users: 50MB in production, 200MB in development
+    defaultMaxSize = import.meta.env.PROD ? 50 : 200;
+  }
+  
   const maxSize = maxSizeMB ?? defaultMaxSize;
   const maxSizeBytes = maxSize * 1024 * 1024;
   return file.size <= maxSizeBytes;
@@ -46,14 +54,17 @@ export function validateFileSize(file: File, maxSizeMB?: number): boolean {
 /**
  * Get file validation error message
  */
-export function getFileValidationError(file: File): string | null {
-  const maxSize = import.meta.env.PROD ? 50 : 200;
-  console.log('[validation] PROD:', import.meta.env.PROD, 'DEV:', import.meta.env.DEV, 'Max size:', maxSize, 'MB');
+export function getFileValidationError(file: File, isSuperAdmin?: boolean): string | null {
+  const maxSize = isSuperAdmin 
+    ? (import.meta.env.PROD ? 75 : 200)
+    : (import.meta.env.PROD ? 50 : 200);
+  
+  console.log('[validation] PROD:', import.meta.env.PROD, 'DEV:', import.meta.env.DEV, 'SuperAdmin:', isSuperAdmin, 'Max size:', maxSize, 'MB');
   
   if (!validateFileType(file)) {
     return 'Only PDF files are allowed';
   }
-  if (!validateFileSize(file)) {
+  if (!validateFileSize(file, undefined, isSuperAdmin)) {
     return `File size must be less than ${maxSize}MB`;
   }
   return null;

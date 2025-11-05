@@ -65,7 +65,7 @@ export function PublicHeader() {
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200/60 shadow-sm sticky top-0 z-50 backdrop-blur-sm bg-white/95">
+      <header className="bg-white border-b border-gray-200/60 shadow-sm md:sticky md:top-0 z-50 backdrop-blur-sm bg-white/95">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
@@ -116,29 +116,56 @@ export function PublicHeader() {
               )}
             </nav>
 
-            {/* Mobile Menu Toggle */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden flex flex-col justify-center gap-1.5 w-10 h-10 rounded-lg transition-colors hover:bg-gray-100"
-              aria-label="Toggle menu"
-              aria-expanded={isMobileMenuOpen}
-            >
-              <span
-                className={`block h-0.5 w-6 bg-gray-700 transition-all ${
-                  isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''
-                }`}
-              />
-              <span
-                className={`block h-0.5 w-6 bg-gray-700 transition-all ${
-                  isMobileMenuOpen ? 'opacity-0' : ''
-                }`}
-              />
-              <span
-                className={`block h-0.5 w-6 bg-gray-700 transition-all ${
-                  isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''
-                }`}
-              />
-            </button>
+            {/* Mobile: Show key navigation items + menu toggle */}
+            <div className="md:hidden flex items-center gap-2">
+              {/* Key navigation items - only show if user is not logged in */}
+              {!user && (
+                <nav className="flex items-center gap-3 mr-2">
+                  {/* Show most important links */}
+                  {navLinks
+                    .filter(link => ['Chat', 'Contact'].includes(link.label))
+                    .map((link) => (
+                      <a
+                        key={link.href}
+                        href={link.href}
+                        onClick={(e) => {
+                          if (link.href.startsWith('/#')) {
+                            e.preventDefault();
+                            handleLinkClick(link.href, e);
+                          }
+                        }}
+                        className="text-gray-600 hover:text-gray-900 font-medium text-xs transition-colors whitespace-nowrap px-2 py-1.5 rounded-md hover:bg-gray-50"
+                      >
+                        {link.label}
+                      </a>
+                    ))}
+                </nav>
+              )}
+              
+              {/* Mobile Menu Toggle */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="flex flex-col justify-center gap-1.5 w-10 h-10 rounded-lg transition-colors hover:bg-gray-100 flex-shrink-0"
+                aria-label="Toggle menu"
+                aria-expanded={isMobileMenuOpen}
+              >
+                <span
+                  className={`block h-0.5 w-6 bg-gray-700 transition-all ${
+                    isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''
+                  }`}
+                />
+                <span
+                  className={`block h-0.5 w-6 bg-gray-700 transition-all ${
+                    isMobileMenuOpen ? 'opacity-0' : ''
+                  }`}
+                />
+                <span
+                  className={`block h-0.5 w-6 bg-gray-700 transition-all ${
+                    isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''
+                  }`}
+                />
+              </button>
+            </div>
           </div>
         </div>
       </header>

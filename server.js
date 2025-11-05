@@ -295,22 +295,15 @@ async function serveReactAppWithMetaTags(req, res) {
         const indexPath = path.join(__dirname, 'dist/app/index.html');
         let html = fs.readFileSync(indexPath, 'utf8');
         
-        // Get base URL components
-        const protocol = req.protocol;
-        const host = req.get('host');
-        const baseUrl = `${protocol}://${host}`;
-        
-        // Use PUBLIC_BASE_URL for canonical URLs if set, otherwise use request-based URL
-        const publicBaseUrl = process.env.PUBLIC_BASE_URL || baseUrl;
-        // Remove trailing slash from PUBLIC_BASE_URL if present
-        const canonicalBaseUrl = publicBaseUrl.replace(/\/$/, '');
+        // Hardcode to production URL base
+        const canonicalBaseUrl = 'https://www.docutrain.io';
         
         // Always set og:url and canonical for the base page (even without doc param)
         const currentUrl = `${canonicalBaseUrl}${req.originalUrl}`;
         const escapedCurrentUrl = escapeHtml(currentUrl);
         
         // Convert default image to absolute URL
-        const defaultOgImage = ensureAbsoluteUrl('/chat-cover-place.jpeg', protocol, host);
+        const defaultOgImage = ensureAbsoluteUrl('/chat-cover-place.jpeg', 'https', 'www.docutrain.io');
         const escapedDefaultOgImage = defaultOgImage ? escapeHtml(defaultOgImage) : '';
         
         // Update og:url and canonical for base page
@@ -367,14 +360,14 @@ async function serveReactAppWithMetaTags(req, res) {
                     const escapedTitle = escapeHtml(combinedTitle);
                     const escapedDescription = escapeHtml(metaDescription);
                     
-                    // Get the current URL for og:url and canonical (use PUBLIC_BASE_URL if set)
+                    // Get the current URL for og:url and canonical
                     const url = `${canonicalBaseUrl}${req.originalUrl}`;
                     const escapedUrl = escapeHtml(url);
                     
                     // Get cover image if available (for og:image)
                     // Convert to absolute URL if needed
                     const coverImage = validConfigs[0].cover || null;
-                    const ogImage = coverImage ? ensureAbsoluteUrl(coverImage, protocol, host) : ensureAbsoluteUrl('/chat-cover-place.jpeg', protocol, host);
+                    const ogImage = coverImage ? ensureAbsoluteUrl(coverImage, 'https', 'www.docutrain.io') : ensureAbsoluteUrl('/chat-cover-place.jpeg', 'https', 'www.docutrain.io');
                     const escapedOgImage = ogImage ? escapeHtml(ogImage) : '';
                     
                     // Replace title
@@ -488,12 +481,8 @@ app.get('/', async (req, res, next) => {
         
         let html = fs.readFileSync(indexPath, 'utf8');
         
-        // Use PUBLIC_BASE_URL for canonical URLs if set, otherwise use request-based URL
-        const protocol = req.protocol;
-        const host = req.get('host');
-        const baseUrl = `${protocol}://${host}`;
-        const publicBaseUrl = process.env.PUBLIC_BASE_URL || baseUrl;
-        const canonicalBaseUrl = publicBaseUrl.replace(/\/$/, '');
+        // Hardcode to production URL base
+        const canonicalBaseUrl = 'https://www.docutrain.io';
         
         // Set canonical URL for home page
         const canonicalUrl = canonicalBaseUrl;

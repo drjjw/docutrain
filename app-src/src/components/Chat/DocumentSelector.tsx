@@ -9,6 +9,7 @@ import { useState, useEffect, useRef, useContext } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { DocumentAccessContext } from '@/contexts/DocumentAccessContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Document {
   slug: string;
@@ -32,11 +33,13 @@ interface DocumentSelectorProps {
 
 export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, hasAuthError = false }: DocumentSelectorProps) {
   const [searchParams] = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [shouldShow, setShouldShow] = useState(false); // Now a state, computed after loading documents
+  const [checkingPublicDocs, setCheckingPublicDocs] = useState(false); // Track if we're checking for public docs
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -88,10 +91,71 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
     }
   }, [shouldHideImmediately, shouldShow]);
 
+  // Early check: If in owner mode and user is not authenticated, quickly check for public docs
+  // This prevents the flash of empty UI before redirect
+  useEffect(() => {
+    // Only check if we're in owner mode and auth has finished loading
+    if (!ownerParam || authLoading || user || hasAuthError) {
+      setCheckingPublicDocs(false);
+      return;
+    }
+
+    // User is not authenticated and we're in owner mode - check if public docs exist
+    async function checkPublicDocuments() {
+      setCheckingPublicDocs(true);
+      try {
+        // Make a lightweight request to check if there are any public documents
+        const apiUrl = `/api/documents?owner=${encodeURIComponent(ownerParam!)}`;
+        const { getAuthHeaders } = await import('@/lib/api/authService');
+        const headers = getAuthHeaders();
+        
+        const response = await fetch(apiUrl, { headers });
+        
+        if (response.status === 403) {
+          // Try to parse error response
+          let errorData;
+          try {
+            errorData = await response.json();
+          } catch (e) {
+            errorData = { error_type: 'access_denied' };
+          }
+          
+          // If requires_auth is true, redirect immediately
+          if (errorData.requires_auth === true) {
+            // Capture the full URL including pathname and search params
+            // Remove /app prefix since router basename is /app
+            const currentPath = window.location.pathname.replace(/^\/app/, '') || '/';
+            const currentSearch = window.location.search;
+            const currentUrl = currentPath + currentSearch;
+            const returnUrl = encodeURIComponent(currentUrl);
+            // Use window.location.href instead of navigate to ensure URL params are preserved
+            window.location.href = `/app/login?returnUrl=${returnUrl}`;
+            return;
+          }
+        }
+        
+        // If we got here, either there are public docs or it's a different error
+        // Let the main fetch handle it
+        setCheckingPublicDocs(false);
+      } catch (error) {
+        // On error, let the main fetch handle it
+        console.error('[DocumentSelector] Early check error:', error);
+        setCheckingPublicDocs(false);
+      }
+    }
+
+    checkPublicDocuments();
+  }, [ownerParam, authLoading, user, hasAuthError]);
+
   // Load documents and determine visibility (matches vanilla JS logic)
   useEffect(() => {
     async function loadDocuments() {
       try {
+        // Skip if we're checking for public docs (early check is handling redirect)
+        if (checkingPublicDocs) {
+          return;
+        }
+
         // Skip if auth error already detected (passcode required, access denied, etc.)
         if (hasAuthError) {
           console.log('[DocumentSelector] Auth error detected, skipping document fetch');
@@ -103,7 +167,8 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
 
         // If we have document context and config, use that instead of fetching
         // This eliminates duplicate API calls, but we still need to check for owner expansion
-        if (documentContext?.config && currentDocSlug) {
+        // BUT: If document_selector=true is in URL, we need to fetch owner documents regardless
+        if (documentContext?.config && currentDocSlug && documentSelectorParam !== 'true') {
           console.log('[DocumentSelector] Using document from context instead of fetching');
           const contextDoc = documentContext.config;
           setDocuments([contextDoc]);
@@ -145,14 +210,20 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
           return;
         }
 
-        // If we're in owner mode or document selector mode, we need to load documents
-        if (ownerParam || (!currentDocSlug && !ownerParam)) {
+        // If we're in owner mode, document selector mode, or document_selector=true is in URL, we need to load documents
+        if (ownerParam || (!currentDocSlug && !ownerParam) || documentSelectorParam === 'true') {
           setLoading(true);
 
           let apiUrl = '/api/documents';
 
           if (ownerParam) {
             apiUrl += `?owner=${encodeURIComponent(ownerParam)}`;
+            if (passcodeParam) {
+              apiUrl += `&passcode=${encodeURIComponent(passcodeParam)}`;
+            }
+          } else if (documentSelectorParam === 'true' && currentDocSlug) {
+            // document_selector=true with a doc param: fetch current doc first, then expand to owner
+            apiUrl += `?doc=${encodeURIComponent(currentDocSlug)}`;
             if (passcodeParam) {
               apiUrl += `&passcode=${encodeURIComponent(passcodeParam)}`;
             }
@@ -172,6 +243,28 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
           // Handle non-OK responses gracefully (e.g., 403 for passcode-protected docs)
           if (!response.ok) {
             if (response.status === 403) {
+              // Try to parse error response to check if login is required
+              let errorData;
+              try {
+                errorData = await response.json();
+              } catch (e) {
+                // If response is not JSON, treat as generic error
+                errorData = { error_type: 'access_denied' };
+              }
+              
+              // If requires_auth is true, redirect to login
+              if (errorData.requires_auth === true && ownerParam) {
+                // Capture the full URL including pathname and search params
+                // Remove /app prefix since router basename is /app
+                const currentPath = window.location.pathname.replace(/^\/app/, '') || '/';
+                const currentSearch = window.location.search;
+                const currentUrl = currentPath + currentSearch;
+                const returnUrl = encodeURIComponent(currentUrl);
+                // Use window.location.href instead of navigate to ensure URL params are preserved
+                window.location.href = `/app/login?returnUrl=${returnUrl}`;
+                return;
+              }
+              
               // Passcode required or access denied - don't show selector, user will see modal
               console.log('[DocumentSelector] Document requires authentication, skipping selector');
               setDocuments([]);
@@ -231,7 +324,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
     }
 
     loadDocuments();
-  }, [ownerParam, currentDocSlug, passcodeParam, documentSelectorParam, docParam, hasAuthError, documentContext?.config]);
+  }, [ownerParam, currentDocSlug, passcodeParam, documentSelectorParam, docParam, hasAuthError, documentContext?.config, checkingPublicDocs]);
 
   // Ensure modal is open when shouldShow becomes true (after documents load)
   // This is a secondary check in case documents load after URL change
@@ -398,6 +491,11 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
   if (!docParam && !ownerParam && !inline) {
     return null;
   }
+
+  // Prevent rendering while checking for public docs (prevents flash before redirect)
+  if (checkingPublicDocs && !inline) {
+    return null;
+  }
   
   if (!shouldShow && !inline) {
     return null;
@@ -556,12 +654,27 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
 
   // Get owner display name for modal title
   const getOwnerDisplayName = () => {
-    if (!ownerParam) return 'Available Documents';
-    let displayName = ownerParam.charAt(0).toUpperCase() + ownerParam.slice(1);
-    if (ownerParam === 'ukidney') {
-      displayName = 'UKidney Medical';
+    // Get owner name from documents if available
+    const ownerName = documents.length > 0 && documents[0]?.ownerInfo?.name 
+      ? documents[0].ownerInfo.name 
+      : null;
+    
+    // If we have owner param, use that as fallback
+    if (!ownerName && ownerParam) {
+      let displayName = ownerParam.charAt(0).toUpperCase() + ownerParam.slice(1);
+      if (ownerParam === 'ukidney') {
+        displayName = 'UKidney Medical';
+      }
+      return `Showing ${displayName} Docs`;
     }
-    return `${displayName} Documents`;
+    
+    // If we have owner name from documents, use it
+    if (ownerName) {
+      return `Showing ${ownerName} Docs`;
+    }
+    
+    // Fallback to generic text
+    return 'Available Documents';
   };
 
   // Modal content (reusable for both dropdown and modal)
@@ -618,7 +731,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
             </div>
             <div className="flex-1 min-w-0">
               <h3 className={`${isModalMode ? 'text-xl' : 'text-sm'} font-bold text-gray-900 leading-tight`}>
-                {isModalMode ? getOwnerDisplayName() : 'Available Documents'}
+                {getOwnerDisplayName()}
               </h3>
               {isModalMode && (
                 <p className="text-sm text-gray-600 mt-1">

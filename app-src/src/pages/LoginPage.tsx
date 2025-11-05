@@ -60,14 +60,20 @@ export function LoginPage() {
     
     // Check for returnUrl in URL query params and store in sessionStorage
     const returnUrlParam = urlSearchParams.get('returnUrl');
+    
+    // Check if we've already stored it (to prevent re-storing on re-renders)
+    const alreadyStored = sessionStorage.getItem('auth_return_url');
+    
     if (returnUrlParam) {
       // Decode and store in sessionStorage for use after login
       const decodedUrl = decodeURIComponent(returnUrlParam);
       sessionStorage.setItem('auth_return_url', decodedUrl);
-      // Remove returnUrl from URL to keep it clean
-      urlSearchParams.delete('returnUrl');
-      const newUrl = window.location.pathname + (urlSearchParams.toString() ? '?' + urlSearchParams.toString() : '') + window.location.hash;
-      window.history.replaceState({}, '', newUrl);
+      // Remove returnUrl from URL to keep it clean (only if we just stored it)
+      if (!alreadyStored) {
+        urlSearchParams.delete('returnUrl');
+        const newUrl = window.location.pathname + (urlSearchParams.toString() ? '?' + urlSearchParams.toString() : '') + window.location.hash;
+        window.history.replaceState({}, '', newUrl);
+      }
     }
     
     // Check if we have a session (user just confirmed email)
@@ -120,9 +126,10 @@ export function LoginPage() {
       // Check if there's a return URL in sessionStorage (set when redirected from document access)
       const returnUrl = sessionStorage.getItem('auth_return_url');
       if (returnUrl) {
-        console.log('LoginPage: Found return URL, redirecting to:', returnUrl);
         sessionStorage.removeItem('auth_return_url');
-        window.location.href = returnUrl;
+        // Ensure returnUrl has /app prefix for full URL navigation
+        const fullUrl = returnUrl.startsWith('/app/') ? returnUrl : `/app${returnUrl}`;
+        window.location.href = fullUrl;
         return;
       }
 
@@ -143,8 +150,10 @@ export function LoginPage() {
         .then(response => response.json())
         .then(data => {
           console.log('LoginPage: Permissions received:', data);
+          // Only redirect to dashboard if no returnUrl was set
+          // This allows users to return to the page they were trying to access
           if (data.is_super_admin) {
-            // SuperAdmins go to dashboard for admin functions
+            // SuperAdmins go to dashboard for admin functions (unless returnUrl was set)
             console.log('LoginPage: Redirecting super admin to dashboard');
             window.location.href = '/app/dashboard';
           } else if (data.owner_groups && data.owner_groups.length > 0) {

@@ -138,8 +138,63 @@ async function generateKeywords(openaiClient, chunks, documentTitle) {
     console.log(`   📊 Total chunks available: ${chunks.length}`);
     
     try {
-        // Take the first 30 chunks (or all if less than 30) to get a good overview
-        const chunksForKeywords = chunks.slice(0, Math.min(30, chunks.length));
+        // Sample chunks from across the entire document for better keyword density analysis
+        // Strategy: take chunks from beginning, middle, and end sections
+        let chunksForKeywords = [];
+        const totalChunks = chunks.length;
+        
+        if (totalChunks <= 50) {
+            // If document is small, use all chunks
+            chunksForKeywords = chunks;
+        } else {
+            // For larger documents, sample more chunks for better keyword density analysis
+            // Target: Use ~10% of chunks, up to 300 chunks (to stay within token limits)
+            const targetSampleSize = Math.min(300, Math.max(100, Math.floor(totalChunks * 0.1)));
+            
+            // Sample evenly across the document for comprehensive coverage
+            const step = Math.floor(totalChunks / targetSampleSize);
+            const usedIndices = new Set();
+            
+            for (let i = 0; i < totalChunks && chunksForKeywords.length < targetSampleSize; i += step) {
+                if (!usedIndices.has(chunks[i].index)) {
+                    chunksForKeywords.push(chunks[i]);
+                    usedIndices.add(chunks[i].index);
+                }
+            }
+            
+            // Ensure we have samples from beginning, middle, and end
+            if (chunksForKeywords.length < targetSampleSize) {
+                // Add beginning chunks if not already included
+                for (let i = 0; i < Math.min(30, totalChunks) && chunksForKeywords.length < targetSampleSize; i++) {
+                    if (!usedIndices.has(chunks[i].index)) {
+                        chunksForKeywords.push(chunks[i]);
+                        usedIndices.add(chunks[i].index);
+                    }
+                }
+                
+                // Add middle chunks
+                const middleStart = Math.floor(totalChunks / 2) - 15;
+                for (let i = middleStart; i < middleStart + 30 && chunksForKeywords.length < targetSampleSize && i < totalChunks; i++) {
+                    if (!usedIndices.has(chunks[i].index)) {
+                        chunksForKeywords.push(chunks[i]);
+                        usedIndices.add(chunks[i].index);
+                    }
+                }
+                
+                // Add end chunks
+                for (let i = Math.max(0, totalChunks - 30); i < totalChunks && chunksForKeywords.length < targetSampleSize; i++) {
+                    if (!usedIndices.has(chunks[i].index)) {
+                        chunksForKeywords.push(chunks[i]);
+                        usedIndices.add(chunks[i].index);
+                    }
+                }
+            }
+            
+            // Sort by original index to maintain some order
+            chunksForKeywords.sort((a, b) => a.index - b.index);
+        }
+        
+        console.log(`   📋 Sampling ${chunksForKeywords.length} chunks from across document`);
         
         // Combine chunk content
         const combinedText = chunksForKeywords
@@ -147,7 +202,10 @@ async function generateKeywords(openaiClient, chunks, documentTitle) {
             .join('\n\n');
         
         // Truncate if too long (to stay within token limits)
-        const maxChars = 20000; // ~5000 tokens
+        // gpt-4o-mini has 128k context window, so we can use more
+        // Reserve ~25k tokens for system prompt, user prompt template, and response
+        // That leaves ~100k tokens (~400k chars) for document content
+        const maxChars = 400000; // ~100k tokens (leaving room for prompts and response)
         const textForKeywords = combinedText.length > maxChars 
             ? combinedText.substring(0, maxChars) + '...'
             : combinedText;
@@ -247,29 +305,48 @@ async function generateKeywords(openaiClient, chunks, documentTitle) {
 }
 
 /**
- * Fetch chunks for a document
+ * Fetch chunks for a document (with pagination to get all chunks)
  */
 async function fetchChunks(documentSlug) {
-    const { data, error } = await supabase
-        .from('document_chunks')
-        .select('content, chunk_index')
-        .eq('document_slug', documentSlug)
-        .order('chunk_index', { ascending: true });
+    let allChunks = [];
+    let from = 0;
+    const pageSize = 1000; // Supabase default limit
     
-    if (error) {
-        console.error(`   ❌ Error fetching chunks: ${error.message}`);
-        return null;
+    while (true) {
+        const { data, error } = await supabase
+            .from('document_chunks')
+            .select('content, chunk_index')
+            .eq('document_slug', documentSlug)
+            .order('chunk_index', { ascending: true })
+            .range(from, from + pageSize - 1);
+        
+        if (error) {
+            console.error(`   ❌ Error fetching chunks: ${error.message}`);
+            return null;
+        }
+        
+        if (!data || data.length === 0) {
+            break; // No more chunks
+        }
+        
+        allChunks = allChunks.concat(data.map(chunk => ({
+            content: chunk.content,
+            index: chunk.chunk_index
+        })));
+        
+        if (data.length < pageSize) {
+            break; // Last page
+        }
+        
+        from += pageSize;
     }
     
-    if (!data || data.length === 0) {
+    if (allChunks.length === 0) {
         console.warn(`   ⚠️  No chunks found for document`);
         return null;
     }
     
-    return data.map(chunk => ({
-        content: chunk.content,
-        index: chunk.chunk_index
-    }));
+    return allChunks;
 }
 
 /**
@@ -337,15 +414,18 @@ async function main() {
         console.log(`🎯 Filtering by slug: ${slugFilter}\n`);
     }
     
-    // Find documents without keywords
+    // Find documents without keywords (unless slug filter is provided, then allow regeneration)
     let query = supabase
         .from('documents')
         .select('slug, title, metadata')
-        .or('metadata->>keywords.is.null,metadata->>keywords.eq.null,metadata->>keywords.eq.[]')
         .order('created_at', { ascending: false });
     
     if (slugFilter) {
+        // When filtering by slug, allow regenerating keywords even if they exist
         query = query.eq('slug', slugFilter);
+    } else {
+        // Otherwise, only process documents without keywords
+        query = query.or('metadata->>keywords.is.null,metadata->>keywords.eq.null,metadata->>keywords.eq.[]');
     }
     
     const { data: documents, error } = await query;
@@ -356,11 +436,19 @@ async function main() {
     }
     
     if (!documents || documents.length === 0) {
-        console.log('✓ No documents found without keywords');
+        if (slugFilter) {
+            console.log(`❌ No document found with slug: ${slugFilter}`);
+        } else {
+            console.log('✓ No documents found without keywords');
+        }
         return;
     }
     
-    console.log(`📋 Found ${documents.length} documents without keywords\n`);
+    if (slugFilter) {
+        console.log(`📋 Found document: ${documents[0].slug} (will regenerate keywords)\n`);
+    } else {
+        console.log(`📋 Found ${documents.length} documents without keywords\n`);
+    }
     
     const documentsToProcess = limit ? documents.slice(0, limit) : documents;
     

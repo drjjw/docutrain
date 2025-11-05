@@ -70,6 +70,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setSession(null);
         setUser(null);
       }
+      // Return the signup data so the form can use it
+      return data;
     } catch (error) {
       console.error('AuthContext: signUp error:', error);
       throw new Error(getAuthErrorMessage(error as Error));

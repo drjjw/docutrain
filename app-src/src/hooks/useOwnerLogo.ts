@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 
-const OWNER_LOGO_CACHE_KEY = 'owner-logo-config-cache-v4';
+const OWNER_LOGO_CACHE_KEY = 'owner-logo-config-cache-v5';
 const OWNER_LOGO_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 interface OwnerLogoConfig {

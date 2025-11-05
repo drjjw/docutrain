@@ -6,7 +6,6 @@ import { Alert } from '@/components/UI/Alert';
 import { useAuth } from '@/hooks/useAuth';
 import { validateEmail, validatePassword, validatePasswordMatch } from '@/lib/utils/validation';
 import { TermsOfServiceModal } from './TermsOfServiceModal';
-import { updateUserProfile } from '@/lib/supabase/database';
 import { supabase } from '@/lib/supabase/client';
 
 export function SignupForm() {
@@ -66,33 +65,84 @@ export function SignupForm() {
       console.log('SignupForm: Attempting signup with email:', email);
       
       // Signup user first
-      await signUp(email, password);
-      console.log('SignupForm: Signup successful');
+      const signupResult = await signUp(email, password);
+      console.log('SignupForm: Signup successful', signupResult);
       
-      // Get the current user after signup
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!signupResult) {
+        console.error('SignupForm: signUp returned undefined');
+        setError('Account created but unable to retrieve signup information. Please try logging in.');
+        setSignupEmail(email);
+        setSignupSuccess(true);
+        return;
+      }
+      
+      // Get the session from signup result first, then fall back to getSession()
+      // When email confirmation is required, signupResult.session might be null
+      let session = signupResult.session;
+      if (!session) {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        session = currentSession;
+      }
       
       // Record user profile with name and TOS acceptance
-      if (currentUser?.id) {
-        try {
-          await updateUserProfile(currentUser.id, {
-            first_name: firstName.trim(),
-            last_name: lastName.trim(),
-            tos_accepted_at: new Date().toISOString(),
-            tos_version: '2025-10-31',
-          });
-          console.log('SignupForm: User profile created with name and TOS acceptance');
-        } catch (profileError) {
-          console.error('SignupForm: Failed to create user profile:', profileError);
-          // Note: We don't block signup here because:
-          // 1. The user has already been created in auth.users
-          // 2. The TOSGate component will require TOS acceptance on first login
-          // 3. This prevents orphaned auth users if profile creation fails
-          setError('Account created, but profile setup failed. You will be asked to complete your profile on first login.');
-        }
-      } else {
+      // Try authenticated endpoint first (if session exists), otherwise use signup-profile endpoint
+      const userId = signupResult.user?.id;
+      if (!userId) {
         console.error('SignupForm: No user ID after signup');
         setError('Account created but unable to retrieve user information. Please try logging in.');
+        setSignupEmail(email);
+        setSignupSuccess(true);
+        return;
+      }
+
+      try {
+        let response;
+        
+        if (session?.access_token) {
+          // Use authenticated endpoint if session exists
+          response = await fetch('/api/users/me/profile', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              first_name: firstName.trim(),
+              last_name: lastName.trim(),
+              tos_accepted_at: new Date().toISOString(),
+              tos_version: '2025-10-31',
+            }),
+          });
+        } else {
+          // Use signup-profile endpoint when no session (email confirmation required)
+          response = await fetch('/api/users/signup-profile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              user_id: userId,
+              first_name: firstName.trim(),
+              last_name: lastName.trim(),
+              tos_accepted_at: new Date().toISOString(),
+              tos_version: '2025-10-31',
+            }),
+          });
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create profile');
+        }
+
+        console.log('SignupForm: User profile created with name and TOS acceptance');
+      } catch (profileError) {
+        console.error('SignupForm: Failed to create user profile:', profileError);
+        // Note: We don't block signup here because:
+        // 1. The user has already been created in auth.users
+        // 2. The TOSGate component will require TOS acceptance on first login
+        // 3. This prevents orphaned auth users if profile creation fails
+        setError('Account created, but profile setup failed. You will be asked to complete your profile on first login.');
       }
       
       // Show success message instead of redirecting

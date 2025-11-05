@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Modal } from '@/components/UI/Modal';
 import { Button } from '@/components/UI/Button';
+import { marked } from 'marked';
 
 interface TermsOfServiceModalProps {
   isOpen: boolean;
@@ -83,12 +84,23 @@ We may update these Terms from time to time. We will notify you of material chan
 
 ## 11. Contact Us
 
-If you have questions about these Terms, contact us at support@docutrain.com.
+If you have questions about these Terms, contact us at [support@docutrain.com](mailto:support@docutrain.com).
 
 By using DocuTrain, you acknowledge that you have read, understood, and agree to these Terms.`;
 
+// Configure marked for TOS rendering
+marked.setOptions({
+  breaks: false,
+  gfm: true,
+});
+
 export function TermsOfServiceModal({ isOpen, onClose, onAccept, accepting = false }: TermsOfServiceModalProps) {
   const canClose = !!onClose; // Only allow closing if onClose is provided
+  
+  // Parse markdown to HTML
+  const htmlContent = useMemo(() => {
+    return marked.parse(TERMS_OF_SERVICE);
+  }, []);
   
   return (
     <Modal
@@ -99,12 +111,11 @@ export function TermsOfServiceModal({ isOpen, onClose, onAccept, accepting = fal
       allowClose={canClose}
     >
       <div className="space-y-4">
-        <div className="max-h-[60vh] overflow-y-auto border rounded-lg p-4 bg-gray-50">
-          <div className="prose prose-sm max-w-none">
-            <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
-              {TERMS_OF_SERVICE}
-            </div>
-          </div>
+        <div className="max-h-[60vh] overflow-y-auto border rounded-lg p-6 bg-gray-50">
+          <div 
+            className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-p:text-gray-700 prose-p:leading-relaxed prose-strong:text-gray-900 prose-ul:text-gray-700 prose-li:text-gray-700 prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800"
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
+          />
         </div>
         <div className="flex justify-end space-x-3 pt-4 border-t">
           {/* Only show Close button if onClose is provided (signup flow) */}

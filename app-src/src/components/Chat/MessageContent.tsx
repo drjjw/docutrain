@@ -3,8 +3,9 @@
  * Ports the vanilla JS message rendering and styling logic
  */
 
-import { useEffect, useLayoutEffect, useRef, memo } from 'react';
+import { useEffect, useLayoutEffect, useRef, memo, useState } from 'react';
 import { marked } from 'marked';
+import { Copy, Check } from 'lucide-react';
 import { styleReferences, wrapDrugConversionContent, updateCitationStyles } from '@/utils/messageStyling';
 
 interface MessageContentProps {
@@ -26,6 +27,7 @@ const globalCollapsedState = new Map<string, Map<number, boolean>>();
 function MessageContentComponent({ content, role, isStreaming = false }: MessageContentProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const previousContentRef = useRef<string>('');
+  const [isCopied, setIsCopied] = useState(false);
   
   // Compute content hash synchronously
   const getContentHash = () => {
@@ -192,15 +194,154 @@ function MessageContentComponent({ content, role, isStreaming = false }: Message
     });
   }, [content, role, isStreaming]);
 
+  // Helper function to convert HTML to formatted plain text
+  const htmlToText = (html: string): string => {
+    // Create a temporary div to parse HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Function to recursively process nodes and preserve formatting
+    const processNode = (node: Node): string => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        return node.textContent || '';
+      }
+      
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as Element;
+        const tagName = element.tagName.toLowerCase();
+        const children = Array.from(element.childNodes)
+          .map(processNode)
+          .join('');
+        
+        // Handle different HTML elements
+        switch (tagName) {
+          case 'h1':
+          case 'h2':
+          case 'h3':
+          case 'h4':
+          case 'h5':
+          case 'h6':
+            return `\n${children}\n`;
+          case 'p':
+            return `${children}\n\n`;
+          case 'br':
+            return '\n';
+          case 'li':
+            return `• ${children}\n`;
+          case 'strong':
+          case 'b':
+            return `**${children}**`;
+          case 'em':
+          case 'i':
+            return `*${children}*`;
+          case 'code':
+            return `\`${children}\``;
+          case 'pre':
+            return `\n${children}\n`;
+          case 'blockquote':
+            return `> ${children}\n`;
+          case 'hr':
+            return '\n---\n';
+          case 'table':
+            // Extract table content
+            const rows: string[] = [];
+            const tableRows = element.querySelectorAll('tr');
+            tableRows.forEach(row => {
+              const cells = Array.from(row.querySelectorAll('td, th'))
+                .map(cell => processNode(cell).trim())
+                .join(' | ');
+              rows.push(`| ${cells} |`);
+            });
+            return `\n${rows.join('\n')}\n`;
+          case 'a':
+            const href = element.getAttribute('href');
+            return href ? `[${children}](${href})` : children;
+          default:
+            return children;
+        }
+      }
+      
+      return '';
+    };
+    
+    // Process all nodes and clean up extra whitespace
+    let text = processNode(tempDiv);
+    
+    // Clean up excessive newlines (more than 2 consecutive)
+    text = text.replace(/\n{3,}/g, '\n\n');
+    
+    // Trim leading/trailing whitespace
+    return text.trim();
+  };
+
+  // Handle copy to clipboard
+  const handleCopy = async () => {
+    if (!contentRef.current) return;
+    
+    try {
+      // Get the HTML content from the rendered element
+      const htmlContent = contentRef.current.innerHTML;
+      
+      // Convert HTML to formatted plain text
+      const textContent = htmlToText(htmlContent);
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(textContent);
+      
+      // Show success feedback
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      try {
+        const textContent = htmlToText(contentRef.current.innerHTML);
+        const textArea = document.createElement('textarea');
+        textArea.value = textContent;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      } catch (fallbackErr) {
+        console.error('Failed to copy to clipboard:', fallbackErr);
+      }
+    }
+  };
+
   // Render markdown for assistant messages, plain text for user (same as vanilla JS)
   if (role === 'assistant') {
     const html = marked.parse(content);
     return (
-      <div
-        ref={contentRef}
-        className="message-content"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+      <div className="message-content-wrapper">
+        <div
+          ref={contentRef}
+          className="message-content"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+        <button
+          type="button"
+          className="message-copy-button"
+          onClick={handleCopy}
+          title={isCopied ? 'Copied!' : 'Copy response'}
+          aria-label={isCopied ? 'Copied!' : 'Copy response to clipboard'}
+        >
+          {isCopied ? (
+            <>
+              <span className="copy-button-text">Copied</span>
+              <Check size={16} />
+            </>
+          ) : (
+            <>
+              <span className="copy-button-text">Copy</span>
+              <Copy size={16} />
+            </>
+          )}
+        </button>
+      </div>
     );
   }
 

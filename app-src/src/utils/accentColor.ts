@@ -73,11 +73,11 @@ export function setDefaultAccentColors() {
   if (typeof document === 'undefined') return;
   
   const root = document.documentElement;
-  // Set neutral gray as default (will be overridden by owner-specific colors)
-  root.style.setProperty('--accent-color', '#666666');
-  root.style.setProperty('--accent-color-rgb', '102, 102, 102');
-  root.style.setProperty('--accent-color-hover', '#555555');
-  root.style.setProperty('--accent-color-shadow', 'rgba(102, 102, 102, 0.2)');
+  // Set blue as default (will be overridden by owner-specific colors)
+  root.style.setProperty('--accent-color', '#34a2ff');
+  root.style.setProperty('--accent-color-rgb', '52, 162, 255');
+  root.style.setProperty('--accent-color-hover', '#2c89d8');
+  root.style.setProperty('--accent-color-shadow', 'rgba(52, 162, 255, 0.2)');
 }
 
 

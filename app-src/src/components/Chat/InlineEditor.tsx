@@ -255,8 +255,10 @@ export function InlineEditor({
 
   if (useInlinePositioning) {
     // For titles and subtitles, use flex wrapper with icon beside the text
-    // Always render icon but control visibility with opacity to prevent layout shift
-    const wrapperClassName = isWelcomeTitle ? 'welcome-title-wrapper' : '';
+    // Use absolute positioning for edit button to keep title centered
+    const wrapperClassName = isHeaderTitle 
+      ? 'header-title-wrapper' 
+      : (isWelcomeTitle ? 'welcome-title-wrapper' : '');
     
     return (
       <div
@@ -264,7 +266,8 @@ export function InlineEditor({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          justifyContent: 'center',
+          position: 'relative',
           marginBottom: isWelcomeTitle ? '12px' : '0',
         }}
         onMouseEnter={() => setIsHovering(true)}
@@ -288,7 +291,10 @@ export function InlineEditor({
           }}
           title="Click to edit"
           style={{
-            position: 'static',
+            position: 'absolute',
+            right: '0',
+            top: '50%',
+            transform: 'translateY(-50%)',
             background: 'rgba(0, 0, 0, 0.7)',
             color: 'white',
             border: 'none',
@@ -301,8 +307,6 @@ export function InlineEditor({
             transition: 'opacity 0.2s',
             pointerEvents: isHovering ? 'auto' : 'none',
             flexShrink: 0,
-            alignSelf: 'center',
-            visibility: 'visible', // Keep in layout but hidden
           }}
         >
           ✏️

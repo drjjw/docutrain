@@ -296,7 +296,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
 
   // Conditional styles for mobile vs desktop
   // On mobile: clamp to 2 lines
-  // On desktop: single line with ellipsis if too long (no wrapping)
+  // On desktop: show full title (let CSS handle it, no inline styles to override)
   const titleStyles = isMobile ? {
     display: '-webkit-box' as const,
     WebkitLineClamp: 2,
@@ -305,13 +305,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
     wordBreak: 'break-word' as const,
     textAlign: 'center' as const,
   } : {
-    // Desktop: single line, no wrapping - override any word-break settings
-    whiteSpace: 'nowrap' as const,
-    overflow: 'hidden' as const,
-    textOverflow: 'ellipsis' as const,
-    wordBreak: 'normal' as const,
-    wordWrap: 'normal' as const,
-    overflowWrap: 'normal' as const,
+    // Desktop: only set text-align, let title show fully (no clamping)
     textAlign: 'center' as const,
   };
 
@@ -367,6 +361,11 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
             display: block;
             -webkit-line-clamp: none;
             overflow: visible;
+            white-space: normal;
+            text-overflow: clip;
+            word-break: normal;
+            word-wrap: normal;
+            overflow-wrap: normal;
           }
         }
       `}</style>
