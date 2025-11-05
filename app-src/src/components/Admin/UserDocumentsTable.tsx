@@ -344,7 +344,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
 
     const stages = ['download', 'extract', 'chunk', 'embed', 'store'];
     const stageLabels: Record<string, string> = {
-      download: 'Downloading PDF',
+      download: 'Examining Document',
       extract: 'Extracting text',
       chunk: 'Chunking text',
       embed: 'Generating embeddings',

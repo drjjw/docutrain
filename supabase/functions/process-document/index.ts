@@ -546,7 +546,8 @@ async function processUserDocument(userDocId: string) {
     ]);
     
     // 6. Generate document slug and create documents record with abstract
-    documentSlug = generateSlug(userDoc.title);
+    // Use the UUID of the user_documents record as the slug
+    documentSlug = userDocId;
     
     // Create intro message with abstract (if available)
     let introMessage = `Ask questions about ${userDoc.title}`;
