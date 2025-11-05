@@ -24,6 +24,58 @@ if (!openaiApiKey) {
 const openai = new OpenAI({ apiKey: openaiApiKey });
 
 /**
+ * Logging stages (matching VPS logger)
+ */
+const STAGES = {
+  DOWNLOAD: 'download',
+  EXTRACT: 'extract',
+  CHUNK: 'chunk',
+  EMBED: 'embed',
+  STORE: 'store',
+  COMPLETE: 'complete',
+  ERROR: 'error'
+};
+
+const STATUSES = {
+  STARTED: 'started',
+  PROGRESS: 'progress',
+  COMPLETED: 'completed',
+  FAILED: 'failed'
+};
+
+/**
+ * Log to database (Edge Function version)
+ */
+async function logToDatabase(
+  userDocId: string,
+  documentSlug: string | null,
+  stage: string,
+  status: string,
+  message: string,
+  metadata: Record<string, any> = {}
+) {
+  try {
+    const { error } = await supabase
+      .from('document_processing_logs')
+      .insert({
+        user_document_id: userDocId,
+        document_slug: documentSlug,
+        stage,
+        status,
+        message,
+        metadata,
+        processing_method: 'edge_function'
+      });
+
+    if (error) {
+      console.error(`[Edge Logger] Failed to write to database log (${stage}:${status}):`, error);
+    }
+  } catch (error) {
+    console.error(`[Edge Logger] Exception writing to database log (${stage}:${status}):`, error);
+  }
+}
+
+/**
  * Clean PDF text to reduce noise (matches lib/document-processor.js)
  */
 function cleanPDFText(text: string): string {
@@ -499,6 +551,8 @@ async function processUserDocument(userDocId: string) {
   
   try {
     // 1. Get user document record
+    await logToDatabase(userDocId, null, STAGES.DOWNLOAD, STATUSES.STARTED, 'Starting document processing');
+    
     const { data: userDoc, error: fetchError } = await supabase
       .from('user_documents')
       .select('*')
@@ -520,6 +574,11 @@ async function processUserDocument(userDocId: string) {
       .eq('id', userDocId);
     
     // 2. Download PDF from storage
+    await logToDatabase(userDocId, null, STAGES.DOWNLOAD, STATUSES.PROGRESS, 'Downloading PDF from storage', {
+      file_path: userDoc.file_path,
+      file_size: userDoc.file_size
+    });
+    
     const { data: pdfData, error: downloadError } = await supabase.storage
       .from('user-documents')
       .download(userDoc.file_path);
@@ -532,22 +591,65 @@ async function processUserDocument(userDocId: string) {
     const arrayBuffer = await pdfData.arrayBuffer();
     const pdfBuffer = new Uint8Array(arrayBuffer);
     
+    await logToDatabase(userDocId, null, STAGES.DOWNLOAD, STATUSES.COMPLETED, 'PDF downloaded successfully', {
+      buffer_size: pdfBuffer.length
+    });
+    
     // 3. Extract text from PDF
+    await logToDatabase(userDocId, null, STAGES.EXTRACT, STATUSES.STARTED, 'Extracting text from PDF using pdf-parse');
+    
     const { text, pages } = await extractPDFTextWithPageMarkers(pdfBuffer);
     
+    await logToDatabase(userDocId, null, STAGES.EXTRACT, STATUSES.COMPLETED, 'Text extracted successfully', {
+      pages,
+      characters: text.length,
+      pdf_processor: 'pdf-parse'
+    });
+    
     // 4. Chunk text
+    await logToDatabase(userDocId, null, STAGES.CHUNK, STATUSES.STARTED, 'Chunking text');
+    
     const chunks = chunkText(text, CHUNK_SIZE, CHUNK_OVERLAP, pages);
     
+    await logToDatabase(userDocId, null, STAGES.CHUNK, STATUSES.COMPLETED, 'Text chunked successfully', {
+      chunk_count: chunks.length,
+      chunk_size: CHUNK_SIZE,
+      overlap: CHUNK_OVERLAP
+    });
+    
     // 5. Generate AI abstract and keywords from chunks
+    await logToDatabase(userDocId, null, STAGES.CHUNK, STATUSES.PROGRESS, 'Generating AI abstract and keywords');
+    
     // Generate abstract and keywords in parallel (both use same model and chunks)
     const [abstract, keywords] = await Promise.all([
       generateAbstract(chunks, userDoc.title),
       generateKeywords(chunks, userDoc.title)
     ]);
     
+    if (abstract) {
+      await logToDatabase(userDocId, null, STAGES.CHUNK, STATUSES.PROGRESS, 'Abstract generated successfully', {
+        abstract_length: abstract.length,
+        abstract_words: abstract.split(/\s+/).length
+      });
+    } else {
+      await logToDatabase(userDocId, null, STAGES.CHUNK, STATUSES.PROGRESS, 'Abstract generation skipped or failed');
+    }
+    
+    if (keywords && keywords.length > 0) {
+      await logToDatabase(userDocId, null, STAGES.CHUNK, STATUSES.PROGRESS, 'Keywords generated successfully', {
+        keyword_count: keywords.length
+      });
+    } else {
+      await logToDatabase(userDocId, null, STAGES.CHUNK, STATUSES.PROGRESS, 'Keyword generation skipped or failed');
+    }
+    
     // 6. Generate document slug and create documents record with abstract
     // Use the UUID of the user_documents record as the slug
     documentSlug = userDocId;
+    
+    await logToDatabase(userDocId, documentSlug, STAGES.CHUNK, STATUSES.PROGRESS, 'Document slug generated', {
+      slug: documentSlug
+    });
     
     // Create intro message with abstract (if available)
     let introMessage = `Ask questions about ${userDoc.title}`;
@@ -623,13 +725,25 @@ async function processUserDocument(userDocId: string) {
       throw new Error(`Failed to create document record: ${docInsertError.message}`);
     }
     
+    await logToDatabase(userDocId, documentSlug, STAGES.COMPLETE, STATUSES.PROGRESS, 'Document record created in documents table', {
+      slug: documentSlug,
+      has_abstract: abstract ? true : false
+    });
+    
     // 7. Generate embeddings
-    const allEmbeddings = [];
+    await logToDatabase(userDocId, documentSlug, STAGES.EMBED, STATUSES.STARTED, 'Generating embeddings');
+    
+    const allEmbeddings: Array<{ chunk: any; embedding: number[] | null }> = [];
     const totalBatches = Math.ceil(chunks.length / BATCH_SIZE);
     
     for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
       const batchNum = Math.floor(i / BATCH_SIZE) + 1;
       console.log(`Processing batch ${batchNum}/${totalBatches}`);
+      
+      await logToDatabase(userDocId, documentSlug, STAGES.EMBED, STATUSES.PROGRESS, `Processing batch ${batchNum}/${totalBatches}`, {
+        batch: batchNum,
+        total_batches: totalBatches
+      });
       
       const batchResults = await processEmbeddingsBatch(chunks, i, BATCH_SIZE);
       allEmbeddings.push(...batchResults);
@@ -642,8 +756,20 @@ async function processUserDocument(userDocId: string) {
     
     const successfulEmbeddings = allEmbeddings.filter(e => e.embedding !== null).length;
     
+    await logToDatabase(userDocId, documentSlug, STAGES.EMBED, STATUSES.COMPLETED, 'Embeddings generated', {
+      total: chunks.length,
+      successful: successfulEmbeddings,
+      failed: chunks.length - successfulEmbeddings
+    });
+    
     // 8. Store chunks in database
+    await logToDatabase(userDocId, documentSlug, STAGES.STORE, STATUSES.STARTED, 'Storing chunks in database');
+    
     const inserted = await storeChunks(documentSlug, userDoc.title, allEmbeddings);
+    
+    await logToDatabase(userDocId, documentSlug, STAGES.STORE, STATUSES.COMPLETED, 'Chunks stored successfully', {
+      chunks_stored: inserted
+    });
     
     // 9. Update user_documents status to ready
     await supabase
@@ -656,6 +782,13 @@ async function processUserDocument(userDocId: string) {
     
     const processingTime = Date.now() - startTime;
     
+    await logToDatabase(userDocId, documentSlug, STAGES.COMPLETE, STATUSES.COMPLETED, 'Processing complete', {
+      processing_time_ms: processingTime,
+      document_slug: documentSlug,
+      pages,
+      chunks: inserted
+    });
+    
     return {
       success: true,
       documentSlug,
@@ -667,12 +800,20 @@ async function processUserDocument(userDocId: string) {
     };
     
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // Log error to database
+    await logToDatabase(userDocId, documentSlug, STAGES.ERROR, STATUSES.FAILED, 'Processing failed', {
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    
     // Update user_documents status to error
     await supabase
       .from('user_documents')
       .update({ 
         status: 'error',
-        error_message: error instanceof Error ? error.message : String(error),
+        error_message: errorMessage,
         updated_at: new Date().toISOString()
       })
       .eq('id', userDocId);
@@ -715,7 +856,7 @@ Deno.serve(async (req) => {
     const result = await processUserDocument(user_document_id);
 
     return new Response(
-      JSON.stringify({ success: true, ...result }),
+      JSON.stringify(result),
       { 
         status: 200,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
