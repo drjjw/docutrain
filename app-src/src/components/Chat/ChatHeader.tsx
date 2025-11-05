@@ -74,11 +74,11 @@ export function ChatHeader({ documentSlug, hasAuthError = false, onSubtitlePrese
       }}
     >
       {/* Desktop: Single row layout */}
-      <div className="hidden md:grid grid-cols-3 items-center gap-4">
+      <div className="hidden md:flex items-center gap-4 lg:gap-6">
         <div className="flex-shrink-0 flex justify-start">
           <OwnerLogo ownerSlug={logoOwnerSlug} />
         </div>
-        <div className="flex flex-col items-center justify-center min-w-0 text-center px-4">
+        <div className="flex flex-col items-center justify-center min-w-0 flex-1 text-center px-2 md:px-4 lg:px-6 xl:px-8">
           <DocumentTitle 
             documentSlug={documentSlug} 
             ownerSlug={ownerModeSlug}

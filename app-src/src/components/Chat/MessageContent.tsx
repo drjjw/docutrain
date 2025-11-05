@@ -12,6 +12,7 @@ interface MessageContentProps {
   content: string;
   role: 'user' | 'assistant';
   isStreaming?: boolean; // Flag to skip expensive DOM manipulation during streaming
+  showReferences?: boolean; // Controls visibility of references section (default true)
 }
 
 // Configure marked (same as vanilla JS)
@@ -24,7 +25,7 @@ marked.setOptions({
 // Key: content hash, Value: Map of container index -> expanded state
 const globalCollapsedState = new Map<string, Map<number, boolean>>();
 
-function MessageContentComponent({ content, role, isStreaming = false }: MessageContentProps) {
+function MessageContentComponent({ content, role, isStreaming = false, showReferences = true }: MessageContentProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const previousContentRef = useRef<string>('');
   const [isCopied, setIsCopied] = useState(false);
@@ -141,7 +142,61 @@ function MessageContentComponent({ content, role, isStreaming = false }: Message
     if (isStreaming) {
       // Use requestAnimationFrame to batch DOM updates with React's render
       requestAnimationFrame(() => {
-        ensureCollapsedDuringStreaming();
+        if (showReferences) {
+          ensureCollapsedDuringStreaming();
+        } else {
+          // Hide references during streaming if disabled
+          const containers = contentRef.current?.querySelectorAll('.references-container');
+          containers?.forEach(container => {
+            (container as HTMLElement).style.display = 'none';
+          });
+          
+          // Hide reference paragraphs and list items
+          const allElements = contentRef.current?.querySelectorAll('p, li, div');
+          allElements?.forEach(el => {
+            const text = el.textContent?.trim() || '';
+            const html = el.innerHTML.toLowerCase();
+            const hasStrong = el.querySelector('strong');
+            const strongText = hasStrong?.textContent?.trim().toLowerCase() || '';
+            
+            const isReferencesHeading = text === 'References' || 
+                                        text === '**References**' ||
+                                        strongText === 'references' ||
+                                        html.includes('<strong>references</strong>') ||
+                                        html.includes('**references**');
+            
+            const startsWithReference = text.match(/^\[\d+\]/);
+            const isInReferencesContainer = el.closest('.references-container');
+            
+            if (isReferencesHeading || startsWithReference || isInReferencesContainer) {
+              (el as HTMLElement).style.display = 'none';
+            }
+          });
+          
+          // Remove inline citations from HTML completely
+          const textElements = contentRef.current?.querySelectorAll('p, li, span, div, strong, em');
+          textElements?.forEach(el => {
+            const html = el.innerHTML;
+            if (html.includes('[')) {
+              const newHtml = html.replace(/\[\d+\]/g, '');
+              if (newHtml !== html) {
+                el.innerHTML = newHtml;
+              }
+            }
+          });
+          
+          // Hide any citation spans that were already styled
+          const citationSpans = contentRef.current?.querySelectorAll('.reference-citation');
+          citationSpans?.forEach(span => {
+            (span as HTMLElement).style.display = 'none';
+          });
+          
+          // Hide reference items and headings
+          const referenceItems = contentRef.current?.querySelectorAll('.reference-item, .references-heading, .references-heading-wrapper');
+          referenceItems?.forEach(item => {
+            (item as HTMLElement).style.display = 'none';
+          });
+        }
       });
       previousContentRef.current = content;
       return;
@@ -159,9 +214,54 @@ function MessageContentComponent({ content, role, isStreaming = false }: Message
       // already exist (from previous styling), we need to skip to prevent nesting
       const existingContainer = contentRef.current.querySelector('.references-container');
       if (existingContainer && !contentChanged) {
-        // Content hasn't changed and container exists - restore state immediately
-        restoreCollapsedState(contentRef.current.querySelectorAll('.references-container'));
-        // Only update citations for new content, don't reorganize
+        if (showReferences) {
+          // Content hasn't changed and container exists - restore state immediately
+          restoreCollapsedState(contentRef.current.querySelectorAll('.references-container'));
+          // Only update citations for new content, don't reorganize
+        } else {
+          // Hide references if disabled - hide container and remove citations
+          existingContainer.style.display = 'none';
+          
+          // Hide all reference paragraphs and list items
+          const allElements = contentRef.current.querySelectorAll('p, li, div');
+          allElements.forEach(el => {
+            const text = el.textContent?.trim() || '';
+            const html = el.innerHTML.toLowerCase();
+            const hasStrong = el.querySelector('strong');
+            const strongText = hasStrong?.textContent?.trim().toLowerCase() || '';
+            
+            const isReferencesHeading = text === 'References' || 
+                                        text === '**References**' ||
+                                        strongText === 'references' ||
+                                        html.includes('<strong>references</strong>') ||
+                                        html.includes('**references**');
+            
+            const startsWithReference = text.match(/^\[\d+\]/);
+            const isInReferencesContainer = el.closest('.references-container');
+            
+            if (isReferencesHeading || startsWithReference || isInReferencesContainer) {
+              (el as HTMLElement).style.display = 'none';
+            }
+          });
+          
+          // Remove inline citations from the content
+          const textElements = contentRef.current.querySelectorAll('p, li, span, div, strong, em');
+          textElements.forEach(el => {
+            const html = el.innerHTML;
+            if (html.includes('[')) {
+              const newHtml = html.replace(/\[\d+\]/g, '');
+              if (newHtml !== html) {
+                el.innerHTML = newHtml;
+              }
+            }
+          });
+          
+          // Hide citation spans
+          const citationSpans = contentRef.current.querySelectorAll('.reference-citation');
+          citationSpans.forEach(span => {
+            (span as HTMLElement).style.display = 'none';
+          });
+        }
         return;
       }
 
@@ -179,20 +279,87 @@ function MessageContentComponent({ content, role, isStreaming = false }: Message
       // Detect and wrap drug conversion calculations (after tables but before references)
       wrapDrugConversionContent(contentRef.current);
 
-      // Style references section
-      styleReferences(contentRef.current);
+      // Style references section (only if showReferences is enabled)
+      if (showReferences) {
+        styleReferences(contentRef.current);
+      } else {
+        // COMPLETELY REMOVE references if disabled
+        
+        // 1. Hide/remove reference containers
+        const referencesContainers = contentRef.current.querySelectorAll('.references-container');
+        referencesContainers.forEach(container => {
+          (container as HTMLElement).style.display = 'none';
+        });
+        
+        // 2. Hide reference paragraphs (References heading, [1] text, etc.)
+        // Also check list items and other elements that might contain references
+        const allElements = contentRef.current.querySelectorAll('p, li, div');
+        allElements.forEach(el => {
+          const text = el.textContent?.trim() || '';
+          const html = el.innerHTML.toLowerCase();
+          const hasStrong = el.querySelector('strong');
+          const strongText = hasStrong?.textContent?.trim().toLowerCase() || '';
+          
+          // Check if element contains "References" heading (various formats)
+          const isReferencesHeading = text === 'References' || 
+                                      text === '**References**' ||
+                                      strongText === 'references' ||
+                                      html.includes('<strong>references</strong>') ||
+                                      html.includes('**references**');
+          
+          // Check if element starts with [number] pattern (reference item)
+          // This is the most reliable indicator of a reference item
+          const startsWithReference = text.match(/^\[\d+\]/);
+          
+          // Check if inside a references container (should already be hidden, but double-check)
+          const isInReferencesContainer = el.closest('.references-container');
+          
+          // Hide if it's a references heading, starts with [number], or is in a references container
+          if (isReferencesHeading || startsWithReference || isInReferencesContainer) {
+            (el as HTMLElement).style.display = 'none';
+          }
+        });
+        
+        // 3. Remove inline citations [1], [2], etc. from HTML completely
+        // Process all text-containing elements
+        const textElements = contentRef.current.querySelectorAll('p, li, span, div, strong, em');
+        textElements.forEach(el => {
+          const html = el.innerHTML;
+          // Remove [number] patterns from HTML
+          if (html.includes('[')) {
+            const newHtml = html.replace(/\[\d+\]/g, '');
+            if (newHtml !== html) {
+              el.innerHTML = newHtml;
+            }
+          }
+        });
+        
+        // 4. Hide any citation spans that were already styled
+        const citationSpans = contentRef.current.querySelectorAll('.reference-citation');
+        citationSpans.forEach(span => {
+          (span as HTMLElement).style.display = 'none';
+        });
+        
+        // 5. Hide reference items and headings
+        const referenceItems = contentRef.current.querySelectorAll('.reference-item, .references-heading, .references-heading-wrapper');
+        referenceItems.forEach(item => {
+          (item as HTMLElement).style.display = 'none';
+        });
+      }
       
       // Always restore state after styleReferences runs (for both new and existing content)
       // This handles the case where React replaced HTML and styleReferences just recreated containers
-      const containers = contentRef.current.querySelectorAll('.references-container');
-      if (containers.length > 0) {
-        restoreCollapsedState(containers);
+      if (showReferences) {
+        const containers = contentRef.current.querySelectorAll('.references-container');
+        if (containers.length > 0) {
+          restoreCollapsedState(containers);
+        }
       }
       
       // Update previous content ref after processing
       previousContentRef.current = content;
     });
-  }, [content, role, isStreaming]);
+  }, [content, role, isStreaming, showReferences]);
 
   // Helper function to convert HTML to formatted plain text
   const htmlToText = (html: string): string => {
@@ -315,11 +482,13 @@ function MessageContentComponent({ content, role, isStreaming = false }: Message
   // Render markdown for assistant messages, plain text for user (same as vanilla JS)
   if (role === 'assistant') {
     const html = marked.parse(content);
+    // Add class to hide references if disabled
+    const contentClassName = `message-content${!showReferences ? ' no-references' : ''}`;
     return (
       <div className="message-content-wrapper">
         <div
           ref={contentRef}
-          className="message-content"
+          className={contentClassName}
           dangerouslySetInnerHTML={{ __html: html }}
         />
         <button

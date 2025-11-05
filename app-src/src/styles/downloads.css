@@ -73,7 +73,8 @@
   width: 100%;
   box-sizing: border-box;
   max-width: none;
-  overflow: hidden; /* Keep hidden for collapse animation */
+  overflow-y: visible; /* Allow content to be fully visible when expanded */
+  overflow-x: hidden; /* Prevent horizontal overflow */
   opacity: 1;
   background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
   border-radius: 0 0 8px 8px;
@@ -84,6 +85,10 @@
               margin 0.4s ease-out,
               padding 0.4s ease-out,
               opacity 0.35s ease-out;
+}
+
+.downloads-keywords-container:not(.collapsed) {
+  overflow-y: visible; /* Ensure content is visible when expanded */
 }
 
 /* On mobile, allow vertical scrolling when expanded to prevent content cutoff */
@@ -108,6 +113,7 @@
   flex-direction: row;
   gap: 10px;
   padding: 20px;
+  padding-bottom: 28px; /* Extra padding at bottom for better spacing */
   flex: 1;
 }
 
@@ -154,11 +160,22 @@
 
 .downloads-keywords-container-content > .keywords-section {
   margin: 0;
-  padding: 0;
-  background: transparent;
+  padding: 10px;
+  padding-bottom: 12px; /* Ensure footnote is included in backgrounded area */
+  background: transparent !important;
   border: none;
   border-radius: 0;
   box-shadow: none;
+  overflow: visible; /* Ensure all content is visible */
+  min-height: fit-content; /* Ensure container expands to fit content */
+  display: flex;
+  flex-direction: column;
+}
+
+.downloads-keywords-container-content > .keywords-section .keywords-footnote {
+  margin-top: 12px;
+  margin-bottom: 0;
+  flex-shrink: 0; /* Prevent footnote from being pushed outside */
 }
 
 .downloads-keywords-container-content > .downloads-section {
@@ -398,6 +415,7 @@
     flex-direction: column !important;
     gap: 0;
     padding: 15px;
+    padding-bottom: 28px; /* Extra padding at bottom for better spacing */
   }
 
   .downloads-keywords-container-content > .keywords-section + .downloads-section {
@@ -455,6 +473,7 @@
 
   .downloads-keywords-container-content {
     padding: 12px;
+    padding-bottom: 28px; /* Extra padding at bottom for better spacing */
   }
 
   .downloads-keywords-container-content > .keywords-section + .downloads-section {
@@ -467,7 +486,6 @@
 
 
 .keywords-section, .downloads-section {
-  background: #f9f9f9 !important;
   padding: 10px !important;
   border: 1px solid #ddd !important;
   border-radius: 5px !important;

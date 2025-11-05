@@ -76,6 +76,7 @@ export interface DocumentUIConfigCardProps {
   showDocumentSelector: boolean;
   showKeywords: boolean;
   showDownloads: boolean;
+  showReferences: boolean;
   onFieldChange: FieldChangeHandler;
 }
 

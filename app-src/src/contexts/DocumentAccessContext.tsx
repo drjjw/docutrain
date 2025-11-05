@@ -43,6 +43,7 @@ export interface DocumentConfig {
   showDocumentSelector?: boolean;
   showKeywords?: boolean;
   showDownloads?: boolean;
+  showReferences?: boolean;
   keywords?: Keyword[];
   downloads?: Download[];
   ownerInfo?: {

@@ -393,7 +393,12 @@ function ChatPageContent({
               key={msg.id}
               className={`message ${msg.role} ${isStreaming ? 'streaming' : ''}`}
             >
-              <MessageContent content={msg.content} role={msg.role} isStreaming={isStreaming} />
+              <MessageContent 
+                content={msg.content} 
+                role={msg.role} 
+                isStreaming={isStreaming}
+                showReferences={docConfig?.showReferences !== false}
+              />
             </div>
           );
         })}

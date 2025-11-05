@@ -200,16 +200,18 @@ async function generateEmbedding(text: string): Promise<number[]> {
  */
 async function generateAbstract(chunks: Array<{ content: string }>, documentTitle: string): Promise<string | null> {
   try {
-    // Take the first 30 chunks (or all if less than 30) to get a good overview
-    const chunksForAbstract = chunks.slice(0, Math.min(30, chunks.length));
+    // Use ALL chunks for better abstract quality (gpt-4o-mini supports 128k tokens)
+    // This gives the model full context of the entire document
+    const chunksForAbstract = chunks;
     
     // Combine chunk content
     const combinedText = chunksForAbstract
       .map(chunk => chunk.content)
       .join('\n\n');
     
-    // Truncate if too long (to stay within token limits)
-    const maxChars = 20000; // ~5000 tokens
+    // gpt-4o-mini supports 128k tokens (~500k characters), but we'll be conservative
+    // Use up to 400k characters (~100k tokens) to leave room for response and system prompt
+    const maxChars = 400000; // ~100k tokens (conservative limit for 128k context window)
     const textForAbstract = combinedText.length > maxChars 
       ? combinedText.substring(0, maxChars) + '...'
       : combinedText;

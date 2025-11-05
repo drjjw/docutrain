@@ -74,16 +74,18 @@ async function generateAbstract(chunks, documentTitle) {
     console.log(`   📊 Total chunks available: ${chunks.length}`);
     
     try {
-        // Take the first 30 chunks (or all if less than 30) to get a good overview
-        const chunksForAbstract = chunks.slice(0, Math.min(30, chunks.length));
+        // Use ALL chunks for better abstract quality (gpt-4o-mini supports 128k tokens)
+        // This gives the model full context of the entire document
+        const chunksForAbstract = chunks;
         
         // Combine chunk content
         const combinedText = chunksForAbstract
             .map(chunk => chunk.content)
             .join('\n\n');
         
-        // Truncate if too long (to stay within token limits)
-        const maxChars = 20000; // ~5000 tokens
+        // gpt-4o-mini supports 128k tokens (~500k characters), but we'll be conservative
+        // Use up to 400k characters (~100k tokens) to leave room for response and system prompt
+        const maxChars = 400000; // ~100k tokens (conservative limit for 128k context window)
         const textForAbstract = combinedText.length > maxChars 
             ? combinedText.substring(0, maxChars) + '...'
             : combinedText;
@@ -203,27 +205,33 @@ async function main() {
         console.log(`🎯 Filtering by slug: ${slugFilter}\n`);
     }
     
-    // Find documents by owner slug
-    // First get the owner ID
-    const { data: ownerData, error: ownerError } = await supabase
-        .from('owners')
-        .select('id')
-        .eq('slug', ownerSlug)
-        .single();
-    
-    if (ownerError || !ownerData) {
-        console.error(`❌ Error fetching owner "${ownerSlug}":`, ownerError?.message || 'Not found');
-        process.exit(1);
-    }
-    
-    let query = supabase
-        .from('documents')
-        .select('slug, title, intro_message')
-        .eq('owner_id', ownerData.id)
-        .order('created_at', { ascending: false });
+    // Find documents - if slug is specified, don't filter by owner
+    let query;
     
     if (slugFilter) {
-        query = query.eq('slug', slugFilter);
+        // When slug is specified, find document directly without owner filter
+        query = supabase
+            .from('documents')
+            .select('slug, title, intro_message')
+            .eq('slug', slugFilter);
+    } else {
+        // When no slug specified, filter by owner
+        const { data: ownerData, error: ownerError } = await supabase
+            .from('owners')
+            .select('id')
+            .eq('slug', ownerSlug)
+            .single();
+        
+        if (ownerError || !ownerData) {
+            console.error(`❌ Error fetching owner "${ownerSlug}":`, ownerError?.message || 'Not found');
+            process.exit(1);
+        }
+        
+        query = supabase
+            .from('documents')
+            .select('slug, title, intro_message')
+            .eq('owner_id', ownerData.id)
+            .order('created_at', { ascending: false });
     }
     
     const { data: documents, error } = await query;
@@ -234,7 +242,11 @@ async function main() {
     }
     
     if (!documents || documents.length === 0) {
-        console.log(`✓ No documents found for owner "${ownerSlug}"`);
+        if (slugFilter) {
+            console.log(`✓ No document found with slug "${slugFilter}"`);
+        } else {
+            console.log(`✓ No documents found for owner "${ownerSlug}"`);
+        }
         return;
     }
     

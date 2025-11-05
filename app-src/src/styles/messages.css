@@ -375,6 +375,15 @@ hr.references-separator {
   display: none;
 }
 
+/* Hide references when showReferences is false - CSS fallback */
+.message-content.no-references .references-container,
+.message-content.no-references .reference-item,
+.message-content.no-references .references-heading,
+.message-content.no-references .references-heading-wrapper,
+.message-content.no-references .reference-citation {
+  display: none !important;
+}
+
 /* Drug conversion response */
 .drug-conversion-response {
   background: #f9f9f9;

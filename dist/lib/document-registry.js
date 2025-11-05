@@ -107,6 +107,7 @@ async function loadDocuments() {
                 show_document_selector,
                 show_keywords,
                 show_downloads,
+                show_references,
                 owners!documents_owner_id_fkey (
                     intro_message,
                     slug,
@@ -423,6 +424,7 @@ async function getDocumentsForAPI() {
             showDocumentSelector: doc.show_document_selector !== false, // Controls document selector visibility (default true)
             showKeywords: doc.show_keywords !== false, // Controls keywords visibility (default true)
             showDownloads: doc.show_downloads !== false, // Controls downloads visibility (default true)
+            showReferences: doc.show_references !== false, // Controls references visibility (default true)
             ownerInfo: ownerInfo ? {
                 slug: ownerInfo.slug,
                 name: ownerInfo.name

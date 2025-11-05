@@ -63,6 +63,7 @@ export function DownloadsAndKeywords({
   const [containerHeight, setContainerHeight] = useState<number | undefined>(undefined);
   const prevKeywordsLengthRef = useRef<number>(0);
   const prevDownloadsLengthRef = useRef<number>(0);
+  const isCalculatingRef = useRef<boolean>(false);
   
   // DEBUG: Log keywords received
   useEffect(() => {
@@ -129,9 +130,14 @@ export function DownloadsAndKeywords({
   // Measure and update container height for smooth animation
   useEffect(() => {
     if (!containerRef.current || (!hasKeywords && !hasDownloads)) return;
+    
+    // Prevent infinite loops by checking if already calculating
+    if (isCalculatingRef.current) return;
 
     const updateHeight = () => {
-      if (containerRef.current) {
+      if (containerRef.current && !isCalculatingRef.current) {
+        isCalculatingRef.current = true;
+        
         // Temporarily remove max-height and collapsed class to measure natural height
         const wasCollapsed = containerRef.current.classList.contains('collapsed');
         const originalMaxHeight = containerRef.current.style.maxHeight;
@@ -147,11 +153,13 @@ export function DownloadsAndKeywords({
         
         // Measure both the container and its content wrapper for accurate height
         const contentWrapper = containerRef.current.querySelector('.downloads-keywords-container-content');
-        const containerHeight = containerRef.current.scrollHeight;
+        const keywordsSection = contentWrapper?.querySelector('#keywords-section');
+        const measuredContainerHeight = containerRef.current.scrollHeight;
         const contentHeight = contentWrapper ? contentWrapper.scrollHeight : 0;
         
-        // Use the larger of the two, and add a minimal buffer only to prevent rounding issues
-        const height = Math.max(containerHeight, contentHeight) + 2;
+        // Use the larger of container or content height, scrollHeight already includes padding
+        // Add extra buffer to ensure footnote and bottom padding are fully visible
+        const height = Math.max(measuredContainerHeight, contentHeight) + 12;
         
         // Restore original state
         containerRef.current.style.maxHeight = originalMaxHeight;
@@ -164,25 +172,33 @@ export function DownloadsAndKeywords({
           containerRef.current.classList.add('collapsed');
         }
         
-        setContainerHeight(height);
+        // Only update if height changed significantly (more than 2px) to prevent loops
+        if (!containerHeight || Math.abs(height - containerHeight) > 2) {
+          setContainerHeight(height);
+        }
+        
+        isCalculatingRef.current = false;
       }
     };
 
     // Measure height when expanded or when content changes
     // Always recalculate when keywords/downloads change to catch async updates
     const shouldRecalculate = isContainerExpanded || !containerHeight;
-    if (shouldRecalculate) {
+    if (shouldRecalculate && !isCalculatingRef.current) {
       // Delay measurement to ensure content is rendered, especially for async keywords
       // Use requestAnimationFrame to ensure DOM is updated
       const timeoutId = setTimeout(() => {
         requestAnimationFrame(() => {
           updateHeight();
         });
-      }, 100); // Increased delay to ensure keywords are rendered
+      }, 100); // Delay to ensure keywords are rendered
 
-      return () => clearTimeout(timeoutId);
+      return () => {
+        clearTimeout(timeoutId);
+        isCalculatingRef.current = false;
+      };
     }
-  }, [hasKeywords, hasDownloads, keywords, downloads, isContainerExpanded, containerHeight]);
+  }, [hasKeywords, hasDownloads, keywords, downloads, isContainerExpanded]);
 
   // Height equalization no longer needed with unified container
 

@@ -6,6 +6,7 @@ export function DocumentUIConfigCard({
   showDocumentSelector,
   showKeywords,
   showDownloads,
+  showReferences,
   onFieldChange
 }: DocumentUIConfigCardProps) {
   return (
@@ -40,6 +41,13 @@ export function DocumentUIConfigCard({
           onChange={(checked) => onFieldChange('show_downloads', checked)}
           label="Show Downloads Section"
           description="Display the downloads section in the chat interface"
+          size="md"
+        />
+        <Toggle
+          checked={showReferences !== false}
+          onChange={(checked) => onFieldChange('show_references', checked)}
+          label="Show References"
+          description="Display references section at the end of chat messages"
           size="md"
         />
       </div>

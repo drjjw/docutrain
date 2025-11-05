@@ -37,6 +37,7 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
       show_document_selector,
       show_keywords,
       show_downloads,
+      show_references,
       access_level,
       passcode,
       uploaded_by_user_id,

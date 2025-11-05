@@ -205,6 +205,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         if (session?.access_token) {
           const logsPromises = processingDocs.map(async (doc) => {
             const logs = await fetchProcessingLogs(doc.id);
+            console.log(`🔄 [Polling] Document ${doc.id} (${doc.title}): ${logs.length} logs`);
             return { docId: doc.id, logs };
           });
           
@@ -213,6 +214,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
             const updated = { ...prev };
             logsResults.forEach(({ docId, logs }) => {
               updated[docId] = logs;
+              console.log(`🔄 [Polling] Updated logsMap for ${docId}: ${logs.length} logs`);
             });
             return updated;
           });
@@ -336,6 +338,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
    */
   const parseProcessingProgress = (logs: ProcessingLog[]): ProcessingProgress => {
     if (!logs || logs.length === 0) {
+      console.log('🔍 [parseProcessingProgress] No logs provided');
       return { stageLabel: 'Processing...', progressPercent: 0 };
     }
 
@@ -351,11 +354,44 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
 
     // Find latest log entry
     const latestLog = logs[logs.length - 1];
+    console.log(`🔍 [parseProcessingProgress] Total logs: ${logs.length}, latest log:`, {
+      stage: latestLog.stage,
+      status: latestLog.status,
+      message: latestLog.message,
+      metadata: latestLog.metadata
+    });
     
     // Special handling for embedding stage with batch progress
-    if (latestLog.stage === 'embed' && latestLog.status === 'progress') {
-      const batch = latestLog.metadata?.batch;
-      const totalBatches = latestLog.metadata?.total_batches;
+    // Find ALL embed:progress logs and get the one with the highest batch number
+    // (this handles cases where database writes may complete out of order)
+    const embedProgressLogs = logs.filter(log => 
+      log.stage === 'embed' && log.status === 'progress' && log.metadata?.batch
+    );
+    
+    console.log(`🔍 [parseProcessingProgress] Found ${embedProgressLogs.length} embed:progress logs with batch numbers`);
+    
+    if (embedProgressLogs.length > 0) {
+      // Sort by batch number descending to get the most recent batch
+      const sortedEmbedLogs = [...embedProgressLogs].sort((a, b) => {
+        const batchA = a.metadata?.batch || 0;
+        const batchB = b.metadata?.batch || 0;
+        return batchB - batchA; // Descending order
+      });
+      
+      const sortedBatchInfo = sortedEmbedLogs.slice(0, 10).map(l => ({
+        batch: l.metadata?.batch,
+        total: l.metadata?.total_batches,
+        message: l.message,
+        created_at: l.created_at
+      }));
+      console.log(`🔍 [parseProcessingProgress] Sorted embed logs (first 10):`, sortedBatchInfo);
+      console.log(`🔍 [parseProcessingProgress] Batch numbers only:`, sortedEmbedLogs.map(l => l.metadata?.batch));
+      
+      const latestEmbedLog = sortedEmbedLogs[0];
+      const batch = latestEmbedLog.metadata?.batch;
+      const totalBatches = latestEmbedLog.metadata?.total_batches;
+      
+      console.log(`🔍 [parseProcessingProgress] Selected log: batch=${batch}, total=${totalBatches}`);
       
       if (batch && totalBatches && totalBatches > 0) {
         // Calculate embedding progress (embedding is stage 3 out of 5 stages)
@@ -364,12 +400,15 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         const stageBaseProgress = (stages.indexOf('embed') / stages.length) * 100;
         const overallProgress = stageBaseProgress + (embedProgress * 0.65);
         
-        return {
+        const result = {
           stageLabel: stageLabels.embed || 'Generating embeddings',
           batchInfo: `Batch ${batch}/${totalBatches}`,
           progressPercent: Math.min(95, Math.round(overallProgress)),
-          message: latestLog.message
+          message: latestEmbedLog.message
         };
+        
+        console.log(`🔍 [parseProcessingProgress] Returning embed progress:`, result);
+        return result;
       }
     }
 
@@ -433,7 +472,18 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
       }
 
       const result = await response.json();
-      return result.logs || [];
+      const logs = result.logs || [];
+      console.log(`📋 [fetchProcessingLogs] Document ${documentId}: fetched ${logs.length} logs`);
+      if (logs.length > 0) {
+        const embedLogs = logs.filter(l => l.stage === 'embed' && l.status === 'progress');
+        console.log(`📋 [fetchProcessingLogs] Found ${embedLogs.length} embed:progress logs`);
+        if (embedLogs.length > 0) {
+          const batchNumbers = embedLogs.map(l => ({ batch: l.metadata?.batch, total: l.metadata?.total_batches, message: l.message, created_at: l.created_at }));
+          console.log(`📋 [fetchProcessingLogs] All embed:progress logs:`, batchNumbers);
+          console.log(`📋 [fetchProcessingLogs] Batch numbers only:`, embedLogs.map(l => l.metadata?.batch));
+        }
+      }
+      return logs;
     } catch (err) {
       console.error('Error fetching processing logs:', err);
       return [];
@@ -455,7 +505,9 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         );
       case 'processing':
         if (logs && logs.length > 0) {
+          console.log(`🎨 [getStatusBadge] Document ${doc.id} (${doc.title}): parsing ${logs.length} logs`);
           const progress = parseProcessingProgress(logs);
+          console.log(`🎨 [getStatusBadge] Parsed progress:`, progress);
           return (
             <div className="flex flex-col gap-1.5 min-w-[140px]">
               <span className={`${baseClasses} bg-blue-100 text-blue-700`}>

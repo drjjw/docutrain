@@ -96,6 +96,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         show_document_selector: document.show_document_selector || false,
         show_keywords: document.show_keywords !== false,
         show_downloads: document.show_downloads !== false,
+        show_references: document.show_references !== false,
         active: document.active ?? true,
         access_level: document.access_level || 'public',
         passcode: document.passcode || '',
@@ -377,6 +378,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                 showDocumentSelector={editingValues.show_document_selector || false}
                 showKeywords={editingValues.show_keywords !== false}
                 showDownloads={editingValues.show_downloads !== false}
+                showReferences={editingValues.show_references !== false}
                 onFieldChange={handleFieldChange}
               />
 
