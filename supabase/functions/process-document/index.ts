@@ -294,193 +294,280 @@ async function generateAbstract(chunks: Array<{ content: string }>, documentTitl
 }
 
 /**
- * Generate keywords for word cloud from chunks using OpenAI
+ * Common English stop words to filter out
+ */
+const STOP_WORDS = new Set([
+  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
+  'has', 'he', 'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the',
+  'to', 'was', 'were', 'will', 'with', 'the', 'this', 'but', 'they',
+  'have', 'had', 'what', 'said', 'each', 'which', 'their', 'time',
+  'if', 'up', 'out', 'many', 'then', 'them', 'these', 'so', 'some',
+  'her', 'would', 'make', 'like', 'into', 'him', 'has', 'two', 'more',
+  'very', 'after', 'words', 'long', 'than', 'first', 'been', 'call',
+  'who', 'oil', 'sit', 'now', 'find', 'down', 'day', 'did', 'get',
+  'come', 'made', 'may', 'part', 'over', 'new', 'sound', 'take',
+  'only', 'little', 'work', 'know', 'place', 'year', 'live', 'me',
+  'back', 'give', 'most', 'very', 'after', 'thing', 'our', 'just',
+  'name', 'good', 'sentence', 'man', 'think', 'say', 'great', 'where',
+  'help', 'through', 'much', 'before', 'line', 'right', 'too', 'mean',
+  'old', 'any', 'same', 'tell', 'boy', 'follow', 'came', 'want',
+  'show', 'also', 'around', 'form', 'three', 'small', 'set', 'put',
+  'end', 'does', 'another', 'well', 'large', 'must', 'big', 'even',
+  'such', 'because', 'turn', 'here', 'why', 'ask', 'went', 'men',
+  'read', 'need', 'land', 'different', 'home', 'us', 'move', 'try',
+  'kind', 'hand', 'picture', 'again', 'change', 'off', 'play', 'spell',
+  'air', 'away', 'animal', 'house', 'point', 'page', 'letter', 'mother',
+  'answer', 'found', 'study', 'still', 'learn', 'should', 'america', 'world'
+]);
+
+const MIN_WORD_LENGTH = 3;
+const MAX_KEYWORDS = 30;
+const MIN_FREQUENCY = 1; // Lowered from 2 to include all words that appear at least once
+
+/**
+ * Tokenize text into words
+ */
+function tokenize(text: string): string[] {
+  if (!text || typeof text !== 'string') {
+    return [];
+  }
+  
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length >= MIN_WORD_LENGTH)
+    .filter(word => !STOP_WORDS.has(word));
+}
+
+/**
+ * Count word frequencies
+ */
+function countWordFrequencies(words: string[]): Map<string, number> {
+  const frequencies = new Map<string, number>();
+  
+  for (const word of words) {
+    frequencies.set(word, (frequencies.get(word) || 0) + 1);
+  }
+  
+  return frequencies;
+}
+
+/**
+ * Detect common phrases (bigrams and trigrams)
+ */
+function detectPhrases(words: string[]): Map<string, number> {
+  const phrases = new Map<string, number>();
+  
+  // Detect bigrams
+  for (let i = 0; i < words.length - 1; i++) {
+    const bigram = `${words[i]} ${words[i + 1]}`;
+    if (words[i].length >= MIN_WORD_LENGTH && words[i + 1].length >= MIN_WORD_LENGTH) {
+      phrases.set(bigram, (phrases.get(bigram) || 0) + 1);
+    }
+  }
+  
+  // Detect trigrams
+  for (let i = 0; i < words.length - 2; i++) {
+    const trigram = `${words[i]} ${words[i + 1]} ${words[i + 2]}`;
+    if (words[i].length >= MIN_WORD_LENGTH && 
+        words[i + 1].length >= MIN_WORD_LENGTH && 
+        words[i + 2].length >= MIN_WORD_LENGTH) {
+      phrases.set(trigram, (phrases.get(trigram) || 0) + 1);
+    }
+  }
+  
+  return phrases;
+}
+
+/**
+ * Normalize frequencies to weights (0.1 to 1.0)
+ */
+function normalizeWeights(frequencies: Map<string, number>): Map<string, number> {
+  if (frequencies.size === 0) {
+    return new Map();
+  }
+  
+  const values = Array.from(frequencies.values());
+  const minFreq = Math.min(...values);
+  const maxFreq = Math.max(...values);
+  const range = maxFreq - minFreq;
+  
+  const weights = new Map<string, number>();
+  
+  for (const [term, freq] of frequencies.entries()) {
+    if (range === 0) {
+      weights.set(term, 0.5);
+    } else {
+      const normalized = (freq - minFreq) / range;
+      const weight = 0.1 + (normalized * 0.9);
+      weights.set(term, Math.round(weight * 100) / 100);
+    }
+  }
+  
+  return weights;
+}
+
+/**
+ * Generate keywords for word cloud from chunks using word frequency analysis
  * Returns an array of keyword objects with term and weight
  */
 async function generateKeywords(chunks: Array<{ content: string }>, documentTitle: string): Promise<Array<{ term: string; weight: number }> | null> {
-  console.log('🔑 NEW CODE: generateKeywords() called - AI keyword extraction feature is active!');
+  console.log('🔑 Generating keywords from word frequency');
   console.log(`   Document: ${documentTitle}`);
   console.log(`   Total chunks available: ${chunks.length}`);
   
   try {
-    // Sample chunks from across the entire document for better keyword density analysis
-    // Strategy: sample evenly across the document for comprehensive coverage
-    let chunksForKeywords: Array<{ content: string }> = [];
-    const totalChunks = chunks.length;
-    
-    if (totalChunks <= 50) {
-      // If document is small, use all chunks
-      chunksForKeywords = chunks;
-    } else {
-      // For larger documents, sample more chunks for better keyword density analysis
-      // Target: Use ~10% of chunks, up to 300 chunks (to stay within token limits)
-      const targetSampleSize = Math.min(300, Math.max(100, Math.floor(totalChunks * 0.1)));
-      
-      // Sample evenly across the document for comprehensive coverage
-      const step = Math.floor(totalChunks / targetSampleSize);
-      const usedIndices = new Set<number>();
-      
-      for (let i = 0; i < totalChunks && chunksForKeywords.length < targetSampleSize; i += step) {
-        if (!usedIndices.has(i)) {
-          chunksForKeywords.push(chunks[i]);
-          usedIndices.add(i);
-        }
-      }
-      
-      // Ensure we have samples from beginning, middle, and end
-      if (chunksForKeywords.length < targetSampleSize) {
-        // Add beginning chunks if not already included
-        for (let i = 0; i < Math.min(30, totalChunks) && chunksForKeywords.length < targetSampleSize; i++) {
-          if (!usedIndices.has(i)) {
-            chunksForKeywords.push(chunks[i]);
-            usedIndices.add(i);
-          }
-        }
-        
-        // Add middle chunks
-        const middleStart = Math.floor(totalChunks / 2) - 15;
-        for (let i = middleStart; i < middleStart + 30 && chunksForKeywords.length < targetSampleSize && i < totalChunks; i++) {
-          if (!usedIndices.has(i)) {
-            chunksForKeywords.push(chunks[i]);
-            usedIndices.add(i);
-          }
-        }
-        
-        // Add end chunks
-        for (let i = Math.max(0, totalChunks - 30); i < totalChunks && chunksForKeywords.length < targetSampleSize; i++) {
-          if (!usedIndices.has(i)) {
-            chunksForKeywords.push(chunks[i]);
-            usedIndices.add(i);
-          }
-        }
-      }
-      
-      // Sort by original index to maintain some order
-      chunksForKeywords.sort((a, b) => {
-        const aIndex = chunks.indexOf(a);
-        const bIndex = chunks.indexOf(b);
-        return aIndex - bIndex;
-      });
+    if (!chunks || chunks.length === 0) {
+      console.warn('⚠️ No chunks provided for keyword generation');
+      return [];
     }
     
-    console.log(`   📋 Sampling ${chunksForKeywords.length} chunks from across document`);
-    
-    // Combine chunk content
-    const combinedText = chunksForKeywords
-      .map(chunk => chunk.content)
+    // Combine all chunk content
+    const combinedText = chunks
+      .map(chunk => chunk.content || '')
+      .filter(content => content && content.trim().length > 0)
       .join('\n\n');
     
-    // Truncate if too long (to stay within token limits)
-    // gpt-4o-mini has 128k context window, so we can use more
-    // Reserve ~25k tokens for system prompt, user prompt template, and response
-    // That leaves ~100k tokens (~400k chars) for document content
-    const maxChars = 400000; // ~100k tokens (leaving room for prompts and response)
-    const textForKeywords = combinedText.length > maxChars 
-      ? combinedText.substring(0, maxChars) + '...'
-      : combinedText;
-    
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert at analyzing document content and extracting key terms and concepts. Identify the most important keywords, phrases, and concepts that would be useful for a word cloud visualization. Focus on domain-specific terms, key concepts, and important topics. Always respond with valid JSON.'
-        },
-        {
-          role: 'user',
-          content: `Analyze the following document content and extract 20-30 key terms, phrases, and concepts that best represent this document. For each term, assign a weight from 0.1 to 1.0 based on its importance (1.0 = most important, 0.1 = less important but still relevant).\n\nDocument title: "${documentTitle}"\n\nContent:\n${textForKeywords}\n\nReturn your response as a JSON object with a "keywords" property containing an array of objects, each with "term" (string) and "weight" (number) properties. Example format:\n{"keywords": [{"term": "kidney disease", "weight": 0.95}, {"term": "chronic kidney disease", "weight": 0.90}, {"term": "treatment", "weight": 0.75}]}\n\nProvide ONLY the JSON object, no additional commentary.`
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 800, // Increased to avoid truncation
-      response_format: { type: "json_object" }
-    });
-    
-    const content = response.choices[0]?.message?.content?.trim();
-    if (!content) {
-      console.error('No content in OpenAI response for keywords');
-      return null;
+    if (!combinedText || combinedText.trim().length === 0) {
+      console.warn('⚠️ No text content found in chunks');
+      return [];
     }
     
-    // Parse JSON response - GPT may wrap it in an object
-    let parsed: any;
-    try {
-      parsed = JSON.parse(content);
-    } catch (parseError) {
-      console.error('Failed to parse keywords JSON:', parseError);
-      return null;
+    // Tokenize text
+    const words = tokenize(combinedText);
+    
+    if (words.length === 0) {
+      console.warn('⚠️ No valid words found after tokenization');
+      return [];
     }
     
-    // Handle both direct array and wrapped object responses
-    let keywords: any[] | null = null;
-    if (Array.isArray(parsed)) {
-      keywords = parsed;
-    } else if (parsed.keywords && Array.isArray(parsed.keywords)) {
-      keywords = parsed.keywords;
-    } else if (parsed.terms && Array.isArray(parsed.terms)) {
-      keywords = parsed.terms;
-    } else {
-      // Try to find any array in the response
-      const keys = Object.keys(parsed);
-      for (const key of keys) {
-        if (Array.isArray(parsed[key])) {
-          keywords = parsed[key];
-          break;
-        }
+    console.log(`   Tokenized ${words.length} words`);
+    
+    // Count word frequencies
+    const wordFreqs = countWordFrequencies(words);
+    console.log(`   Found ${wordFreqs.size} unique words`);
+    
+    // Detect phrases
+    const phraseFreqs = detectPhrases(words);
+    console.log(`   Found ${phraseFreqs.size} unique phrases`);
+    
+    // Combine words and phrases, prioritizing phrases
+    const allTerms = new Map<string, number>();
+    
+    // Add words (single terms)
+    let wordsAdded = 0;
+    for (const [term, freq] of wordFreqs.entries()) {
+      if (freq >= MIN_FREQUENCY) {
+        allTerms.set(term, freq);
+        wordsAdded++;
       }
     }
+    console.log(`   Added ${wordsAdded} words (freq >= ${MIN_FREQUENCY})`);
     
-    if (!keywords || !Array.isArray(keywords)) {
-      console.error('Keywords not found in expected format. Parsed response:', JSON.stringify(parsed, null, 2));
-      return null;
+    // Add phrases with frequency boost
+    let phrasesAdded = 0;
+    for (const [phrase, freq] of phraseFreqs.entries()) {
+      if (freq >= MIN_FREQUENCY) {
+        allTerms.set(phrase, Math.ceil(freq * 1.5));
+        phrasesAdded++;
+      }
+    }
+    console.log(`   Added ${phrasesAdded} phrases (freq >= ${MIN_FREQUENCY})`);
+    
+    if (allTerms.size === 0) {
+      console.warn('⚠️ No terms found meeting minimum frequency threshold');
+      console.warn(`   Word frequencies: ${wordFreqs.size} unique words`);
+      console.warn(`   Phrase frequencies: ${phraseFreqs.size} unique phrases`);
+      if (wordFreqs.size > 0) {
+        const topWords = Array.from(wordFreqs.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([term, freq]) => `${term}:${freq}`)
+          .join(', ');
+        console.warn(`   Top words: ${topWords}`);
+      }
+      return [];
     }
     
-    // Validate and clean keywords
-    const validKeywords = keywords
-      .filter((k: any) => k && typeof k === 'object' && k.term && typeof k.term === 'string')
-      .map((k: any) => ({
-        term: k.term.trim(),
-        weight: typeof k.weight === 'number' ? Math.max(0.1, Math.min(1.0, k.weight)) : 0.5
+    // Normalize to weights
+    const weights = normalizeWeights(allTerms);
+    
+    // Convert to array and sort by weight (descending)
+    const keywords = Array.from(weights.entries())
+      .map(([term, weight]) => ({
+        term: term.trim(),
+        weight: weight
       }))
-      .filter((k: any) => k.term.length > 0)
-      .slice(0, 30); // Limit to 30 keywords
+      .filter(k => k.term.length > 0)
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, MAX_KEYWORDS);
     
-    if (validKeywords.length === 0) {
-      console.error('No valid keywords after filtering. Original keywords array length:', keywords.length);
-      return null;
+    // Re-sort to prioritize phrases when weights are similar
+    keywords.sort((a, b) => {
+      const aIsPhrase = a.term.includes(' ');
+      const bIsPhrase = b.term.includes(' ');
+      
+      if (Math.abs(a.weight - b.weight) < 0.1) {
+        if (aIsPhrase && !bIsPhrase) return -1;
+        if (!aIsPhrase && bIsPhrase) return 1;
+      }
+      
+      return b.weight - a.weight;
+    });
+    
+    console.log(`   ✓ Generated ${keywords.length} keywords`);
+    if (keywords.length > 0) {
+      console.log(`   Top keywords: ${keywords.slice(0, 5).map(k => k.term).join(', ')}`);
     }
     
-    console.log(`   ✓ Generated ${validKeywords.length} keywords`);
-    return validKeywords;
+    return keywords;
     
   } catch (error: any) {
-    console.error('Failed to generate keywords:', error);
-    console.error('Error details:', {
-      message: error?.message,
-      status: error?.status,
-      code: error?.code,
-      type: error?.type
-    });
-    // Return null on error - don't fail the whole process
-    return null;
+    console.error('⚠️ Error generating keywords from frequency:', error.message);
+    console.error(error.stack);
+    return []; // Return empty array on error (graceful degradation)
   }
 }
 
 /**
- * Process embeddings in batches
+ * Process embeddings in batches using OpenAI batch API
+ * This makes a single API call for the entire batch instead of individual calls
  */
 async function processEmbeddingsBatch(chunks: Array<{ content: string }>, startIdx: number, batchSize: number) {
   const batch = chunks.slice(startIdx, startIdx + batchSize);
   const embeddings = [];
   
-  for (const chunk of batch) {
-    try {
-      const embedding = await generateEmbedding(chunk.content);
-      embeddings.push({ chunk, embedding });
-    } catch (error) {
-      console.error(`Failed to embed chunk ${chunks.indexOf(chunk)}:`, error);
+  try {
+    // Extract all texts from the batch
+    const texts = batch.map(chunk => chunk.content);
+    
+    // Make a single batch API call with all texts
+    const response = await openai.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: texts, // Array of texts for batch processing
+      encoding_format: 'float'
+    });
+    
+    // Map embeddings back to chunks
+    batch.forEach((chunk, index) => {
+      if (response.data[index] && response.data[index].embedding) {
+        embeddings.push({ 
+          chunk, 
+          embedding: response.data[index].embedding 
+        });
+      } else {
+        console.error(`Failed to get embedding for chunk at index ${startIdx + index}`);
+        embeddings.push({ chunk, embedding: null });
+      }
+    });
+    
+  } catch (error) {
+    console.error(`Failed to embed batch starting at index ${startIdx}:`, error);
+    // If batch fails, mark all chunks as failed
+    batch.forEach(chunk => {
       embeddings.push({ chunk, embedding: null });
-    }
+    });
   }
   
   return embeddings;
