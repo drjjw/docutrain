@@ -150,7 +150,8 @@ if (!fs.existsSync(htmlSourcePath)) {
     });
 
     // Copy landing.js if it exists (landing page still needs it for mobile menu, etc.)
-    const landingJsSource = path.join(__dirname, 'deprecated/public/js/landing.js');
+    // Use the version from public/js/ instead of deprecated folder
+    const landingJsSource = path.join(__dirname, 'public/js/landing.js');
     const landingJsDest = path.join(publicDistDir, 'js/landing.js');
     if (fs.existsSync(landingJsSource)) {
         // Create js directory if it doesn't exist

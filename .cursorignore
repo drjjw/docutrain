@@ -1,0 +1,5 @@
+# Cursor ignore file - files/folders to exclude from Cursor indexing and processing
+
+# Deprecated vanilla JS implementation (fully migrated to React)
+deprecated/
+

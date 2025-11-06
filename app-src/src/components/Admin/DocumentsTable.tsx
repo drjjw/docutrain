@@ -42,6 +42,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
   const [configPromptDoc, setConfigPromptDoc] = useState<DocumentWithOwner | null>(null);
   const [analyticsDoc, setAnalyticsDoc] = useState<DocumentWithOwner | null>(null);
   const documentsRef = useRef<DocumentWithOwner[]>([]);
+  const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
 
   // Debug editorModalDoc changes
   React.useEffect(() => {
@@ -58,6 +59,17 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
+  // Multi-select states
+  const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [bulkDeleteDocs, setBulkDeleteDocs] = useState<DocumentWithOwner[]>([]);
+  const [bulkDeleteProgress, setBulkDeleteProgress] = useState<{
+    current: string | null;
+    completed: string[];
+    failed: Array<{ id: string; error: string }>;
+    total: number;
+  } | null>(null);
+
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -65,7 +77,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
 
   // Prevent body scroll when delete modal is open
   useEffect(() => {
-    if (deleteConfirmDoc) {
+    if (deleteConfirmDoc || bulkDeleteConfirm) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -73,7 +85,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
     return () => {
       document.body.style.overflow = '';
     };
-  }, [deleteConfirmDoc]);
+  }, [deleteConfirmDoc, bulkDeleteConfirm]);
 
   // Filter documents based on search query and filters
   useEffect(() => {
@@ -123,9 +135,10 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
   }, [documents, searchQuery, statusFilter, visibilityFilter, categoryFilter, ownerFilter, isSuperAdmin]);
 
   // Calculate paginated documents
-  const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
+  const effectiveItemsPerPage = itemsPerPage >= filteredDocuments.length ? filteredDocuments.length : itemsPerPage;
+  const totalPages = effectiveItemsPerPage > 0 ? Math.ceil(filteredDocuments.length / effectiveItemsPerPage) : 1;
+  const startIndex = (currentPage - 1) * effectiveItemsPerPage;
+  const endIndex = startIndex + effectiveItemsPerPage;
   const paginatedDocuments = filteredDocuments.slice(startIndex, endIndex);
 
   // Reset page when items per page changes
@@ -258,12 +271,157 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
       await deleteDocument(doc.id);
       setDocuments(docs => docs.filter(d => d.id !== doc.id));
       setDeleteConfirmDoc(null);
+      // Remove from selection if it was selected
+      setSelectedDocIds(prev => {
+        const next = new Set(prev);
+        next.delete(doc.id);
+        return next;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete document');
     } finally {
       setSaving(false);
     }
   };
+
+  // Multi-select handlers
+  const toggleDocumentSelection = (docId: string) => {
+    setSelectedDocIds(prev => {
+      const next = new Set(prev);
+      if (next.has(docId)) {
+        next.delete(docId);
+      } else {
+        next.add(docId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedDocIds.size === paginatedDocuments.length) {
+      // Deselect all on current page
+      setSelectedDocIds(new Set());
+    } else {
+      // Select all on current page
+      const allIds = new Set(paginatedDocuments.map(doc => doc.id));
+      setSelectedDocIds(allIds);
+    }
+  };
+
+  const isAllSelected = paginatedDocuments.length > 0 && selectedDocIds.size === paginatedDocuments.length;
+  const isSomeSelected = selectedDocIds.size > 0 && selectedDocIds.size < paginatedDocuments.length;
+
+  // Bulk delete handler - opens confirmation modal
+  const handleBulkDelete = () => {
+    if (selectedDocIds.size === 0) return;
+
+    const selectedDocs = documents.filter(doc => selectedDocIds.has(doc.id));
+    setBulkDeleteDocs(selectedDocs);
+    setBulkDeleteConfirm(true);
+  };
+
+  // Confirm and execute bulk delete
+  const confirmBulkDelete = async () => {
+    if (selectedDocIds.size === 0) return;
+
+    const docIdsArray = Array.from(selectedDocIds);
+    const deletedIds: string[] = [];
+    const failedItems: Array<{ id: string; error: string }> = [];
+    
+    // Initialize progress tracking
+    setBulkDeleteProgress({
+      current: null,
+      completed: [],
+      failed: [],
+      total: docIdsArray.length,
+    });
+    setSaving(true);
+    
+    try {
+      // Delete documents sequentially to avoid timeouts and database locks
+      for (const docId of docIdsArray) {
+        const doc = bulkDeleteDocs.find(d => d.id === docId);
+        const docName = doc?.title || doc?.slug || docId;
+        
+        // Update current document being deleted
+        setBulkDeleteProgress(prev => prev ? {
+          ...prev,
+          current: docId,
+        } : null);
+        
+        try {
+          await deleteDocument(docId);
+          deletedIds.push(docId);
+          
+          // Update progress
+          setBulkDeleteProgress(prev => prev ? {
+            ...prev,
+            current: null,
+            completed: [...prev.completed, docId],
+          } : null);
+          
+          // Small delay between deletions to avoid overwhelming the database
+          if (docIdsArray.length > 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        } catch (err) {
+          console.error(`Failed to delete document ${docId}:`, err);
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+          failedItems.push({ id: docId, error: errorMessage });
+          
+          // Update progress
+          setBulkDeleteProgress(prev => prev ? {
+            ...prev,
+            current: null,
+            failed: [...prev.failed, { id: docId, error: errorMessage }],
+          } : null);
+        }
+      }
+      
+      // Remove successfully deleted documents from state
+      if (deletedIds.length > 0) {
+        setDocuments(docs => docs.filter(d => !deletedIds.includes(d.id)));
+      }
+      
+      // Clear selection
+      setSelectedDocIds(new Set());
+      
+      // Show error if some deletions failed
+      if (failedItems.length > 0) {
+        const successCount = deletedIds.length;
+        const failCount = failedItems.length;
+        setError(
+          `Deleted ${successCount} document(s) successfully, but ${failCount} deletion(s) failed. ` +
+          `Please try deleting the remaining documents individually.`
+        );
+      }
+      
+      // Auto-dismiss modal after a short delay if all succeeded
+      if (failedItems.length === 0) {
+        setTimeout(() => {
+          setBulkDeleteConfirm(false);
+          setBulkDeleteDocs([]);
+          setBulkDeleteProgress(null);
+        }, 1500);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete documents');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Clear selection when filters or page changes
+  useEffect(() => {
+    setSelectedDocIds(new Set());
+  }, [searchQuery, statusFilter, visibilityFilter, categoryFilter, ownerFilter, currentPage]);
+
+  // Set indeterminate state on select all checkbox
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      selectAllCheckboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
 
   const handleCopyLink = async (doc: DocumentWithOwner) => {
     const link = `${window.location.origin}/app/chat?doc=${doc.slug}`;
@@ -816,18 +974,58 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-600">Show:</span>
           <select
-            value={itemsPerPage}
-            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+            value={itemsPerPage >= filteredDocuments.length && filteredDocuments.length > 0 ? 'all' : itemsPerPage}
+            onChange={(e) => {
+              const newValue = e.target.value;
+              if (newValue === 'all') {
+                setItemsPerPage(filteredDocuments.length);
+              } else {
+                setItemsPerPage(Number(newValue));
+              }
+            }}
             className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 font-medium text-gray-700"
           >
             <option value={10}>10</option>
             <option value={25}>25</option>
             <option value={50}>50</option>
             <option value={100}>100</option>
+            <option value={200}>200</option>
+            <option value={500}>500</option>
+            {filteredDocuments.length > 0 && (
+              <option value="all">All ({filteredDocuments.length})</option>
+            )}
           </select>
           <span className="text-sm text-gray-600 hidden sm:inline font-medium">per page</span>
         </div>
       </div>
+
+      {/* Bulk Actions Bar - Show when documents are selected */}
+      {selectedDocIds.size > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-blue-900">
+              {selectedDocIds.size} document{selectedDocIds.size !== 1 ? 's' : ''} selected
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSelectedDocIds(new Set())}
+              className="px-4 py-2 text-sm font-medium text-blue-700 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-colors"
+            >
+              Clear Selection
+            </button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleBulkDelete}
+              loading={saving}
+              disabled={saving}
+            >
+              Delete Selected ({selectedDocIds.size})
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Documents Grid/List */}
       {paginatedDocuments.length === 0 ? (
@@ -848,7 +1046,17 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
         <div className="space-y-4">
           {/* Table Header Row */}
           <div className="hidden lg:grid grid-cols-12 gap-4 px-5 py-4 bg-gray-50 rounded-xl border border-gray-200/60 shadow-sm">
-            <div className={`${isSuperAdmin ? 'col-span-4' : 'col-span-5'} text-xs font-bold text-gray-600 uppercase tracking-wider`}>Document</div>
+            <div className="col-span-1 flex items-center">
+              <input
+                type="checkbox"
+                ref={selectAllCheckboxRef}
+                checked={isAllSelected}
+                onChange={toggleSelectAll}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                title={isAllSelected ? 'Deselect all' : isSomeSelected ? 'Some selected' : 'Select all'}
+              />
+            </div>
+            <div className={`${isSuperAdmin ? 'col-span-3' : 'col-span-4'} text-xs font-bold text-gray-600 uppercase tracking-wider`}>Document</div>
             <div className="col-span-2 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Status</div>
             <div className="col-span-1 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Visibility</div>
             <div className="col-span-1 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Category</div>
@@ -867,8 +1075,17 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
               {/* Mobile/Tablet Card View */}
               <div className="lg:hidden p-5">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    {/* Checkbox */}
+                    <input
+                      type="checkbox"
+                      checked={selectedDocIds.has(doc.id)}
+                      onChange={() => toggleDocumentSelection(doc.id)}
+                      className="w-4 h-4 mt-1 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer flex-shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
                       <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 shadow-sm">
                         <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -940,6 +1157,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                       )}
                     </div>
                   </div>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   {renderActionButtons(doc, true)}
@@ -948,8 +1166,18 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
 
               {/* Desktop Grid View */}
               <div className="hidden lg:grid grid-cols-12 gap-4 p-5">
+                {/* Checkbox */}
+                <div className="col-span-1 flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedDocIds.has(doc.id)}
+                    onChange={() => toggleDocumentSelection(doc.id)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
                 {/* Document Info */}
-                <div className={`${isSuperAdmin ? 'col-span-4' : 'col-span-5'}`}>
+                <div className={`${isSuperAdmin ? 'col-span-3' : 'col-span-4'}`}>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 shadow-sm">
                       <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1187,6 +1415,226 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                 {saving ? 'Deleting...' : 'Delete Document'}
               </Button>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {bulkDeleteConfirm && bulkDeleteDocs.length > 0 && (
+        <Modal
+          isOpen={bulkDeleteConfirm}
+          onClose={() => {
+            if (!saving) {
+              setBulkDeleteConfirm(false);
+              setBulkDeleteDocs([]);
+              setBulkDeleteProgress(null);
+            }
+          }}
+          title={bulkDeleteProgress ? "Deleting Documents..." : "Delete Multiple Documents"}
+          size="lg"
+        >
+          <div className="space-y-4">
+            {!bulkDeleteProgress ? (
+              <>
+                {/* Warning Header */}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">This action cannot be undone</p>
+                  </div>
+                </div>
+
+                {/* Body */}
+                <p className="text-sm text-gray-700">
+                  Are you sure you want to delete <span className="font-medium text-gray-900">{bulkDeleteDocs.length} document{bulkDeleteDocs.length !== 1 ? 's' : ''}</span>?
+                </p>
+
+                {/* Document List */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto">
+                  <div className="space-y-2">
+                    {bulkDeleteDocs.map((doc) => (
+                      <div key={doc.id} className="flex items-start gap-2 text-sm">
+                        <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span className="text-gray-700 font-medium truncate">{doc.title || doc.slug}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex gap-3">
+                    <svg className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-sm font-medium text-yellow-800">Warning</h4>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        This will permanently remove all selected documents and their associated data from the system.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-gray-200">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setBulkDeleteConfirm(false);
+                      setBulkDeleteDocs([]);
+                      setBulkDeleteProgress(null);
+                    }}
+                    disabled={saving}
+                    className="w-full sm:w-auto"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={confirmBulkDelete}
+                    disabled={saving}
+                    loading={saving}
+                    className="w-full sm:w-auto"
+                  >
+                    {saving ? 'Deleting...' : `Delete ${bulkDeleteDocs.length} Document${bulkDeleteDocs.length !== 1 ? 's' : ''}`}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Progress View */}
+                <div className="space-y-4">
+                  {/* Progress Summary */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-blue-900">Progress</span>
+                      <span className="text-sm font-semibold text-blue-700">
+                        {bulkDeleteProgress.completed.length + bulkDeleteProgress.failed.length} / {bulkDeleteProgress.total}
+                      </span>
+                    </div>
+                    <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${((bulkDeleteProgress.completed.length + bulkDeleteProgress.failed.length) / bulkDeleteProgress.total) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-blue-700">
+                      {bulkDeleteProgress.completed.length} deleted
+                      {bulkDeleteProgress.failed.length > 0 && `, ${bulkDeleteProgress.failed.length} failed`}
+                    </p>
+                  </div>
+
+                  {/* Document List with Status */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto">
+                    <div className="space-y-2">
+                      {bulkDeleteDocs.map((doc) => {
+                        const isCurrent = bulkDeleteProgress.current === doc.id;
+                        const isCompleted = bulkDeleteProgress.completed.includes(doc.id);
+                        const failedItem = bulkDeleteProgress.failed.find(f => f.id === doc.id);
+                        
+                        return (
+                          <div key={doc.id} className="flex items-start gap-2 text-sm">
+                            {isCurrent ? (
+                              <div className="w-4 h-4 mt-0.5 flex-shrink-0">
+                                <Spinner size="sm" />
+                              </div>
+                            ) : isCompleted ? (
+                              <svg className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : failedItem ? (
+                              <svg className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <span className={`font-medium truncate block ${
+                                isCurrent ? 'text-blue-600' :
+                                isCompleted ? 'text-green-700' :
+                                failedItem ? 'text-red-700' :
+                                'text-gray-700'
+                              }`}>
+                                {doc.title || doc.slug}
+                              </span>
+                              {failedItem && (
+                                <span className="text-xs text-red-600 block mt-0.5">{failedItem.error}</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Completion Message */}
+                  {bulkDeleteProgress.completed.length + bulkDeleteProgress.failed.length === bulkDeleteProgress.total && (
+                    <div className={`rounded-lg p-4 ${
+                      bulkDeleteProgress.failed.length === 0
+                        ? 'bg-green-50 border border-green-200'
+                        : 'bg-yellow-50 border border-yellow-200'
+                    }`}>
+                      <div className="flex gap-3">
+                        {bulkDeleteProgress.failed.length === 0 ? (
+                          <>
+                            <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <div>
+                              <h4 className="text-sm font-medium text-green-800">All documents deleted successfully</h4>
+                              <p className="text-sm text-green-700 mt-1">
+                                {bulkDeleteProgress.completed.length} document{bulkDeleteProgress.completed.length !== 1 ? 's' : ''} have been permanently removed.
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            <div>
+                              <h4 className="text-sm font-medium text-yellow-800">Deletion completed with errors</h4>
+                              <p className="text-sm text-yellow-700 mt-1">
+                                {bulkDeleteProgress.completed.length} document{bulkDeleteProgress.completed.length !== 1 ? 's' : ''} deleted successfully, 
+                                but {bulkDeleteProgress.failed.length} deletion{bulkDeleteProgress.failed.length !== 1 ? 's' : ''} failed.
+                              </p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Footer - Only show close button when complete */}
+                  {bulkDeleteProgress.completed.length + bulkDeleteProgress.failed.length === bulkDeleteProgress.total && (
+                    <div className="flex justify-end pt-4 border-t border-gray-200">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setBulkDeleteConfirm(false);
+                          setBulkDeleteDocs([]);
+                          setBulkDeleteProgress(null);
+                        }}
+                        className="w-full sm:w-auto"
+                      >
+                        Close
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </Modal>
       )}
