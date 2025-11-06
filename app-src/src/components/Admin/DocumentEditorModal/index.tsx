@@ -14,7 +14,7 @@ import { DocumentDownloadsCard } from './DocumentDownloadsCard';
 import { DocumentMetadataCard } from './DocumentMetadataCard';
 import type { DocumentEditorModalProps } from './types';
 
-export function DocumentEditorModal({ document, owners, isSuperAdmin = false, onSave, onCancel }: DocumentEditorModalProps) {
+export function DocumentEditorModal({ document, owners, isSuperAdmin = false, onSave, onCancel, onRetrainingStart }: DocumentEditorModalProps) {
   const [editingValues, setEditingValues] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -366,6 +366,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                         setRetraining(false);
                         setError(err);
                       }}
+                      onRetrainingStart={onRetrainingStart}
                     />
                   </div>
                 </TabPanel>

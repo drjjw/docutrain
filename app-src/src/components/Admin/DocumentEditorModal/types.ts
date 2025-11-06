@@ -8,6 +8,7 @@ export interface DocumentEditorModalProps {
   isSuperAdmin?: boolean;
   onSave: () => void;
   onCancel: () => void;
+  onRetrainingStart?: (userDocumentId: string) => void;
 }
 
 export interface DocumentOverviewSectionProps {
@@ -26,6 +27,7 @@ export interface DocumentRetrainSectionProps {
   onRetrainStart: () => void;
   onRetrainSuccess: () => void;
   onRetrainError: (error: string) => void;
+  onRetrainingStart?: (userDocumentId: string) => void;
 }
 
 export interface DocumentBasicInfoCardProps {

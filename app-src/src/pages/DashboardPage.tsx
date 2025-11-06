@@ -386,7 +386,23 @@ export function DashboardPage() {
                 </p>
               </div>
               <div className="p-5 sm:p-7">
-                <DocumentsTable ref={documentsTableRef} isSuperAdmin={isSuperAdmin} />
+                <DocumentsTable 
+                  ref={documentsTableRef} 
+                  isSuperAdmin={isSuperAdmin}
+                  onRetrainingStart={(userDocumentId) => {
+                    // When retraining starts, refresh the processing area to show the retraining document
+                    console.log('🔄 Retraining started, refreshing processing area:', userDocumentId);
+                    setHasActiveDocuments(true);
+                    // Refresh after a short delay to allow database to update
+                    setTimeout(() => {
+                      userDocumentsTableRef.current?.refresh();
+                    }, 500);
+                    // Also refresh again after a longer delay to catch any async updates
+                    setTimeout(() => {
+                      userDocumentsTableRef.current?.refresh();
+                    }, 2000);
+                  }}
+                />
               </div>
             </div>
           </div>

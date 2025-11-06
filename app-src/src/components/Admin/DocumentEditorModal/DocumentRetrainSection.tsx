@@ -7,7 +7,8 @@ export function DocumentRetrainSection({
   retraining,
   onRetrainStart,
   onRetrainSuccess,
-  onRetrainError
+  onRetrainError,
+  onRetrainingStart
 }: DocumentRetrainSectionProps) {
   const [activeTab, setActiveTab] = useState<'pdf' | 'text'>('pdf');
 
@@ -114,6 +115,7 @@ export function DocumentRetrainSection({
             onRetrainStart={onRetrainStart}
             onRetrainSuccess={onRetrainSuccess}
             onRetrainError={onRetrainError}
+            onRetrainingStart={onRetrainingStart}
           />
         </div>
       </div>

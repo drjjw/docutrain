@@ -12,6 +12,7 @@ interface DocumentRetrainerProps {
   onRetrainStart?: () => void;
   onRetrainSuccess?: () => void;
   onRetrainError?: (error: string) => void;
+  onRetrainingStart?: (userDocumentId: string) => void;
 }
 
 export function DocumentRetrainer({
@@ -21,7 +22,8 @@ export function DocumentRetrainer({
   retraining: externalRetraining = false,
   onRetrainStart,
   onRetrainSuccess,
-  onRetrainError
+  onRetrainError,
+  onRetrainingStart
 }: DocumentRetrainerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -125,6 +127,11 @@ export function DocumentRetrainer({
         setUserDocumentId(result.user_document_id);
         setProgress(20);
         setProcessingStatus('Processing started...');
+        
+        // Notify parent that retraining has started so it can refresh the processing area
+        if (onRetrainingStart && result.user_document_id) {
+          onRetrainingStart(result.user_document_id);
+        }
       } else {
         // Text retraining
         setProcessingStatus('Uploading text...');
@@ -171,6 +178,11 @@ export function DocumentRetrainer({
         setUserDocumentId(result.user_document_id);
         setProgress(20);
         setProcessingStatus('Processing started...');
+        
+        // Notify parent that retraining has started so it can refresh the processing area
+        if (onRetrainingStart && result.user_document_id) {
+          onRetrainingStart(result.user_document_id);
+        }
       }
 
     } catch (err) {

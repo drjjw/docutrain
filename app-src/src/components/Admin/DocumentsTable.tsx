@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
+import { CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
@@ -14,6 +15,7 @@ import { supabase } from '@/lib/supabase/client';
 
 interface DocumentsTableProps {
   isSuperAdmin?: boolean;
+  onRetrainingStart?: (userDocumentId: string) => void;
 }
 
 export interface DocumentsTableRef {
@@ -22,7 +24,7 @@ export interface DocumentsTableRef {
 }
 
 export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>((props, ref) => {
-  const { isSuperAdmin = false } = props;
+  const { isSuperAdmin = false, onRetrainingStart } = props;
   const { user } = useAuth();
   const [documents, setDocuments] = useState<DocumentWithOwner[]>([]);
   const [filteredDocuments, setFilteredDocuments] = useState<DocumentWithOwner[]>([]);
@@ -357,11 +359,17 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
           disabled={isUpdating}
           size="sm"
         />
-        <span className={`inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200/50 shadow-sm text-center`}>
-          <span className={`text-xs font-semibold ${isActive ? 'text-green-700' : 'text-gray-600'}`}>
-            {isActive ? 'Active' : 'Inactive'}
+        {isActive ? (
+          <span className="flex items-center gap-1.5 text-xs text-green-700">
+            <CheckCircle className="w-4 h-4" />
+            Active
           </span>
-        </span>
+        ) : (
+          <span className="flex items-center gap-1.5 text-xs text-gray-500">
+            <XCircle className="w-4 h-4" />
+            Inactive
+          </span>
+        )}
       </div>
     );
   };
@@ -1199,6 +1207,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
             setShowConfigPrompt(false);
             setConfigPromptDoc(null);
           }}
+          onRetrainingStart={onRetrainingStart}
         />
       )}
 
