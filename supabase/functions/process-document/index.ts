@@ -722,6 +722,7 @@ async function processUserDocument(userDocId: string) {
     }
     // If super admin, ownerIdToSet remains null (can be set later in edit modal)
     
+    // isTextUpload is already defined earlier - use it to disable references (no pages in text uploads)
     const { error: docInsertError } = await supabase
       .from('documents')
       .insert({
@@ -737,13 +738,15 @@ async function processUserDocument(userDocId: string) {
         access_level: 'owner_restricted',
         owner_id: ownerIdToSet,
         uploaded_by_user_id: userDoc.user_id,
+        show_references: !isTextUpload, // Disable references for text uploads (no pages)
         metadata: {
           user_document_id: userDocId,
           user_id: userDoc.user_id,
           uploaded_at: userDoc.created_at,
           file_size: userDoc.file_size,
           has_ai_abstract: abstract ? true : false,
-          keywords: keywords || null
+          keywords: keywords || null,
+          upload_type: userDoc.metadata?.upload_type || null // Preserve upload type for identification
         }
       });
     

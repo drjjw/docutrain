@@ -7,7 +7,8 @@ export function DocumentUIConfigCard({
   showKeywords,
   showDownloads,
   showReferences,
-  onFieldChange
+  onFieldChange,
+  isTextUpload = false
 }: DocumentUIConfigCardProps) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -47,9 +48,24 @@ export function DocumentUIConfigCard({
           checked={showReferences !== false}
           onChange={(checked) => onFieldChange('show_references', checked)}
           label="Show References"
-          description="Display references section at the end of chat messages"
+          description={isTextUpload 
+            ? "References are disabled for text uploads since there are no page numbers in the source material"
+            : "Display references section at the end of chat messages"}
           size="md"
+          disabled={isTextUpload}
         />
+        {isTextUpload && (
+          <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm text-amber-800">
+                <strong>Note:</strong> This document was uploaded as text. References require page numbers, which are only available for PDF uploads.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

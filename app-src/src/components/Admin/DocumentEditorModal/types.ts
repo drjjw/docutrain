@@ -76,6 +76,7 @@ export interface DocumentUIConfigCardProps {
   showDownloads: boolean;
   showReferences: boolean;
   onFieldChange: FieldChangeHandler;
+  isTextUpload?: boolean; // Whether this document is from a text upload (no pages)
 }
 
 export interface DocumentMessagesCardProps {

@@ -152,7 +152,7 @@ export function TextUploadZone({ onUploadSuccess }: TextUploadZoneProps) {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Paste your text content here... You can paste articles, notes, research papers, or any text you want to train the AI on."
-            className="w-full h-96 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono resize-vertical"
+            className="w-full h-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono resize-vertical"
             disabled={uploading}
             maxLength={5000000}
           />

@@ -127,6 +127,20 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
       }
     }
     
+    // Prevent enabling references for text uploads
+    // Primary check: pdf_filename column (most reliable indicator)
+    const isTextUpload = 
+      document.pdf_filename === 'text-upload' ||
+      document.pdf_filename === 'text-content.txt' ||
+      document.pdf_subdirectory === 'text-retrain' ||
+      // Fallback: check metadata if pdf_filename isn't set
+      document.metadata?.upload_type === 'text' || 
+      document.metadata?.upload_type === 'text_retrain';
+    if (field === 'show_references' && isTextUpload && value === true) {
+      console.warn('Cannot enable references for text uploads');
+      return; // Don't allow enabling references for text uploads
+    }
+    
     setEditingValues(prev => ({ ...prev, [field]: value }));
   };
 
@@ -162,6 +176,19 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
 
       // Exclude downloads from document update - attachments are managed separately via FileUploadManager
       const { downloads, ...documentUpdates } = editingValues;
+
+      // Prevent enabling references for text uploads
+      // Primary check: pdf_filename column (most reliable indicator)
+      const isTextUpload = 
+        document.pdf_filename === 'text-upload' ||
+        document.pdf_filename === 'text-content.txt' ||
+        document.pdf_subdirectory === 'text-retrain' ||
+        // Fallback: check metadata if pdf_filename isn't set
+        document.metadata?.upload_type === 'text' || 
+        document.metadata?.upload_type === 'text_retrain';
+      if (isTextUpload && documentUpdates.show_references === true) {
+        documentUpdates.show_references = false; // Force false for text uploads
+      }
 
       await updateDocument(document.id, documentUpdates);
       
@@ -395,6 +422,15 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                       showDownloads={editingValues.show_downloads !== false}
                       showReferences={editingValues.show_references !== false}
                       onFieldChange={handleFieldChange}
+                      isTextUpload={
+                        // Primary check: pdf_filename column (most reliable indicator)
+                        document.pdf_filename === 'text-upload' ||
+                        document.pdf_filename === 'text-content.txt' ||
+                        document.pdf_subdirectory === 'text-retrain' ||
+                        // Fallback: check metadata if pdf_filename isn't set
+                        document.metadata?.upload_type === 'text' || 
+                        document.metadata?.upload_type === 'text_retrain'
+                      }
                     />
 
                     <DocumentMessagesCard

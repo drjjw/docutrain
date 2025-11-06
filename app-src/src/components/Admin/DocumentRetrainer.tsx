@@ -83,16 +83,26 @@ export function DocumentRetrainer({
     return () => clearInterval(pollInterval);
   }, [userDocumentId, retraining, onRetrainSuccess, onRetrainError]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Clear previous errors/success but keep file
+      setError(null);
+      setSuccess(false);
+      setProgress(0);
+      setProcessingStatus('');
+      
       setSelectedFile(file);
-      reset();
+      
+      // Automatically start retraining when file is selected
+      // Pass the file directly to avoid state update race conditions
+      handleRetrain(file);
     }
   };
 
-  const handleRetrain = async () => {
-    if (uploadMode === 'pdf' && !selectedFile) return;
+  const handleRetrain = async (fileOverride?: File) => {
+    const fileToUse = fileOverride || selectedFile;
+    if (uploadMode === 'pdf' && !fileToUse) return;
     if (uploadMode === 'text' && !textContent.trim()) return;
 
     try {
@@ -107,7 +117,11 @@ export function DocumentRetrainer({
 
       if (uploadMode === 'pdf') {
         setProcessingStatus('Uploading PDF...');
-        const result = await retrainDocument(documentId, selectedFile, false);
+        const fileToUpload = fileOverride || selectedFile;
+        if (!fileToUpload) {
+          throw new Error('No file selected');
+        }
+        const result = await retrainDocument(documentId, fileToUpload, false);
         setUserDocumentId(result.user_document_id);
         setProgress(20);
         setProcessingStatus('Processing started...');
@@ -161,6 +175,7 @@ export function DocumentRetrainer({
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start retraining';
+      console.error('Error during retrain:', err);
       setError(errorMessage);
       setRetraining(false);
 

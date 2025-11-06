@@ -10,6 +10,8 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
   // Get user permissions to determine access level
   const permissions = await getUserPermissions(userId);
   
+  // Query with join to document_chunks to filter out documents without chunks
+  // Only show documents that have at least one chunk (prevents showing documents during processing)
   const query = supabase
     .from('documents')
     .select(`
@@ -41,7 +43,8 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
       access_level,
       passcode,
       uploaded_by_user_id,
-      owners(*)
+      owners(*),
+      document_chunks!inner(document_slug)
     `)
     .order('created_at', { ascending: false });
 
@@ -72,10 +75,14 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
     });
 
     // Transform owners array to single owner object for type compatibility
-    return filtered.map(doc => ({
-      ...doc,
-      owners: Array.isArray(doc.owners) ? doc.owners[0] : doc.owners
-    })) as DocumentWithOwner[];
+    // Remove document_chunks from response (it was only used for filtering)
+    return filtered.map(doc => {
+      const { document_chunks, ...docWithoutChunks } = doc;
+      return {
+        ...docWithoutChunks,
+        owners: Array.isArray(doc.owners) ? doc.owners[0] : doc.owners
+      };
+    }) as DocumentWithOwner[];
   }
 
   // Super admin sees all documents
@@ -86,10 +93,14 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
   }
 
   // Transform owners array to single owner object for type compatibility
-  return (data || []).map(doc => ({
-    ...doc,
-    owners: Array.isArray(doc.owners) ? doc.owners[0] : doc.owners
-  })) as DocumentWithOwner[];
+  // Remove document_chunks from response (it was only used for filtering)
+  return (data || []).map(doc => {
+    const { document_chunks, ...docWithoutChunks } = doc;
+    return {
+      ...docWithoutChunks,
+      owners: Array.isArray(doc.owners) ? doc.owners[0] : doc.owners
+    };
+  }) as DocumentWithOwner[];
 }
 
 /**
@@ -519,6 +530,8 @@ export async function retrainDocument(
   formData.append('document_id', documentId);
   formData.append('use_edge_function', useEdgeFunction.toString());
 
+  console.log('📤 Starting retrain for document:', documentId, 'file:', file.name, 'size:', file.size);
+
   const response = await fetch('/api/retrain-document', {
     method: 'POST',
     headers: {
@@ -528,8 +541,20 @@ export async function retrainDocument(
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to start document retraining');
+    let errorMessage = 'Failed to start document retraining';
+    try {
+      const error = await response.json();
+      errorMessage = error.error || error.message || errorMessage;
+      if (error.details) {
+        errorMessage += `: ${error.details}`;
+      }
+      console.error('❌ Retrain document error:', error);
+    } catch (e) {
+      // If response is not JSON, use status text
+      errorMessage = `Server error (${response.status}): ${response.statusText}`;
+      console.error('❌ Retrain document error - non-JSON response:', response.status, response.statusText);
+    }
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();
