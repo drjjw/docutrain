@@ -21,6 +21,30 @@ marked.setOptions({
   gfm: true,
 });
 
+/**
+ * Preprocess markdown to prevent false blockquote detection
+ * Escapes ">" characters that appear after list markers but are actually comparison operators
+ * Example: "- >50 kg: 1" should not be a blockquote, but "- If patient >50 kg" is fine
+ */
+function preprocessMarkdown(markdown: string): string {
+  // Split into lines to process line by line
+  return markdown.split('\n').map(line => {
+    // Check if line starts with a list marker (bullet or numbered) followed immediately by " >"
+    // This pattern is likely a false blockquote (e.g., "- >50 kg: 1" or "- > 50 kg: 1")
+    // Pattern matches: optional indent, list marker, whitespace, ">", optional space, then number/letter
+    const listMarkerPattern = /^(\s*)([-*+]|\d+\.)\s+>\s*(\d+|[A-Za-z])/;
+    
+    if (listMarkerPattern.test(line)) {
+      // Escape the ">" by replacing it with HTML entity "&gt;"
+      // This preserves the visual ">" but prevents markdown blockquote parsing
+      // Only replace the first occurrence after the list marker
+      return line.replace(/^(\s*)([-*+]|\d+\.)\s+>\s*/, '$1$2 &gt;');
+    }
+    
+    return line;
+  }).join('\n');
+}
+
 // Global state map to persist collapsed state across re-renders
 // Key: content hash, Value: Map of container index -> expanded state
 const globalCollapsedState = new Map<string, Map<number, boolean>>();
@@ -497,7 +521,9 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
   // Render markdown for assistant messages, plain text for user (same as vanilla JS)
   if (role === 'assistant') {
     // Remove references from markdown before parsing if showReferences is false
-    const contentToRender = showReferences ? content : removeReferencesFromMarkdown(content);
+    let contentToRender = showReferences ? content : removeReferencesFromMarkdown(content);
+    // Preprocess to prevent false blockquote detection
+    contentToRender = preprocessMarkdown(contentToRender);
     const html = marked.parse(contentToRender);
     return (
       <div className="message-content-wrapper">
