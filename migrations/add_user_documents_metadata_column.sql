@@ -11,4 +11,3 @@ COMMENT ON COLUMN user_documents.metadata IS 'JSONB metadata for document upload
 
 -- Add index for querying by metadata fields
 CREATE INDEX IF NOT EXISTS idx_user_documents_metadata ON user_documents USING gin(metadata);
-

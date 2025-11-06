@@ -402,6 +402,11 @@
 }
 
 @media (max-width: 768px) {
+  .downloads-keywords-wrapper {
+    margin: 0 16px; /* Match intro container margin on mobile */
+    width: auto;
+  }
+
   .downloads-keywords-container-header {
     display: flex; /* Show on mobile */
   }
@@ -467,6 +472,11 @@
 }
 
 @media (max-width: 480px) {
+  .downloads-keywords-wrapper {
+    margin: 0 12px; /* Match intro container margin on small mobile */
+    width: auto;
+  }
+
   .downloads-keywords-container {
     margin: 0 0 10px 0 !important;
   }
