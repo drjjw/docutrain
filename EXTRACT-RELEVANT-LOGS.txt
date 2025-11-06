@@ -1,0 +1,60 @@
+# Commands to Extract Relevant Logs for Diagnosis
+# Run these on your production server to see what happened
+
+# ============================================================================
+# 1. Get Recent PM2 Logs (Last 200 lines - shows startup sequence)
+# ============================================================================
+pm2 logs docutrainio-bot --lines 200 --nostream
+
+# ============================================================================
+# 2. Get Only Error Logs (if any errors occurred)
+# ============================================================================
+pm2 logs docutrainio-bot --err --lines 100 --nostream
+
+# ============================================================================
+# 3. Get Logs from Last Restart (shows what happened during restart)
+# ============================================================================
+pm2 logs docutrainio-bot --lines 500 --nostream | grep -A 50 -B 10 "restart\|Starting\|Phase\|RUNNING MODE"
+
+# ============================================================================
+# 4. Check PM2 Process Info (uptime, restarts, etc.)
+# ============================================================================
+pm2 info docutrainio-bot
+
+# ============================================================================
+# 5. Get Startup Sequence (look for Phase 1, Phase 2, Phase 3 messages)
+# ============================================================================
+pm2 logs docutrainio-bot --lines 500 --nostream | grep -E "Phase|RUNNING MODE|Document registry|Server running|Failed|Error|❌|⚠️"
+
+# ============================================================================
+# 6. Check for Timeout or Hang Messages
+# ============================================================================
+pm2 logs docutrainio-bot --lines 500 --nostream | grep -iE "timeout|hang|stuck|waiting|loading|pending"
+
+# ============================================================================
+# 7. Check Document Registry Loading (Phase 1)
+# ============================================================================
+pm2 logs docutrainio-bot --lines 500 --nostream | grep -A 20 "Phase 1\|Loading documents\|document registry"
+
+# ============================================================================
+# 8. Check Server Startup (Phase 3)
+# ============================================================================
+pm2 logs docutrainio-bot --lines 500 --nostream | grep -A 10 "Phase 3\|Server running\|HTTP server"
+
+# ============================================================================
+# 9. Get Full Recent Logs (save to file for analysis)
+# ============================================================================
+pm2 logs docutrainio-bot --lines 500 --nostream > /tmp/pm2-logs-$(date +%Y%m%d-%H%M%S).txt
+echo "Logs saved to /tmp/pm2-logs-*.txt"
+
+# ============================================================================
+# 10. Check PM2 Restart History
+# ============================================================================
+pm2 describe docutrainio-bot | grep -E "restarts|uptime|status"
+
+# ============================================================================
+# MOST USEFUL: Get Complete Startup Sequence
+# ============================================================================
+# This shows the full startup process from the last restart
+pm2 logs docutrainio-bot --lines 1000 --nostream | tail -100
+

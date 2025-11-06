@@ -1,0 +1,76 @@
+# Quick Troubleshooting Commands for Production Hang
+# Copy and paste these commands one at a time on your production server
+
+# ============================================================================
+# STEP 1: Check PM2 Status and Logs (MOST IMPORTANT)
+# ============================================================================
+pm2 status
+pm2 info docutrainio-bot
+pm2 logs docutrainio-bot --lines 100 --nostream
+
+# ============================================================================
+# STEP 2: Check if Port is Listening
+# ============================================================================
+netstat -tulpn | grep 3458
+curl -v http://localhost:3458/api/health
+
+# ============================================================================
+# STEP 3: Test Server Startup Directly (Bypass PM2)
+# ============================================================================
+cd /home/docutrainio/public_html
+NODE_ENV=production timeout 60 node server.js
+
+# ============================================================================
+# STEP 4: Verify Critical Files Exist
+# ============================================================================
+cd /home/docutrainio/public_html
+ls -la dist/app/index.html
+ls -la node_modules/ | head -3
+
+# ============================================================================
+# STEP 5: Test Environment Variables
+# ============================================================================
+cd /home/docutrainio/public_html
+node -e "require('dotenv').config(); console.log('PORT:', process.env.PORT); console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? 'SET' : 'MISSING');"
+
+# ============================================================================
+# STEP 6: Test Document Registry Loading (LIKELY CULPRIT)
+# ============================================================================
+cd /home/docutrainio/public_html
+timeout 30 node -e "
+require('dotenv').config();
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+console.log('Testing Supabase connection...');
+supabase.from('documents').select('slug').eq('active', true).limit(1).then(({data, error}) => {
+  if (error) { console.error('Error:', error); process.exit(1); }
+  console.log('Success! Found', data?.length || 0, 'documents');
+  process.exit(0);
+}).catch(err => { console.error('Exception:', err); process.exit(1); });
+"
+
+# ============================================================================
+# STEP 7: Test Module Loading
+# ============================================================================
+cd /home/docutrainio/public_html
+node -e "try { require('./lib/document-registry'); require('./lib/middleware'); console.log('✓ All modules load'); } catch (e) { console.error('✗ Error:', e.message); }"
+
+# ============================================================================
+# QUICK FIXES TO TRY
+# ============================================================================
+
+# Fix 1: Restart PM2
+pm2 restart docutrainio-bot
+pm2 logs docutrainio-bot --lines 50
+
+# Fix 2: Rebuild and Restart
+cd /home/docutrainio/public_html
+npm run build
+pm2 restart docutrainio-bot
+
+# Fix 3: Fresh PM2 Start
+pm2 delete docutrainio-bot
+cd /home/docutrainio/public_html
+pm2 start server.js --name docutrainio-bot
+pm2 logs docutrainio-bot
+

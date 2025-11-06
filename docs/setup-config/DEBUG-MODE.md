@@ -100,7 +100,22 @@ Debug logging is **disabled by default** in production. To enable:
 
 ### Adding Debug Logs
 
-**Backend:**
+**Backend (Recommended - Use Debug Utility):**
+```javascript
+const { debugLog, debugWarn, debugError } = require('./lib/utils/debug');
+
+// Simple debug log
+debugLog('🐛 Debug: Your message here');
+
+// With data
+debugLog('[HandlerName] Debug info:', { data, moreData });
+
+// Warnings and errors (for debug-only messages)
+debugWarn('⚠️ Warning message');
+debugError('❌ Debug error message');
+```
+
+**Backend (Alternative - Manual Check):**
 ```javascript
 const debugEnabled = process.env.DEBUG === 'true' || process.env.NODE_ENV === 'development';
 
@@ -135,14 +150,24 @@ if (debugEnabled) {
 
 ### Debug Utility Functions
 
-The app includes a debug utility (`app-src/src/utils/debug.ts`) with helper functions:
+The app includes debug utilities for both frontend and backend:
 
+**Frontend** (`app-src/src/utils/debug.ts`):
 - `debugLog(...args)` - Conditional console.log
 - `debugWarn(...args)` - Conditional console.warn
 - `debugError(...args)` - Conditional console.error
 - `isDebug()` - Check if debug mode is enabled
 
-These automatically respect the `VITE_DEBUG` environment variable and development mode.
+**Backend** (`lib/utils/debug.js`):
+- `debugLog(...args)` - Conditional console.log
+- `debugWarn(...args)` - Conditional console.warn
+- `debugError(...args)` - Conditional console.error (for debug-only errors)
+- `debugInfo(...args)` - Conditional console.info
+- `isDebug()` / `isDebugEnabled()` - Check if debug mode is enabled
+
+These automatically respect the environment variables (`VITE_DEBUG` for frontend, `DEBUG` for backend) and development mode.
+
+**Important Note:** For actual production errors that should always be logged, continue using `console.error()` directly. Only use `debugError()` for debug-only error messages.
 
 ## Best Practices
 
@@ -215,6 +240,40 @@ This allows you to:
 - Enable frontend debugging only
 - Enable both independently
 - Control each layer separately
+
+## Migration Strategy
+
+**You don't need to update all files at once!** The codebase has ~199 files with console statements, but:
+
+1. **Not all need conversion:**
+   - `console.error()` - Usually keep as-is (real errors should always show)
+   - `console.warn()` - Usually keep as-is (warnings should usually show)
+   - `console.log()` - These are good candidates for `debugLog()`
+
+2. **Gradual migration approach:**
+   - Use the debug utilities for **new code** going forward
+   - Convert existing files **when you're already editing them**
+   - Prioritize high-traffic files (like `lib/routes/chat.js`, handlers, etc.)
+   - Scripts and test files can stay as-is
+
+3. **Quick wins:**
+   - Files with lots of debug `console.log()` statements
+   - Files you're actively working on
+   - Critical paths (API routes, handlers)
+
+**Example conversion:**
+```javascript
+// Before
+console.log('🔵 POST /api/retrain-document - Request received');
+console.log('   Request body keys:', Object.keys(req.body || {}));
+
+// After
+const { debugLog } = require('./lib/utils/debug');
+debugLog('🔵 POST /api/retrain-document - Request received');
+debugLog('   Request body keys:', Object.keys(req.body || {}));
+```
+
+No rush - migrate as you work on files naturally!
 
 ## Examples
 
