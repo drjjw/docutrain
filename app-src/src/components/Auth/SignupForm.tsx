@@ -109,12 +109,23 @@ export function SignupForm() {
         return;
       }
       
+      // For invited users, complete-invite-signup should have signed them in
+      // So signupResult should have a session
       // Get the session from signup result first, then fall back to getSession()
-      // When email confirmation is required, signupResult.session might be null
       let session = signupResult.session;
-      if (!session) {
+      if (!session && !inviteToken) {
+        // Only check getSession() for non-invited users (invited users should have session)
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         session = currentSession;
+      }
+      
+      // For invited users, if we still don't have a session, something went wrong
+      if (inviteToken && !session) {
+        console.error('SignupForm: Invited user signup completed but no session available');
+        setError('Account created and verified, but failed to sign in. Please try logging in manually.');
+        setSignupEmail(email);
+        setSignupSuccess(true);
+        return;
       }
       
       // Record user profile with name and TOS acceptance

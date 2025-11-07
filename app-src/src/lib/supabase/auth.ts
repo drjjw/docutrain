@@ -48,18 +48,30 @@ export async function signUp({ email, password, inviteToken }: SignUpData & { in
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Failed to complete invite signup:', errorData);
-        // Don't throw - user is still created, just won't be auto-verified
-      } else {
-        const result = await response.json();
-        // If auto-verification succeeded, refresh session
-        if (result.success && result.session) {
-          // Session will be set automatically by Supabase
-          console.log('Invite signup completed successfully');
+        throw new Error(errorData.error || 'Failed to complete invite signup');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        console.log('Invite signup completed successfully, signing user in...');
+        // Sign the user in with their password to get a session
+        // This works because email is now confirmed
+        const signInResult = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInResult.error) {
+          console.error('Failed to sign in after invite signup:', signInResult.error);
+          throw new Error('Account created and verified, but failed to sign in. Please try logging in manually.');
         }
+
+        // Return the sign-in result which includes the session
+        return signInResult.data;
       }
     } catch (err) {
       console.error('Error completing invite signup:', err);
-      // Don't throw - user is still created
+      throw err; // Re-throw so the form can handle the error
     }
   }
 
