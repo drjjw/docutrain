@@ -1,6 +1,6 @@
 import { supabase } from './client';
 import { getUserPermissions } from './permissions';
-import type { Document, DocumentWithOwner, Owner, UserWithRoles, UserRole, DocumentAttachment } from '@/types/admin';
+import type { Document, DocumentWithOwner, Owner, UserWithRoles, UserRole, DocumentAttachment, PendingInvitation } from '@/types/admin';
 
 /**
  * Get all documents based on user permissions
@@ -229,6 +229,110 @@ export async function getOwners(): Promise<Owner[]> {
 }
 
 /**
+ * Get all owners (super admin only - uses API route)
+ */
+export async function getAllOwners(): Promise<Owner[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch('/api/owners', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to fetch owners');
+  }
+
+  return response.json();
+}
+
+/**
+ * Create a new owner (super admin only)
+ */
+export async function createOwner(owner: Partial<Owner>): Promise<Owner> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch('/api/owners', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(owner),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || error.details || 'Failed to create owner');
+  }
+
+  return response.json();
+}
+
+/**
+ * Update an owner (super admin only)
+ */
+export async function updateOwner(id: string, updates: Partial<Owner>): Promise<Owner> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/owners/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || error.details || 'Failed to update owner');
+  }
+
+  return response.json();
+}
+
+/**
+ * Delete an owner (super admin only)
+ */
+export async function deleteOwner(id: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/owners/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || error.details || 'Failed to delete owner');
+  }
+}
+
+/**
  * Create a new document
  */
 export async function createDocument(document: Partial<Document>): Promise<Document> {
@@ -281,6 +385,83 @@ export async function getUsers(): Promise<UserWithRoles[]> {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Failed to fetch users');
+  }
+
+  return response.json();
+}
+
+/**
+ * Get pending invitations (invitations that haven't been used yet and haven't expired)
+ */
+export async function getPendingInvitations(): Promise<PendingInvitation[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch('/api/users/pending-invitations', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to fetch pending invitations');
+  }
+
+  return response.json();
+}
+
+/**
+ * Delete a pending invitation
+ */
+export async function deletePendingInvitation(invitationId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/users/pending-invitations/${invitationId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to delete invitation');
+  }
+}
+
+/**
+ * Resend a pending invitation
+ * Deletes the old invitation and creates a new one via the edge function
+ */
+export async function resendPendingInvitation(invitationId: string): Promise<{ success: boolean; message: string; invitation_id: string }> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/users/pending-invitations/${invitationId}/resend`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to resend invitation');
   }
 
   return response.json();

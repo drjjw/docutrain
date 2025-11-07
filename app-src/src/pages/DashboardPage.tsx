@@ -5,6 +5,7 @@ import { CombinedUploadZone } from '@/components/Upload/CombinedUploadZone';
 import { DocumentsTable, DocumentsTableRef } from '@/components/Admin/DocumentsTable';
 import { UserDocumentsTable, UserDocumentsTableRef } from '@/components/Admin/UserDocumentsTable';
 import { UsersTable } from '@/components/Admin/UsersTable';
+import { OwnersTable } from '@/components/Admin/OwnersTable';
 import { PermissionsBadge } from '@/components/Dashboard/PermissionsBadge';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -23,7 +24,7 @@ export function DashboardPage() {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'documents' | 'users'>('documents');
+  const [activeTab, setActiveTab] = useState<'documents' | 'users' | 'owners'>('documents');
   const userDocumentsTableRef = useRef<UserDocumentsTableRef>(null);
   const documentsTableRef = useRef<DocumentsTableRef>(null);
   const [hasActiveDocuments, setHasActiveDocuments] = useState(false);
@@ -120,15 +121,19 @@ export function DashboardPage() {
   React.useEffect(() => {
     if (location.pathname.includes('/users')) {
       setActiveTab('users');
+    } else if (location.pathname.includes('/owners')) {
+      setActiveTab('owners');
     } else {
       setActiveTab('documents');
     }
   }, [location.pathname]);
 
-  const handleTabChange = (tab: 'documents' | 'users') => {
+  const handleTabChange = (tab: 'documents' | 'users' | 'owners') => {
     setActiveTab(tab);
     if (tab === 'users') {
       navigate('/users');
+    } else if (tab === 'owners') {
+      navigate('/owners');
     } else {
       navigate('/dashboard');
     }
@@ -258,6 +263,18 @@ export function DashboardPage() {
                   }`}
                 >
                   User Management
+                </button>
+              )}
+              {isSuperAdmin && (
+                <button
+                  onClick={() => handleTabChange('owners')}
+                className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-sm whitespace-nowrap transition-all duration-200 ${
+                  activeTab === 'owners'
+                    ? 'bg-[#3399ff] text-white shadow-md shadow-[#3399ff]/30'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
+                  }`}
+                >
+                  Owner Management
                 </button>
               )}
             </nav>
@@ -399,7 +416,7 @@ export function DashboardPage() {
               </div>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'users' ? (
           <div className="space-y-6">
             {/* Access Level Info for Users Tab */}
             <div className="bg-blue-50 border border-blue-200/60 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
@@ -432,9 +449,41 @@ export function DashboardPage() {
               </div>
             </div>
           </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Access Level Info for Owners Tab */}
+            <div className="bg-blue-50 border border-blue-200/60 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
+              <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                Super Administrator Access
+              </h3>
+              <p className="text-sm text-blue-800 leading-relaxed">
+                <strong className="font-semibold text-blue-900">Owner Management</strong> - You can create, edit, and delete document owners and configure their settings.
+              </p>
+            </div>
+
+            {/* Owners Table */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+              <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-[#3399ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  Owner Management
+                </h2>
+                <p className="text-sm text-gray-600 mt-1.5">
+                  Manage document owners and their configurations
+                </p>
+              </div>
+              <div className="p-5 sm:p-7">
+                <OwnersTable />
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </Dashboard>
   );
 }
-

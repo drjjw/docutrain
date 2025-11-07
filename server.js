@@ -17,6 +17,7 @@ const { createCacheRouter } = require('./lib/routes/cache');
 const { createAuthRouter } = require('./lib/routes/auth');
 const { createPermissionsRouter } = require('./lib/routes/permissions');
 const { createUsersRouter } = require('./lib/routes/users');
+const { createOwnersRouter } = require('./lib/routes/owners');
 const { createProcessingRouter } = require('./lib/routes/processing');
 const { createContactRouter } = require('./lib/routes/contact');
 const { createMonitoringRouter } = require('./lib/routes/monitoring');
@@ -174,6 +175,7 @@ const routeDependencies = {
 app.use('/api/auth', createAuthRouter(supabase));
 app.use('/api/permissions', createPermissionsRouter(supabase));
 app.use('/api/users', createUsersRouter());
+app.use('/api/owners', createOwnersRouter());
 
 // Apply extended timeout for processing routes (large file uploads)
 // Note: Server timeout is set globally below in server.listen()

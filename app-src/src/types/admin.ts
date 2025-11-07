@@ -30,8 +30,12 @@ export interface Owner {
   logo_url?: string;
   intro_message?: string;
   default_cover?: string;
+  custom_domain?: string;
+  forced_grok_model?: string | null;
+  metadata?: Record<string, any>;
   created_at: string;
   updated_at: string;
+  document_count?: number;
 }
 
 export type DocumentCategory =
@@ -139,6 +143,19 @@ export interface UserWithRoles extends User {
   statistics?: UserStatistics;
   first_name?: string | null;
   last_name?: string | null;
+}
+
+export interface PendingInvitation {
+  id: string;
+  email: string;
+  owner_id: string;
+  owner_name: string;
+  owner_slug: string;
+  invited_by: string;
+  invited_by_email?: string;
+  expires_at: string;
+  created_at: string;
+  is_expired: boolean;
 }
 
 export interface ConversationStats {
