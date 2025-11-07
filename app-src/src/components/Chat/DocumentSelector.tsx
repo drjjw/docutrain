@@ -122,6 +122,20 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
           
           // If requires_auth is true, redirect immediately
           if (errorData.requires_auth === true) {
+            // Store owner info in sessionStorage if available (for showing owner logo on login page)
+            if (errorData.owner_info) {
+              try {
+                sessionStorage.setItem('auth_owner_info', JSON.stringify({
+                  id: errorData.owner_info.id,
+                  name: errorData.owner_info.name,
+                  slug: errorData.owner_info.slug,
+                  logo_url: errorData.owner_info.logo_url
+                }));
+              } catch (error) {
+                console.error('Failed to store owner info in sessionStorage:', error);
+              }
+            }
+            
             // Capture the full URL including pathname and search params
             // Remove /app prefix since router basename is /app
             const currentPath = window.location.pathname.replace(/^\/app/, '') || '/';
@@ -254,6 +268,20 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
               
               // If requires_auth is true, redirect to login
               if (errorData.requires_auth === true && ownerParam) {
+                // Store owner info in sessionStorage if available (for showing owner logo on login page)
+                if (errorData.owner_info) {
+                  try {
+                    sessionStorage.setItem('auth_owner_info', JSON.stringify({
+                      id: errorData.owner_info.id,
+                      name: errorData.owner_info.name,
+                      slug: errorData.owner_info.slug,
+                      logo_url: errorData.owner_info.logo_url
+                    }));
+                  } catch (error) {
+                    console.error('Failed to store owner info in sessionStorage:', error);
+                  }
+                }
+                
                 // Capture the full URL including pathname and search params
                 // Remove /app prefix since router basename is /app
                 const currentPath = window.location.pathname.replace(/^\/app/, '') || '/';
@@ -278,6 +306,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
 
           const data = await response.json();
           const loadedDocuments = data.documents || [];
+          console.log(`[DocumentSelector] Loaded ${loadedDocuments.length} documents for owner=${ownerParam}`);
           setDocuments(loadedDocuments);
 
           // Determine if selector should be shown (matches vanilla JS logic)

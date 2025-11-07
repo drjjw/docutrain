@@ -37,7 +37,7 @@ export function AuthLayout({ children, title, subtitle, ownerInfo }: AuthLayoutP
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
             {subtitle && (
-              <p className="text-gray-600">{subtitle}</p>
+              <p className="text-gray-600 whitespace-pre-line">{subtitle}</p>
             )}
           </div>
 

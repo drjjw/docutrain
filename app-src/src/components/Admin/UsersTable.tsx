@@ -170,10 +170,10 @@ export function UsersTable() {
         profileUpdates.email = editEmail;
       }
       if (editFirstName !== (editingPermissions.firstName || '')) {
-        profileUpdates.first_name = editFirstName || null;
+        profileUpdates.first_name = editFirstName || undefined;
       }
       if (editLastName !== (editingPermissions.lastName || '')) {
-        profileUpdates.last_name = editLastName || null;
+        profileUpdates.last_name = editLastName || undefined;
       }
       
       if (Object.keys(profileUpdates).length > 0) {
@@ -304,7 +304,7 @@ export function UsersTable() {
     return user.email === 'drjweinstein@gmail.com' && hasSuperAdmin;
   };
 
-  const getRoleBadge = (user: UserWithRoles) => {
+  const getRoleBadge = (user: UserWithRoles, isSuperAdmin: boolean) => {
     const ownerGroups = user.owner_groups || [];
     const hasSuperAdmin = user.roles?.some(r => r.role === 'super_admin') || 
                          ownerGroups.some(og => og.role === 'super_admin');
@@ -331,14 +331,14 @@ export function UsersTable() {
         color: primaryGroup.role === 'owner_admin' 
           ? 'bg-blue-100 text-blue-800 border-blue-200'
           : 'bg-gray-100 text-gray-800 border-gray-200',
-        description: ownerName,
+        description: isSuperAdmin ? ownerName : undefined, // Only show owner name for super admins
       };
     }
 
     return {
       label: 'Registered',
       color: 'bg-gray-100 text-gray-800 border-gray-200',
-      description: 'No owner group',
+      description: isSuperAdmin ? 'No owner group' : undefined, // Only show description for super admins
     };
   };
 
@@ -560,10 +560,18 @@ export function UsersTable() {
               {users.map((user) => {
                 const needsApproval = userNeedsApproval(user);
                 const isProtected = isProtectedSuperAdmin(user);
-                const roleBadge = getRoleBadge(user);
+                const roleBadge = getRoleBadge(user, isSuperAdmin);
                 
                 const isSelected = selectedUserIds.has(user.id);
                 const canSelect = !isProtected;
+
+                // Get display name: use first_name + last_name if available, otherwise use email
+                const displayName = (user.first_name || user.last_name)
+                  ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                  : user.email;
+                
+                // Get initial for avatar: use first letter of display name
+                const avatarInitial = displayName.charAt(0).toUpperCase();
 
                 return (
                   <tr 
@@ -585,11 +593,11 @@ export function UsersTable() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
-                          {user.email.charAt(0).toUpperCase()}
+                          {avatarInitial}
                         </div>
                         <div className="min-w-0">
                           <div className="text-sm font-medium text-gray-900 truncate">
-                            {user.email}
+                            {displayName}
                           </div>
                           <div className="flex items-center gap-2 mt-1">
                             {needsApproval && (
@@ -742,9 +750,17 @@ export function UsersTable() {
               {users.map((user) => {
                 const needsApproval = userNeedsApproval(user);
                 const isProtected = isProtectedSuperAdmin(user);
-                const roleBadge = getRoleBadge(user);
+                const roleBadge = getRoleBadge(user, isSuperAdmin);
                 const isSelected = selectedUserIds.has(user.id);
                 const canSelect = !isProtected;
+                
+                // Get display name: use first_name + last_name if available, otherwise use email
+                const displayName = (user.first_name || user.last_name)
+                  ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                  : user.email;
+                
+                // Get initial for avatar: use first letter of display name
+                const avatarInitial = displayName.charAt(0).toUpperCase();
                 
                 return (
             <div 
@@ -765,10 +781,10 @@ export function UsersTable() {
                     />
                   )}
                   <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium">
-                    {user.email.charAt(0).toUpperCase()}
+                    {avatarInitial}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 truncate">{user.email}</div>
+                    <div className="font-medium text-gray-900 truncate">{displayName}</div>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {needsApproval && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">

@@ -137,6 +137,8 @@ export interface UserWithRoles extends User {
   banned_until?: string;
   deleted_at?: string;
   statistics?: UserStatistics;
+  first_name?: string | null;
+  last_name?: string | null;
 }
 
 export interface ConversationStats {

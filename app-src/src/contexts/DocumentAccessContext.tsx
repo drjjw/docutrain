@@ -289,6 +289,21 @@ export function DocumentAccessProvider({ children, documentSlug }: DocumentAcces
           if (!cancelled && redirectAttemptedRef.current !== documentSlug) {
             redirectAttemptedRef.current = documentSlug;
             setLoading(false);
+            
+            // Store owner info in sessionStorage if available (for showing owner logo on login page)
+            if (accessData.owner) {
+              try {
+                sessionStorage.setItem('auth_owner_info', JSON.stringify({
+                  id: accessData.owner.id,
+                  name: accessData.owner.name,
+                  slug: accessData.owner.slug,
+                  logo_url: accessData.owner.logo_url
+                }));
+              } catch (error) {
+                console.error('Failed to store owner info in sessionStorage:', error);
+              }
+            }
+            
             // Remove /app prefix since router basename is /app
             const currentPath = window.location.pathname.replace(/^\/app/, '') || '/';
             const currentSearch = window.location.search;

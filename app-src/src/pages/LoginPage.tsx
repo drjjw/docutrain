@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthLayout } from '@/components/Auth/AuthLayout';
 import { LoginForm } from '@/components/Auth/LoginForm';
@@ -196,7 +196,7 @@ export function LoginPage() {
     subtitle = "Thanks for using DocuTrain! Sign in again when you're ready.";
   } else if (ownerInfo) {
     title = `Welcome to ${ownerInfo.name}`;
-    subtitle = "Sign in to access restricted content";
+    subtitle = "This document is restricted.\nPlease sign in to access it.";
   }
 
   return (

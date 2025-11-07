@@ -145,6 +145,20 @@ function ChatPageContent({
           
           // If requires_auth is true, redirect immediately
           if (errorData.requires_auth === true) {
+            // Store owner info in sessionStorage if available (for showing owner logo on login page)
+            if (errorData.owner_info) {
+              try {
+                sessionStorage.setItem('auth_owner_info', JSON.stringify({
+                  id: errorData.owner_info.id,
+                  name: errorData.owner_info.name,
+                  slug: errorData.owner_info.slug,
+                  logo_url: errorData.owner_info.logo_url
+                }));
+              } catch (error) {
+                console.error('Failed to store owner info in sessionStorage:', error);
+              }
+            }
+            
             // Capture the full URL including pathname and search params
             // Remove /app prefix since router basename is /app
             const currentPath = window.location.pathname.replace(/^\/app/, '') || '/';
