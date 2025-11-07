@@ -7,12 +7,15 @@ import { useEffect, useLayoutEffect, useRef, memo, useState } from 'react';
 import { marked } from 'marked';
 import { Copy, Check } from 'lucide-react';
 import { styleReferences, wrapDrugConversionContent } from '@/utils/messageStyling';
+import { ShareButton } from './ShareButton';
 
 interface MessageContentProps {
   content: string;
   role: 'user' | 'assistant';
   isStreaming?: boolean; // Flag to skip expensive DOM manipulation during streaming
   showReferences?: boolean; // Controls visibility of references section (default true)
+  conversationId?: string; // Database conversation ID for sharing
+  shareToken?: string; // Share token for this conversation
 }
 
 // Configure marked (same as vanilla JS)
@@ -116,7 +119,7 @@ function removeReferencesFromMarkdown(markdown: string): string {
   return result;
 }
 
-function MessageContentComponent({ content, role, isStreaming = false, showReferences = true }: MessageContentProps) {
+function MessageContentComponent({ content, role, isStreaming = false, showReferences = true, conversationId, shareToken }: MessageContentProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const previousContentRef = useRef<string>('');
   const [isCopied, setIsCopied] = useState(false);
@@ -532,25 +535,28 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
           className="message-content"
           dangerouslySetInnerHTML={{ __html: html }}
         />
-        <button
-          type="button"
-          className="message-copy-button"
-          onClick={handleCopy}
-          title={isCopied ? 'Copied!' : 'Copy response'}
-          aria-label={isCopied ? 'Copied!' : 'Copy response to clipboard'}
-        >
-          {isCopied ? (
-            <>
-              <span className="copy-button-text">Copied</span>
-              <Check size={16} />
-            </>
-          ) : (
-            <>
-              <span className="copy-button-text">Copy</span>
-              <Copy size={16} />
-            </>
-          )}
-        </button>
+        <div className="message-actions">
+          <button
+            type="button"
+            className="message-copy-button"
+            onClick={handleCopy}
+            title={isCopied ? 'Copied!' : 'Copy response'}
+            aria-label={isCopied ? 'Copied!' : 'Copy response to clipboard'}
+          >
+            {isCopied ? (
+              <>
+                <span className="copy-button-text">Copied</span>
+                <Check size={16} />
+              </>
+            ) : (
+              <>
+                <span className="copy-button-text">Copy</span>
+                <Copy size={16} />
+              </>
+            )}
+          </button>
+          <ShareButton conversationId={conversationId} shareToken={shareToken} />
+        </div>
       </div>
     );
   }

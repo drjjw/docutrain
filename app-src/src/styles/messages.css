@@ -429,9 +429,15 @@ hr.references-separator {
 }
 
 /* Copy button for assistant messages */
-.message-copy-button {
+.message-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   align-self: flex-end;
   margin-top: 8px;
+}
+
+.message-copy-button {
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid #e9ecef;
   border-radius: 6px;
@@ -446,6 +452,56 @@ hr.references-separator {
   font-size: 0.85em;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   min-height: 28px;
+}
+
+.message-share-button {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #6c757d;
+  transition: all 0.2s ease;
+  font-size: 0.85em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-height: 28px;
+}
+
+.message-share-button .share-button-text {
+  font-weight: 500;
+}
+
+.message-share-button:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: var(--accent-color, #34a2ff);
+  color: var(--accent-color, #34a2ff);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.message-share-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.message-share-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Show button when copied state */
+.message-share-button[aria-label*="Copied"] {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: #22c55e;
+}
+
+.message-share-button[aria-label*="Copied"] .share-button-text,
+.message-share-button[aria-label*="Copied"] svg {
+  color: #22c55e;
 }
 
 .message-copy-button .copy-button-text {

@@ -21,13 +21,14 @@ code {
   background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f5 50%, #f8f9fa 100%);
   background-size: 200% 200%;
   animation: gradientShift 20s ease infinite;
-  /* Mobile: header is not fixed, so no padding-top needed */
+  /* Mobile: small padding-top for header spacing */
+  padding-top: 16px;
   /* Desktop: header is fixed, so add padding-top to account for header height */
 }
 
 @media (min-width: 768px) {
   .chat-main-container {
-    padding-top: 135px !important; /* Desktop: single row header with padding - use !important to override Tailwind padding */
+    padding-top: 135px !important; /* Desktop: single row header with padding - use !important to override mobile padding */
   }
   
   /* When header has a subtitle (3 rows: logo, title, subtitle), add extra padding on desktop */

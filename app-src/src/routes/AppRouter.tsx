@@ -7,6 +7,7 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { LogoutPage } from '@/pages/LogoutPage';
 import { ChatPage } from '@/pages/ChatPage';
+import { SharedConversationPage } from '@/pages/SharedConversationPage';
 import { ContactPage } from '@/pages/ContactPage';
 import { TermsPage } from '@/pages/TermsPage';
 import { DisclaimerDeclinedPage } from '@/pages/DisclaimerDeclinedPage';
@@ -54,6 +55,11 @@ export function AppRouter() {
         <Route
           path="/chat"
           element={<ChatPage />}
+        />
+        {/* Shared conversation page - public access */}
+        <Route
+          path="/shared/:shareToken"
+          element={<SharedConversationPage />}
         />
         {/* Contact page - public access */}
         <Route

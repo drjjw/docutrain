@@ -13,6 +13,8 @@ interface Message {
   content: string;
   timestamp: Date;
   isLoading?: boolean; // Flag for loading message with fun facts
+  conversationId?: string; // Database conversation ID
+  shareToken?: string; // Share token for this conversation
 }
 
 interface UseChatMessagesProps {
@@ -341,10 +343,19 @@ export function useChatMessages({
 
                 setIsLoading(false);
                 isStreamingRef.current = false; // Mark streaming as complete
-                // Convert loading message to final message
+                // Convert loading message to final message with conversation ID and share token
+                const conversationId = data.metadata?.conversationId;
+                const shareToken = data.metadata?.shareToken;
                 setMessages(prev => prev.map(msg => 
                   msg.id === loadingMsgId
-                    ? { ...msg, content: assistantContent, id: `msg-${Date.now()}`, isLoading: false }
+                    ? { 
+                        ...msg, 
+                        content: assistantContent, 
+                        id: `msg-${Date.now()}`, 
+                        isLoading: false,
+                        conversationId: conversationId,
+                        shareToken: shareToken
+                      }
                     : msg
                 ));
               }

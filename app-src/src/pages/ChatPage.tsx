@@ -399,6 +399,8 @@ function ChatPageContent({
                 role={msg.role} 
                 isStreaming={isStreaming}
                 showReferences={docConfig?.showReferences !== false}
+                conversationId={msg.conversationId}
+                shareToken={msg.shareToken}
               />
             </div>
           );
