@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dashboard } from '@/components/Dashboard/Dashboard';
 import { CombinedUploadZone } from '@/components/Upload/CombinedUploadZone';
 import { DocumentsTable, DocumentsTableRef } from '@/components/Admin/DocumentsTable';
@@ -291,7 +291,11 @@ export function DashboardPage() {
                 Once a system administrator assigns you a role and owner group, you'll be able to access all features.
               </p>
               <p className="text-sm text-gray-600">
-                Please check back later or contact a system administrator if you have questions.
+                Please check back later or{' '}
+                <Link to="/contact" className="text-blue-600 hover:text-blue-700 font-medium underline">
+                  contact us
+                </Link>
+                {' '}if you have questions.
               </p>
             </div>
           </Alert>

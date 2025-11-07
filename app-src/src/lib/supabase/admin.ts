@@ -712,11 +712,14 @@ export async function updateUserProfileAsAdmin(
 /**
  * Retrain a document with a new PDF
  * Replaces all chunks while preserving document metadata and slug
+ * 
+ * @param retrainMode - 'replace' (default) to replace all chunks, 'add' to add chunks incrementally
  */
 export async function retrainDocument(
   documentId: string,
   file: File,
-  useEdgeFunction: boolean = false
+  useEdgeFunction: boolean = false,
+  retrainMode: 'replace' | 'add' = 'replace'
 ): Promise<{ success: boolean; user_document_id: string; message: string }> {
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
@@ -739,6 +742,7 @@ export async function retrainDocument(
   formData.append('file', file);
   formData.append('document_id', documentId);
   formData.append('use_edge_function', useEdgeFunction.toString());
+  formData.append('retrain_mode', retrainMode);
 
   console.log('📤 Starting retrain for document:', documentId, 'file:', file.name, 'size:', file.size);
 
