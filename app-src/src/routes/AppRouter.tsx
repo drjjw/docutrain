@@ -9,6 +9,7 @@ import { LogoutPage } from '@/pages/LogoutPage';
 import { ChatPage } from '@/pages/ChatPage';
 import { ContactPage } from '@/pages/ContactPage';
 import { TermsPage } from '@/pages/TermsPage';
+import { DisclaimerDeclinedPage } from '@/pages/DisclaimerDeclinedPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export function AppRouter() {
@@ -63,6 +64,11 @@ export function AppRouter() {
         <Route
           path="/terms"
           element={<TermsPage />}
+        />
+        {/* Disclaimer Declined page - public access */}
+        <Route
+          path="/disclaimer-declined"
+          element={<DisclaimerDeclinedPage />}
         />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

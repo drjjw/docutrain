@@ -1,8 +1,7 @@
 /**
- * DisclaimerModal - Medical/Educational Use Disclaimer
+ * DisclaimerModal - Document Disclaimer
  * 
- * Shows a disclaimer for documents owned by specific owners (e.g., ukidney)
- * that require users to acknowledge educational use only.
+ * Shows a configurable disclaimer for documents that require user acknowledgment.
  * 
  * Uses session cookies to remember consent (expires when browser closes)
  */
@@ -14,19 +13,28 @@ import { Button } from '@/components/UI/Button';
 import { AlertTriangle } from 'lucide-react';
 import { DocumentAccessContext } from '@/contexts/DocumentAccessContext';
 
-const COOKIE_NAME = '_ukidney_disclaimer_agree';
+const COOKIE_NAME = '_document_disclaimer_agree';
+const DEFAULT_DISCLAIMER_TEXT = 'This content is provided for informational purposes only. Please review and verify all information before use.';
 
 interface DisclaimerModalProps {
   /** Whether the modal should be shown */
   shouldShow: boolean;
+  /** Custom disclaimer text (optional - uses default if not provided) */
+  disclaimerText?: string | null;
   /** Callback when user accepts */
   onAccept: () => void;
   /** Callback when user declines */
   onDecline: () => void;
 }
 
-export function DisclaimerModal({ shouldShow, onAccept, onDecline }: DisclaimerModalProps) {
+export function DisclaimerModal({ shouldShow, disclaimerText, onAccept, onDecline }: DisclaimerModalProps) {
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Use custom text if provided, otherwise use default
+  const displayText = disclaimerText || DEFAULT_DISCLAIMER_TEXT;
+  
+  // Parse the text into paragraphs if it contains newlines
+  const textParagraphs = displayText.split('\n').filter(p => p.trim().length > 0);
 
   useEffect(() => {
     if (shouldShow) {
@@ -83,32 +91,34 @@ export function DisclaimerModal({ shouldShow, onAccept, onDecline }: DisclaimerM
       size="md"
       allowClose={false} // Prevent X button
     >
-      <div className="space-y-4">
-        <div className="text-left space-y-4 text-gray-700">
-          <p>
-            This feature is intended <strong>for educational use only by healthcare professionals</strong>.
-          </p>
-          <p>
-            Please verify all suggestions before considering use in patient care settings.
-          </p>
-          <p>
-            If you agree with these terms, please acknowledge below, otherwise you will be redirected.
-          </p>
-          <p className="text-sm text-gray-600 pt-2 border-t">
-            By using this service, you also agree to our{' '}
-            <a 
-              href="/app/terms" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 underline"
-            >
-              Terms of Service
-            </a>
-            .
-          </p>
+      <div className="flex flex-col" style={{ maxHeight: 'calc(60vh - 120px)' }}>
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto pr-2 -mr-2 min-h-0">
+          <div className="text-left space-y-4 text-gray-700">
+            {textParagraphs.length > 1 ? (
+              textParagraphs.map((paragraph, index) => (
+                <p key={index} dangerouslySetInnerHTML={{ __html: paragraph }} />
+              ))
+            ) : (
+              <p dangerouslySetInnerHTML={{ __html: displayText }} />
+            )}
+            <p className="text-sm text-gray-600 pt-2 border-t">
+              By using this service, you also agree to our{' '}
+              <a 
+                href="/app/terms" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 underline"
+              >
+                Terms of Service
+              </a>
+              .
+            </p>
+          </div>
         </div>
 
-        <div className="flex justify-end space-x-3 pt-4 border-t">
+        {/* Fixed footer with buttons */}
+        <div className="flex justify-end space-x-3 pt-4 mt-4 border-t flex-shrink-0">
           <Button 
             variant="outline" 
             onClick={handleDecline}
@@ -183,14 +193,14 @@ export function useDisclaimer(options: string | null | undefined | UseDisclaimer
     // If we have document config, check if it requires disclaimer
     if (documentContext.config) {
       console.log('[useDisclaimer] Using document from context');
-      const requiresDisclaimer = documentContext.config.owner === 'ukidney';
+      const requiresDisclaimer = documentContext.config.showDisclaimer === true;
 
       if (requiresDisclaimer) {
-        console.log('[useDisclaimer] Ukidney document detected, disclaimer required');
+        console.log('[useDisclaimer] Document requires disclaimer');
         setNeedsDisclaimer(true);
         setDisclaimerAccepted(false);
       } else {
-        console.log('[useDisclaimer] No ukidney document, disclaimer not required');
+        console.log('[useDisclaimer] Document does not require disclaimer');
         setNeedsDisclaimer(false);
         setDisclaimerAccepted(true);
       }
@@ -223,8 +233,8 @@ export function useDisclaimer(options: string | null | undefined | UseDisclaimer
   };
 
   const handleDecline = () => {
-    // Redirect to home page
-    window.location.href = '/';
+    // Redirect to disclaimer declined page
+    window.location.href = '/app/disclaimer-declined';
   };
 
   return {

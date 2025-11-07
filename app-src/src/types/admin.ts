@@ -80,6 +80,8 @@ export interface Document {
   access_level?: DocumentAccessLevel;
   passcode?: string;
   uploaded_by_user_id?: string;
+  show_disclaimer?: boolean;
+  disclaimer_text?: string;
 }
 
 export interface DocumentWithOwner extends Document {

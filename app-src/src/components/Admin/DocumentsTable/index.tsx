@@ -557,10 +557,19 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
 
       {/* Editor Modal */}
       {editorModalDoc && (
-        <DocumentEditorModal
-          document={editorModalDoc}
-          owners={owners}
-          isSuperAdmin={isSuperAdmin}
+        <>
+          {console.log('DocumentsTable: Passing document to editor:', {
+            id: editorModalDoc.id,
+            slug: editorModalDoc.slug,
+            show_disclaimer: editorModalDoc.show_disclaimer,
+            disclaimer_text: editorModalDoc.disclaimer_text,
+            hasShowDisclaimer: 'show_disclaimer' in editorModalDoc,
+            hasDisclaimerText: 'disclaimer_text' in editorModalDoc
+          })}
+          <DocumentEditorModal
+            document={editorModalDoc}
+            owners={owners}
+            isSuperAdmin={isSuperAdmin}
           onSave={() => {
             setEditorModalDoc(null);
             setShowConfigPrompt(false);
@@ -574,6 +583,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
           }}
           onRetrainingStart={onRetrainingStart}
         />
+        </>
       )}
 
       {/* Configuration Prompt Modal */}

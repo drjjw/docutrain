@@ -44,6 +44,8 @@ export interface DocumentConfig {
   showKeywords?: boolean;
   showDownloads?: boolean;
   showReferences?: boolean;
+  showDisclaimer?: boolean;
+  disclaimerText?: string;
   keywords?: Keyword[];
   downloads?: Download[];
   ownerInfo?: {

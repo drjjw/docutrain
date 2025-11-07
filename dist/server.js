@@ -193,10 +193,19 @@ app.use('/api', (err, req, res, next) => {
     console.error('   Path:', req.path);
     console.error('   Method:', req.method);
     console.error('   Stack:', err.stack);
-    res.status(500).json({ 
-        success: false, 
-        error: err.message || 'Internal server error' 
-    });
+    
+    // Ensure we haven't already sent a response
+    if (!res.headersSent) {
+        res.status(err.status || 500).json({ 
+            success: false, 
+            error: err.message || 'Internal server error',
+            code: err.code || null,
+            details: err.details || null,
+            hint: err.hint || null
+        });
+    } else {
+        console.error('   ⚠️  Response already sent, cannot send error response');
+    }
 });
 
 // Helper function to convert relative URLs to absolute URLs

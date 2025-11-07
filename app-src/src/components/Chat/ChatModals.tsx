@@ -25,6 +25,7 @@ interface ChatModalsProps {
   // Disclaimer
   needsDisclaimer: boolean;
   disclaimerAccepted: boolean;
+  disclaimerText?: string | null;
   onDisclaimerAccept: () => void;
   onDisclaimerDecline: () => void;
   
@@ -45,6 +46,7 @@ interface ChatModalsProps {
 export function ChatModals({
   needsDisclaimer,
   disclaimerAccepted,
+  disclaimerText,
   onDisclaimerAccept,
   onDisclaimerDecline,
   shouldShowPasscodeModal,
@@ -57,9 +59,10 @@ export function ChatModals({
 }: ChatModalsProps) {
   return (
     <>
-      {/* Disclaimer Modal - shown for medical/educational documents (e.g., ukidney) */}
+      {/* Disclaimer Modal - shown for documents with show_disclaimer enabled */}
       <DisclaimerModal
         shouldShow={needsDisclaimer && !disclaimerAccepted}
+        disclaimerText={disclaimerText}
         onAccept={onDisclaimerAccept}
         onDecline={onDisclaimerDecline}
       />

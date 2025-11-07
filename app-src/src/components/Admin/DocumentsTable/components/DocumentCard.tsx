@@ -40,8 +40,8 @@ export function DocumentCard({
   onDelete,
 }: DocumentCardProps) {
   return (
-    <div className="bg-white/90 backdrop-blur-sm border border-gray-200/60 rounded-xl hover:shadow-lg hover:border-gray-300 transition-all duration-300 hover:-translate-y-0.5">
-      <div className="lg:hidden p-5 space-y-4">
+    <div className="lg:hidden bg-white/90 backdrop-blur-sm border border-gray-200/60 rounded-xl hover:shadow-lg hover:border-gray-300 transition-all duration-300 hover:-translate-y-0.5">
+      <div className="p-5 space-y-4">
         {/* Header: Checkbox, Icon, Title */}
         <div className="flex items-start gap-3">
           {/* Checkbox */}

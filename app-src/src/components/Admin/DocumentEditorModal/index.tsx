@@ -10,6 +10,7 @@ import { DocumentFileDetailsCard } from './DocumentFileDetailsCard';
 import { DocumentSettingsCard } from './DocumentSettingsCard';
 import { DocumentUIConfigCard } from './DocumentUIConfigCard';
 import { DocumentMessagesCard } from './DocumentMessagesCard';
+import { DocumentDisclaimerCard } from './DocumentDisclaimerCard';
 import { DocumentDownloadsCard } from './DocumentDownloadsCard';
 import { DocumentMetadataCard } from './DocumentMetadataCard';
 import { DocumentEmbedCodeCard } from './DocumentEmbedCodeCard';
@@ -81,6 +82,9 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   // Initialize editing values when document changes
   React.useEffect(() => {
     if (document) {
+      console.log('DocumentEditorModal: Initializing editing values for document:', document.slug);
+      console.log('DocumentEditorModal: show_disclaimer =', document.show_disclaimer);
+      console.log('DocumentEditorModal: disclaimer_text =', document.disclaimer_text);
       setEditingValues({
         title: document.title || '',
         subtitle: document.subtitle || '',
@@ -104,7 +108,12 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         welcome_message: document.welcome_message || '',
         intro_message: document.intro_message || '',
         downloads: document.downloads || [],
+        show_disclaimer: document.show_disclaimer === true, // Explicitly check for true
+        disclaimer_text: document.disclaimer_text || null,
       });
+      console.log('DocumentEditorModal: Set show_disclaimer to', document.show_disclaimer === true);
+      console.log('DocumentEditorModal: Set disclaimer_text to', document.disclaimer_text || null);
+      console.log('DocumentEditorModal: Full document object keys:', Object.keys(document));
       setYearError(null); // Clear year error when document changes
     }
   }, [document]);
@@ -335,9 +344,10 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                 <Tab index={1}>Retrain Document</Tab>
                 <Tab index={2}>Settings & Access</Tab>
                 <Tab index={3}>UI</Tab>
-                <Tab index={4}>Attachments</Tab>
-                <Tab index={5}>Embed Code</Tab>
-                {isSuperAdmin && <Tab index={6}>Metadata</Tab>}
+                <Tab index={4}>Disclaimer</Tab>
+                <Tab index={5}>Attachments</Tab>
+                <Tab index={6}>Embed Code</Tab>
+                {isSuperAdmin && <Tab index={7}>Metadata</Tab>}
               </TabList>
 
               <TabPanels>
@@ -447,7 +457,18 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                   </div>
                 </TabPanel>
 
-                {/* Tab 5: Attachments */}
+                {/* Tab 5: Disclaimer */}
+                <TabPanel>
+                  <div className="space-y-8">
+                    <DocumentDisclaimerCard
+                      showDisclaimer={editingValues.show_disclaimer || false}
+                      disclaimerText={editingValues.disclaimer_text || null}
+                      onFieldChange={handleFieldChange}
+                    />
+                  </div>
+                </TabPanel>
+
+                {/* Tab 6: Attachments */}
                 <TabPanel>
                   <div className="space-y-8">
                     <DocumentDownloadsCard
@@ -458,7 +479,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                   </div>
                 </TabPanel>
 
-                {/* Tab 6: Embed Code */}
+                {/* Tab 7: Embed Code */}
                 <TabPanel>
                   <div className="space-y-8">
                     <DocumentEmbedCodeCard
@@ -468,7 +489,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                   </div>
                 </TabPanel>
 
-                {/* Tab 7: Metadata (Super Admin Only) */}
+                {/* Tab 8: Metadata (Super Admin Only) */}
                 {isSuperAdmin && (
                   <TabPanel>
                     <div className="space-y-8">

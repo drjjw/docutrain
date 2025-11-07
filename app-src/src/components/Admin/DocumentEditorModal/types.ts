@@ -87,6 +87,12 @@ export interface DocumentMessagesCardProps {
   onFieldChange: FieldChangeHandler;
 }
 
+export interface DocumentDisclaimerCardProps {
+  showDisclaimer: boolean;
+  disclaimerText: string | null;
+  onFieldChange: FieldChangeHandler;
+}
+
 export interface DocumentDownloadsCardProps {
   downloads: DownloadLink[];
   onDownloadsChange: (downloads: DownloadLink[]) => void;

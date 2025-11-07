@@ -302,6 +302,7 @@ function ChatPageContent({
       <ChatModals
         needsDisclaimer={needsDisclaimer}
         disclaimerAccepted={disclaimerAccepted}
+        disclaimerText={docConfig?.disclaimerText}
         onDisclaimerAccept={handleDisclaimerAccept}
         onDisclaimerDecline={handleDisclaimerDecline}
         shouldShowPasscodeModal={shouldShowPasscodeModal}

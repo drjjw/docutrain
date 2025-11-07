@@ -42,8 +42,8 @@ export function DocumentRow({
   onDelete,
 }: DocumentRowProps) {
   return (
-    <div className="bg-white/90 backdrop-blur-sm border border-gray-200/60 rounded-xl hover:shadow-lg hover:border-gray-300 transition-all duration-300 hover:-translate-y-0.5">
-      <div className="hidden lg:flex p-6">
+    <div className="hidden lg:block bg-white/90 backdrop-blur-sm border border-gray-200/60 rounded-xl hover:shadow-lg hover:border-gray-300 transition-all duration-300 hover:-translate-y-0.5">
+      <div className="flex p-6">
         {/* Checkbox */}
         <div className="flex items-center justify-center w-8 flex-shrink-0 mr-4">
           <input
