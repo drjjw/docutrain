@@ -509,7 +509,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
           const progress = parseProcessingProgress(logs);
           console.log(`🎨 [getStatusBadge] Parsed progress:`, progress);
           return (
-            <div className="flex flex-col gap-1.5 min-w-[140px]">
+            <div className="flex flex-col gap-1.5 w-full md:min-w-[140px]">
               <span className={`${baseClasses} bg-blue-100 text-blue-700`}>
                 <Spinner size="sm" />
                 {progress.stageLabel}
@@ -689,14 +689,14 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
           <div key={doc.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
             <div className="space-y-3">
               {/* Title and Status */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
+              <div className="flex flex-col gap-2">
+                <div className="w-full">
                   <div className="text-sm font-medium text-gray-900 break-words">{doc.title}</div>
                   {doc.error_message && (
                     <div className="text-xs text-red-600 mt-1 break-words">{doc.error_message}</div>
                   )}
                 </div>
-                <div className="flex-shrink-0">
+                <div className="w-full">
                   {getStatusBadge(doc, logsMap[doc.id])}
                 </div>
               </div>
