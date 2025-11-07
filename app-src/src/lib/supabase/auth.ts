@@ -15,8 +15,11 @@ export interface SignInData {
  * @param inviteToken Optional invitation token for auto-verification
  */
 export async function signUp({ email, password, inviteToken }: SignUpData & { inviteToken?: string }) {
+  // Normalize email (trim and lowercase) to ensure consistency
+  const normalizedEmail = email.toLowerCase().trim();
+  
   const { data, error } = await supabase.auth.signUp({
-    email,
+    email: normalizedEmail,
     password,
     options: {
       // Use TokenHash approach to prevent email prefetching
@@ -57,7 +60,7 @@ export async function signUp({ email, password, inviteToken }: SignUpData & { in
         // Sign the user in with their password to get a session
         // This works because email is now confirmed
         const signInResult = await supabase.auth.signInWithPassword({
-          email,
+          email: normalizedEmail,
           password,
         });
 
