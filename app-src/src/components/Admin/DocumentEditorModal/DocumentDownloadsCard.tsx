@@ -17,7 +17,7 @@ export function DocumentDownloadsCard({
             </svg>
           </div>
           <div>
-            <h4 className="text-lg font-semibold text-gray-900">Downloadable Files</h4>
+            <h4 className="text-lg font-semibold text-gray-900">Attachments</h4>
             <p className="text-xs text-gray-600 mt-0.5">Upload supporting documents that will be available for download within your document chatbot interface</p>
           </div>
         </div>

@@ -332,10 +332,10 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
             <Tabs defaultIndex={0}>
               <TabList>
                 <Tab index={0}>Overview</Tab>
-                <Tab index={1}>Basic Information</Tab>
+                <Tab index={1}>Retrain Document</Tab>
                 <Tab index={2}>Settings & Access</Tab>
                 <Tab index={3}>UI</Tab>
-                <Tab index={4}>Downloads</Tab>
+                <Tab index={4}>Attachments</Tab>
                 <Tab index={5}>Embed Code</Tab>
                 {isSuperAdmin && <Tab index={6}>Metadata</Tab>}
               </TabList>
@@ -354,6 +354,35 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                       isSuperAdmin={isSuperAdmin}
                     />
 
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <DocumentBasicInfoCard
+                        title={editingValues.title || ''}
+                        subtitle={editingValues.subtitle || ''}
+                        category={editingValues.category}
+                        year={editingValues.year}
+                        backLink={editingValues.back_link || ''}
+                        onFieldChange={handleFieldChange}
+                        isSuperAdmin={isSuperAdmin}
+                        yearError={yearError}
+                      />
+
+                      <DocumentFileDetailsCard
+                        pdfFilename={editingValues.pdf_filename || ''}
+                        pdfSubdirectory={editingValues.pdf_subdirectory || ''}
+                        embeddingType={editingValues.embedding_type || 'openai'}
+                        cover={editingValues.cover || ''}
+                        onFieldChange={handleFieldChange}
+                        onCoverChange={(url) => handleFieldChange('cover', url)}
+                        documentId={document.id}
+                        isSuperAdmin={isSuperAdmin}
+                      />
+                    </div>
+                  </div>
+                </TabPanel>
+
+                {/* Tab 2: Retrain Document */}
+                <TabPanel>
+                  <div className="space-y-8">
                     <DocumentRetrainSection
                       document={document}
                       retraining={retraining}
@@ -370,33 +399,6 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                         setError(err);
                       }}
                       onRetrainingStart={onRetrainingStart}
-                    />
-                  </div>
-                </TabPanel>
-
-                {/* Tab 2: Basic Information */}
-                <TabPanel>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <DocumentBasicInfoCard
-                      title={editingValues.title || ''}
-                      subtitle={editingValues.subtitle || ''}
-                      category={editingValues.category}
-                      year={editingValues.year}
-                      backLink={editingValues.back_link || ''}
-                      onFieldChange={handleFieldChange}
-                      isSuperAdmin={isSuperAdmin}
-                      yearError={yearError}
-                    />
-
-                    <DocumentFileDetailsCard
-                      pdfFilename={editingValues.pdf_filename || ''}
-                      pdfSubdirectory={editingValues.pdf_subdirectory || ''}
-                      embeddingType={editingValues.embedding_type || 'openai'}
-                      cover={editingValues.cover || ''}
-                      onFieldChange={handleFieldChange}
-                      onCoverChange={(url) => handleFieldChange('cover', url)}
-                      documentId={document.id}
-                      isSuperAdmin={isSuperAdmin}
                     />
                   </div>
                 </TabPanel>
@@ -445,7 +447,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                   </div>
                 </TabPanel>
 
-                {/* Tab 5: Downloads */}
+                {/* Tab 5: Attachments */}
                 <TabPanel>
                   <div className="space-y-8">
                     <DocumentDownloadsCard

@@ -61,6 +61,24 @@ export function DocumentActionButtons({
           <span className="text-xs text-gray-500">View</span>
         </button>
 
+        {/* Copy Link Button */}
+        <button
+          onClick={() => onCopyLink(doc)}
+          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+          title="Copy link"
+        >
+          {copiedDocId === doc.id ? (
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+          )}
+          <span className="text-xs text-gray-500">Link</span>
+        </button>
+
         {/* Download PDF Button */}
         {hasDownload && (
           <button
@@ -76,24 +94,6 @@ export function DocumentActionButtons({
             </span>
           </button>
         )}
-
-        {/* Copy Link Button */}
-        <button
-          onClick={() => onCopyLink(doc)}
-          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-          title="Copy link"
-        >
-          {copiedDocId === doc.id ? (
-            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-          )}
-          <span className="text-xs text-gray-500">Copy</span>
-        </button>
 
         {/* Analytics Button */}
         <button
@@ -162,6 +162,26 @@ export function DocumentActionButtons({
         <span className="text-xs text-gray-500 font-medium">View</span>
       </div>
 
+      {/* Copy Link Button */}
+      <div className="flex flex-col items-center gap-1">
+        <button
+          onClick={() => onCopyLink(doc)}
+          className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50/80 rounded-xl transition-all duration-200 hover:shadow-md hover:scale-110"
+          title="Copy link"
+        >
+          {copiedDocId === doc.id ? (
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+          )}
+        </button>
+        <span className="text-xs text-gray-500 font-medium">Link</span>
+      </div>
+
       {/* Download PDF Button */}
       {hasDownload && (
         <div className="flex flex-col items-center gap-1">
@@ -179,26 +199,6 @@ export function DocumentActionButtons({
           </span>
         </div>
       )}
-
-      {/* Copy Link Button */}
-      <div className="flex flex-col items-center gap-1">
-        <button
-          onClick={() => onCopyLink(doc)}
-          className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50/80 rounded-xl transition-all duration-200 hover:shadow-md hover:scale-110"
-          title="Copy link"
-        >
-          {copiedDocId === doc.id ? (
-            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-          )}
-        </button>
-        <span className="text-xs text-gray-500 font-medium">Copy</span>
-      </div>
 
       {/* Analytics Button */}
       <div className="flex flex-col items-center gap-1">

@@ -15,6 +15,7 @@ export interface DocumentAttachment {
   created_at: string;
   updated_at: string;
   created_by_user_id?: string;
+  copyright_acknowledged_at?: string;
 }
 
 // For backward compatibility, DownloadLink can be used where attachments are displayed

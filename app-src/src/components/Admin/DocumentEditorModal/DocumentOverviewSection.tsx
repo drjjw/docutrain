@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextInput, SelectInput, type SelectOption } from './fields';
+import { TextInput, SearchSelect, type SelectOption } from './fields';
 import type { DocumentOverviewSectionProps } from './types';
 
 export function DocumentOverviewSection({
@@ -41,7 +41,7 @@ export function DocumentOverviewSection({
         {isSuperAdmin && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Owner</label>
-            <SelectInput
+            <SearchSelect
               value={ownerId || ''}
               onChange={onOwnerChange}
               options={ownerOptions}

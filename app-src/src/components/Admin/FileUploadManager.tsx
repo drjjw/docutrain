@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/UI/Button';
 import { supabase } from '@/lib/supabase/client';
 import { 
   getDocumentAttachments, 
@@ -7,6 +6,18 @@ import {
   updateDocumentAttachment, 
   deleteDocumentAttachment 
 } from '@/lib/supabase/admin';
+import { CopyrightDisclaimerModal } from './CopyrightDisclaimerModal';
+import {
+  FileText,
+  Presentation,
+  FileSpreadsheet,
+  FileEdit,
+  Image as ImageIcon,
+  Archive,
+  Video,
+  Music,
+  File,
+} from 'lucide-react';
 import type { DownloadLink, DocumentAttachment } from '@/types/admin';
 
 interface FileUploadManagerProps {
@@ -17,15 +28,77 @@ interface FileUploadManagerProps {
 
 const DOWNLOADS_BUCKET = 'downloads';
 
+/**
+ * Get file extension from filename
+ */
+function getFileExtension(filename: string): string {
+  const extension = filename.split('.').pop()?.toLowerCase() || '';
+  return extension;
+}
+
+/**
+ * Get appropriate icon component based on file type
+ */
+function getFileIconForPreview(filename: string): JSX.Element {
+  const extension = getFileExtension(filename);
+  
+  // PDF icon
+  if (extension === 'pdf') {
+    return <FileText className="w-6 h-6" style={{ color: '#007bff' }} />;
+  }
+  
+  // PowerPoint icon (PPT, PPTX)
+  if (extension === 'ppt' || extension === 'pptx') {
+    return <Presentation className="w-6 h-6" style={{ color: '#007bff' }} />;
+  }
+  
+  // Word icon (DOC, DOCX)
+  if (extension === 'doc' || extension === 'docx') {
+    return <FileEdit className="w-6 h-6" style={{ color: '#007bff' }} />;
+  }
+  
+  // Excel icon (XLS, XLSX)
+  if (extension === 'xls' || extension === 'xlsx') {
+    return <FileSpreadsheet className="w-6 h-6" style={{ color: '#007bff' }} />;
+  }
+  
+  // Image icon (JPG, JPEG, PNG, GIF, SVG)
+  if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(extension)) {
+    return <ImageIcon className="w-6 h-6" style={{ color: '#007bff' }} />;
+  }
+  
+  // Archive icon (ZIP, RAR, 7Z, TAR, GZ)
+  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(extension)) {
+    return <Archive className="w-6 h-6" style={{ color: '#007bff' }} />;
+  }
+  
+  // Video icon (MP4, AVI, MOV, WMV)
+  if (['mp4', 'avi', 'mov', 'wmv', 'mkv', 'webm'].includes(extension)) {
+    return <Video className="w-6 h-6" style={{ color: '#007bff' }} />;
+  }
+  
+  // Audio icon (MP3, WAV, OGG, M4A)
+  if (['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'].includes(extension)) {
+    return <Music className="w-6 h-6" style={{ color: '#007bff' }} />;
+  }
+  
+  // Default document icon
+  return <File className="w-6 h-6" style={{ color: '#007bff' }} />;
+}
+
 export function FileUploadManager({ downloads, onChange, documentId }: FileUploadManagerProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingTitle, setEditingTitle] = useState<string>('');
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingTitle, setPendingTitle] = useState<string>('');
   const [showTitlePrompt, setShowTitlePrompt] = useState(false);
   const [attachments, setAttachments] = useState<DocumentAttachment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCopyrightModal, setShowCopyrightModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'upload' | null>(null);
+  const [copyrightAcknowledgedAt, setCopyrightAcknowledgedAt] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch attachments on mount and when documentId changes
@@ -62,11 +135,33 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
 
     console.log('File selected:', file.name);
     
-    // Show title prompt with filename as default
+    // Store file and show copyright disclaimer first
     setPendingFile(file);
     setPendingTitle(file.name.replace(/\.[^/.]+$/, '')); // Remove extension for cleaner default
-    setShowTitlePrompt(true);
+    setPendingAction('upload');
+    setShowCopyrightModal(true);
     setUploadError(null);
+  };
+
+  const handleCopyrightAccept = () => {
+    // Record the acknowledgment timestamp
+    setCopyrightAcknowledgedAt(new Date().toISOString());
+    setShowCopyrightModal(false);
+    // After accepting copyright, proceed with upload
+    setShowTitlePrompt(true);
+    setPendingAction(null);
+  };
+
+  const handleCopyrightCancel = () => {
+    setShowCopyrightModal(false);
+    // Reset pending file and clear input
+    setPendingFile(null);
+    setPendingTitle('');
+    setPendingAction(null);
+    setCopyrightAcknowledgedAt(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleUploadWithTitle = async () => {
@@ -118,6 +213,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
         storage_path: filePath,
         file_size: pendingFile.size,
         mime_type: pendingFile.type || undefined,
+        copyright_acknowledged_at: copyrightAcknowledgedAt || undefined,
       });
 
       // Update local state
@@ -128,6 +224,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
       // Reset state
       setPendingFile(null);
       setPendingTitle('');
+      setCopyrightAcknowledgedAt(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -147,6 +244,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
     setPendingTitle('');
     setShowTitlePrompt(false);
     setUploadError(null);
+    setCopyrightAcknowledgedAt(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -188,105 +286,14 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
         return updatedAttachments.sort((a, b) => a.display_order - b.display_order);
       });
       
-    setEditingIndex(null);
+      setEditingIndex(null);
+      setEditingTitle('');
     } catch (error) {
       console.error('Failed to update attachment:', error);
       setUploadError('Failed to update attachment. Please try again.');
     }
   };
 
-  const handleAddManualUrl = () => {
-    // Create a temporary attachment entry (will be saved when user fills in URL and title)
-    const tempAttachment: DocumentAttachment = {
-      id: `temp-${Date.now()}`,
-      document_id: documentId,
-      title: '',
-      url: '',
-      display_order: attachments.length,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setAttachments(prev => [...prev, tempAttachment]);
-    setEditingIndex(attachments.length);
-  };
-
-  const handleManualChange = async (index: number, field: 'url' | 'title', value: string) => {
-    const attachment = attachments[index];
-    if (!attachment) return;
-
-    // For temporary attachments, update local state only
-    if (attachment.id.startsWith('temp-')) {
-      const updated = [...attachments];
-      updated[index] = { ...updated[index], [field]: value };
-      setAttachments(updated);
-      return;
-    }
-
-    // For existing attachments, update via API
-    try {
-      const updates: Partial<{ title: string; url: string }> = {};
-      updates[field] = value;
-      
-      const updated = await updateDocumentAttachment(attachment.id, updates);
-      
-      // Update local state
-      setAttachments(prev => {
-        const updatedAttachments = [...prev];
-        updatedAttachments[index] = updated;
-        return updatedAttachments.sort((a, b) => a.display_order - b.display_order);
-      });
-    } catch (error) {
-      console.error('Failed to update attachment:', error);
-      // Still update local state for better UX
-      const updated = [...attachments];
-    updated[index] = { ...updated[index], [field]: value };
-      setAttachments(updated);
-    }
-  };
-
-  const handleSaveManualEntry = async (index: number) => {
-    const attachment = attachments[index];
-    if (!attachment) return;
-
-    if (!attachment.url || !attachment.title || !isValidUrl(attachment.url)) {
-      return;
-    }
-
-    // If it's a temporary attachment, create it via API
-    if (attachment.id.startsWith('temp-')) {
-      try {
-        const newAttachment = await createDocumentAttachment(documentId, {
-          title: attachment.title,
-          url: attachment.url,
-        });
-        
-        // Replace temporary with real attachment
-        setAttachments(prev => {
-          const updated = [...prev];
-          updated[index] = newAttachment;
-          return updated.sort((a, b) => a.display_order - b.display_order);
-        });
-        
-        setEditingIndex(null);
-      } catch (error) {
-        console.error('Failed to create attachment:', error);
-        setUploadError('Failed to create attachment. Please try again.');
-      }
-    } else {
-      // Already exists, just exit edit mode
-      setEditingIndex(null);
-    }
-  };
-
-  const isValidUrl = (url: string): boolean => {
-    if (!url.trim()) return false;
-    try {
-      new URL(url);
-      return url.startsWith('http://') || url.startsWith('https://');
-    } catch {
-      return false;
-    }
-  };
 
   console.log('FileUploadManager rendering - uploading:', uploading, 'attachments:', attachments.length);
 
@@ -306,6 +313,14 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
 
   return (
     <div className="space-y-4">
+      {/* Copyright Disclaimer Modal */}
+      <CopyrightDisclaimerModal
+        isOpen={showCopyrightModal}
+        onAccept={handleCopyrightAccept}
+        onCancel={handleCopyrightCancel}
+        fileName={pendingFile?.name}
+      />
+
       {/* Upload Section */}
       {!showTitlePrompt ? (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50">
@@ -372,6 +387,49 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
                 </p>
               </div>
               
+              {/* Preview Section */}
+              {pendingTitle.trim() && pendingFile && (
+                <div className="mb-3 pt-3 border-t border-gray-200">
+                  <label className="block text-xs font-medium text-gray-700 mb-2">
+                    Preview
+                  </label>
+                  <div className="flex items-center justify-start">
+                    <div 
+                      className="inline-flex items-center justify-center gap-2 rounded-md border cursor-default"
+                      style={{
+                        padding: '10px 16px',
+                        borderRadius: '6px',
+                        background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                        borderColor: '#dee2e6',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                        fontFamily: 'inherit',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        color: '#495057',
+                        gap: '8px',
+                      }}
+                    >
+                      {getFileIconForPreview(pendingFile.name)}
+                      <div style={{ flex: '0 1 auto', minWidth: 0 }}>
+                        <div 
+                          style={{
+                            fontSize: '13px',
+                            fontWeight: 500,
+                            color: '#333',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {pendingTitle}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    This is how the download button will appear in your chatbot
+                  </p>
+                </div>
+              )}
+              
               {uploadError && (
                 <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
                   {uploadError}
@@ -399,42 +457,26 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
         </div>
       )}
 
-      {/* Manual URL Entry - Only show when not prompting for title */}
-      {!showTitlePrompt && (
-        <div className="flex justify-center">
-          <button
-            onClick={handleAddManualUrl}
-            className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-            </svg>
-            Or add manual URL
-          </button>
-        </div>
-      )}
-
-      {/* Downloads List */}
+      {/* Attachments List */}
       {attachments.length > 0 && (
         <div className="space-y-3">
           <h5 className="text-sm font-medium text-gray-900 flex items-center gap-2">
             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Download Links ({attachments.length})
+            Attachments ({attachments.length})
           </h5>
 
           {attachments.map((attachment, index) => {
             const download = downloadsForDisplay[index];
             const isEditing = editingIndex === index;
-            const isManualEntry = attachment.id.startsWith('temp-') || !download.url || !download.title;
 
             return (
               <div
                 key={attachment.id}
                 className="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-sm transition-shadow"
               >
-                {isEditing || isManualEntry ? (
+                {isEditing ? (
                   // Edit Mode
                   <div className="space-y-3">
                     <div>
@@ -443,50 +485,35 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
                       </label>
                       <input
                         type="text"
-                        value={download.title}
-                        onChange={(e) => handleManualChange(index, 'title', e.target.value)}
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
                         placeholder="e.g., Download Study Guide PDF"
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && editingTitle.trim()) {
+                            handleTitleChange(index, editingTitle);
+                          } else if (e.key === 'Escape') {
+                            setEditingIndex(null);
+                            setEditingTitle('');
+                          }
+                        }}
                       />
                       <p className="text-xs text-gray-500 mt-1">This text will appear as the clickable download link</p>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        URL *
-                      </label>
-                      <input
-                        type="url"
-                        value={download.url}
-                        onChange={(e) => handleManualChange(index, 'url', e.target.value)}
-                        placeholder="https://example.com/file.pdf"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      {download.url && !isValidUrl(download.url) && (
-                        <p className="mt-1 text-xs text-red-600">Please enter a valid URL starting with http:// or https://</p>
-                      )}
                     </div>
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={() => {
-                          if (isManualEntry) {
-                            handleRemove(index);
-                          } else {
-                            setEditingIndex(null);
-                          }
+                          setEditingIndex(null);
+                          setEditingTitle('');
                         }}
                         className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
                       >
                         Cancel
                       </button>
                       <button
-                        onClick={() => {
-                          if (isManualEntry) {
-                            handleSaveManualEntry(index);
-                          } else {
-                            setEditingIndex(null);
-                          }
-                        }}
-                        disabled={!download.url || !download.title || !isValidUrl(download.url)}
+                        onClick={() => handleTitleChange(index, editingTitle)}
+                        disabled={!editingTitle.trim()}
                         className="px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Save
@@ -497,24 +524,19 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
                   // View Mode
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2">
                         <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <span className="font-medium text-gray-900 text-sm">{download.title}</span>
                       </div>
-                      <a
-                        href={download.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-600 hover:text-blue-800 hover:underline break-all"
-                      >
-                        {download.url}
-                      </a>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
-                        onClick={() => setEditingIndex(index)}
+                        onClick={() => {
+                          setEditingIndex(index);
+                          setEditingTitle(download.title);
+                        }}
                         className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                         title="Edit link text"
                       >
@@ -542,7 +564,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
 
       {attachments.length === 0 && (
         <div className="text-center py-6 text-gray-500 text-sm">
-          No downloads yet. Upload a file or add a manual URL to get started.
+          No attachments yet. Upload a file to get started.
         </div>
       )}
     </div>

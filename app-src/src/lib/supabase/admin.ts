@@ -627,8 +627,15 @@ export async function getDocumentAttachments(documentId: string): Promise<Docume
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to fetch attachments');
+    let errorMessage = 'Failed to fetch attachments';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+    } catch (e) {
+      // If response is not JSON, use status text
+      errorMessage = response.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();
@@ -647,6 +654,7 @@ export async function createDocumentAttachment(
     file_size?: number;
     mime_type?: string;
     display_order?: number;
+    copyright_acknowledged_at?: string;
   }
 ): Promise<DocumentAttachment> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -665,8 +673,15 @@ export async function createDocumentAttachment(
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to create attachment');
+    let errorMessage = 'Failed to create attachment';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+    } catch (e) {
+      // If response is not JSON, use status text
+      errorMessage = response.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();
