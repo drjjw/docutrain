@@ -25,10 +25,10 @@ export function InvitationCard({
   
   return (
     <div 
-      className="bg-blue-50/30 rounded-lg shadow-sm border border-blue-300 border-l-4 border-l-blue-400 overflow-hidden"
+      className="bg-docutrain-light/10 rounded-lg shadow-sm border border-docutrain-light/30 border-l-4 border-l-docutrain-light overflow-hidden"
     >
       {/* Card Header */}
-      <div className="px-4 py-4 bg-gradient-to-r from-blue-50/50 to-white border-b border-blue-200">
+      <div className="px-4 py-4 bg-gradient-to-r from-docutrain-light/10 to-white border-b border-docutrain-light/20">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-medium">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,7 +38,7 @@ export function InvitationCard({
           <div className="flex-1 min-w-0">
             <div className="font-medium text-gray-900 truncate">{invitation.email}</div>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-docutrain-light/20 text-docutrain-dark border border-docutrain-light/30">
                 Pending Invitation
               </span>
               {isExpiringSoon && (
@@ -91,10 +91,10 @@ export function InvitationCard({
         {/* Status */}
         <div className="pt-2 border-t border-gray-200">
           <div className="flex items-center gap-2 mb-3">
-            <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-4 h-4 text-docutrain-light" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
-            <span className="text-sm text-blue-600 font-medium">Awaiting Signup</span>
+            <span className="text-sm text-docutrain-light font-medium">Awaiting Signup</span>
           </div>
           
           {/* Actions */}

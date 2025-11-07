@@ -105,22 +105,22 @@ export function BulkDeleteModal({
             {/* Progress View */}
             <div className="space-y-4">
               {/* Progress Summary */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-docutrain-light/10 border border-docutrain-light/30 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-blue-900">Progress</span>
-                  <span className="text-sm font-semibold text-blue-700">
+                  <span className="text-sm font-medium text-docutrain-dark">Progress</span>
+                  <span className="text-sm font-semibold text-docutrain-medium">
                     {progress.completed.length + progress.failed.length} / {progress.total}
                   </span>
                 </div>
-                <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
+                <div className="w-full bg-docutrain-light/20 rounded-full h-2 mb-2">
                   <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-docutrain-light h-2 rounded-full transition-all duration-300"
                     style={{
                       width: `${((progress.completed.length + progress.failed.length) / progress.total) * 100}%`,
                     }}
                   />
                 </div>
-                <p className="text-xs text-blue-700">
+                <p className="text-xs text-docutrain-dark">
                   {progress.completed.length} deleted
                   {progress.failed.length > 0 && `, ${progress.failed.length} failed`}
                 </p>
@@ -155,7 +155,7 @@ export function BulkDeleteModal({
                         )}
                         <div className="flex-1 min-w-0">
                           <span className={`font-medium truncate block ${
-                            isCurrent ? 'text-blue-600' :
+                            isCurrent ? 'text-docutrain-light' :
                             isCompleted ? 'text-green-700' :
                             failedItem ? 'text-red-700' :
                             'text-gray-700'

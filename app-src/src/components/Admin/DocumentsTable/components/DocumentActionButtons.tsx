@@ -51,7 +51,7 @@ export function DocumentActionButtons({
         {/* View Button */}
         <button
           onClick={() => onView(doc.slug)}
-          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-docutrain-light hover:bg-docutrain-light/10 rounded-lg transition-colors"
           title="View document"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +110,7 @@ export function DocumentActionButtons({
         {/* Edit All Button */}
         <button
           onClick={() => onEdit(doc)}
-          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-[#3399ff] hover:bg-[#65ccff]/20 rounded-lg transition-colors"
+          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-docutrain-light hover:bg-docutrain-light/10 rounded-lg transition-colors"
           title="Edit all fields"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,7 +151,7 @@ export function DocumentActionButtons({
       <div className="flex flex-col items-center gap-1">
         <button
           onClick={() => onView(doc.slug)}
-          className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50/80 rounded-xl transition-all duration-200 hover:shadow-md hover:scale-110"
+          className="p-2.5 text-gray-400 hover:text-docutrain-light hover:bg-docutrain-light/10 rounded-xl transition-all duration-200 hover:shadow-md hover:scale-110"
           title="View document"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,7 +218,7 @@ export function DocumentActionButtons({
       <div className="flex flex-col items-center gap-1">
         <button
           onClick={() => onEdit(doc)}
-          className="p-2.5 text-gray-400 hover:text-[#3399ff] hover:bg-[#65ccff]/20 rounded-xl transition-all duration-200 hover:shadow-md hover:scale-110"
+          className="p-2.5 text-gray-400 hover:text-docutrain-light hover:bg-docutrain-light/10 rounded-xl transition-all duration-200 hover:shadow-md hover:scale-110"
           title="Edit all fields"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

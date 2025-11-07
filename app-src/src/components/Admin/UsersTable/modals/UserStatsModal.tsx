@@ -35,9 +35,9 @@ export function UserStatsModal({
         ) : userStats ? (
           <>
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="text-sm font-medium text-blue-700">Documents Uploaded</div>
-                <div className="text-2xl font-bold text-blue-900 mt-1">{userStats.document_count}</div>
+              <div className="bg-docutrain-light/10 border border-docutrain-light/30 rounded-lg p-4">
+                <div className="text-sm font-medium text-docutrain-dark">Documents Uploaded</div>
+                <div className="text-2xl font-bold text-docutrain-dark mt-1">{userStats.document_count}</div>
               </div>
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <div className="text-sm font-medium text-green-700">Account Status</div>

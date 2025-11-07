@@ -11,7 +11,7 @@ export function PermissionsBadge({ role, ownerName }: PermissionsBadgeProps) {
   const roleConfig = {
     registered: {
       label: 'User',
-      className: 'bg-blue-100 text-blue-800',
+      className: 'bg-docutrain-light/10 text-docutrain-dark',
     },
     owner_admin: {
       label: 'Admin',

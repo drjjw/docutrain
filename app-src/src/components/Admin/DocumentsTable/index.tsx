@@ -405,7 +405,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
             <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-100 text-green-800 border border-green-200/50 shadow-sm text-center">
               {filteredDocuments.filter(doc => doc.active ?? false).length} Active
             </span>
-            <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200/50 shadow-sm text-center">
+            <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-docutrain-light/10 text-docutrain-dark border border-docutrain-light/30 shadow-sm text-center">
               {filteredDocuments.filter(doc => (doc.access_level || 'public') === 'public').length} Public
             </span>
           </div>
@@ -423,7 +423,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                 setItemsPerPage(Number(newValue));
               }
             }}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 font-medium text-gray-700"
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-docutrain-light/20 focus:border-docutrain-light bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 font-medium text-gray-700"
           >
             <option value={10}>10</option>
             <option value={25}>25</option>
@@ -472,7 +472,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                 ref={selectAllCheckboxRef}
                 checked={isAllSelected}
                 onChange={toggleSelectAll}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                className="w-4 h-4 text-docutrain-light bg-gray-100 border-gray-300 rounded focus:ring-docutrain-light focus:ring-2 cursor-pointer"
                 title={isAllSelected ? 'Deselect all' : isSomeSelected ? 'Some selected' : 'Select all'}
               />
             </div>

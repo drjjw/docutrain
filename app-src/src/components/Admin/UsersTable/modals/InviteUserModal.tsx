@@ -47,7 +47,7 @@ export function InviteUserModal({
             type="email"
             value={inviteEmail}
             onChange={(e) => onEmailChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
             placeholder="user@example.com"
             autoFocus
           />
@@ -65,7 +65,7 @@ export function InviteUserModal({
             <select
               value={inviteOwnerId || ''}
               onChange={(e) => onOwnerIdChange(e.target.value || null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
             >
               <option value="">Select Owner Group</option>
               {owners.map(owner => (
@@ -98,16 +98,16 @@ export function InviteUserModal({
           )
         )}
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-docutrain-light/10 border border-docutrain-light/30 rounded-lg p-4">
           <div className="flex">
-            <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="h-5 w-5 text-docutrain-light" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
             <div className="ml-3">
-              <p className="text-sm text-blue-700">
+              <p className="text-sm text-docutrain-dark">
                 <strong>New users:</strong> Will receive an invitation email with a signup link. They'll be automatically verified and added to the selected owner group.
               </p>
-              <p className="text-sm text-blue-700 mt-1">
+              <p className="text-sm text-docutrain-dark mt-1">
                 <strong>Existing users:</strong> Will be automatically added to the owner group and receive a notification email.
               </p>
             </div>

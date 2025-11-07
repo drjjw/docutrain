@@ -49,7 +49,7 @@ export function DocumentFilters({
           placeholder="Search documents ..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="block w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl leading-5 bg-white/80 backdrop-blur-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm hover:shadow-md transition-all duration-200 sm:text-sm"
+          className="block w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl leading-5 bg-white/80 backdrop-blur-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-docutrain-light/20 focus:border-docutrain-light shadow-sm hover:shadow-md transition-all duration-200 sm:text-sm"
         />
       </div>
 
@@ -60,7 +60,7 @@ export function DocumentFilters({
           <select
             value={statusFilter}
             onChange={(e) => onStatusFilterChange(e.target.value as StatusFilter)}
-            className="appearance-none bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm hover:shadow-md transition-all duration-200 w-full font-medium text-gray-700"
+            className="appearance-none bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-docutrain-light/20 focus:border-docutrain-light shadow-sm hover:shadow-md transition-all duration-200 w-full font-medium text-gray-700"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -78,7 +78,7 @@ export function DocumentFilters({
           <select
             value={visibilityFilter}
             onChange={(e) => onVisibilityFilterChange(e.target.value as VisibilityFilter)}
-            className="appearance-none bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm hover:shadow-md transition-all duration-200 w-full font-medium text-gray-700"
+            className="appearance-none bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-docutrain-light/20 focus:border-docutrain-light shadow-sm hover:shadow-md transition-all duration-200 w-full font-medium text-gray-700"
           >
             <option value="all">All Access Levels</option>
             <option value="public">Public</option>
@@ -99,7 +99,7 @@ export function DocumentFilters({
           <select
             value={categoryFilter}
             onChange={(e) => onCategoryFilterChange(e.target.value)}
-            className="appearance-none bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm hover:shadow-md transition-all duration-200 w-full font-medium text-gray-700"
+            className="appearance-none bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-docutrain-light/20 focus:border-docutrain-light shadow-sm hover:shadow-md transition-all duration-200 w-full font-medium text-gray-700"
           >
             <option value="all">All Categories</option>
             <option value="Guidelines">Guidelines</option>
@@ -124,7 +124,7 @@ export function DocumentFilters({
             <select
               value={ownerFilter}
               onChange={(e) => onOwnerFilterChange(e.target.value)}
-              className="appearance-none bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm hover:shadow-md transition-all duration-200 w-full font-medium text-gray-700"
+              className="appearance-none bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-docutrain-light/20 focus:border-docutrain-light shadow-sm hover:shadow-md transition-all duration-200 w-full font-medium text-gray-700"
             >
               <option value="all">All Owners</option>
               {owners.map(owner => (
@@ -144,7 +144,7 @@ export function DocumentFilters({
       {hasActiveFilters && (
         <button
           onClick={onClearFilters}
-          className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200"
+          className="inline-flex items-center gap-2 text-sm text-docutrain-light hover:text-docutrain-medium font-semibold transition-colors duration-200"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

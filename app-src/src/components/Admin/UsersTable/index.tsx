@@ -221,7 +221,7 @@ export function UsersTable() {
                       if (input) input.indeterminate = someSelected;
                     }}
                     onChange={toggleSelectAll}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-docutrain-light border-gray-300 rounded focus:ring-docutrain-light"
                   />
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">

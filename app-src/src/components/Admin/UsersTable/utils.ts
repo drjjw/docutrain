@@ -46,7 +46,7 @@ export function getRoleBadge(user: UserWithRoles, isSuperAdmin: boolean) {
     return {
       label: roleLabel,
       color: primaryGroup.role === 'owner_admin' 
-        ? 'bg-blue-100 text-blue-800 border-blue-200'
+        ? 'bg-docutrain-light/20 text-docutrain-dark border-docutrain-light/30'
         : 'bg-gray-100 text-gray-800 border-gray-200',
       description: isSuperAdmin ? ownerName : undefined, // Only show owner name for super admins
     };

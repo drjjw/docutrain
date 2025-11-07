@@ -17,16 +17,16 @@ export function BulkActionsBar({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="bg-docutrain-light/10 border border-docutrain-light/30 rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div className="flex items-center gap-3">
-        <span className="text-sm font-semibold text-blue-900">
+        <span className="text-sm font-semibold text-docutrain-dark">
           {selectedCount} document{selectedCount !== 1 ? 's' : ''} selected
         </span>
       </div>
       <div className="flex items-center gap-3">
         <button
           onClick={onClearSelection}
-          className="px-4 py-2 text-sm font-medium text-blue-700 hover:text-blue-900 hover:bg-blue-100 rounded-lg transition-colors"
+          className="px-4 py-2 text-sm font-medium text-docutrain-dark hover:text-docutrain-medium hover:bg-docutrain-light/20 rounded-lg transition-colors"
         >
           Clear Selection
         </button>

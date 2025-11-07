@@ -49,13 +49,13 @@ export function DocumentCard({
             type="checkbox"
             checked={isSelected}
             onChange={() => onToggleSelection(doc.id)}
-            className="w-4 h-4 mt-1 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer flex-shrink-0"
+            className="w-4 h-4 mt-1 text-docutrain-light bg-gray-100 border-gray-300 rounded focus:ring-docutrain-light focus:ring-2 cursor-pointer flex-shrink-0"
             onClick={(e) => e.stopPropagation()}
           />
           
           {/* Icon */}
-          <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 shadow-sm">
-            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-10 h-10 rounded-xl bg-docutrain-light/10 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>

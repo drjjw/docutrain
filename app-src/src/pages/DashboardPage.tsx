@@ -211,7 +211,7 @@ export function DashboardPage() {
                 />
               </div>
             ) : (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-[#3399ff] flex items-center justify-center text-xl sm:text-2xl font-bold text-white flex-shrink-0 shadow-lg shadow-[#3399ff]/30 transition-transform duration-300 hover:scale-105">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-docutrain-light flex items-center justify-center text-xl sm:text-2xl font-bold text-white flex-shrink-0 shadow-lg shadow-docutrain-light/30 transition-transform duration-300 hover:scale-105">
                 {getUserInitials()}
               </div>
             )}
@@ -247,7 +247,7 @@ export function DashboardPage() {
                 onClick={() => handleTabChange('documents')}
                 className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-sm whitespace-nowrap transition-all duration-200 ${
                   activeTab === 'documents'
-                    ? 'bg-[#3399ff] text-white shadow-md shadow-[#3399ff]/30'
+                    ? 'bg-docutrain-light text-white shadow-md shadow-docutrain-light/30'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
                 }`}
               >
@@ -258,7 +258,7 @@ export function DashboardPage() {
                   onClick={() => handleTabChange('users')}
                 className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-sm whitespace-nowrap transition-all duration-200 ${
                   activeTab === 'users'
-                    ? 'bg-[#3399ff] text-white shadow-md shadow-[#3399ff]/30'
+                    ? 'bg-docutrain-light text-white shadow-md shadow-docutrain-light/30'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
                   }`}
                 >
@@ -270,7 +270,7 @@ export function DashboardPage() {
                   onClick={() => handleTabChange('owners')}
                 className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-sm whitespace-nowrap transition-all duration-200 ${
                   activeTab === 'owners'
-                    ? 'bg-[#3399ff] text-white shadow-md shadow-[#3399ff]/30'
+                    ? 'bg-docutrain-light text-white shadow-md shadow-docutrain-light/30'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
                   }`}
                 >
@@ -302,21 +302,21 @@ export function DashboardPage() {
         ) : activeTab === 'documents' ? (
           <div className="space-y-6">
             {/* Access Level Info */}
-            <div className="bg-blue-50 border border-blue-200/60 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
-              <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+            <div className="bg-docutrain-light/10 border border-docutrain-light/30 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
+              <h3 className="text-sm font-semibold text-docutrain-dark mb-2 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
                 Your Access Level
               </h3>
               {isSuperAdmin ? (
-                <p className="text-sm text-blue-800 leading-relaxed">
-                  <strong className="font-semibold text-blue-900">Super Administrator</strong> - You can view and edit all documents across all owner groups, upload new documents, and manage all system users.
+                <p className="text-sm text-docutrain-dark leading-relaxed">
+                  <strong className="font-semibold text-docutrain-dark">Super Administrator</strong> - You can view and edit all documents across all owner groups, upload new documents, and manage all system users.
                 </p>
               ) : (
-                <p className="text-sm text-blue-800 leading-relaxed">
-                  <strong className="font-semibold text-blue-900">Owner Administrator</strong> - You can view and edit documents for the following owner groups:
-                  <span className="ml-2 font-semibold break-words text-blue-900">
+                <p className="text-sm text-docutrain-dark leading-relaxed">
+                  <strong className="font-semibold text-docutrain-dark">Owner Administrator</strong> - You can view and edit documents for the following owner groups:
+                  <span className="ml-2 font-semibold break-words text-docutrain-dark">
                     {ownerGroups
                       .filter(og => og.role === 'owner_admin')
                       .map(og => og.owner_name)
@@ -330,7 +330,7 @@ export function DashboardPage() {
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-[#3399ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                   Upload New Document
@@ -365,7 +365,7 @@ export function DashboardPage() {
             <div className={hasActiveDocuments ? 'bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300' : 'hidden'}>
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                   Processing Status
@@ -386,7 +386,7 @@ export function DashboardPage() {
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-[#3399ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   Manage Documents
@@ -419,15 +419,15 @@ export function DashboardPage() {
         ) : activeTab === 'users' ? (
           <div className="space-y-6">
             {/* Access Level Info for Users Tab */}
-            <div className="bg-blue-50 border border-blue-200/60 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
-              <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+            <div className="bg-docutrain-light/10 border border-docutrain-light/30 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
+              <h3 className="text-sm font-semibold text-docutrain-dark mb-2 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
                 Super Administrator Access
               </h3>
-              <p className="text-sm text-blue-800 leading-relaxed">
-                <strong className="font-semibold text-blue-900">Full System Control</strong> - You can view and manage all users, their roles, and permissions across all owner groups.
+              <p className="text-sm text-docutrain-dark leading-relaxed">
+                <strong className="font-semibold text-docutrain-dark">Full System Control</strong> - You can view and manage all users, their roles, and permissions across all owner groups.
               </p>
             </div>
 
@@ -435,7 +435,7 @@ export function DashboardPage() {
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-[#3399ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                   User Management
@@ -452,15 +452,15 @@ export function DashboardPage() {
         ) : (
           <div className="space-y-6">
             {/* Access Level Info for Owners Tab */}
-            <div className="bg-blue-50 border border-blue-200/60 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
-              <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+            <div className="bg-docutrain-light/10 border border-docutrain-light/30 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
+              <h3 className="text-sm font-semibold text-docutrain-dark mb-2 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
                 Super Administrator Access
               </h3>
-              <p className="text-sm text-blue-800 leading-relaxed">
-                <strong className="font-semibold text-blue-900">Owner Management</strong> - You can create, edit, and delete document owners and configure their settings.
+              <p className="text-sm text-docutrain-dark leading-relaxed">
+                <strong className="font-semibold text-docutrain-dark">Owner Management</strong> - You can create, edit, and delete document owners and configure their settings.
               </p>
             </div>
 
@@ -468,7 +468,7 @@ export function DashboardPage() {
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-[#3399ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                   Owner Management

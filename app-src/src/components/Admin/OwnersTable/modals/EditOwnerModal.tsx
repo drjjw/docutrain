@@ -73,7 +73,7 @@ export function EditOwnerModal({
             type="text"
             value={name}
             onChange={(e) => onNameChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
             placeholder="Owner Name"
             required
           />
@@ -103,7 +103,7 @@ export function EditOwnerModal({
           <textarea
             value={description}
             onChange={(e) => onDescriptionChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
             placeholder="Owner description"
             rows={3}
           />
@@ -119,7 +119,7 @@ export function EditOwnerModal({
             onChange={(e) => onChunkLimitChange(parseInt(e.target.value) || 50)}
             min={1}
             max={200}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
             required
           />
           <p className="mt-1 text-xs text-gray-500">
@@ -135,7 +135,7 @@ export function EditOwnerModal({
             type="url"
             value={logoUrl}
             onChange={(e) => onLogoUrlChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
             placeholder="https://example.com/logo.png"
           />
         </div>
@@ -147,7 +147,7 @@ export function EditOwnerModal({
           <textarea
             value={introMessage}
             onChange={(e) => onIntroMessageChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
             placeholder="Default HTML intro message for documents"
             rows={3}
           />
@@ -164,7 +164,7 @@ export function EditOwnerModal({
             type="url"
             value={defaultCover}
             onChange={(e) => onDefaultCoverChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
             placeholder="https://example.com/cover.jpg"
           />
         </div>
@@ -177,7 +177,7 @@ export function EditOwnerModal({
             type="text"
             value={customDomain}
             onChange={(e) => onCustomDomainChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
             placeholder="nephrology.ukidney.com"
           />
           <p className="mt-1 text-xs text-gray-500">
@@ -192,7 +192,7 @@ export function EditOwnerModal({
           <select
             value={forcedGrokModel || ''}
             onChange={(e) => onForcedGrokModelChange(e.target.value || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
           >
             <option value="">None (use user selection)</option>
             <option value="grok">Grok</option>

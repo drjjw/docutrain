@@ -46,14 +46,14 @@ export function UsersTableCard({
       } overflow-hidden`}
     >
       {/* Card Header */}
-      <div className={`px-4 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200 ${isSelected ? 'bg-blue-50' : ''}`}>
+      <div className={`px-4 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200 ${isSelected ? 'bg-docutrain-light/10' : ''}`}>
         <div className="flex items-center gap-3">
           {canSelect && (
             <input
               type="checkbox"
               checked={isSelected}
               onChange={() => onToggleSelection(user.id)}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 flex-shrink-0"
+              className="w-4 h-4 text-docutrain-light border-gray-300 rounded focus:ring-docutrain-light flex-shrink-0"
             />
           )}
           <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium">

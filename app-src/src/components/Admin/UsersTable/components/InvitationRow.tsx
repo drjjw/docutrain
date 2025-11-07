@@ -25,7 +25,7 @@ export function InvitationRow({
   
   return (
     <tr 
-      className="hover:bg-gray-50 transition-colors bg-blue-50/30 border-l-4 border-l-blue-400"
+      className="hover:bg-gray-50 transition-colors bg-docutrain-light/10 border-l-4 border-l-docutrain-light"
     >
       <td className="px-6 py-4 whitespace-nowrap">
         {/* No checkbox for invitations */}
@@ -42,7 +42,7 @@ export function InvitationRow({
               {invitation.email}
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-docutrain-light/20 text-docutrain-dark border border-docutrain-light/30">
                 Pending Invitation
               </span>
               {isExpiringSoon && (
@@ -69,7 +69,7 @@ export function InvitationRow({
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        <span className="inline-flex items-center text-blue-600">
+        <span className="inline-flex items-center text-docutrain-light">
           <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
           </svg>

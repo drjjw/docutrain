@@ -39,7 +39,7 @@ export function SetPasswordModal({
             placeholder="Enter new password (min 6 characters)"
             value={newPassword}
             onChange={(e) => onPasswordChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
             autoFocus
           />
           <p className="mt-1 text-xs text-gray-500">

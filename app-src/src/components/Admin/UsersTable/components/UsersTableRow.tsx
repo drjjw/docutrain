@@ -50,7 +50,7 @@ export function UsersTableRow({
     <tr 
       className={`hover:bg-gray-50 transition-colors ${
         needsApproval ? 'bg-amber-50/50' : ''
-      } ${isSelected ? 'bg-blue-50' : ''}`}
+      } ${isSelected ? 'bg-docutrain-light/10' : ''}`}
     >
       <td className="px-6 py-4 whitespace-nowrap">
         {canSelect && (
@@ -58,7 +58,7 @@ export function UsersTableRow({
             type="checkbox"
             checked={isSelected}
             onChange={() => onToggleSelection(user.id)}
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            className="w-4 h-4 text-docutrain-light border-gray-300 rounded focus:ring-docutrain-light"
           />
         )}
       </td>
