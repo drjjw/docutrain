@@ -3,7 +3,7 @@ import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
 import { Modal } from '@/components/UI/Modal';
-import { getUsers, updateUserRole, resetUserPassword, updateUserPassword, deleteUser, banUser, unbanUser, getUserStatistics, getOwners, getUserProfileAsAdmin, updateUserProfileAsAdmin } from '@/lib/supabase/admin';
+import { getUsers, updateUserRole, resetUserPassword, updateUserPassword, deleteUser, banUser, unbanUser, getUserStatistics, getOwners, getUserProfileAsAdmin, updateUserProfileAsAdmin, inviteUser } from '@/lib/supabase/admin';
 import type { UserWithRoles, Owner, UserStatistics } from '@/types/admin';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -19,7 +19,7 @@ interface EditingPermissions {
 
 export function UsersTable() {
   const { user } = useAuth();
-  const { isSuperAdmin, isOwnerAdmin, loading: permissionsLoading } = usePermissions();
+  const { isSuperAdmin, isOwnerAdmin, loading: permissionsLoading, ownerGroups } = usePermissions();
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,11 +44,25 @@ export function UsersTable() {
   const [userStats, setUserStats] = useState<UserStatistics | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [deleteAction, setDeleteAction] = useState<'delete' | 'ban'>('delete');
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteOwnerId, setInviteOwnerId] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, isSuperAdmin, permissionsLoading]);
+
+  // Auto-set owner_id for owner admins when invite modal opens
+  useEffect(() => {
+    if (showInviteModal && !isSuperAdmin && isOwnerAdmin && ownerGroups.length > 0) {
+      const adminOwnerGroups = ownerGroups.filter(og => og.role === 'owner_admin' && og.owner_id);
+      if (adminOwnerGroups.length > 0 && inviteOwnerId !== adminOwnerGroups[0].owner_id) {
+        setInviteOwnerId(adminOwnerGroups[0].owner_id || null);
+      }
+    }
+  }, [showInviteModal, isSuperAdmin, isOwnerAdmin, ownerGroups, inviteOwnerId]);
 
   const loadData = async () => {
     if (!user?.id || permissionsLoading) {
@@ -453,6 +467,59 @@ export function UsersTable() {
     }
   };
 
+  const handleInviteUser = async () => {
+    if (!inviteEmail || (!isSuperAdmin && !inviteOwnerId)) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(inviteEmail)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    // For owner admins, ensure owner_id is set from their owner group
+    let ownerIdToUse = inviteOwnerId;
+    if (!isSuperAdmin && isOwnerAdmin && !ownerIdToUse) {
+      const adminOwnerGroups = ownerGroups.filter(og => og.role === 'owner_admin' && og.owner_id);
+      if (adminOwnerGroups.length > 0) {
+        ownerIdToUse = adminOwnerGroups[0].owner_id || null;
+      }
+    }
+
+    if (!ownerIdToUse) {
+      setError('Please select an owner group');
+      return;
+    }
+
+    try {
+      setInviting(true);
+      setError(null);
+      
+      console.log('Inviting user:', { email: inviteEmail, owner_id: ownerIdToUse, isSuperAdmin, isOwnerAdmin });
+      
+      const result = await inviteUser(inviteEmail, ownerIdToUse);
+      
+      setShowInviteModal(false);
+      setInviteEmail('');
+      setInviteOwnerId(null);
+      
+      setError(result.message || 'Invitation sent successfully');
+      setTimeout(() => setError(null), 5000);
+      
+      // Reload users to show newly added user if they existed
+      await loadData();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send invitation';
+      console.error('Error inviting user:', err);
+      setError(errorMessage);
+    } finally {
+      setInviting(false);
+    }
+  };
+
   if (loading || permissionsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -465,12 +532,49 @@ export function UsersTable() {
     <div className="space-y-6">
       {error && (
         <Alert 
-          variant={error.includes('successfully') ? "success" : "error"} 
+          variant={error.includes('successfully') || error.includes('added to') || error.includes('sent') ? "success" : "error"} 
           onDismiss={() => setError(null)}
         >
           {error}
         </Alert>
       )}
+
+      {/* Header with Invite Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Manage users and their access to owner groups
+          </p>
+        </div>
+        {(isSuperAdmin || isOwnerAdmin) && (
+          <Button
+            onClick={() => {
+              setShowInviteModal(true);
+              setInviteEmail('');
+              // For owner admins, automatically set their owner group
+              if (!isSuperAdmin && isOwnerAdmin && ownerGroups.length > 0) {
+                const adminOwnerGroups = ownerGroups.filter(og => og.role === 'owner_admin' && og.owner_id);
+                if (adminOwnerGroups.length > 0) {
+                  // Set the owner ID from the ownerGroups (which has owner_id)
+                  setInviteOwnerId(adminOwnerGroups[0].owner_id || null);
+                } else {
+                  setInviteOwnerId(null);
+                }
+              } else {
+                // Super admins start with no selection
+                setInviteOwnerId(null);
+              }
+            }}
+            disabled={saving}
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Invite User
+          </Button>
+        )}
+      </div>
 
       {/* Bulk Actions Bar */}
       {selectedCount > 0 && (
@@ -1494,6 +1598,117 @@ export function UsersTable() {
               variant="outline"
               onClick={() => setBulkDeleteConfirm(false)}
               disabled={saving}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
+      {/* Invite User Modal */}
+      <Modal
+        isOpen={showInviteModal}
+        onClose={() => {
+          setShowInviteModal(false);
+          setInviteEmail('');
+          setInviteOwnerId(null);
+        }}
+        title="Invite User"
+        size="md"
+      >
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address
+            </label>
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              placeholder="user@example.com"
+              autoFocus
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Enter the email address of the user you want to invite
+            </p>
+          </div>
+
+          {/* Only show owner group selector for super admins */}
+          {isSuperAdmin ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Owner Group
+              </label>
+              <select
+                value={inviteOwnerId || ''}
+                onChange={(e) => setInviteOwnerId(e.target.value || null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="">Select Owner Group</option>
+                {owners.map(owner => (
+                  <option key={owner.id} value={owner.id}>
+                    {owner.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Select the owner group this user will be added to
+              </p>
+            </div>
+          ) : (
+            // For owner admins, show which group they're inviting to (read-only)
+            ownerGroups.filter(og => og.role === 'owner_admin' && og.owner_id).length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner Group
+                </label>
+                <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-700">
+                  {(() => {
+                    const adminGroup = ownerGroups.find(og => og.role === 'owner_admin' && og.owner_id);
+                    return adminGroup?.owner_name || 'Unknown';
+                  })()}
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Users will be added to your owner group
+                </p>
+              </div>
+            )
+          )}
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex">
+              <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">
+                  <strong>New users:</strong> Will receive an invitation email with a signup link. They'll be automatically verified and added to the selected owner group.
+                </p>
+                <p className="text-sm text-blue-700 mt-1">
+                  <strong>Existing users:</strong> Will be automatically added to the owner group and receive a notification email.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <Button
+              onClick={handleInviteUser}
+              disabled={inviting || !inviteEmail || (isSuperAdmin && !inviteOwnerId)}
+              loading={inviting}
+              className="flex-1"
+            >
+              Send Invitation
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowInviteModal(false);
+                setInviteEmail('');
+                setInviteOwnerId(null);
+              }}
+              disabled={inviting}
               className="flex-1"
             >
               Cancel

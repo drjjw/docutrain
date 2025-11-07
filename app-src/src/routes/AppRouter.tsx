@@ -12,6 +12,7 @@ import { ContactPage } from '@/pages/ContactPage';
 import { TermsPage } from '@/pages/TermsPage';
 import { DisclaimerDeclinedPage } from '@/pages/DisclaimerDeclinedPage';
 import { ProtectedRoute } from './ProtectedRoute';
+import { AdminRoute } from './AdminRoute';
 
 export function AppRouter() {
   console.log('AppRouter: Rendering');
@@ -26,17 +27,17 @@ export function AppRouter() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <DashboardPage />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
         <Route
           path="/users"
           element={
-            <ProtectedRoute>
+            <AdminRoute>
               <DashboardPage />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
         <Route

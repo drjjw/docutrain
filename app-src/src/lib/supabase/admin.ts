@@ -315,6 +315,33 @@ export async function updateUserRole(userId: string, role: string, ownerId?: str
 }
 
 /**
+ * Invite a user to join an owner group
+ */
+export async function inviteUser(email: string, ownerId: string): Promise<{ success: boolean; message: string; action: string }> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch('/api/users/invite', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, owner_id: ownerId }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to invite user');
+  }
+
+  return response.json();
+}
+
+/**
  * Reset user password (sends password reset email)
  */
 export async function resetUserPassword(email: string): Promise<void> {

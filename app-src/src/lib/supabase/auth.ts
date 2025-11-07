@@ -12,8 +12,9 @@ export interface SignInData {
 
 /**
  * Sign up a new user with email and password
+ * @param inviteToken Optional invitation token for auto-verification
  */
-export async function signUp({ email, password }: SignUpData) {
+export async function signUp({ email, password, inviteToken }: SignUpData & { inviteToken?: string }) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -21,11 +22,45 @@ export async function signUp({ email, password }: SignUpData) {
       // Use TokenHash approach to prevent email prefetching
       // The email template will construct a link to our verify page
       emailRedirectTo: `${window.location.origin}/app/verify-email`,
+      // If invite token is present, we'll handle verification via backend
+      data: inviteToken ? { invite_token: inviteToken } : undefined,
     },
   });
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  // If invite token is present, call backend to auto-verify and add to owner group
+  if (inviteToken && data.user) {
+    try {
+      const response = await fetch('/api/users/complete-invite-signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: data.user.id,
+          invite_token: inviteToken,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to complete invite signup:', errorData);
+        // Don't throw - user is still created, just won't be auto-verified
+      } else {
+        const result = await response.json();
+        // If auto-verification succeeded, refresh session
+        if (result.success && result.session) {
+          // Session will be set automatically by Supabase
+          console.log('Invite signup completed successfully');
+        }
+      }
+    } catch (err) {
+      console.error('Error completing invite signup:', err);
+      // Don't throw - user is still created
+    }
   }
 
   return data;

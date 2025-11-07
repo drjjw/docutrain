@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Input } from '@/components/UI/Input';
 import { Button } from '@/components/UI/Button';
 import { Alert } from '@/components/UI/Alert';
@@ -10,6 +10,9 @@ import { supabase } from '@/lib/supabase/client';
 
 export function SignupForm() {
   const { signUp } = useAuth();
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get('invite_token');
+  
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -23,6 +26,36 @@ export function SignupForm() {
   const [signupEmail, setSignupEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [inviteInfo, setInviteInfo] = useState<{ email: string; ownerName: string } | null>(null);
+  const [validatingInvite, setValidatingInvite] = useState(false);
+
+  // Validate invite token and fetch invitation details
+  useEffect(() => {
+    if (inviteToken) {
+      setValidatingInvite(true);
+      // Call backend to validate token and get invitation details
+      fetch(`/api/users/validate-invite?token=${encodeURIComponent(inviteToken)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.invitation) {
+            setInviteInfo({
+              email: data.invitation.email,
+              ownerName: data.invitation.owner_name,
+            });
+            setEmail(data.invitation.email);
+          } else {
+            setError(data.error || 'Invalid or expired invitation link');
+          }
+        })
+        .catch(err => {
+          console.error('Failed to validate invitation:', err);
+          setError('Failed to validate invitation. Please check your link and try again.');
+        })
+        .finally(() => {
+          setValidatingInvite(false);
+        });
+    }
+  }, [inviteToken]);
 
   const handleAcceptTos = () => {
     setTosAccepted(true);
@@ -64,8 +97,8 @@ export function SignupForm() {
       setLoading(true);
       console.log('SignupForm: Attempting signup with email:', email);
       
-      // Signup user first
-      const signupResult = await signUp(email, password);
+      // Signup user first - pass invite_token if present
+      const signupResult = await signUp(email, password, inviteToken || undefined);
       console.log('SignupForm: Signup successful', signupResult);
       
       if (!signupResult) {
@@ -147,8 +180,19 @@ export function SignupForm() {
       
       // Show success message instead of redirecting
       // User needs to confirm email before they can log in
-      setSignupEmail(email);
-      setSignupSuccess(true);
+      // For invited users, they're already verified
+      if (inviteToken) {
+        // Invited users are auto-verified - redirect to dashboard
+        setSignupEmail(email);
+        setSignupSuccess(true);
+        // Redirect after a short delay
+        setTimeout(() => {
+          window.location.href = '/app/dashboard';
+        }, 2000);
+      } else {
+        setSignupEmail(email);
+        setSignupSuccess(true);
+      }
     } catch (err) {
       console.error('SignupForm: Signup failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to sign up');
@@ -159,43 +203,81 @@ export function SignupForm() {
 
   // Show success message after signup
   if (signupSuccess) {
+    const isInvited = !!inviteToken;
+    
     return (
       <>
         <Alert variant="success">
           <div className="space-y-3">
             <p className="font-medium">Account created successfully!</p>
-            <p className="text-sm">
-              We've sent a confirmation email to <strong>{signupEmail}</strong>. 
-              Please check your inbox and click the confirmation link to activate your account.
-            </p>
-            <p className="text-sm">
-              After confirming your email, you'll be able to sign in and access your account.
-            </p>
-            <div className="pt-2 border-t border-green-200">
-              <Link to="/login">
-                <Button className="w-full">
-                  Go to Sign In
-                </Button>
-              </Link>
-            </div>
+            {isInvited ? (
+              <>
+                <p className="text-sm">
+                  Your account has been created and verified. You've been added to <strong>{inviteInfo?.ownerName || 'the group'}</strong>.
+                </p>
+                <p className="text-sm">
+                  Redirecting you to your dashboard...
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm">
+                  We've sent a confirmation email to <strong>{signupEmail}</strong>. 
+                  Please check your inbox and click the confirmation link to activate your account.
+                </p>
+                <p className="text-sm">
+                  After confirming your email, you'll be able to sign in and access your account.
+                </p>
+                <div className="pt-2 border-t border-green-200">
+                  <Link to="/login">
+                    <Button className="w-full">
+                      Go to Sign In
+                    </Button>
+                  </Link>
+                </div>
+              </>
+            )}
           </div>
         </Alert>
         
-        <div className="text-center text-sm text-gray-600 mt-4">
-          Didn't receive the email? Check your spam folder or{' '}
-          <button
-            onClick={() => setSignupSuccess(false)}
-            className="text-blue-600 hover:text-blue-700 font-medium underline"
-          >
-            try signing up again
-          </button>
-        </div>
+        {!isInvited && (
+          <div className="text-center text-sm text-gray-600 mt-4">
+            Didn't receive the email? Check your spam folder or{' '}
+            <button
+              onClick={() => setSignupSuccess(false)}
+              className="text-blue-600 hover:text-blue-700 font-medium underline"
+            >
+              try signing up again
+            </button>
+          </div>
+        )}
       </>
     );
   }
 
   return (
     <>
+      {validatingInvite && (
+        <div className="mb-4">
+          <Alert variant="info">
+            Validating invitation...
+          </Alert>
+        </div>
+      )}
+      
+      {inviteInfo && (
+        <div className="mb-4">
+          <Alert variant="success">
+            <div className="space-y-1">
+              <p className="font-medium">You've been invited!</p>
+              <p className="text-sm">
+                You're joining <strong>{inviteInfo.ownerName}</strong>. Your account will be automatically verified and added to this group.
+              </p>
+            </div>
+          </Alert>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <Alert variant="error" onDismiss={() => setError(null)}>
@@ -232,7 +314,7 @@ export function SignupForm() {
           placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          disabled={loading}
+          disabled={loading || !!inviteInfo}
           autoComplete="email"
         />
 

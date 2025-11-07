@@ -51,10 +51,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, inviteToken?: string) => {
     try {
-      console.log('AuthContext: signUp called for', email);
-      const data = await authService.signUp({ email, password });
+      console.log('AuthContext: signUp called for', email, inviteToken ? 'with invite token' : '');
+      const data = await authService.signUp({ email, password, inviteToken });
       console.log('AuthContext: signUp response:', { 
         hasSession: !!data.session, 
         hasUser: !!data.user,
@@ -62,6 +62,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
       // Only set session/user if there's a valid session (email confirmed)
       // If email confirmation is required, session will be null and we shouldn't set user
+      // For invite signups, session should be available immediately
       if (data.session) {
         setSession(data.session);
         setUser(data.user);

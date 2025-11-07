@@ -10,6 +10,7 @@ import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { DocumentAccessContext } from '@/contexts/DocumentAccessContext';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface Document {
   slug: string;
@@ -34,6 +35,7 @@ interface DocumentSelectorProps {
 export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, hasAuthError = false }: DocumentSelectorProps) {
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
+  const { isSuperAdmin, isOwnerAdmin, loading: permissionsLoading } = usePermissions();
   const [isOpen, setIsOpen] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -904,7 +906,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
               </a>
               <span className="text-gray-300">|</span>
               <a
-                href="/app/dashboard"
+                href="/"
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2"
               >
                 <svg
@@ -922,6 +924,39 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
                 </svg>
                 Home
               </a>
+              {user && !permissionsLoading && (
+                <>
+                  <span className="text-gray-300">|</span>
+                  <a
+                    href={isSuperAdmin || isOwnerAdmin ? "/app/dashboard" : "/app/profile"}
+                    className="text-sm text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      {isSuperAdmin || isOwnerAdmin ? (
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                        />
+                      ) : (
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      )}
+                    </svg>
+                    {isSuperAdmin || isOwnerAdmin ? "Dashboard" : "Profile"}
+                  </a>
+                </>
+              )}
             </div>
           </div>
         )}
