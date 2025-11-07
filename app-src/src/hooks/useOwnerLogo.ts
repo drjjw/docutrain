@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 
-const OWNER_LOGO_CACHE_KEY = 'owner-logo-config-cache-v5';
+const OWNER_LOGO_CACHE_KEY = 'owner-logo-config-cache-v6';
 const OWNER_LOGO_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 interface OwnerLogoConfig {
@@ -54,7 +54,7 @@ export function useOwnerLogo(ownerSlug: string | null) {
         }
 
         // Fetch from API
-        const response = await fetch('/api/owners');
+        const response = await fetch('/api/owner-logos');
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }

@@ -352,9 +352,36 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
       complete: 'Complete'
     };
 
-    // Find latest log entry
-    const latestLog = logs[logs.length - 1];
-    console.log(`🔍 [parseProcessingProgress] Total logs: ${logs.length}, latest log:`, {
+    // Filter logs to only show logs from the current processing run
+    // When reprocessing, we want to ignore logs from previous runs
+    // Find the last "complete" log - logs after this are from the current run
+    let currentRunLogs = logs;
+    let lastCompleteLogIndex = -1;
+    
+    // Find the last complete log by iterating backwards (ES2020 compatible)
+    for (let i = logs.length - 1; i >= 0; i--) {
+      if (logs[i].stage === 'complete' && logs[i].status === 'completed') {
+        lastCompleteLogIndex = i;
+        break;
+      }
+    }
+    
+    if (lastCompleteLogIndex >= 0) {
+      // Only use logs after the last complete log (current processing run)
+      currentRunLogs = logs.slice(lastCompleteLogIndex + 1);
+      console.log(`🔍 [parseProcessingProgress] Found previous complete log at index ${lastCompleteLogIndex}, using ${currentRunLogs.length} logs from current run`);
+    } else {
+      console.log(`🔍 [parseProcessingProgress] No previous complete log found, using all ${logs.length} logs`);
+    }
+
+    if (currentRunLogs.length === 0) {
+      // If no logs from current run yet, return default
+      return { stageLabel: 'Processing...', progressPercent: 0 };
+    }
+
+    // Find latest log entry from current run
+    const latestLog = currentRunLogs[currentRunLogs.length - 1];
+    console.log(`🔍 [parseProcessingProgress] Current run logs: ${currentRunLogs.length}, latest log:`, {
       stage: latestLog.stage,
       status: latestLog.status,
       message: latestLog.message,
@@ -362,9 +389,9 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
     });
     
     // Special handling for embedding stage with batch progress
-    // Find ALL embed:progress logs and get the one with the highest batch number
+    // Find ALL embed:progress logs from current run and get the one with the highest batch number
     // (this handles cases where database writes may complete out of order)
-    const embedProgressLogs = logs.filter(log => 
+    const embedProgressLogs = currentRunLogs.filter(log => 
       log.stage === 'embed' && log.status === 'progress' && log.metadata?.batch
     );
     
@@ -412,14 +439,14 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
       }
     }
 
-    // Check for completed stages
-    const completedStages = logs.filter(log => 
+    // Check for completed stages (only from current run)
+    const completedStages = currentRunLogs.filter(log => 
       log.status === 'completed' && stages.includes(log.stage)
     ).length;
 
-    // Find current active stage (not completed)
+    // Find current active stage (not completed) - only from current run
     const currentStage = stages.find(stage => {
-      const stageLogs = logs.filter(log => log.stage === stage);
+      const stageLogs = currentRunLogs.filter(log => log.stage === stage);
       const hasStarted = stageLogs.some(log => log.status === 'started' || log.status === 'progress');
       const isCompleted = stageLogs.some(log => log.status === 'completed');
       return hasStarted && !isCompleted;
@@ -434,8 +461,8 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
       const stageIndex = stages.indexOf(currentStage);
       const baseProgress = (stageIndex / stages.length) * 100;
       
-      // If we have progress within the current stage, add a small amount
-      const hasProgress = logs.some(log => 
+      // If we have progress within the current stage, add a small amount (only from current run)
+      const hasProgress = currentRunLogs.some(log => 
         log.stage === currentStage && log.status === 'progress'
       );
       progressPercent = baseProgress + (hasProgress ? 10 : 0);

@@ -30,7 +30,7 @@ export function DocumentOwnerModal({ isOpen, customMessage, attemptedSlug }: Doc
     if (isOpen) {
       async function loadOwners() {
         try {
-          const response = await fetch('/api/owners');
+          const response = await fetch('/api/owner-logos');
           if (response.ok) {
             const data = await response.json();
             setAvailableOwners(Object.keys(data.owners || {}));
