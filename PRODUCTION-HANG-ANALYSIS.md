@@ -157,3 +157,6 @@ pm2 info docutrainio-bot | grep restarts
 pm2 logs docutrainio-bot --lines 50 --nostream | grep "Total startup time"
 ```
 
+
+
+

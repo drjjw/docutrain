@@ -262,3 +262,6 @@ When reporting the issue, include:
 5. Output of `netstat -tulpn | grep 3458` (is port in use?)
 6. Output of `curl -v http://localhost:3458/api/health` (does it respond?)
 
+
+
+

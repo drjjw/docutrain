@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Alert } from '@/components/UI/Alert';
 import { supabase } from '@/lib/supabase/client';
@@ -178,16 +178,6 @@ export function TextUploadZone({ onUploadSuccess }: TextUploadZoneProps) {
           >
             {uploading ? 'Uploading...' : 'Upload Text'}
           </Button>
-        </div>
-
-        <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-md">
-          <p className="font-medium mb-1">What happens next?</p>
-          <ul className="space-y-1 ml-4">
-            <li>• Your text will be automatically split into manageable chunks</li>
-            <li>• AI embeddings will be generated for efficient retrieval</li>
-            <li>• The content becomes searchable in your chat interface</li>
-            <li>• Processing typically takes 1-5 minutes depending on text length</li>
-          </ul>
         </div>
       </div>
     </div>

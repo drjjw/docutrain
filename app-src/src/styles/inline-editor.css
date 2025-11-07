@@ -55,10 +55,39 @@
     justify-content: center;
     position: relative;
     margin-bottom: 12px;
+    /* Prevent overflow on mobile */
+    max-width: 100%;
+    min-width: 0; /* Allow flex item to shrink below content size */
+    box-sizing: border-box;
 }
 
 .welcome-title-wrapper #welcomeTitle {
     margin-bottom: 0; /* Remove margin since wrapper handles spacing */
+    /* Prevent text from breaking out of container */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Mobile: adjust wrapper for portrait view */
+@media (max-width: 768px) {
+    .welcome-title-wrapper {
+        justify-content: flex-start; /* Align left on mobile for better readability */
+        padding-right: 32px; /* Space for edit icon */
+    }
+    
+    .welcome-title-wrapper #welcomeTitle {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .welcome-title-wrapper {
+        padding-right: 28px; /* Less space for edit icon on small screens */
+    }
 }
 
 /* Ensure editable elements have relative positioning for icons */

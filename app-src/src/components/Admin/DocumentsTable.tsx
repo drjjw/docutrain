@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
-import { CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
@@ -510,25 +509,12 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
     const isActive = doc.active ?? false;
     
     return (
-      <div className="flex items-center gap-2">
-        <Toggle
-          checked={isActive}
-          onChange={(checked) => handleToggleActive(doc, checked)}
-          disabled={isUpdating}
-          size="sm"
-        />
-        {isActive ? (
-          <span className="flex items-center gap-1.5 text-xs text-green-700">
-            <CheckCircle className="w-4 h-4" />
-            Active
-          </span>
-        ) : (
-          <span className="flex items-center gap-1.5 text-xs text-gray-500">
-            <XCircle className="w-4 h-4" />
-            Inactive
-          </span>
-        )}
-      </div>
+      <Toggle
+        checked={isActive}
+        onChange={(checked) => handleToggleActive(doc, checked)}
+        disabled={isUpdating}
+        size="sm"
+      />
     );
   };
 
@@ -613,11 +599,23 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
 
   const renderActionButtons = (doc: DocumentWithOwner, isMobile: boolean = false) => {
     const showDownload = hasDownloadAvailable(doc);
+    const isUpdating = updatingDocIds.has(doc.id);
+    const isActive = doc.active ?? false;
     
     if (isMobile) {
       // Mobile: horizontal layout with icons and text
       return (
         <div className="flex flex-wrap gap-1">
+          {/* Enable/Disable Toggle */}
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center gap-2 p-2">
+              {renderStatusToggle(doc)}
+            </div>
+            <span className="text-xs text-gray-500">
+              {isActive ? 'Enabled' : 'Disabled'}
+            </span>
+          </div>
+
           {/* View Button */}
           <button
             onClick={() => window.open(`/app/chat?doc=${doc.slug}`, '_blank')}
@@ -711,6 +709,16 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
     // Desktop: original layout
     return (
       <div className="flex items-center gap-3 pl-2">
+        {/* Enable/Disable Toggle */}
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-2 p-2.5">
+            {renderStatusToggle(doc)}
+          </div>
+          <span className="text-xs text-gray-500 font-medium">
+            {isActive ? 'Enabled' : 'Disabled'}
+          </span>
+        </div>
+
         {/* View Button */}
         <div className="flex flex-col items-center gap-1">
           <button
@@ -1043,10 +1051,10 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {/* Table Header Row */}
-          <div className="hidden lg:grid grid-cols-12 gap-4 px-5 py-4 bg-gray-50 rounded-xl border border-gray-200/60 shadow-sm">
-            <div className="col-span-1 flex items-center">
+          <div className="hidden lg:flex px-5 py-4 bg-gray-50 rounded-xl border border-gray-200/60 shadow-sm">
+            <div className="flex items-center justify-center w-8 flex-shrink-0 mr-4">
               <input
                 type="checkbox"
                 ref={selectAllCheckboxRef}
@@ -1056,14 +1064,13 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                 title={isAllSelected ? 'Deselect all' : isSomeSelected ? 'Some selected' : 'Select all'}
               />
             </div>
-            <div className={`${isSuperAdmin ? 'col-span-3' : 'col-span-4'} text-xs font-bold text-gray-600 uppercase tracking-wider`}>Document</div>
-            <div className="col-span-2 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Status</div>
-            <div className="col-span-1 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Visibility</div>
-            <div className="col-span-1 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Category</div>
+            <div className={`${isSuperAdmin ? 'flex-1 min-w-[400px] mr-4' : 'flex-1 min-w-[400px] mr-4'} text-xs font-bold text-gray-600 uppercase tracking-wider`}>Document</div>
+            <div className="w-24 text-xs font-bold text-gray-600 uppercase tracking-wider text-center mr-4">Visibility</div>
+            <div className="w-24 text-xs font-bold text-gray-600 uppercase tracking-wider text-center mr-4">Category</div>
             {isSuperAdmin && (
-              <div className="col-span-1 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Owner</div>
+              <div className="w-24 text-xs font-bold text-gray-600 uppercase tracking-wider text-center mr-4">Owner</div>
             )}
-            <div className={`${isSuperAdmin ? 'col-span-3' : 'col-span-3'} text-xs font-bold text-gray-600 uppercase tracking-wider flex justify-center`}>Actions</div>
+            <div className="flex-1 text-xs font-bold text-gray-600 uppercase tracking-wider flex justify-center">Actions</div>
           </div>
 
           {/* Document Rows */}
@@ -1073,101 +1080,101 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
               className="bg-white/90 backdrop-blur-sm border border-gray-200/60 rounded-xl hover:shadow-lg hover:border-gray-300 transition-all duration-300 hover:-translate-y-0.5"
             >
               {/* Mobile/Tablet Card View */}
-              <div className="lg:hidden p-5">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    {/* Checkbox */}
-                    <input
-                      type="checkbox"
-                      checked={selectedDocIds.has(doc.id)}
-                      onChange={() => toggleDocumentSelection(doc.id)}
-                      className="w-4 h-4 mt-1 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer flex-shrink-0"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 shadow-sm">
-                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold text-gray-900 text-base">
-                          {doc.title || 'Untitled Document'}
-                        </div>
-                        <div className="text-sm text-gray-500 font-medium mt-0.5 flex items-center gap-1.5 min-w-0 flex-wrap">
-                          {(() => {
-                            // Always show subtitle/category/year if available, then always show slug with copy button
-                            const parts: React.ReactNode[] = [];
-                            
-                            // Add subtitle, category, or year if available
-                            if (doc.subtitle) {
-                              parts.push(<span key="subtitle" className="truncate">{doc.subtitle}</span>);
-                            } else {
-                              const metaParts: string[] = [];
-                              if (doc.category) metaParts.push(doc.category);
-                              if (doc.year) metaParts.push(doc.year);
-                              if (metaParts.length > 0) {
-                                parts.push(<span key="meta" className="truncate">{metaParts.join(' • ')}</span>);
-                              }
-                            }
-                            
-                          // Always show slug with copy button
-                          const hasOtherContent = parts.length > 0;
-                          parts.push(
-                            <div key="slug" className="flex items-center gap-1.5 min-w-0 flex-shrink-0 max-w-full">
-                              {hasOtherContent && <span className="text-gray-300 mx-1 flex-shrink-0">•</span>}
-                              <span className="text-gray-400 flex-shrink-0">slug:</span>
-                              <span className="truncate max-w-[120px]">{doc.slug}</span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCopySlug(doc);
-                                }}
-                                className="flex-shrink-0 p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
-                                title="Copy slug"
-                              >
-                                {copiedSlugId === doc.id ? (
-                                  <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                ) : (
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                  </svg>
-                                )}
-                              </button>
-                            </div>
-                          );
-                            
-                            return parts;
-                          })()}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <div className="flex items-center gap-2">
-                        {renderStatusToggle(doc)}
-                      </div>
-                      {renderVisibilityBadge(doc.access_level || 'public')}
-                      {doc.category && (
-                        <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200/50 shadow-sm text-center">
-                          {doc.category}
-                        </span>
-                      )}
-                    </div>
+              <div className="lg:hidden p-5 space-y-4">
+                {/* Header: Checkbox, Icon, Title */}
+                <div className="flex items-start gap-3">
+                  {/* Checkbox */}
+                  <input
+                    type="checkbox"
+                    checked={selectedDocIds.has(doc.id)}
+                    onChange={() => toggleDocumentSelection(doc.id)}
+                    className="w-4 h-4 mt-1 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer flex-shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  
+                  {/* Icon */}
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
                   </div>
+                  
+                  {/* Title and Metadata */}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-gray-900 text-base break-words mb-1" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                      {doc.title || 'Untitled Document'}
+                    </div>
+                    <div className="text-sm text-gray-500 font-medium flex items-center gap-1.5 min-w-0 flex-wrap">
+                      {(() => {
+                        // Always show subtitle/category/year if available, then always show slug with copy button
+                        const parts: React.ReactNode[] = [];
+                        
+                        // Add subtitle, category, or year if available
+                        if (doc.subtitle) {
+                          parts.push(<span key="subtitle" className="truncate">{doc.subtitle}</span>);
+                        } else {
+                          const metaParts: string[] = [];
+                          if (doc.category) metaParts.push(doc.category);
+                          if (doc.year) metaParts.push(doc.year);
+                          if (metaParts.length > 0) {
+                            parts.push(<span key="meta" className="truncate">{metaParts.join(' • ')}</span>);
+                          }
+                        }
+                        
+                        // Always show slug with copy button
+                        const hasOtherContent = parts.length > 0;
+                        parts.push(
+                          <div key="slug" className="flex items-center gap-1.5 min-w-0 flex-shrink-0 max-w-full">
+                            {hasOtherContent && <span className="text-gray-300 mx-1 flex-shrink-0">•</span>}
+                            <span className="text-gray-400 flex-shrink-0">slug:</span>
+                            <span className="truncate max-w-[120px]">{doc.slug}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopySlug(doc);
+                              }}
+                              className="flex-shrink-0 p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
+                              title="Copy slug"
+                            >
+                              {copiedSlugId === doc.id ? (
+                                <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              ) : (
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
+                        );
+                        
+                        return parts;
+                      })()}
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2">
+
+                {/* Badges: Visibility and Category */}
+                <div className="flex flex-wrap gap-2">
+                  {renderVisibilityBadge(doc.access_level || 'public')}
+                  {doc.category && (
+                    <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200/50 shadow-sm">
+                      {doc.category}
+                    </span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="pt-2 border-t border-gray-200">
                   {renderActionButtons(doc, true)}
                 </div>
               </div>
 
               {/* Desktop Grid View */}
-              <div className="hidden lg:grid grid-cols-12 gap-4 p-5">
+              <div className="hidden lg:flex p-6">
                 {/* Checkbox */}
-                <div className="col-span-1 flex items-center">
+                <div className="flex items-center justify-center w-8 flex-shrink-0 mr-4">
                   <input
                     type="checkbox"
                     checked={selectedDocIds.has(doc.id)}
@@ -1177,7 +1184,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                   />
                 </div>
                 {/* Document Info */}
-                <div className={`${isSuperAdmin ? 'col-span-3' : 'col-span-4'}`}>
+                <div className={`${isSuperAdmin ? 'flex-1 min-w-[400px] mr-4' : 'flex-1 min-w-[400px] mr-4'}`}>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 shadow-sm">
                       <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1185,14 +1192,14 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-gray-900 text-base">
+                      <div className="font-bold text-gray-900 text-base break-words" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                         {doc.title || 'Untitled Document'}
                       </div>
                       <div className="text-sm text-gray-600 font-medium mt-0.5 flex items-center gap-1.5 min-w-0 flex-wrap">
                         {(() => {
                           // Always show subtitle/category/year if available, then always show slug with copy button
                           const parts: React.ReactNode[] = [];
-                          
+
                           // Add subtitle, category, or year if available
                           if (doc.subtitle) {
                             parts.push(<span key="subtitle" className="truncate">{doc.subtitle}</span>);
@@ -1204,7 +1211,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                               parts.push(<span key="meta" className="truncate">{metaParts.join(' • ')}</span>);
                             }
                           }
-                          
+
                           // Always show slug with copy button
                           const hasOtherContent = parts.length > 0;
                           parts.push(
@@ -1232,7 +1239,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                               </button>
                             </div>
                           );
-                          
+
                           return parts;
                         })()}
                       </div>
@@ -1240,18 +1247,13 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                   </div>
                 </div>
 
-                {/* Status */}
-                <div className="col-span-2 flex items-center justify-center">
-                  {renderStatusToggle(doc)}
-                </div>
-
                 {/* Visibility */}
-                <div className="col-span-1 flex items-center justify-center">
+                <div className="w-24 flex items-center justify-center mr-4">
                   {renderVisibilityBadge(doc.access_level || 'public')}
                 </div>
 
                 {/* Category */}
-                <div className="col-span-1 flex items-center justify-center">
+                <div className="w-24 flex items-center justify-center mr-4">
                   {doc.category ? (
                     <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200/50 shadow-sm">
                       {doc.category}
@@ -1261,10 +1263,10 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
 
                 {/* Owner (Super Admin only) */}
                 {isSuperAdmin && (
-                  <div className="col-span-1 flex items-center justify-center min-w-0 w-full">
+                  <div className="w-24 flex items-center justify-center mr-4">
                     {doc.owners?.name ? (
                       <div className="relative group w-full min-w-0">
-                        <span 
+                        <span
                           className="inline-block px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200 shadow-sm overflow-hidden text-ellipsis whitespace-nowrap w-full text-center"
                         >
                           {doc.owners.name}
@@ -1280,7 +1282,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                 )}
 
                 {/* Actions */}
-                <div className={`${isSuperAdmin ? 'col-span-3' : 'col-span-3'} flex justify-center pl-4`}>
+                <div className="flex-1 flex justify-center">
                   {renderActionButtons(doc)}
                 </div>
               </div>

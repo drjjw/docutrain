@@ -65,3 +65,6 @@ pm2 logs docutrainio-bot --lines 50 --nostream
 - Document registry auto-refresh is working correctly
 - No actual errors detected - just a stuck process state
 
+
+
+

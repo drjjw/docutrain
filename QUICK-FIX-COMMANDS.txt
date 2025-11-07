@@ -1,22 +1,21 @@
-# Quick troubleshooting commands - copy/paste these one at a time
+# Quick troubleshooting commands - run these on the remote server (already SSH'd in)
 
 # 1. Check PM2 status and recent logs (MOST IMPORTANT)
-ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111 'pm2 status && echo "=== LAST 50 LINES OF LOGS ===" && pm2 logs docutrainio-bot --lines 50 --nostream'
+pm2 status && echo "=== LAST 50 LINES OF LOGS ===" && pm2 logs docutrainio-bot --lines 50 --nostream
 
 # 2. Check if .env file exists (CRITICAL - deploy script excludes it!)
-ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111 'ls -la /home/docutrainio/public_html/.env || echo "❌ .env file MISSING - this is likely the problem!"'
+ls -la /home/docutrainio/public_html/.env || echo "❌ .env file MISSING - this is likely the problem!"
 
 # 3. Check if server responds
-ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111 'curl -s http://localhost:3458/api/health || echo "❌ Server not responding"'
+curl -s http://localhost:3458/api/health || echo "❌ Server not responding"
 
 # 4. Check PM2 detailed info
-ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111 'pm2 info docutrainio-bot'
+pm2 info docutrainio-bot
 
-# 5. If .env is missing, copy it:
-scp -i ~/.ssh/drjjw.pub -P 7022 .env root@162.246.254.111:/home/docutrainio/public_html/.env
+# 5. If .env is missing, you'll need to copy it from your local machine (run this locally):
+# scp -i ~/.ssh/drjjw.pub -P 7022 .env root@162.246.254.111:/home/docutrainio/public_html/.env
 
 # 6. After copying .env, restart:
-ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111 'cd /home/docutrainio/public_html && pm2 restart docutrainio-bot && sleep 3 && pm2 logs docutrainio-bot --lines 30 --nostream'
-
+cd /home/docutrainio/public_html && pm2 restart docutrainio-bot && sleep 3 && pm2 logs docutrainio-bot --lines 30 --nostream
 
 

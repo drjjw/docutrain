@@ -135,6 +135,21 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
 }
 
+/* Welcome title in cover layout - ensure it doesn't overflow */
+.welcome-message-section .message.assistant .message-content #welcomeTitle {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Welcome title wrapper in cover layout */
+.welcome-message-section .welcome-title-wrapper {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 /* Intro content should span full width */
 #welcomeIntroContent {
   width: 100%;
@@ -212,6 +227,19 @@
     padding: 20px 24px;
   }
 
+  /* Ensure welcome title wraps properly on mobile */
+  .welcome-message-section .message.assistant .message-content #welcomeTitle {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    font-size: 1.4em;
+    line-height: 1.3;
+  }
+
+  .welcome-message-section .welcome-title-wrapper {
+    padding-right: 32px; /* Space for edit icon */
+  }
+
   .document-cover-image {
     width: 100%;
     height: auto;
@@ -273,6 +301,20 @@
   .welcome-message-section .message.assistant .message-content {
     width: 100%; /* Override max-width to ensure full width */
     max-width: 100%; /* Ensure it takes full container width */
+    padding: 16px 20px; /* Reduced padding on very small screens */
+  }
+
+  /* Ensure welcome title wraps properly on very small screens */
+  .welcome-message-section .message.assistant .message-content #welcomeTitle {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    font-size: 1.3em;
+    line-height: 1.25;
+  }
+
+  .welcome-message-section .welcome-title-wrapper {
+    padding-right: 28px; /* Space for edit icon */
   }
 
   .document-cover-image {

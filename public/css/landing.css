@@ -274,6 +274,110 @@ html {
     line-height: 1.7;
 }
 
+/* ==================== STEPS PROGRESSION SECTION ==================== */
+
+.steps-progression {
+    padding: 4rem 2rem;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.steps-progression-container {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+.steps-progression-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.steps-progression-heading {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.steps-progression-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+}
+
+.steps-progression-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    text-align: center;
+    max-width: 300px;
+}
+
+.steps-progression-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+}
+
+.steps-progression-item:hover .steps-progression-icon {
+    transform: translateY(-6px) scale(1.1);
+    box-shadow: var(--shadow-xl);
+}
+
+.steps-progression-icon svg {
+    width: 40px;
+    height: 40px;
+    color: white;
+}
+
+.steps-progression-content-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.steps-progression-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.steps-progression-description {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.steps-progression-connector {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    opacity: 0.6;
+}
+
+.steps-progression-connector svg {
+    width: 32px;
+    height: 32px;
+}
+
 .hero-cta {
     display: flex;
     gap: 1rem;
@@ -1179,6 +1283,34 @@ html {
     
     .hero-visual {
         display: none;
+    }
+    
+    .steps-progression-header {
+        margin-bottom: 2rem;
+    }
+    
+    .steps-progression-heading {
+        font-size: 2rem;
+    }
+    
+    .steps-progression-content {
+        flex-direction: column;
+        gap: 2rem;
+    }
+    
+    .steps-progression-connector {
+        transform: rotate(90deg);
+        width: 32px;
+        height: 32px;
+    }
+    
+    .steps-progression-connector svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .steps-progression-item {
+        max-width: 100%;
     }
     
     .features-grid {

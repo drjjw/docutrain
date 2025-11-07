@@ -98,3 +98,8 @@ export interface DocumentMetadataCardProps {
   isSuperAdmin: boolean;
 }
 
+export interface DocumentEmbedCodeCardProps {
+  documentSlug: string;
+  documentTitle?: string;
+}
+

@@ -72,7 +72,8 @@
   padding: 0;
   width: 100%;
   box-sizing: border-box;
-  max-width: none;
+  max-width: 100%; /* Ensure container doesn't exceed parent */
+  min-width: 0; /* Allow flex item to shrink below content size */
   overflow-y: visible; /* Allow content to be fully visible when expanded */
   overflow-x: hidden; /* Prevent horizontal overflow */
   opacity: 1;
@@ -81,22 +82,34 @@
   border: 1px solid #e9ecef;
   border-top: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
-  transition: max-height 0.4s ease-out,
-              margin 0.4s ease-out,
-              padding 0.4s ease-out,
-              opacity 0.35s ease-out;
+  /* Smooth opening animation */
+  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              margin 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .downloads-keywords-container:not(.collapsed) {
   overflow-y: visible; /* Ensure content is visible when expanded */
+  overflow-x: hidden; /* Prevent horizontal overflow */
+  /* Allow container to expand to fit content naturally */
+  height: auto;
+  max-height: none; /* Override inline max-height when content needs more space */
 }
 
-/* On mobile, allow vertical scrolling when expanded to prevent content cutoff */
+/* On mobile, only show scrollbar if content actually overflows */
 @media (max-width: 768px) {
   .downloads-keywords-container:not(.collapsed) {
-    overflow-y: auto;
+    /* Allow natural expansion - only scroll if absolutely necessary */
+    overflow-y: visible; /* Changed from auto to visible to prevent unnecessary scrolling */
     overflow-x: hidden;
+    /* Allow container to expand naturally */
+    max-height: none !important; /* Override any inline max-height */
+    height: auto;
   }
+  
+  /* Only show scrollbar on the parent chat container, not here */
+  /* Removed scrollbar styling since we're using overflow: visible */
 }
 
 /* Header outside container - blends visually */
@@ -112,14 +125,54 @@
   display: flex;
   flex-direction: row;
   gap: 10px;
-  padding: 20px;
-  padding-bottom: 28px; /* Extra padding at bottom for better spacing */
+  padding: 28px 32px; /* Increased padding for better spacing */
+  padding-bottom: 32px; /* Extra padding at bottom for better spacing */
   flex: 1;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0; /* Allow flex item to shrink below content size */
+  /* Ensure content can expand naturally */
+  overflow: visible;
+  height: auto;
+  min-height: fit-content;
+  /* Fade in content smoothly */
+  opacity: 1;
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;
 }
 
-/* Prevent ALL internal elements from animating - only outer container animates */
-.downloads-keywords-container > *,
+/* Fade in content when container expands */
+.downloads-keywords-container:not(.collapsed) .downloads-keywords-container-content {
+  opacity: 1;
+  animation: fadeInContent 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.15s both;
+}
+
+/* Fade out content when container collapses */
+.downloads-keywords-container.collapsed .downloads-keywords-container-content {
+  opacity: 0;
+  animation: none;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInContent {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Allow content to fade in smoothly, but prevent other animations that might conflict */
+.downloads-keywords-container > * {
+  /* Allow opacity transitions for smooth fade-in */
+  transition: opacity 0.3s ease-out;
+}
+
 .downloads-keywords-container > * > * {
+  /* Prevent conflicting animations on deeply nested elements */
   transition: none !important;
   animation: none !important;
 }
@@ -132,36 +185,43 @@
   margin: 0;
   padding: 0;
   border: none;
-  transition: max-height 0.4s ease-in,
-              margin 0.4s ease-in,
-              padding 0.4s ease-in,
-              opacity 0.35s ease-in;
+  /* Smooth closing animation */
+  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              margin 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Style sections inside unified container - side by side on desktop */
 .downloads-keywords-container-content > .keywords-section:not(:only-child) {
-  flex: 0 0 calc(60% - 6px);
-  min-width: calc(60% - 6px);
-  max-width: calc(60% - 6px);
+  flex: 0 0 calc(60% - 5px); /* Adjusted for gap */
+  min-width: 0; /* Allow flex item to shrink */
+  max-width: calc(60% - 5px);
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 .downloads-keywords-container-content > .downloads-section:not(:only-child) {
-  flex: 0 0 calc(40% - 4px);
-  min-width: calc(40% - 4px);
-  max-width: calc(40% - 4px);
+  flex: 0 0 calc(40% - 5px); /* Adjusted for gap */
+  min-width: 0; /* Allow flex item to shrink */
+  max-width: calc(40% - 5px);
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 /* When only one is present, it takes 100% width */
 .downloads-keywords-container-content > .downloads-section:only-child,
 .downloads-keywords-container-content > .keywords-section:only-child {
   flex: 1 1 100%;
-  min-width: 100%;
+  min-width: 0; /* Allow flex item to shrink */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .downloads-keywords-container-content > .keywords-section {
   margin: 0;
-  padding: 10px;
-  padding-bottom: 12px; /* Ensure footnote is included in backgrounded area */
+  padding: 0; /* Remove padding since parent container now has padding */
+  padding-bottom: 0; /* Remove padding since parent container now has padding */
   background: transparent !important;
   border: none;
   border-radius: 0;
@@ -170,10 +230,22 @@
   min-height: fit-content; /* Ensure container expands to fit content */
   display: flex;
   flex-direction: column;
+  /* Prevent internal scrollbars */
+  max-height: none;
+  height: auto; /* Allow natural height */
+  flex-shrink: 0; /* Prevent section from shrinking */
+  /* Allow animations from keywords.css */
+  animation: none; /* Will be overridden by keywords.css when container expands */
+}
+
+.downloads-keywords-container-content > .keywords-section .keywords-list {
+  overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
 }
 
 .downloads-keywords-container-content > .keywords-section .keywords-footnote {
-  margin-top: 12px;
+  margin-top: 16px;
   margin-bottom: 0;
   flex-shrink: 0; /* Prevent footnote from being pushed outside */
 }
@@ -419,8 +491,8 @@
   .downloads-keywords-container-content {
     flex-direction: column !important;
     gap: 0;
-    padding: 15px;
-    padding-bottom: 28px; /* Extra padding at bottom for better spacing */
+    padding: 24px 20px; /* Increased padding for better spacing */
+    padding-bottom: 32px; /* Extra padding at bottom for better spacing */
   }
 
   .downloads-keywords-container-content > .keywords-section + .downloads-section {
@@ -482,8 +554,8 @@
   }
 
   .downloads-keywords-container-content {
-    padding: 12px;
-    padding-bottom: 28px; /* Extra padding at bottom for better spacing */
+    padding: 20px 16px; /* Increased padding for better spacing */
+    padding-bottom: 32px; /* Extra padding at bottom for better spacing */
   }
 
   .downloads-keywords-container-content > .keywords-section + .downloads-section {

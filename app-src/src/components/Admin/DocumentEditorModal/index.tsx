@@ -12,6 +12,7 @@ import { DocumentUIConfigCard } from './DocumentUIConfigCard';
 import { DocumentMessagesCard } from './DocumentMessagesCard';
 import { DocumentDownloadsCard } from './DocumentDownloadsCard';
 import { DocumentMetadataCard } from './DocumentMetadataCard';
+import { DocumentEmbedCodeCard } from './DocumentEmbedCodeCard';
 import type { DocumentEditorModalProps } from './types';
 
 export function DocumentEditorModal({ document, owners, isSuperAdmin = false, onSave, onCancel, onRetrainingStart }: DocumentEditorModalProps) {
@@ -333,8 +334,10 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                 <Tab index={0}>Overview</Tab>
                 <Tab index={1}>Basic Information</Tab>
                 <Tab index={2}>Settings & Access</Tab>
-                <Tab index={3}>UI & Downloads</Tab>
-                {isSuperAdmin && <Tab index={4}>Metadata</Tab>}
+                <Tab index={3}>UI</Tab>
+                <Tab index={4}>Downloads</Tab>
+                <Tab index={5}>Embed Code</Tab>
+                {isSuperAdmin && <Tab index={6}>Metadata</Tab>}
               </TabList>
 
               <TabPanels>
@@ -414,7 +417,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                   </div>
                 </TabPanel>
 
-                {/* Tab 4: UI & Downloads */}
+                {/* Tab 4: UI */}
                 <TabPanel>
                   <div className="space-y-8">
                     <DocumentUIConfigCard
@@ -439,7 +442,12 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                       introMessage={editingValues.intro_message || ''}
                       onFieldChange={handleFieldChange}
                     />
+                  </div>
+                </TabPanel>
 
+                {/* Tab 5: Downloads */}
+                <TabPanel>
+                  <div className="space-y-8">
                     <DocumentDownloadsCard
                       downloads={editingValues.downloads || []}
                       onDownloadsChange={(downloads) => handleFieldChange('downloads', downloads)}
@@ -448,7 +456,17 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                   </div>
                 </TabPanel>
 
-                {/* Tab 5: Metadata (Super Admin Only) */}
+                {/* Tab 6: Embed Code */}
+                <TabPanel>
+                  <div className="space-y-8">
+                    <DocumentEmbedCodeCard
+                      documentSlug={editingValues.slug || document.slug || ''}
+                      documentTitle={editingValues.title || document.title || ''}
+                    />
+                  </div>
+                </TabPanel>
+
+                {/* Tab 7: Metadata (Super Admin Only) */}
                 {isSuperAdmin && (
                   <TabPanel>
                     <div className="space-y-8">

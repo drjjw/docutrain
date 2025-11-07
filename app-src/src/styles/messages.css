@@ -32,7 +32,11 @@
   padding: 16px 20px;
   border-radius: 8px;
   word-wrap: break-word;
+  overflow-wrap: break-word;
   line-height: 1.6;
+  box-sizing: border-box;
+  /* Prevent horizontal overflow */
+  overflow-x: hidden;
 }
 
 /* Message content wrapper for assistant messages (to position copy button) */
@@ -53,6 +57,11 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  box-sizing: border-box;
+  /* Prevent horizontal overflow */
+  overflow-x: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Optimize rendering during streaming - prevent unnecessary reflows */
@@ -142,6 +151,11 @@
   line-height: 1.4;
   margin: 0 0 16px 0;
   letter-spacing: -0.02em;
+  /* Prevent text from breaking out of container */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Mobile responsive: scale down welcome title on smaller screens */
@@ -149,6 +163,23 @@
   .message.assistant .message-content #welcomeTitle {
     font-size: 1.5em;
     margin-bottom: 12px;
+    /* Ensure proper wrapping on mobile */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+}
+
+/* Portrait/mobile specific: ensure welcome title doesn't overflow */
+@media (max-width: 480px) {
+  .message.assistant .message-content #welcomeTitle {
+    font-size: 1.35em;
+    line-height: 1.3;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    /* Ensure it respects container padding */
+    padding-right: 0;
   }
 }
 

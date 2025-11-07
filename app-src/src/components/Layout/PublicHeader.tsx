@@ -55,7 +55,7 @@ export function PublicHeader() {
   const navLinks = [
     { href: '/#features', label: 'Features' },
     { href: '/#how-it-works', label: 'How It Works' },
-    { href: '/#rationale', label: 'Why It Matters' },
+    { href: '/#rationale', label: 'Why Context Matters' },
     { href: '/#about', label: 'About' },
     { href: '/app/chat', label: 'Chat' },
     { href: '/app/contact', label: 'Contact' },
