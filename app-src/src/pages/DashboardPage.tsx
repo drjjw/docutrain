@@ -13,6 +13,7 @@ import { Alert } from '@/components/UI/Alert';
 import { Spinner } from '@/components/UI/Spinner';
 import { getUserProfile } from '@/lib/supabase/database';
 import { getDocuments } from '@/lib/supabase/admin';
+import { docutrainIconUrl } from '@/assets';
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -201,8 +202,17 @@ export function DashboardPage() {
         <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 p-6 sm:p-8 hover:shadow-xl transition-shadow duration-300">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             {/* User Avatar or Owner Logo */}
-            {!isSuperAdmin && hasAdminAccess && ownerGroups.length > 0 && ownerGroups[0].owner_logo_url ? (
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-white border-2 border-gray-200/60 shadow-sm flex items-center justify-center flex-shrink-0 p-3 transition-transform duration-300 hover:scale-105">
+            {isSuperAdmin ? (
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-white border-2 border-gray-200/60 shadow-sm flex items-center justify-center flex-shrink-0 p-2 transition-transform duration-300 hover:scale-105">
+                <img 
+                  src={docutrainIconUrl} 
+                  alt="DocuTrain" 
+                  className="w-full h-full object-contain"
+                  title="Super Administrator"
+                />
+              </div>
+            ) : hasAdminAccess && ownerGroups.length > 0 && ownerGroups[0].owner_logo_url ? (
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-white border-2 border-gray-200/60 shadow-sm flex items-center justify-center flex-shrink-0 p-2 transition-transform duration-300 hover:scale-105">
                 <img 
                   src={ownerGroups[0].owner_logo_url} 
                   alt={ownerGroups[0].owner_name} 
