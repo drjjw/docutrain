@@ -12,7 +12,7 @@ import { getMyProfile, updateMyProfile } from '@/lib/supabase/database';
 
 export function ProfilePage() {
   const { user } = useAuth();
-  const { isSuperAdmin, isOwnerAdmin } = usePermissions();
+  const { isSuperAdmin, isOwnerAdmin, ownerGroups } = usePermissions();
   const navigate = useNavigate();
   
   // Check if user has admin access (super_admin or owner_admin)
@@ -203,6 +203,16 @@ export function ProfilePage() {
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  // Get account status info
+  const getAccountStatus = () => {
+    // Since user is logged in, they're active
+    // Could be extended to check email_confirmed_at, banned_until, etc.
+    return {
+      text: 'Verified & Active',
+      color: 'text-green-600'
+    };
   };
 
   return (
@@ -529,14 +539,20 @@ export function ProfilePage() {
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email Address</p>
-                  <p className="text-sm text-gray-900 font-medium mt-1 break-words">{user?.email}</p>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Owner Assignment</p>
+                  <p className="text-sm text-gray-900 font-medium mt-1 break-words">
+                    {ownerGroups.length > 0 
+                      ? ownerGroups.map(og => og.owner_name).join(', ')
+                      : isSuperAdmin 
+                        ? 'Super Admin' 
+                        : 'No assignment'}
+                  </p>
                 </div>
               </div>
 
@@ -548,13 +564,11 @@ export function ProfilePage() {
                 </div>
                 <div className="flex-1">
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Account Status</p>
-                  <div className="mt-2">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                      <svg className="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 8 8">
-                        <circle cx="4" cy="4" r="3" />
-                      </svg>
-                      Verified & Active
-                    </span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <svg className={`w-3 h-3 ${getAccountStatus().color}`} fill="currentColor" viewBox="0 0 8 8">
+                      <circle cx="4" cy="4" r="3" />
+                    </svg>
+                    <p className="text-sm text-gray-900 font-medium">{getAccountStatus().text}</p>
                   </div>
                 </div>
               </div>
