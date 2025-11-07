@@ -67,7 +67,7 @@ export function DocumentRow({
                 {doc.title || 'Untitled Document'}
               </div>
               <div className="text-sm text-gray-600 font-medium mt-0.5 flex items-center gap-1.5 min-w-0 flex-wrap">
-                <DocumentMetadata doc={doc} copiedSlugId={copiedSlugId} onCopySlug={onCopySlug} />
+                <DocumentMetadata doc={doc} />
               </div>
             </div>
           </div>
