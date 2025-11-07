@@ -93,9 +93,23 @@ export function SignupForm() {
       return;
     }
 
+    // If there's an invite token, ensure email matches invitation
+    if (inviteToken && inviteInfo) {
+      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedInviteEmail = inviteInfo.email.toLowerCase().trim();
+      if (normalizedEmail !== normalizedInviteEmail) {
+        setError(`Email must match the invitation email: ${inviteInfo.email}`);
+        return;
+      }
+    }
+
     try {
       setLoading(true);
       console.log('SignupForm: Attempting signup with email:', email);
+      if (inviteToken) {
+        console.log('SignupForm: Invite token present:', inviteToken);
+        console.log('SignupForm: Invite info:', inviteInfo);
+      }
       
       // Signup user first - pass invite_token if present
       const signupResult = await signUp(email, password, inviteToken || undefined);
