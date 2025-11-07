@@ -280,7 +280,7 @@ export function DocumentOwnerModal({ isOpen, customMessage, attemptedSlug }: Doc
 
         {/* Footer with escape links */}
         <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+          <div className="flex flex-row items-center justify-center gap-4 sm:gap-6">
             {!user && (
               <>
                 <a
