@@ -928,7 +928,11 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
                 <>
                   <span className="text-gray-300">|</span>
                   <a
-                    href={isSuperAdmin || isOwnerAdmin ? "/app/dashboard" : "/app/profile"}
+                    href={
+                      ownerParam 
+                        ? `/app/chat?owner=${encodeURIComponent(ownerParam)}`
+                        : (isSuperAdmin || isOwnerAdmin ? "/app/dashboard" : "/app/profile")
+                    }
                     className="text-sm text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2"
                   >
                     <svg
@@ -953,7 +957,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
                         />
                       )}
                     </svg>
-                    {isSuperAdmin || isOwnerAdmin ? "Dashboard" : "Profile"}
+                    {ownerParam ? "Documents" : (isSuperAdmin || isOwnerAdmin ? "Dashboard" : "Profile")}
                   </a>
                 </>
               )}
