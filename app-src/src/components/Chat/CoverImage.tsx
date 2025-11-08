@@ -32,10 +32,11 @@ export function CoverImage({ cover, title, category, year, onImageLoad }: CoverI
   if (year) metaParts.push(year);
   const metaText = metaParts.length > 0 ? metaParts.join(' | ') : undefined;
 
-  // Handle image load event
+  // Handle image load event and orientation changes
   useEffect(() => {
     const img = imageRef.current;
-    if (!img) return;
+    const container = coverSectionRef.current;
+    if (!img || !container) return;
 
     const handleLoad = () => {
       // Equalize heights on desktop (matching vanilla JS equalizeContainerHeights)
@@ -44,8 +45,36 @@ export function CoverImage({ cover, title, category, year, onImageLoad }: CoverI
       }
     };
 
+    // Force image recalibration on orientation change
+    // Some devices fire 'orientationchange', others fire 'resize' - handle both
+    let recalibrationTimeout: NodeJS.Timeout;
+    const forceRecalibration = () => {
+      clearTimeout(recalibrationTimeout);
+      recalibrationTimeout = setTimeout(() => {
+        // Force browser to recalculate image dimensions by:
+        // 1. Temporarily changing object-fit to let browser recalculate natural size
+        // 2. Then restoring it to trigger proper scaling
+        const originalObjectFit = img.style.objectFit;
+        img.style.objectFit = 'contain';
+        // Force reflow
+        void img.offsetHeight;
+        // Restore original object-fit (from CSS class)
+        img.style.objectFit = '';
+        // Trigger container height recalculation
+        if (onImageLoad) {
+          onImageLoad();
+        }
+      }, 150);
+    };
+
     img.addEventListener('load', handleLoad);
-    return () => img.removeEventListener('load', handleLoad);
+    window.addEventListener('orientationchange', forceRecalibration);
+    
+    return () => {
+      clearTimeout(recalibrationTimeout);
+      img.removeEventListener('load', handleLoad);
+      window.removeEventListener('orientationchange', forceRecalibration);
+    };
   }, [onImageLoad]);
 
   return (
