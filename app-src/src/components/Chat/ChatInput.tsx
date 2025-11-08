@@ -55,11 +55,14 @@ export function ChatInput({
     <div className="fixed bottom-0 left-0 right-0 z-[100]">
       {/* Chat input form */}
       <div 
-        className="border-t border-gray-200 p-4"
+        className="border-t border-gray-200 p-3 md:p-4"
         style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.7)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)'
+          backgroundColor: 'rgba(255, 255, 255, 0.75)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.08), 0 -2px 8px rgba(0, 0, 0, 0.04)',
+          borderTop: '1px solid rgba(229, 231, 235, 0.8)',
+          backgroundImage: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.75) 100%)'
         }}
       >
         <form
@@ -73,7 +76,7 @@ export function ChatInput({
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
             placeholder={documentSlug ? "Ask a question..." : "Select a document to start chatting..."}
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all shadow-sm hover:shadow-md focus:shadow-md"
+            className="flex-1 px-3 md:px-4 py-2.5 md:py-3 text-base border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200 focus:scale-[1.01] transition-all duration-200 ease-in-out shadow-sm hover:shadow-md focus:shadow-lg"
             disabled={isLoading || !documentSlug || !!rateLimitError}
           />
           <button

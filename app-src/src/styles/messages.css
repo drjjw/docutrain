@@ -3,9 +3,9 @@
 
 /* Message Container */
 .message {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   display: flex;
-  animation: fadeIn 0.3s ease-in;
+  animation: fadeIn 0.3s ease-in-out;
 }
 
 /* Disable animation during streaming to prevent jitter */
@@ -30,10 +30,10 @@
 .message-content {
   max-width: 70%;
   padding: 16px 20px;
-  border-radius: 8px;
+  border-radius: 16px;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  line-height: 1.6;
+  line-height: 1.7;
   box-sizing: border-box;
   /* Prevent horizontal overflow */
   overflow-x: hidden;
@@ -52,7 +52,7 @@
 .message.assistant .message-content {
   max-width: min(120ch, 1400px);
   padding: 20px 24px;
-  border-radius: 8px;
+  border-radius: 20px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -62,6 +62,7 @@
   overflow-x: hidden;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  line-height: 1.7;
 }
 
 /* Optimize rendering during streaming - prevent unnecessary reflows */
@@ -78,14 +79,15 @@
   color: #212529;
   border: 1px solid #e9ecef;
   border-left: 3px solid #6c757d; /* Subtle gray accent for user messages */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-left-color 0.2s ease-in-out;
 }
 
 .message.user .message-content:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.08);
   border-left-color: #5a6268; /* Slightly darker on hover */
+  border-left-width: 4px; /* Subtle border glow effect */
 }
 
 /* Assistant Message Styling */
@@ -93,14 +95,14 @@
   background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
   color: #212529;
   border: 1px solid #e9ecef;
-  border-left: 3px solid var(--accent-color, #34a2ff); /* Document owner accent color, defaults to #34a2ff */
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05), 0 1px 4px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-left-color 0.2s ease;
+  border-left: 4px solid var(--accent-color, #34a2ff); /* Document owner accent color, defaults to #34a2ff */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-left-color 0.2s ease-in-out;
 }
 
 .message.assistant .message-content:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 12px 32px rgba(0, 0, 0, 0.1);
   border-left-color: var(--accent-color-hover, #2c89d8); /* Darker accent on hover, defaults to darker #34a2ff */
 }
 
@@ -110,8 +112,9 @@
 .message.assistant .message-content h3,
 .message.assistant .message-content h4,
 .message.assistant .message-content h5 {
-  margin: 10px 0 8px 0;
-  font-weight: bold;
+  margin: 12px 0 10px 0;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .message.assistant .message-content h1 { font-size: 1.3em; }
@@ -119,7 +122,8 @@
 .message.assistant .message-content h3 { font-size: 1.1em; }
 
 .message.assistant .message-content p {
-  margin: 8px 0;
+  margin: 10px 0;
+  line-height: 1.7;
 }
 
 .message.assistant .message-content ul,
@@ -139,8 +143,8 @@
 }
 
 .message.assistant .message-content li {
-  margin: 4px 0;
-  line-height: 1.6;
+  margin: 5px 0;
+  line-height: 1.7;
 }
 
 /* Welcome title styling - h2 element with larger font size */
@@ -170,16 +174,67 @@
   }
 }
 
-/* Portrait/mobile specific: ensure welcome title doesn't overflow */
+/* Responsive improvements for mobile */
+@media (max-width: 768px) {
+  /* Optimize message spacing on mobile */
+  .message {
+    margin-bottom: 16px;
+  }
+  
+  /* Adjust message padding for mobile */
+  .message-content {
+    padding: 14px 18px;
+  }
+  
+  .message.assistant .message-content {
+    padding: 18px 20px;
+  }
+  
+  /* Ensure touch targets meet minimum size */
+  .message-copy-button,
+  .message-share-button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 14px;
+  }
+  
+  /* Optimize table wrapper for mobile */
+  .table-wrapper {
+    margin: 12px -4px;
+    border-radius: 8px;
+  }
+  
+  /* Adjust code block padding for mobile */
+  .message.assistant .message-content pre {
+    padding: 12px;
+    margin: 10px 0;
+  }
+  
+  /* Optimize blockquote for mobile */
+  .message.assistant .message-content blockquote {
+    padding: 12px 16px;
+    margin: 10px 0;
+  }
+}
+
+/* Portrait/mobile specific optimizations */
 @media (max-width: 480px) {
-  .message.assistant .message-content #welcomeTitle {
-    font-size: 1.35em;
-    line-height: 1.3;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    hyphens: auto;
-    /* Ensure it respects container padding */
-    padding-right: 0;
+  .message {
+    margin-bottom: 14px;
+  }
+  
+  .message-content {
+    padding: 12px 16px;
+  }
+  
+  .message.assistant .message-content {
+    padding: 16px 18px;
+  }
+  
+  /* Ensure input field is properly sized on mobile */
+  #messageInput {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 12px 16px;
   }
 }
 
@@ -202,21 +257,23 @@
 }
 
 .message.assistant .message-content code {
-  background: #f8f9fa;
-  padding: 3px 6px;
-  border-radius: 4px;
+  background: #f1f3f5;
+  padding: 4px 8px;
+  border-radius: 6px;
   font-family: 'Monaco', 'Courier New', monospace;
   font-size: 0.9em;
   border: 1px solid #e9ecef;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .message.assistant .message-content pre {
   background: #f8f9fa;
-  padding: 12px;
-  border-radius: 6px;
+  padding: 16px;
+  border-radius: 8px;
   border: 1px solid #e9ecef;
   overflow-x: auto;
-  margin: 10px 0;
+  margin: 12px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .message.assistant .message-content pre code {
@@ -225,44 +282,49 @@
 }
 
 .message.assistant .message-content blockquote {
-  border-left: 3px solid #dee2e6;
+  border-left: 4px solid var(--accent-color, #34a2ff);
   padding-left: 16px;
-  margin: 10px 0;
+  margin: 12px 0;
   color: #6c757d;
   font-style: italic;
-  background: #f8f9fa;
-  padding: 12px 16px;
-  border-radius: 4px;
+  background: linear-gradient(to right, #f8f9fa 0%, #ffffff 100%);
+  padding: 14px 18px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 /* Table styling */
 .message.assistant .message-content table {
   border-collapse: collapse;
   width: 100%;
-  margin: 15px 0;
+  margin: 16px 0;
   background: white;
   border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .message.assistant .message-content table th {
   background: #f8f9fa;
   color: #212529;
-  padding: 12px;
+  padding: 14px 16px;
   text-align: left;
   font-weight: 600;
   border: 1px solid #e9ecef;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 2px solid #dee2e6;
 }
 
 .message.assistant .message-content table td {
-  padding: 10px 12px;
+  padding: 12px 16px;
   border: 1px solid #e9ecef;
   text-align: left;
   color: #212529;
+  transition: background-color 0.15s ease-in-out;
 }
 
 .message.assistant .message-content table tr:nth-child(even) {
-  background-color: #f8f9fa;
+  background-color: #fafbfc;
 }
 
 .message.assistant .message-content table tr:hover {
@@ -273,8 +335,8 @@
 .table-wrapper {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  margin: 15px 0;
-  border-radius: 4px;
+  margin: 16px 0;
+  border-radius: 8px;
 }
 
 .table-wrapper table {
@@ -440,35 +502,37 @@ hr.references-separator {
 .message-copy-button {
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid #e9ecef;
-  border-radius: 6px;
-  padding: 6px 10px;
+  border-radius: 8px;
+  padding: 8px 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   color: #6c757d;
-  transition: all 0.2s ease;
+  transition: all 0.2s ease-in-out;
   font-size: 0.85em;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  min-height: 28px;
+  min-height: 36px;
+  min-width: 44px;
 }
 
 .message-share-button {
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid #e9ecef;
-  border-radius: 6px;
-  padding: 6px 10px;
+  border-radius: 8px;
+  padding: 8px 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   color: #6c757d;
-  transition: all 0.2s ease;
+  transition: all 0.2s ease-in-out;
   font-size: 0.85em;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  min-height: 28px;
+  min-height: 36px;
+  min-width: 44px;
 }
 
 .message-share-button .share-button-text {
@@ -479,12 +543,12 @@ hr.references-separator {
   background: rgba(255, 255, 255, 1);
   border-color: var(--accent-color, #34a2ff);
   color: var(--accent-color, #34a2ff);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px) scale(1.02);
 }
 
 .message-share-button:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -512,12 +576,12 @@ hr.references-separator {
   background: rgba(255, 255, 255, 1);
   border-color: var(--accent-color, #34a2ff);
   color: var(--accent-color, #34a2ff);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px) scale(1.02);
 }
 
 .message-copy-button:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
