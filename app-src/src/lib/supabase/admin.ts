@@ -3,6 +3,81 @@ import { getUserPermissions } from './permissions';
 import type { Document, DocumentWithOwner, Owner, UserWithRoles, UserRole, DocumentAttachment, PendingInvitation } from '@/types/admin';
 
 /**
+ * Get a valid session, refreshing if necessary
+ * This ensures we always have a non-expired token before making API calls
+ * Exported so other components can use it
+ */
+export async function getValidSession(): Promise<{ access_token: string }> {
+  // Get current session
+  let { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    console.error('❌ getSession error:', sessionError);
+    throw new Error('Session error: ' + sessionError.message);
+  }
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated - please log in');
+  }
+
+  // Check if token is expired or about to expire (within 60 seconds)
+  const now = Math.floor(Date.now() / 1000);
+  const expiresAt = session.expires_at || 0;
+  const timeUntilExpiry = expiresAt - now;
+
+  // If expired or expiring soon, try to refresh
+  // Note: timeUntilExpiry can be negative if already expired
+  if (!expiresAt || timeUntilExpiry < 60) {
+    console.log(`🔄 Session ${timeUntilExpiry < 0 ? 'expired' : 'expiring soon'} (${timeUntilExpiry}s), refreshing...`);
+    console.log('🔄 Current session has refresh_token:', !!session.refresh_token);
+    
+    try {
+      // Pass the current session to refreshSession to ensure it uses the refresh_token
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession(session);
+
+      if (refreshError) {
+        console.error('❌ Failed to refresh session:', refreshError);
+        console.error('❌ Refresh error details:', {
+          message: refreshError.message,
+          status: refreshError.status,
+          name: refreshError.name
+        });
+        
+        // Check if it's a refresh token expiration
+        if (refreshError.message?.includes('refresh_token') || 
+            refreshError.message?.includes('expired') ||
+            refreshError.message?.includes('invalid_grant') ||
+            refreshError.message?.includes('invalid refresh token')) {
+          throw new Error('Session expired - please log in again');
+        }
+        throw new Error('Session refresh failed - please log in again');
+      }
+
+      if (refreshData.session?.access_token) {
+        session = refreshData.session;
+        console.log('✅ Session refreshed successfully');
+        console.log('✅ New token expires at:', new Date((refreshData.session.expires_at || 0) * 1000).toISOString());
+      } else {
+        console.error('❌ Refresh succeeded but no session returned');
+        throw new Error('Session expired - please log in again');
+      }
+    } catch (refreshErr) {
+      console.error('❌ Refresh exception:', refreshErr);
+      // If refresh fails, check if we can still use the current token
+      // (might be a network error, not an expiration)
+      if (timeUntilExpiry > 0) {
+        console.warn('⚠️ Refresh failed but token still valid, using current token');
+        return { access_token: session.access_token };
+      }
+      // Token is expired and refresh failed - user must log in
+      throw refreshErr instanceof Error ? refreshErr : new Error('Session expired - please log in again');
+    }
+  }
+
+  return { access_token: session.access_token };
+}
+
+/**
  * Get all documents based on user permissions
  * Super admins see all documents, owner admins see only their owner group's documents
  */
@@ -118,22 +193,8 @@ export async function updateDocument(
     throw new Error('Document ID is required for updates');
   }
 
-  // Get current session for authentication
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    throw new Error('Session error: ' + sessionError.message);
-  }
-
-  if (!session?.access_token) {
-    throw new Error('Not authenticated - please log in to update documents');
-  }
-
-  // Check if the token is expired
-  const now = Math.floor(Date.now() / 1000);
-  if (session.expires_at && session.expires_at < now) {
-    throw new Error('Session expired - please log in again');
-  }
+  // Get valid session (will refresh if needed)
+  let { access_token } = await getValidSession();
 
   // Remove read-only fields
   const { created_at, updated_at, ...safeUpdates } = updates as any;
@@ -144,18 +205,36 @@ export async function updateDocument(
     safeUpdates.owner_id = null;
   }
 
-  // Use document ID for the API call (API route now supports both ID and slug)
-  const response = await fetch(`/api/documents/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(safeUpdates),
-  });
+  // Make API call with retry logic for 401 errors
+  const makeRequest = async (token: string) => {
+    const response = await fetch(`/api/documents/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(safeUpdates),
+    });
+
+    return response;
+  };
+
+  let response = await makeRequest(access_token);
+
+  // If we get a 401, try refreshing the session once and retry
+  if (response.status === 401) {
+    console.log('🔄 Got 401, refreshing session and retrying...');
+    try {
+      const refreshed = await getValidSession();
+      access_token = refreshed.access_token;
+      response = await makeRequest(access_token);
+    } catch (refreshError) {
+      throw new Error('Authentication failed - please log in again');
+    }
+  }
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({ error: 'Failed to update document' }));
     throw new Error(error.error || 'Failed to update document');
   }
 
@@ -309,6 +388,75 @@ export async function updateOwner(id: string, updates: Partial<Owner>): Promise<
 }
 
 /**
+ * Get a single owner by ID (super admin or owner admin for their own owner)
+ */
+export async function getOwner(id: string): Promise<Owner> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/owners/${id}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || error.details || 'Failed to fetch owner');
+  }
+
+  return response.json();
+}
+
+/**
+ * Update owner settings (for owner admins - limited fields only)
+ * This function filters updates to only allowed fields: logo_url, intro_message, default_cover, metadata.accent_color
+ */
+export async function updateOwnerSettings(id: string, updates: Partial<Owner>): Promise<Owner> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  // Filter updates to only allowed fields for owner admins
+  const allowedFields: Partial<Owner> = {};
+  if (updates.logo_url !== undefined) allowedFields.logo_url = updates.logo_url;
+  if (updates.intro_message !== undefined) allowedFields.intro_message = updates.intro_message;
+  if (updates.default_cover !== undefined) allowedFields.default_cover = updates.default_cover;
+  
+  // Handle metadata.accent_color
+  if (updates.metadata !== undefined) {
+    allowedFields.metadata = {
+      ...(updates.metadata as any),
+      // Only allow accent_color in metadata
+      accent_color: (updates.metadata as any)?.accent_color,
+    };
+  }
+
+  const response = await fetch(`/api/owners/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(allowedFields),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || error.details || 'Failed to update owner settings');
+  }
+
+  return response.json();
+}
+
+/**
  * Delete an owner (super admin only)
  */
 export async function deleteOwner(id: string): Promise<void> {
@@ -357,33 +505,41 @@ export async function createDocument(document: Partial<Document>): Promise<Docum
  * Get all users with their roles (super admin only)
  */
 export async function getUsers(): Promise<UserWithRoles[]> {
-  // First check if we have a valid session
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    throw new Error('Session error: ' + sessionError.message);
-  }
-
-  if (!session?.access_token) {
-    throw new Error('Not authenticated - please log in to access user management');
-  }
-
-  // Check if the token is expired
-  const now = Math.floor(Date.now() / 1000);
-  if (session.expires_at && session.expires_at < now) {
-    throw new Error('Session expired - please log in again');
-  }
+  // Get valid session (will refresh if needed)
+  const { access_token } = await getValidSession();
 
   const response = await fetch('/api/users', {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${session.access_token}`,
+      'Authorization': `Bearer ${access_token}`,
       'Content-Type': 'application/json',
     },
   });
 
+  // If we get a 401, try refreshing the session once and retry
+  if (response.status === 401) {
+    console.log('🔄 Got 401, refreshing session and retrying...');
+    try {
+      const refreshed = await getValidSession();
+      const retryResponse = await fetch('/api/users', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${refreshed.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!retryResponse.ok) {
+        const error = await retryResponse.json().catch(() => ({ error: 'Failed to fetch users' }));
+        throw new Error(error.error || 'Failed to fetch users');
+      }
+      return retryResponse.json();
+    } catch (refreshError) {
+      throw new Error('Authentication failed - please log in again');
+    }
+  }
+
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({ error: 'Failed to fetch users' }));
     throw new Error(error.error || 'Failed to fetch users');
   }
 
@@ -721,21 +877,8 @@ export async function retrainDocument(
   useEdgeFunction: boolean = false,
   retrainMode: 'replace' | 'add' = 'replace'
 ): Promise<{ success: boolean; user_document_id: string; message: string }> {
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    throw new Error('Session error: ' + sessionError.message);
-  }
-
-  if (!session?.access_token) {
-    throw new Error('Not authenticated - please log in to retrain documents');
-  }
-
-  // Check if the token is expired
-  const now = Math.floor(Date.now() / 1000);
-  if (session.expires_at && session.expires_at < now) {
-    throw new Error('Session expired - please log in again');
-  }
+  // Get valid session (will refresh if needed)
+  let { access_token } = await getValidSession();
 
   // Create FormData for file upload
   const formData = new FormData();
@@ -746,13 +889,30 @@ export async function retrainDocument(
 
   console.log('📤 Starting retrain for document:', documentId, 'file:', file.name, 'size:', file.size);
 
-  const response = await fetch('/api/retrain-document', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${session.access_token}`,
-    },
-    body: formData,
-  });
+  // Make API call with retry logic for 401 errors
+  const makeRequest = async (token: string) => {
+    return await fetch('/api/retrain-document', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+  };
+
+  let response = await makeRequest(access_token);
+
+  // If we get a 401, try refreshing the session once and retry
+  if (response.status === 401) {
+    console.log('🔄 Got 401, refreshing session and retrying...');
+    try {
+      const refreshed = await getValidSession();
+      access_token = refreshed.access_token;
+      response = await makeRequest(access_token);
+    } catch (refreshError) {
+      throw new Error('Authentication failed - please log in again');
+    }
+  }
 
   if (!response.ok) {
     let errorMessage = 'Failed to start document retraining';
@@ -1029,4 +1189,5 @@ export async function getDocumentAnalytics(
   const data = await response.json();
   return data;
 }
+
 

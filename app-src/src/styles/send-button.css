@@ -4,7 +4,7 @@
 #sendButton {
     padding: 12px 24px;
     background: linear-gradient(135deg, var(--accent-color, #495057) 0%, var(--accent-color-hover, #343a40) 100%);
-    color: white;
+    color: var(--accent-color-text, #ffffff);
     border: none;
     border-radius: 6px;
     font-size: 14px;
@@ -21,12 +21,14 @@
 
 #sendButton:hover:not(:disabled) {
     background: linear-gradient(135deg, var(--accent-color-hover, #343a40) 0%, var(--accent-color-active, #212529) 100%);
+    color: var(--accent-color-hover-text, #ffffff);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 #sendButton:active:not(:disabled) {
     background: var(--accent-color-active, #212529);
+    color: var(--accent-color-active-text, #ffffff);
     transform: translateY(0);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
@@ -46,17 +48,19 @@
 }
 
 /* Maker-specific submit button styling - uses dynamic accent colors */
+/* Note: Text color is now automatically determined by accent color luminance */
 #sendButton.maker-theme {
     background: var(--accent-color, #495057);
-    color: #000000; /* Black text for bright backgrounds */
+    color: var(--accent-color-text, #000000);
 }
 
 #sendButton.maker-theme:hover:not(:disabled) {
     background: var(--accent-color-hover, #343a40);
-    color: #000000; /* Black text for bright backgrounds */
+    color: var(--accent-color-hover-text, #000000);
 }
 
 #sendButton.maker-theme:active:not(:disabled) {
     background: var(--accent-color-active, #212529);
+    color: var(--accent-color-active-text, #000000);
 }
 

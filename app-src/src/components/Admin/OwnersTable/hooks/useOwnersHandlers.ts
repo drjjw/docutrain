@@ -1,5 +1,6 @@
 import { updateOwner, createOwner, deleteOwner } from '@/lib/supabase/admin';
 import type { Owner } from '@/types/admin';
+import { clearOwnerLogoCache } from '@/hooks/useOwnerLogo';
 
 interface UseOwnersHandlersProps {
   owners: Owner[];
@@ -142,6 +143,9 @@ export function useOwnersHandlers({
         },
       });
 
+      // Clear owner logo cache to ensure changes are reflected immediately
+      clearOwnerLogoCache();
+
       setError('Owner updated successfully');
       setEditingOwner(null);
       await loadData();
@@ -187,6 +191,9 @@ export function useOwnersHandlers({
         } : undefined,
       });
 
+      // Clear owner logo cache to ensure changes are reflected immediately
+      clearOwnerLogoCache();
+
       setError('Owner created successfully');
       setCreatingOwner(false);
       setCreateName('');
@@ -215,6 +222,9 @@ export function useOwnersHandlers({
       setError(null);
 
       await deleteOwner(ownerId);
+
+      // Clear owner logo cache since an owner was deleted
+      clearOwnerLogoCache();
 
       setError('Owner deleted successfully');
       setDeleteConfirmId(null);

@@ -49,6 +49,14 @@ export function AppRouter() {
           }
         />
         <Route
+          path="/owner-settings"
+          element={
+            <AdminRoute>
+              <DashboardPage />
+            </AdminRoute>
+          }
+        />
+        <Route
           path="/profile"
           element={
             <ProtectedRoute>

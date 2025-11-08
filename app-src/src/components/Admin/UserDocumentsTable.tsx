@@ -5,6 +5,7 @@ import { Button } from '@/components/UI/Button';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { deleteDocument } from '@/lib/supabase/database';
+import { getValidSession } from '@/lib/supabase/admin';
 
 interface UserDocument {
   id: string;
@@ -74,18 +75,57 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         setLoading(true);
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        setError('Not authenticated');
-        setLoading(false);
-        return;
-      }
+      // Get valid session (will refresh if needed)
+      let { access_token } = await getValidSession();
 
-      const response = await fetch('/api/user-documents', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
+      // Make API call with retry logic for 401 errors
+      const makeRequest = async (token: string) => {
+        return await fetch('/api/user-documents', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+      };
+
+      let response = await makeRequest(access_token);
+
+      // If we get a 401, try refreshing the session once and retry
+      if (response.status === 401) {
+        console.log('🔄 Got 401, refreshing session and retrying...');
+        try {
+          // Force a refresh by getting a fresh session
+          const { data: { session: freshSession } } = await supabase.auth.getSession();
+          if (freshSession?.refresh_token) {
+            console.log('🔄 Attempting to refresh session with refresh_token...');
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession(freshSession);
+            
+            if (refreshError) {
+              console.error('❌ Refresh failed:', refreshError);
+              throw new Error('Session refresh failed');
+            }
+            
+            if (refreshData.session?.access_token) {
+              access_token = refreshData.session.access_token;
+              console.log('✅ Got refreshed token, retrying request...');
+              // Small delay to ensure session is fully updated
+              await new Promise(resolve => setTimeout(resolve, 100));
+              response = await makeRequest(access_token);
+            } else {
+              throw new Error('No session returned from refresh');
+            }
+          } else {
+            // No refresh token, try getValidSession as fallback
+            const refreshed = await getValidSession();
+            access_token = refreshed.access_token;
+            response = await makeRequest(access_token);
+          }
+        } catch (refreshError) {
+          console.error('❌ Retry after refresh failed:', refreshError);
+          setError('Authentication failed - please log in again');
+          setLoading(false);
+          return;
+        }
+      }
 
       if (!response.ok) {
         // Try to get error details from response
@@ -131,20 +171,25 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
       
       // Fetch logs for any documents currently in processing state
       const processingDocs = loadedDocuments.filter((doc: UserDocument) => doc.status === 'processing');
-      if (processingDocs.length > 0 && session?.access_token) {
-        const logsPromises = processingDocs.map(async (doc: UserDocument) => {
-          const logs = await fetchProcessingLogs(doc.id);
-          return { docId: doc.id, logs };
-        });
-        
-        const logsResults = await Promise.all(logsPromises);
-        setLogsMap(prev => {
-          const updated = { ...prev };
-          logsResults.forEach(({ docId, logs }) => {
-            updated[docId] = logs;
+      if (processingDocs.length > 0) {
+        try {
+          const { access_token: logToken } = await getValidSession();
+          const logsPromises = processingDocs.map(async (doc: UserDocument) => {
+            const logs = await fetchProcessingLogs(doc.id, logToken);
+            return { docId: doc.id, logs };
           });
-          return updated;
-        });
+          
+          const logsResults = await Promise.all(logsPromises);
+          setLogsMap(prev => {
+            const updated = { ...prev };
+            logsResults.forEach(({ docId, logs }) => {
+              updated[docId] = logs;
+            });
+            return updated;
+          });
+        } catch (err) {
+          console.error('Failed to fetch processing logs:', err);
+        }
       }
       
       // Notify parent of status change, passing the first completed document ID if any
@@ -201,10 +246,10 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         await loadDocuments(false);
         
         // Fetch logs for processing documents
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
+        try {
+          const { access_token } = await getValidSession();
           const logsPromises = processingDocs.map(async (doc) => {
-            const logs = await fetchProcessingLogs(doc.id);
+            const logs = await fetchProcessingLogs(doc.id, access_token);
             console.log(`🔄 [Polling] Document ${doc.id} (${doc.title}): ${logs.length} logs`);
             return { docId: doc.id, logs };
           });
@@ -218,6 +263,8 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
             });
             return updated;
           });
+        } catch (err) {
+          console.error('Failed to fetch logs during polling:', err);
         }
       }
     }, 3000); // Poll every 3 seconds for more responsive updates
@@ -241,19 +288,13 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         )
       );
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        alert('Not authenticated');
-        // Revert optimistic update
-        await loadDocuments(false);
-        return;
-      }
+      const { access_token } = await getValidSession();
 
       const response = await fetch('/api/process-document', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${access_token}`,
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
         },
@@ -265,6 +306,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
       if (response.ok) {
         // Success - reload documents to get actual status
         await loadDocuments(false);
+        setRetryingDocId(null);
       } else if (response.status === 503 && attempt === 1) {
         // Server busy on first attempt - start automatic retry
         const errorData = await response.json().catch(() => ({}));
@@ -279,13 +321,18 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
             await handleRetryProcessing(documentId, 2);
           } catch (retryErr) {
             console.error('Retry failed:', retryErr);
+            // Ensure retrying state is cleared even if retry fails
+            setRetryingDocId(null);
+            await loadDocuments(false);
           }
         }, retryAfter * 1000);
+        // Note: Don't clear retryingDocId here since we're going to retry
       } else {
         // Other error or second attempt failed
         const errorData = await response.json().catch(() => ({}));
         // Revert optimistic update on error
         await loadDocuments(false);
+        setRetryingDocId(null);
         throw new Error(errorData.error || 'Failed to trigger processing');
       }
     } catch (err) {
@@ -293,11 +340,6 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
       // Revert optimistic update on error
       await loadDocuments(false);
       setRetryingDocId(null);
-    } finally {
-      // Only clear retrying state if this is not the first attempt (which will retry)
-      if (attempt !== 1) {
-        setRetryingDocId(null);
-      }
     }
   };
 
@@ -481,16 +523,13 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
   /**
    * Fetch processing logs for a specific document
    */
-  const fetchProcessingLogs = async (documentId: string): Promise<ProcessingLog[]> => {
+  const fetchProcessingLogs = async (documentId: string, token?: string): Promise<ProcessingLog[]> => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        return [];
-      }
+      const access_token = token || (await getValidSession()).access_token;
 
       const response = await fetch(`/api/processing-status/${documentId}`, {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${access_token}`,
         },
       });
 

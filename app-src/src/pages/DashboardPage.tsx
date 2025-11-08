@@ -6,6 +6,7 @@ import { DocumentsTable, DocumentsTableRef } from '@/components/Admin/DocumentsT
 import { UserDocumentsTable, UserDocumentsTableRef } from '@/components/Admin/UserDocumentsTable';
 import { UsersTable } from '@/components/Admin/UsersTable';
 import { OwnersTable } from '@/components/Admin/OwnersTable';
+import { OwnerSettings } from '@/components/Admin/OwnerSettings';
 import { PermissionsBadge } from '@/components/Dashboard/PermissionsBadge';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -26,7 +27,7 @@ export function DashboardPage() {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'documents' | 'users' | 'owners'>('documents');
+  const [activeTab, setActiveTab] = useState<'documents' | 'users' | 'owners' | 'owner-settings'>('documents');
   const userDocumentsTableRef = useRef<UserDocumentsTableRef>(null);
   const documentsTableRef = useRef<DocumentsTableRef>(null);
   const [hasActiveDocuments, setHasActiveDocuments] = useState(false);
@@ -125,17 +126,21 @@ export function DashboardPage() {
       setActiveTab('users');
     } else if (location.pathname.includes('/owners')) {
       setActiveTab('owners');
+    } else if (location.pathname.includes('/owner-settings')) {
+      setActiveTab('owner-settings');
     } else {
       setActiveTab('documents');
     }
   }, [location.pathname]);
 
-  const handleTabChange = (tab: 'documents' | 'users' | 'owners') => {
+  const handleTabChange = (tab: 'documents' | 'users' | 'owners' | 'owner-settings') => {
     setActiveTab(tab);
     if (tab === 'users') {
       navigate('/users');
     } else if (tab === 'owners') {
       navigate('/owners');
+    } else if (tab === 'owner-settings') {
+      navigate('/owner-settings');
     } else {
       navigate('/dashboard');
     }
@@ -226,14 +231,14 @@ export function DashboardPage() {
                 {getUserInitials()}
               </div>
             )}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 text-center sm:text-left">
               <h1 className="text-xl sm:text-2xl font-semibold text-gray-500 mb-2">
                 Welcome back
               </h1>
               <p className="text-2xl sm:text-3xl text-gray-900 break-words font-bold mb-4">
                 {getUserDisplayName()}
               </p>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
                 {isSuperAdmin ? (
                   <PermissionsBadge role="super_admin" />
                 ) : hasAdminAccess ? (
@@ -282,6 +287,18 @@ export function DashboardPage() {
                   }`}
                 >
                   User Management
+                </button>
+              )}
+              {isOwnerAdmin && !isSuperAdmin && (
+                <button
+                  onClick={() => handleTabChange('owner-settings')}
+                className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 ${
+                  activeTab === 'owner-settings'
+                    ? 'bg-docutrain-light text-white shadow-md shadow-docutrain-light/30'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
+                  }`}
+                >
+                  Owner Settings
                 </button>
               )}
               {isSuperAdmin && (
@@ -446,6 +463,26 @@ export function DashboardPage() {
                 <UsersTable />
               </div>
             </div>
+          </div>
+        ) : activeTab === 'owner-settings' ? (
+          <div className="space-y-6">
+            {/* Access Level Info for Owner Settings Tab */}
+            <div className="bg-docutrain-light/10 border border-docutrain-light/30 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
+              <h3 className="text-sm font-semibold text-docutrain-dark mb-2 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                Owner Admin Access
+              </h3>
+              <p className="text-sm text-docutrain-dark leading-relaxed">
+                <strong className="font-semibold text-docutrain-dark">Owner Settings</strong> - You can manage your owner group's branding and configuration settings, including logo, intro message, default cover image, and accent color.
+              </p>
+            </div>
+
+            {/* Owner Settings Component */}
+            {ownerGroups.length > 0 && ownerGroups[0].owner_id && (
+              <OwnerSettings ownerId={ownerGroups[0].owner_id} />
+            )}
           </div>
         ) : (
           <div className="space-y-6">

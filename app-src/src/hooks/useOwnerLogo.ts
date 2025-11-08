@@ -19,6 +19,17 @@ interface OwnerConfigs {
   [slug: string]: OwnerLogoConfig;
 }
 
+/**
+ * Clear the owner logo cache
+ * Call this when owner settings (logo, accent color, etc.) are updated
+ * to ensure changes are reflected immediately in the frontend
+ */
+export function clearOwnerLogoCache(): void {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(OWNER_LOGO_CACHE_KEY);
+  }
+}
+
 export function useOwnerLogo(ownerSlug: string | null) {
   const [config, setConfig] = useState<OwnerLogoConfig | null>(null);
   const [loading, setLoading] = useState(true);

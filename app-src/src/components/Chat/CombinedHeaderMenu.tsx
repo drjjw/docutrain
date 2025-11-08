@@ -144,7 +144,6 @@ export function CombinedHeaderMenu({
     // Desktop view: show separate components
     return (
       <div className="flex items-center gap-2 flex-shrink-0">
-        <UserMenu />
         {shouldShowInHeader && (
           <DocumentSelector
             ownerSlug={ownerSlug}
@@ -152,6 +151,7 @@ export function CombinedHeaderMenu({
             hasAuthError={hasAuthError}
           />
         )}
+        <UserMenu />
       </div>
     );
   }

@@ -2,31 +2,19 @@ import React, { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/UI/Button';
 
-interface CoverImageUploaderProps {
-  coverUrl: string;
+interface LogoUploaderProps {
+  logoUrl: string;
   onChange: (url: string) => void;
-  documentId?: string;
-  ownerId?: string;
+  ownerId: string;
 }
 
-const COVERS_BUCKET = 'thumbs';
+const LOGOS_BUCKET = 'thumbs'; // Using thumbs bucket for now, can be changed to 'logos' if needed
 
-export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: CoverImageUploaderProps) {
+export function LogoUploader({ logoUrl, onChange, ownerId }: LogoUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(coverUrl || null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(logoUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Determine the path prefix based on whether it's a document or owner
-  const getPathPrefix = () => {
-    if (ownerId) {
-      return `owners/${ownerId}`;
-    }
-    if (documentId) {
-      return documentId;
-    }
-    throw new Error('Either documentId or ownerId must be provided');
-  };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -51,11 +39,11 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: 
       // Create a unique filename with timestamp
       const timestamp = Date.now();
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const filePath = `${getPathPrefix()}/${timestamp}-${sanitizedFileName}`;
+      const filePath = `logos/${ownerId}/${timestamp}-${sanitizedFileName}`;
 
       // Upload to Supabase storage
       const { data, error } = await supabase.storage
-        .from(COVERS_BUCKET)
+        .from(LOGOS_BUCKET)
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false,
@@ -67,10 +55,10 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: 
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from(COVERS_BUCKET)
+        .from(LOGOS_BUCKET)
         .getPublicUrl(filePath);
 
-      // Update the cover URL
+      // Update the logo URL
       onChange(urlData.publicUrl);
       setPreviewUrl(urlData.publicUrl);
 
@@ -87,20 +75,20 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: 
   };
 
   const handleRemove = async () => {
-    if (!coverUrl) return;
+    if (!logoUrl) return;
 
     try {
       setUploading(true);
       setUploadError(null);
 
       // Extract the file path from the URL
-      const urlParts = coverUrl.split(`/${COVERS_BUCKET}/`);
+      const urlParts = logoUrl.split(`/${LOGOS_BUCKET}/`);
       if (urlParts.length === 2) {
         const filePath = urlParts[1];
         
         // Delete from storage
         const { error } = await supabase.storage
-          .from(COVERS_BUCKET)
+          .from(LOGOS_BUCKET)
           .remove([filePath]);
 
         if (error) {
@@ -133,8 +121,8 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: 
         <div className="relative group">
           <img
             src={previewUrl}
-            alt="Cover preview"
-            className="w-full h-48 object-cover rounded-lg border border-gray-200"
+            alt="Logo preview"
+            className="w-32 h-32 object-contain rounded-lg border border-gray-200 bg-white p-2"
             onError={() => {
               setPreviewUrl(null);
               setUploadError('Failed to load image preview');
@@ -145,7 +133,7 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: 
             onClick={handleRemove}
             disabled={uploading}
             className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 disabled:opacity-50"
-            title="Remove image"
+            title="Remove logo"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -173,18 +161,18 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: 
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          {uploading ? 'Uploading...' : previewUrl ? 'Change Image' : 'Upload Image'}
+          {uploading ? 'Uploading...' : previewUrl ? 'Change Logo' : 'Upload Logo'}
         </Button>
       </div>
 
       {/* Manual URL Input */}
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Or enter image URL manually:</label>
+        <label className="block text-xs font-medium text-gray-700 mb-1">Or enter logo URL manually:</label>
         <input
           type="text"
-          value={coverUrl || ''}
+          value={logoUrl || ''}
           onChange={handleUrlChange}
-          placeholder="https://example.com/image.jpg"
+          placeholder="https://example.com/logo.png"
           className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full text-sm"
           disabled={uploading}
         />
@@ -202,7 +190,7 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: 
 
       {/* Help Text */}
       <p className="text-xs text-gray-500">
-        Upload an image (PNG, JPG, GIF, WebP, max 5MB) or enter a URL. Recommended size: 1200x630px (for optimal display).
+        Upload a logo image (PNG, JPG, GIF, WebP, max 5MB) or enter a URL. Recommended size: 200x200px (square format works best).
       </p>
     </div>
   );
