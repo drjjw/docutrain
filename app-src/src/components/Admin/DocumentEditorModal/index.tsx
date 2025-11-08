@@ -17,7 +17,7 @@ import { DocumentMetadataCard } from './DocumentMetadataCard';
 import { DocumentEmbedCodeCard } from './DocumentEmbedCodeCard';
 import type { DocumentEditorModalProps } from './types';
 
-export function DocumentEditorModal({ document, owners, isSuperAdmin = false, onSave, onCancel, onRetrainingStart }: DocumentEditorModalProps) {
+export function DocumentEditorModal({ document, owners, isSuperAdmin = false, onSave, onCancel, onRetrainingStart, onRetrainSuccess }: DocumentEditorModalProps) {
   const [editingValues, setEditingValues] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -402,8 +402,12 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                         setRetraining(true);
                         setError(null);
                       }}
-                      onRetrainSuccess={() => {
+                      onRetrainSuccess={(userDocumentId) => {
                         setRetraining(false);
+                        // If onRetrainSuccess callback provided, call it with userDocumentId for immediate modal trigger
+                        if (onRetrainSuccess && userDocumentId) {
+                          onRetrainSuccess(userDocumentId);
+                        }
                         onSave(); // Refresh the document list
                       }}
                       onRetrainError={(err) => {

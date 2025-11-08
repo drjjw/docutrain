@@ -63,6 +63,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
   const [logsMap, setLogsMap] = useState<Record<string, ProcessingLog[]>>({});
   const documentsRef = useRef<UserDocument[]>([]);
   const previousDocumentsRef = useRef<UserDocument[]>([]);
+  const isLoadingRef = useRef<boolean>(false); // Prevent concurrent load requests
 
   // Filter to show only documents that are actively processing (not ready)
   const activeDocuments = documents.filter(
@@ -70,9 +71,17 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
   );
 
   const loadDocuments = async (isInitialLoad = false) => {
+    // Prevent concurrent requests - if one is already in flight, skip this call
+    if (isLoadingRef.current && !isInitialLoad) {
+      console.log('⏭️ Skipping loadDocuments - request already in flight');
+      return;
+    }
+
     try {
       if (isInitialLoad) {
         setLoading(true);
+      } else {
+        isLoadingRef.current = true; // Mark as loading for non-initial loads
       }
 
       // Get valid session (will refresh if needed)
@@ -201,6 +210,8 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
     } finally {
       if (isInitialLoad) {
         setLoading(false);
+      } else {
+        isLoadingRef.current = false; // Clear loading flag
       }
     }
   };
@@ -229,6 +240,18 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         },
         (payload) => {
           console.log('📡 Realtime update received:', payload);
+          
+          // Check if this is a status change to 'ready' - trigger immediately for faster modal
+          if (payload.eventType === 'UPDATE' && payload.new?.status === 'ready') {
+            const userDocId = payload.new?.id;
+            if (userDocId && onStatusChange) {
+              console.log('✅ Realtime detected completion, immediately triggering status change:', userDocId);
+              // Trigger status change immediately - loadDocuments will also run but this is faster
+              onStatusChange(userDocId);
+            }
+          }
+          
+          // Always reload documents to ensure UI is in sync
           loadDocuments(false);
         }
       )
@@ -267,7 +290,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
           console.error('Failed to fetch logs during polling:', err);
         }
       }
-    }, 3000); // Poll every 3 seconds for more responsive updates
+    }, 750); // Poll every 750ms - balanced between responsiveness and server load
 
     return () => {
       clearInterval(pollInterval);

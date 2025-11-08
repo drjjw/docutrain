@@ -1,6 +1,6 @@
-import React, { useState, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useImperativeHandle, forwardRef, useRef } from 'react';
 import { UploadZone } from './UploadZone';
-import { TextUploadZone } from './TextUploadZone';
+import { TextUploadZone, TextUploadZoneRef } from './TextUploadZone';
 import { Modal } from '@/components/UI/Modal';
 import { Button } from '@/components/UI/Button';
 import { Alert } from '@/components/UI/Alert';
@@ -18,6 +18,8 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'pdf' | 'text'>('pdf');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const textUploadZoneRef = useRef<TextUploadZoneRef>(null);
+  const [textUploadButtonState, setTextUploadButtonState] = useState({ uploading: false, canUpload: false });
 
   const handleUploadSuccess = () => {
     if (onUploadSuccess) {
@@ -31,6 +33,7 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
     setIsModalOpen(false);
     setActiveTab('pdf');
     setShowSuccessMessage(false);
+    setTextUploadButtonState({ uploading: false, canUpload: false });
   };
 
   // Expose closeModal method via ref
@@ -103,6 +106,7 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
         onClose={handleModalClose}
         title={showSuccessMessage ? "Upload Successful" : "Upload New Document"}
         size="lg"
+        flexColumn={!showSuccessMessage}
       >
         {showSuccessMessage ? (
           /* Success View - Clean and focused */
@@ -125,13 +129,14 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
           </div>
         ) : (
           /* Upload View - Normal upload interface */
-          <div className="space-y-4">
+          <div className="flex flex-col h-full">
             {/* Tab Navigation */}
-            <div className="flex border-b border-gray-200">
+            <div className="flex border-b border-gray-200 flex-shrink-0">
               <button
                 onClick={() => {
                   setActiveTab('pdf');
                   setShowSuccessMessage(false);
+                  setTextUploadButtonState({ uploading: false, canUpload: false });
                 }}
                 className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === 'pdf'
@@ -145,6 +150,7 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
                 onClick={() => {
                   setActiveTab('text');
                   setShowSuccessMessage(false);
+                  setTextUploadButtonState({ uploading: false, canUpload: false });
                 }}
                 className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === 'text'
@@ -156,10 +162,10 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
               </button>
             </div>
 
-            {/* Tab Content */}
-            <div className="max-h-[calc(100vh-250px)] overflow-y-auto">
+            {/* Scrollable Tab Content */}
+            <div className="flex-1 overflow-y-auto min-h-0">
               {activeTab === 'pdf' ? (
-                <div className="space-y-4">
+                <div className="space-y-4 p-1">
                   <div className="text-sm text-gray-600">
                     <p className="mb-2">
                       <strong>PDF Upload:</strong> Upload PDF documents that will be automatically processed and made searchable.
@@ -174,7 +180,7 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
                   <UploadZone onUploadSuccess={handleUploadSuccess} suppressSuccessMessage />
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-4 p-1">
                   <div className="text-sm text-gray-600">
                     <p className="mb-2">
                       <strong>Text Upload:</strong> Directly paste text content to train the AI without needing a PDF file.
@@ -187,10 +193,32 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
                       <li>• Great for content that's already in text format</li>
                     </ul>
                   </div>
-                  <TextUploadZone onUploadSuccess={handleUploadSuccess} suppressSuccessMessage />
+                  <TextUploadZone 
+                    ref={textUploadZoneRef}
+                    onUploadSuccess={handleUploadSuccess} 
+                    suppressSuccessMessage 
+                    hideButton
+                    onButtonStateChange={setTextUploadButtonState}
+                  />
                 </div>
               )}
             </div>
+
+            {/* Fixed Footer with Upload Button (only for text upload) */}
+            {activeTab === 'text' && (
+              <div className="flex-shrink-0 border-t border-gray-200 pt-4 mt-4">
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => textUploadZoneRef.current?.handleUpload()}
+                    loading={textUploadButtonState.uploading}
+                    disabled={!textUploadButtonState.canUpload}
+                    className="min-w-[120px]"
+                  >
+                    {textUploadButtonState.uploading ? 'Uploading...' : 'Upload Text'}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Modal>

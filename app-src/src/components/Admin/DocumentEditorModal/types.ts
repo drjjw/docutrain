@@ -9,6 +9,7 @@ export interface DocumentEditorModalProps {
   onSave: () => void;
   onCancel: () => void;
   onRetrainingStart?: (userDocumentId: string) => void;
+  onRetrainSuccess?: (userDocumentId: string) => void;
 }
 
 export interface DocumentOverviewSectionProps {
@@ -25,7 +26,7 @@ export interface DocumentRetrainSectionProps {
   document: DocumentWithOwner;
   retraining: boolean;
   onRetrainStart: () => void;
-  onRetrainSuccess: () => void;
+  onRetrainSuccess: (userDocumentId?: string) => void;
   onRetrainError: (error: string) => void;
   onRetrainingStart?: (userDocumentId: string) => void;
 }

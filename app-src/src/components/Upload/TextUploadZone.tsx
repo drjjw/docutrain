@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Alert } from '@/components/UI/Alert';
 import { supabase } from '@/lib/supabase/client';
@@ -6,9 +6,18 @@ import { supabase } from '@/lib/supabase/client';
 interface TextUploadZoneProps {
   onUploadSuccess?: () => void;
   suppressSuccessMessage?: boolean;
+  hideButton?: boolean; // If true, button is not rendered (for external rendering)
+  onButtonStateChange?: (state: { uploading: boolean; canUpload: boolean }) => void; // Callback for button state changes
 }
 
-export function TextUploadZone({ onUploadSuccess, suppressSuccessMessage = false }: TextUploadZoneProps) {
+export interface TextUploadZoneRef {
+  handleUpload: () => Promise<void>;
+  uploading: boolean;
+  canUpload: boolean;
+}
+
+export const TextUploadZone = forwardRef<TextUploadZoneRef, TextUploadZoneProps>(
+  ({ onUploadSuccess, suppressSuccessMessage = false, hideButton = false, onButtonStateChange }, ref) => {
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -102,6 +111,22 @@ export function TextUploadZone({ onUploadSuccess, suppressSuccessMessage = false
     setUploadedDocument(null);
   };
 
+  const canUpload = title.trim() && content.trim() && content.length <= 5000000;
+
+  // Expose upload handler and state via ref
+  useImperativeHandle(ref, () => ({
+    handleUpload,
+    uploading,
+    canUpload: !!canUpload
+  }));
+
+  // Notify parent of button state changes
+  useEffect(() => {
+    if (onButtonStateChange) {
+      onButtonStateChange({ uploading, canUpload: !!canUpload });
+    }
+  }, [uploading, canUpload, onButtonStateChange]);
+
   return (
     <div className="space-y-4">
       {error && (
@@ -170,17 +195,19 @@ export function TextUploadZone({ onUploadSuccess, suppressSuccessMessage = false
           </p>
         </div>
 
-        <div className="flex justify-end">
-          <Button
-            onClick={handleUpload}
-            loading={uploading}
-            disabled={!title.trim() || !content.trim() || content.length > 5000000}
-            className="min-w-[120px]"
-          >
-            {uploading ? 'Uploading...' : 'Upload Text'}
-          </Button>
-        </div>
+        {!hideButton && (
+          <div className="flex justify-end">
+            <Button
+              onClick={handleUpload}
+              loading={uploading}
+              disabled={!canUpload}
+              className="min-w-[120px]"
+            >
+              {uploading ? 'Uploading...' : 'Upload Text'}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
-}
+});

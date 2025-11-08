@@ -3,6 +3,7 @@ import type { DocumentWithOwner, Owner } from '@/types/admin';
 export interface DocumentsTableProps {
   isSuperAdmin?: boolean;
   onRetrainingStart?: (userDocumentId: string) => void;
+  onRetrainSuccess?: (userDocumentId: string) => void;
 }
 
 export interface DocumentsTableRef {

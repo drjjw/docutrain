@@ -72,7 +72,7 @@ export function DashboardPage() {
       // If a document completed processing, find it in the documents table and open modal
       if (completedDocumentId && user?.id) {
         try {
-          // Wait a bit for document to be created in documents table
+          // Reduced delay for faster modal appearance - document should be ready quickly after status change
           setTimeout(async () => {
             const allDocuments = await getDocuments(user.id);
             // Find document by matching metadata.user_document_id
@@ -91,7 +91,7 @@ export function DashboardPage() {
               await documentsTableRef.current?.openEditorModal(completedDoc.id, needsConfig);
             } else {
               console.warn('⚠️ Completed document not found in documents table yet, retrying...');
-              // Retry after longer delay
+              // Retry after shorter delay
               setTimeout(async () => {
                 const retryDocuments = await getDocuments(user.id);
                 const retryDoc = retryDocuments.find(doc => {
@@ -104,9 +104,9 @@ export function DashboardPage() {
                   const needsConfig = !retryDoc.category;
                   await documentsTableRef.current?.openEditorModal(retryDoc.id, needsConfig);
                 }
-              }, 2000);
+              }, 1000);
             }
-          }, 1500);
+          }, 300);
         } catch (error) {
           console.error('Error finding completed document:', error);
         }
@@ -433,6 +433,11 @@ export function DashboardPage() {
                     setTimeout(() => {
                       userDocumentsTableRef.current?.refresh();
                     }, 2000);
+                  }}
+                  onRetrainSuccess={(userDocumentId) => {
+                    // Immediately trigger status change handler to open modal - bypasses polling delay
+                    console.log('✅ Retraining completed, immediately triggering modal:', userDocumentId);
+                    handleStatusChange(userDocumentId);
                   }}
                 />
               </div>

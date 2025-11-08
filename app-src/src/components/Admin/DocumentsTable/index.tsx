@@ -20,7 +20,7 @@ import { BulkDeleteModal } from './modals/BulkDeleteModal';
 import type { DocumentsTableProps, DocumentsTableRef, BulkDeleteProgress } from './types';
 
 export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>((props, ref) => {
-  const { isSuperAdmin = false, onRetrainingStart } = props;
+  const { isSuperAdmin = false, onRetrainingStart, onRetrainSuccess } = props;
   
   // Data management
   const { documents, owners, loading, error, documentsRef, loadData, updateDocumentInState } = useDocumentsData();
@@ -129,7 +129,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
           }
         } else {
           console.warn(`Document not found: ${documentId}`);
-          // Retry after a longer delay in case document is still being created
+          // Retry after a shorter delay in case document is still being created
           setTimeout(async () => {
             await loadData(false);
             setTimeout(() => {
@@ -143,10 +143,10 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                   setShowConfigPrompt(false);
                 }
               }
-            }, 500);
-          }, 2000);
+            }, 200);
+          }, 1000);
         }
-      }, 500);
+      }, 200);
     },
   }), [loadData, documentsRef]);
 
@@ -582,6 +582,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
             setConfigPromptDoc(null);
           }}
           onRetrainingStart={onRetrainingStart}
+          onRetrainSuccess={onRetrainSuccess}
         />
         </>
       )}

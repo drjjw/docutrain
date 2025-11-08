@@ -10,7 +10,7 @@ interface DocumentRetrainerProps {
   uploadMode: 'pdf' | 'text';
   retraining?: boolean;
   onRetrainStart?: () => void;
-  onRetrainSuccess?: () => void;
+  onRetrainSuccess?: (userDocumentId?: string) => void;
   onRetrainError?: (error: string) => void;
   onRetrainingStart?: (userDocumentId: string) => void;
 }
@@ -75,7 +75,8 @@ export function DocumentRetrainer({
           clearInterval(pollInterval);
           
           if (onRetrainSuccess) {
-            onRetrainSuccess();
+            // Pass userDocumentId so parent can immediately trigger modal
+            onRetrainSuccess(userDocumentId);
           }
         } else if (status.document.status === 'error') {
           setError(status.document.error_message || 'Processing failed');
@@ -104,7 +105,7 @@ export function DocumentRetrainer({
       } catch (err) {
         console.error('Error polling status:', err);
       }
-    }, 2000); // Poll every 2 seconds
+    }, 500); // Poll every 500ms for faster completion detection
 
     return () => clearInterval(pollInterval);
   }, [userDocumentId, retraining, onRetrainSuccess, onRetrainError]);
@@ -129,7 +130,16 @@ export function DocumentRetrainer({
   const handleRetrain = async (fileOverride?: File) => {
     const fileToUse = fileOverride || selectedFile;
     if (uploadMode === 'pdf' && !fileToUse) return;
-    if (uploadMode === 'text' && !textContent.trim()) return;
+    if (uploadMode === 'text' && !textContent.trim()) {
+      console.warn('⚠️ Cannot retrain: text content is empty');
+      return;
+    }
+
+    console.log(`🔄 Starting ${uploadMode} retraining for document ${documentId}`, {
+      retrainMode,
+      textLength: uploadMode === 'text' ? textContent.trim().length : null,
+      fileName: uploadMode === 'pdf' ? fileToUse?.name : null
+    });
 
     try {
       setRetraining(true);
@@ -192,9 +202,12 @@ export function DocumentRetrainer({
           }),
         });
 
+        console.log('📡 Text retraining API response status:', response.status);
+
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Text retraining failed');
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          console.error('❌ Text retraining API error:', errorData);
+          throw new Error(errorData.error || `Text retraining failed with status ${response.status}`);
         }
 
         const result = await response.json();
@@ -212,7 +225,13 @@ export function DocumentRetrainer({
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start retraining';
-      console.error('Error during retrain:', err);
+      console.error('❌ Error during retrain:', err);
+      console.error('   Error details:', {
+        message: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined,
+        uploadMode,
+        documentId
+      });
       setError(errorMessage);
       setRetraining(false);
 
@@ -428,7 +447,10 @@ export function DocumentRetrainer({
                     </div>
                   </div>
                   <Button
-                    onClick={handleRetrain}
+                    onClick={() => {
+                      console.log('🔘 Start Retraining button clicked for text mode');
+                      handleRetrain();
+                    }}
                     loading={retraining}
                     size="sm"
                     className="ml-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
