@@ -262,7 +262,7 @@ export function DocumentAccessProvider({ children, documentSlug }: DocumentAcces
             type: 'passcode_required' as const,
             message: 'This document requires a passcode to access',
             documentInfo: {
-              title: documentSlug || 'Unknown Document',
+              title: accessData.document_title || documentSlug || 'Unknown Document',
               requires_passcode: true
             }
           };
