@@ -14,10 +14,11 @@ import { Spinner } from '@/components/UI/Spinner';
 import { getUserProfile } from '@/lib/supabase/database';
 import { getDocuments } from '@/lib/supabase/admin';
 import { docutrainIconUrl } from '@/assets';
+import type { UserRole } from '@/types/permissions';
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const { permissions, loading, isSuperAdmin, isOwnerAdmin, ownerGroups, needsApproval } = usePermissions();
+  const { loading, isSuperAdmin, isOwnerAdmin, ownerGroups, needsApproval } = usePermissions();
   const [userProfile, setUserProfile] = useState<{ first_name?: string; last_name?: string } | null>(null);
   
   // Debug logging
@@ -239,7 +240,7 @@ export function DashboardPage() {
                   <>
                     {ownerGroups.map((og) => (
                       <div key={og.owner_id} className="flex items-center gap-2.5">
-                        <PermissionsBadge role={og.role} />
+                        <PermissionsBadge role={og.role as UserRole} />
                         {og.owner_name && (
                           <>
                             <span className="text-gray-300">|</span>
