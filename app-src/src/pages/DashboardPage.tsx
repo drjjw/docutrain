@@ -269,9 +269,9 @@ export function DashboardPage() {
             <nav className="flex flex-col sm:flex-row gap-2 sm:gap-1 sm:space-x-1 sm:space-x-2 px-2 sm:px-4 py-2">
               <button
                 onClick={() => handleTabChange('documents')}
-                className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 ${
+                className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
                   activeTab === 'documents'
-                    ? 'bg-docutrain-light text-white shadow-md shadow-docutrain-light/30'
+                    ? 'text-docutrain-light border border-blue-100 border-b-2 border-b-docutrain-light bg-blue-50'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
                 }`}
               >
@@ -280,9 +280,9 @@ export function DashboardPage() {
               {(isSuperAdmin || isOwnerAdmin) && (
                 <button
                   onClick={() => handleTabChange('users')}
-                className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 ${
+                className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
                   activeTab === 'users'
-                    ? 'bg-docutrain-light text-white shadow-md shadow-docutrain-light/30'
+                    ? 'text-docutrain-light border border-blue-100 border-b-2 border-b-docutrain-light bg-blue-50'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
                   }`}
                 >
@@ -292,9 +292,9 @@ export function DashboardPage() {
               {isOwnerAdmin && !isSuperAdmin && (
                 <button
                   onClick={() => handleTabChange('owner-settings')}
-                className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 ${
+                className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
                   activeTab === 'owner-settings'
-                    ? 'bg-docutrain-light text-white shadow-md shadow-docutrain-light/30'
+                    ? 'text-docutrain-light border border-blue-100 border-b-2 border-b-docutrain-light bg-blue-50'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
                   }`}
                 >
@@ -304,9 +304,9 @@ export function DashboardPage() {
               {isSuperAdmin && (
                 <button
                   onClick={() => handleTabChange('owners')}
-                className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 ${
+                className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
                   activeTab === 'owners'
-                    ? 'bg-docutrain-light text-white shadow-md shadow-docutrain-light/30'
+                    ? 'text-docutrain-light border border-blue-100 border-b-2 border-b-docutrain-light bg-blue-50'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
                   }`}
                 >
@@ -433,19 +433,6 @@ export function DashboardPage() {
           </div>
         ) : activeTab === 'users' ? (
           <div className="space-y-6">
-            {/* Access Level Info for Users Tab */}
-            <div className="bg-docutrain-light/10 border border-docutrain-light/30 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
-              <h3 className="text-sm font-semibold text-docutrain-dark mb-2 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                Super Administrator Access
-              </h3>
-              <p className="text-sm text-docutrain-dark leading-relaxed">
-                <strong className="font-semibold text-docutrain-dark">Full System Control</strong> - You can view and manage all users, their roles, and permissions across all owner groups.
-              </p>
-            </div>
-
             {/* Users Table */}
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
@@ -486,19 +473,6 @@ export function DashboardPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Access Level Info for Owners Tab */}
-            <div className="bg-docutrain-light/10 border border-docutrain-light/30 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
-              <h3 className="text-sm font-semibold text-docutrain-dark mb-2 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                Super Administrator Access
-              </h3>
-              <p className="text-sm text-docutrain-dark leading-relaxed">
-                <strong className="font-semibold text-docutrain-dark">Owner Management</strong> - You can create, edit, and delete document owners and configure their settings.
-              </p>
-            </div>
-
             {/* Owners Table */}
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
