@@ -33,25 +33,22 @@ export function InlineImageEditor({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(coverUrl || null);
-  const [manualUrl, setManualUrl] = useState(coverUrl || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Update preview when coverUrl changes externally
   useEffect(() => {
     setPreviewUrl(coverUrl || null);
-    setManualUrl(coverUrl || '');
   }, [coverUrl]);
 
   const handleStartEditing = () => {
     setIsEditing(true);
-    setManualUrl(coverUrl || '');
     setUploadError(null);
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    setManualUrl(coverUrl || '');
+    setPreviewUrl(coverUrl || null);
     setUploadError(null);
   };
 
@@ -100,7 +97,6 @@ export function InlineImageEditor({
 
       // Update preview
       setPreviewUrl(urlData.publicUrl);
-      setManualUrl(urlData.publicUrl);
 
       // Reset file input
       if (fileInputRef.current) {
@@ -139,7 +135,6 @@ export function InlineImageEditor({
 
       // Clear the URL
       setPreviewUrl(null);
-      setManualUrl('');
     } catch (error) {
       console.error('Remove error:', error);
       setUploadError(error instanceof Error ? error.message : 'Failed to remove image');
@@ -155,10 +150,9 @@ export function InlineImageEditor({
       setUploading(true);
       setUploadError(null);
 
-      const success = await onSave(manualUrl || '');
+      const success = await onSave(previewUrl || '');
       if (success) {
         setIsEditing(false);
-        setPreviewUrl(manualUrl || null);
       } else {
         setUploadError('Failed to save image URL');
       }
@@ -272,30 +266,6 @@ export function InlineImageEditor({
                 <Upload size={16} className="mr-2" />
                 {uploading ? 'Uploading...' : previewUrl ? 'Change Image' : 'Upload Image'}
               </Button>
-            </div>
-            
-            {/* Manual URL Entry */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Or enter URL manually:
-              </label>
-              <input
-                type="url"
-                value={manualUrl}
-                onChange={(e) => {
-                  setManualUrl(e.target.value);
-                  setUploadError(null);
-                  // Update preview if URL looks valid
-                  if (e.target.value.trim()) {
-                    setPreviewUrl(e.target.value.trim());
-                  } else {
-                    setPreviewUrl(null);
-                  }
-                }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                placeholder="https://example.com/cover.jpg"
-                disabled={uploading}
-              />
             </div>
           </div>
 
