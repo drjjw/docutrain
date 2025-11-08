@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/UI/Button';
 
@@ -108,31 +108,32 @@ export function LogoUploader({ logoUrl, onChange, ownerId }: LogoUploaderProps) 
     }
   };
 
-  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value;
-    onChange(url);
-    setPreviewUrl(url || null);
-  };
+  // Update preview when logoUrl changes externally
+  useEffect(() => {
+    setPreviewUrl(logoUrl || null);
+  }, [logoUrl]);
 
   return (
     <div className="space-y-4">
       {/* Preview */}
       {previewUrl && (
         <div className="relative group">
-          <img
-            src={previewUrl}
-            alt="Logo preview"
-            className="w-32 h-32 object-contain rounded-lg border border-gray-200 bg-white p-2"
-            onError={() => {
-              setPreviewUrl(null);
-              setUploadError('Failed to load image preview');
-            }}
-          />
+          <div className="w-32 h-32 rounded-lg border border-gray-200 bg-white p-2 flex items-center justify-center overflow-hidden">
+            <img
+              src={previewUrl}
+              alt="Logo preview"
+              className="max-w-full max-h-full object-contain"
+              onError={() => {
+                setPreviewUrl(null);
+                setUploadError('Failed to load image preview');
+              }}
+            />
+          </div>
           <button
             type="button"
             onClick={handleRemove}
             disabled={uploading}
-            className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 disabled:opacity-50"
+            className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 disabled:opacity-50 shadow-lg"
             title="Remove logo"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,19 +166,6 @@ export function LogoUploader({ logoUrl, onChange, ownerId }: LogoUploaderProps) 
         </Button>
       </div>
 
-      {/* Manual URL Input */}
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Or enter logo URL manually:</label>
-        <input
-          type="text"
-          value={logoUrl || ''}
-          onChange={handleUrlChange}
-          placeholder="https://example.com/logo.png"
-          className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full text-sm"
-          disabled={uploading}
-        />
-      </div>
-
       {/* Error Message */}
       {uploadError && (
         <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -190,7 +178,7 @@ export function LogoUploader({ logoUrl, onChange, ownerId }: LogoUploaderProps) 
 
       {/* Help Text */}
       <p className="text-xs text-gray-500">
-        Upload a logo image (PNG, JPG, GIF, WebP, max 5MB) or enter a URL. Recommended size: 200x200px (square format works best).
+        Upload a logo image to Supabase storage (PNG, JPG, GIF, WebP, max 5MB). Recommended size: 200x200px (square format works best).
       </p>
     </div>
   );

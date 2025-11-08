@@ -25,32 +25,61 @@ export function CombinedUploadZone({ onUploadSuccess }: CombinedUploadZoneProps)
 
   return (
     <>
-      {/* Centered Square Button Interface */}
-      <div className="flex justify-center items-center gap-6">
-        <button
-          onClick={() => {
-            setActiveTab('pdf');
-            setIsModalOpen(true);
-          }}
-          className="w-48 h-48 bg-docutrain-light hover:bg-docutrain-medium text-white rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-docutrain-light focus:ring-offset-2 flex flex-col items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:scale-105 active:scale-100"
-        >
-          <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-          <span className="text-lg font-semibold">Train with PDF</span>
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('text');
-            setIsModalOpen(true);
-          }}
-          className="w-48 h-48 bg-docutrain-medium hover:bg-docutrain-dark text-white rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-docutrain-medium focus:ring-offset-2 flex flex-col items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:scale-105 active:scale-100"
-        >
-          <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <span className="text-lg font-semibold">Train with Text</span>
-        </button>
+      {/* Upload Options with Explanations */}
+      <div className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* PDF Upload Option */}
+          <div className="flex items-stretch gap-4">
+            <button
+              onClick={() => {
+                setActiveTab('pdf');
+                setIsModalOpen(true);
+              }}
+              className="group relative bg-gradient-to-br from-docutrain-light to-docutrain-medium hover:from-docutrain-medium hover:to-docutrain-dark text-white rounded-xl font-medium transition-all focus:outline-none focus:ring-2 focus:ring-docutrain-light focus:ring-offset-2 flex flex-col items-center justify-center gap-3 p-6 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-100 flex-shrink-0 w-40"
+            >
+              <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <div className="text-base font-semibold">Train with PDF</div>
+                <div className="text-xs text-white/80 mt-1">Upload PDF documents</div>
+              </div>
+            </button>
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex-1 flex items-center">
+              <p className="text-sm text-gray-700 leading-relaxed">
+                <strong className="text-gray-900 font-semibold">Perfect for:</strong> PDF files, research papers, manuals, and documents that are already in PDF format. The system automatically extracts text, processes it into searchable chunks, and generates AI embeddings. Processing typically takes 1-10 minutes depending on document size.
+              </p>
+            </div>
+          </div>
+
+          {/* Text Upload Option */}
+          <div className="flex items-stretch gap-4">
+            <button
+              onClick={() => {
+                setActiveTab('text');
+                setIsModalOpen(true);
+              }}
+              className="group relative bg-gradient-to-br from-docutrain-medium to-docutrain-dark hover:from-docutrain-dark hover:to-docutrain-dark/90 text-white rounded-xl font-medium transition-all focus:outline-none focus:ring-2 focus:ring-docutrain-medium focus:ring-offset-2 flex flex-col items-center justify-center gap-3 p-6 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-100 flex-shrink-0 w-40"
+            >
+              <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <div className="text-base font-semibold">Train with Text</div>
+                <div className="text-xs text-white/80 mt-1">Paste text content</div>
+              </div>
+            </button>
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 flex-1 flex items-center">
+              <p className="text-sm text-gray-700 leading-relaxed">
+                <strong className="text-gray-900 font-semibold">Perfect for:</strong> Articles, notes, research content, or any text you already have. Simply paste your text directly—no file conversion needed. This option is faster since it skips PDF extraction and goes straight to processing. Supports up to 5 million characters.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Upload Modal */}

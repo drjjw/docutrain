@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/UI/Button';
 
@@ -120,31 +120,33 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: 
     }
   };
 
-  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value;
-    onChange(url);
-    setPreviewUrl(url || null);
-  };
+  // Update preview when coverUrl changes externally
+  useEffect(() => {
+    setPreviewUrl(coverUrl || null);
+  }, [coverUrl]);
 
   return (
     <div className="space-y-4">
       {/* Preview */}
       {previewUrl && (
-        <div className="relative group">
-          <img
-            src={previewUrl}
-            alt="Cover preview"
-            className="w-full h-48 object-cover rounded-lg border border-gray-200"
-            onError={() => {
-              setPreviewUrl(null);
-              setUploadError('Failed to load image preview');
-            }}
-          />
+        <div className="relative group max-w-md">
+          {/* Match the aspect ratio used on frontend: 1.5 width to height */}
+          <div className="w-full aspect-[3/2] rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
+            <img
+              src={previewUrl}
+              alt="Cover preview"
+              className="w-full h-full object-cover"
+              onError={() => {
+                setPreviewUrl(null);
+                setUploadError('Failed to load image preview');
+              }}
+            />
+          </div>
           <button
             type="button"
             onClick={handleRemove}
             disabled={uploading}
-            className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 disabled:opacity-50"
+            className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 disabled:opacity-50 shadow-lg"
             title="Remove image"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,19 +179,6 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: 
         </Button>
       </div>
 
-      {/* Manual URL Input */}
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Or enter image URL manually:</label>
-        <input
-          type="text"
-          value={coverUrl || ''}
-          onChange={handleUrlChange}
-          placeholder="https://example.com/image.jpg"
-          className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full text-sm"
-          disabled={uploading}
-        />
-      </div>
-
       {/* Error Message */}
       {uploadError && (
         <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -202,7 +191,7 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: 
 
       {/* Help Text */}
       <p className="text-xs text-gray-500">
-        Upload an image (PNG, JPG, GIF, WebP, max 5MB) or enter a URL. Recommended size: 1200x630px (for optimal display).
+        Upload an image to Supabase storage (PNG, JPG, GIF, WebP, max 5MB). Recommended size: 1200x630px (for optimal display).
       </p>
     </div>
   );

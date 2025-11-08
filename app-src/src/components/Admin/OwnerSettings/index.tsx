@@ -118,6 +118,28 @@ export function OwnerSettings({ ownerId }: OwnerSettingsProps) {
         </div>
       </div>
 
+      {/* Default Cover Image Section */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Default Cover Image
+          </h3>
+          <p className="text-sm text-gray-600 mt-1">
+            Set a default cover image that will be used for documents in this owner group when no specific cover is set.
+          </p>
+        </div>
+        <div className="p-6">
+          <CoverImageUploader
+            coverUrl={defaultCover}
+            onChange={setDefaultCover}
+            ownerId={ownerId}
+          />
+        </div>
+      </div>
+
       {/* Intro Message Section */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
@@ -153,28 +175,6 @@ export function OwnerSettings({ ownerId }: OwnerSettingsProps) {
               <div className="prose prose-sm max-w-none text-gray-800 wysiwyg-preview" dangerouslySetInnerHTML={{ __html: introMessage }} />
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Default Cover Image Section */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            Default Cover Image
-          </h3>
-          <p className="text-sm text-gray-600 mt-1">
-            Set a default cover image that will be used for documents in this owner group when no specific cover is set.
-          </p>
-        </div>
-        <div className="p-6">
-          <CoverImageUploader
-            coverUrl={defaultCover}
-            onChange={setDefaultCover}
-            ownerId={ownerId}
-          />
         </div>
       </div>
 
