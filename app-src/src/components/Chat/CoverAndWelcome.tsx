@@ -64,7 +64,7 @@ export function CoverAndWelcome({
 }: CoverAndWelcomeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Equalize heights after render and on window resize
+  // Equalize heights after render and on window resize/orientation change
   useEffect(() => {
     // Equalize after initial render
     const timeoutId = setTimeout(() => {
@@ -80,12 +80,24 @@ export function CoverAndWelcome({
       }, 250);
     };
 
+    // Handle orientation change - force immediate recalibration
+    const handleOrientationChange = () => {
+      // Small delay to allow browser to finish orientation change
+      setTimeout(() => {
+        equalizeContainerHeights();
+        // Force image recalculation by dispatching a resize event
+        window.dispatchEvent(new Event('resize'));
+      }, 100);
+    };
+
     window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleOrientationChange);
 
     return () => {
       clearTimeout(timeoutId);
       clearTimeout(resizeTimeout);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleOrientationChange);
     };
   }, [cover, welcomeMessage, introMessage]);
 
