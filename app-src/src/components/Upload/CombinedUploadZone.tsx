@@ -46,14 +46,14 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
       {/* Upload Options with Explanations */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {/* PDF Upload Option */}
-        <div className="flex items-stretch gap-2 w-full">
+        <div className="flex flex-col lg:flex-row items-stretch gap-2 w-full">
           <button
             onClick={() => {
               setActiveTab('pdf');
               setShowSuccessMessage(false);
               setIsModalOpen(true);
             }}
-            className="group relative bg-gradient-to-br from-docutrain-light to-docutrain-medium hover:from-docutrain-medium hover:to-docutrain-dark text-white rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-docutrain-light focus:ring-offset-2 flex flex-row items-center gap-2 px-4 py-3 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-100 flex-shrink-0 h-full"
+            className="group relative bg-gradient-to-br from-docutrain-light to-docutrain-medium hover:from-docutrain-medium hover:to-docutrain-dark text-white rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-docutrain-light focus:ring-offset-2 flex flex-row items-center gap-2 px-4 py-3 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-100 flex-shrink-0 lg:h-full"
           >
             <div className="w-8 h-8 bg-white/20 rounded flex items-center justify-center group-hover:bg-white/30 transition-colors flex-shrink-0">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,7 +65,7 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
               <div className="text-xs text-white/80 leading-tight">Upload PDF</div>
             </div>
           </button>
-          <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 flex-1 flex items-center min-w-0 w-full h-full">
+          <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 flex-1 flex items-center min-w-0 w-full lg:h-full">
             <p className="text-sm text-gray-700 leading-relaxed">
               <strong className="text-gray-900 font-semibold">Perfect for:</strong> PDF files, research papers, manuals, and documents that are already in PDF format. The system automatically extracts text, processes it into searchable chunks, and generates AI embeddings. Processing typically takes 1-10 minutes depending on document size.
             </p>
@@ -73,14 +73,14 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
         </div>
 
         {/* Text Upload Option */}
-        <div className="flex items-stretch gap-2 w-full">
+        <div className="flex flex-col lg:flex-row items-stretch gap-2 w-full">
           <button
             onClick={() => {
               setActiveTab('text');
               setShowSuccessMessage(false);
               setIsModalOpen(true);
             }}
-            className="group relative bg-gradient-to-br from-docutrain-medium to-docutrain-dark hover:from-docutrain-dark hover:to-docutrain-dark/90 text-white rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-docutrain-medium focus:ring-offset-2 flex flex-row items-center gap-2 px-4 py-3 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-100 flex-shrink-0 h-full"
+            className="group relative bg-gradient-to-br from-docutrain-medium to-docutrain-dark hover:from-docutrain-dark hover:to-docutrain-dark/90 text-white rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-docutrain-medium focus:ring-offset-2 flex flex-row items-center gap-2 px-4 py-3 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-100 flex-shrink-0 lg:h-full"
           >
             <div className="w-8 h-8 bg-white/20 rounded flex items-center justify-center group-hover:bg-white/30 transition-colors flex-shrink-0">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,7 +92,7 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
               <div className="text-xs text-white/80 leading-tight">Paste text</div>
             </div>
           </button>
-          <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 flex-1 flex items-center min-w-0 w-full h-full">
+          <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 flex-1 flex items-center min-w-0 w-full lg:h-full">
             <p className="text-sm text-gray-700 leading-relaxed">
               <strong className="text-gray-900 font-semibold">Perfect for:</strong> Articles, notes, research content, or any text you already have. Simply paste your text directly—no file conversion needed. This option is faster since it skips PDF extraction and goes straight to processing. Supports up to 5 million characters.
             </p>
