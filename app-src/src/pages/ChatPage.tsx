@@ -89,6 +89,17 @@ function ChatPageContent({
   const permissions = usePermissions();
   const navigate = useNavigate();
   const [checkingOwnerAccess, setCheckingOwnerAccess] = useState(false);
+  const [ownerNotFound, setOwnerNotFound] = useState<{ slug: string; message: string } | null>(null);
+  
+  // Clear ownerNotFound when owner param changes or document is selected
+  useEffect(() => {
+    if (ownerNotFound) {
+      // Clear if owner param changed or document was selected
+      if (!ownerParam || documentSlug) {
+        setOwnerNotFound(null);
+      }
+    }
+  }, [ownerParam, documentSlug]);
   
   // ============================================================================
   // SECTION 3: Session Management
@@ -171,6 +182,15 @@ function ChatPageContent({
           }
         }
         
+        // Handle 404 - owner not found
+        if (response.status === 404 && ownerParam) {
+          // Format error message for owner not found
+          const errorMessage = `Owner "${ownerParam}" not found`;
+          setOwnerNotFound({ slug: ownerParam, message: errorMessage });
+          setCheckingOwnerAccess(false);
+          return;
+        }
+        
         // If we got here, either there are public docs or it's a different error
         // Let the normal flow handle it
         setCheckingOwnerAccess(false);
@@ -241,7 +261,7 @@ function ChatPageContent({
     shouldShowDocumentOwnerModal,
     shouldShowDocumentSelectorModal,
     isDocumentNotFound,
-  } = useModalState(errorDetails, documentSlug, ownerParam);
+  } = useModalState(errorDetails, documentSlug, ownerParam, ownerNotFound);
   
   // ============================================================================
   // SECTION 9: Refs & UI State
@@ -327,6 +347,10 @@ function ChatPageContent({
         isDocumentNotFound={isDocumentNotFound}
         shouldShowDocumentSelectorModal={shouldShowDocumentSelectorModal}
         hasAuthError={hasAuthError}
+        ownerNotFound={ownerNotFound}
+        onOwnerNotFound={(ownerSlug: string) => {
+          setOwnerNotFound({ slug: ownerSlug, message: `Owner "${ownerSlug}" not found` });
+        }}
       />
       
       {/* Header - Fixed position */}

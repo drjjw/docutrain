@@ -60,50 +60,33 @@ export function DocumentRetrainSection({
         {/* Tab Content */}
         <div className="min-h-[200px] space-y-6">
           {activeTab === 'pdf' ? (
-            <div className="space-y-4">
-              <div className="text-sm text-gray-600">
-                <p className="mb-2">
-                  <strong>PDF Retraining:</strong> Upload a new PDF to replace or add to existing training data.
-                </p>
-                <ul className="ml-4 space-y-1 text-xs">
-                  <li>• Supports PDF files up to 75MB (superadmin) or 50MB (regular users)</li>
-                  <li>• Text is automatically extracted from the PDF</li>
-                  <li>• Choose "Replace" to delete all existing chunks, or "Add" to keep existing chunks</li>
-                  <li>• Processing includes text chunking and AI embedding generation</li>
-                </ul>
-              </div>
+            <div className="text-sm text-gray-600">
+              <p className="mb-1">
+                <strong>PDF Retraining:</strong> Upload a new PDF to replace or add to existing training data.
+              </p>
+              <p className="text-xs text-gray-500">
+                Supports PDF files up to 75MB (superadmin) or 50MB (regular users). Text is automatically extracted and processed.
+              </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="text-sm text-gray-600">
-                <p className="mb-2">
-                  <strong>Text Retraining:</strong> Directly replace or add content with new text without needing a PDF file.
-                </p>
-                <ul className="ml-4 space-y-1 text-xs">
-                  <li>• Supports up to 5 million characters of text</li>
-                  <li>• Perfect for articles, notes, research papers, or any text content</li>
-                  <li>• Bypasses PDF extraction - text goes directly to processing</li>
-                  <li>• Faster processing since no file download/extraction is needed</li>
-                  <li>• Choose "Replace" to delete all existing chunks, or "Add" to keep existing chunks</li>
-                </ul>
-              </div>
+            <div className="text-sm text-gray-600">
+              <p className="mb-1">
+                <strong>Text Retraining:</strong> Directly paste text content without needing a PDF file.
+              </p>
+              <p className="text-xs text-gray-500">
+                Supports up to 5 million characters. Faster processing since no PDF extraction is needed.
+              </p>
             </div>
           )}
 
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
             <div className="flex gap-2">
-              <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <div className="text-sm text-amber-800">
-                <p className="font-medium mb-1">Important:</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>In "Replace" mode, all existing chunks will be deleted. In "Add" mode, existing chunks are preserved.</li>
-                  <li>The document slug <span className="font-mono bg-amber-100 px-1 rounded">{document.slug}</span> will be preserved</li>
-                  <li>All metadata and settings will remain unchanged</li>
-                  <li>In "Add" mode, abstract and keywords will be regenerated from all chunks (old + new)</li>
-                  <li>Processing may take several minutes</li>
-                </ul>
+              <div className="text-xs text-amber-800">
+                <p className="font-medium mb-1">Note:</p>
+                <p>The document slug <span className="font-mono bg-amber-100 px-1 rounded">{document.slug}</span> and all metadata will be preserved. Processing may take several minutes.</p>
               </div>
             </div>
           </div>

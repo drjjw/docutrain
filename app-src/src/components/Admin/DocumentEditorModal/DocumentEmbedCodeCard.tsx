@@ -6,6 +6,7 @@ export function DocumentEmbedCodeCard({
   documentTitle
 }: DocumentEmbedCodeCardProps) {
   const [buttonColor, setButtonColor] = useState('#3b82f6'); // Default blue
+  const [buttonColorInput, setButtonColorInput] = useState('#3b82f6'); // For manual input
   const [buttonText, setButtonText] = useState('Chat with AI Assistant');
   const [showTitle, setShowTitle] = useState(false);
   const [titlePosition, setTitlePosition] = useState<'above' | 'below' | 'beside'>('above');
@@ -186,22 +187,63 @@ export function DocumentEmbedCodeCard({
             <input
               type="color"
               value={buttonColor}
-              onChange={(e) => setButtonColor(e.target.value)}
+              onChange={(e) => {
+                const newColor = e.target.value;
+                setButtonColor(newColor);
+                setButtonColorInput(newColor);
+              }}
               className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
             />
             <div className="flex-1">
               <input
                 type="text"
-                value={buttonColor}
+                value={buttonColorInput}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
-                    setButtonColor(value);
+                  setButtonColorInput(value);
+                  // Validate hex color format (allows partial input while typing)
+                  if (/^#[0-9A-Fa-f]{0,6}$/.test(value)) {
+                    // If it's a complete 6-digit hex, update the actual color
+                    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                      setButtonColor(value);
+                    }
                   }
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                onBlur={(e) => {
+                  const value = e.target.value.trim();
+                  // Validate and normalize on blur
+                  if (/^#[0-9A-Fa-f]{6}$/i.test(value)) {
+                    // Normalize to uppercase
+                    const normalized = value.toUpperCase();
+                    setButtonColor(normalized);
+                    setButtonColorInput(normalized);
+                  } else if (/^[0-9A-Fa-f]{6}$/i.test(value)) {
+                    // If missing #, add it
+                    const normalized = `#${value.toUpperCase()}`;
+                    setButtonColor(normalized);
+                    setButtonColorInput(normalized);
+                  } else if (/^#[0-9A-Fa-f]{3}$/i.test(value)) {
+                    // Expand 3-digit hex to 6-digit
+                    const expanded = `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`.toUpperCase();
+                    setButtonColor(expanded);
+                    setButtonColorInput(expanded);
+                  } else {
+                    // Invalid format, revert to last valid color
+                    setButtonColorInput(buttonColor);
+                  }
+                }}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono ${
+                  /^#[0-9A-Fa-f]{6}$/i.test(buttonColorInput) 
+                    ? 'border-gray-300' 
+                    : 'border-red-300 bg-red-50'
+                }`}
                 placeholder="#3b82f6"
               />
+              {!/^#[0-9A-Fa-f]{6}$/i.test(buttonColorInput) && buttonColorInput !== buttonColor && (
+                <p className="mt-1 text-xs text-red-600">
+                  Enter a valid hex color (e.g., #3b82f6 or #FF5733)
+                </p>
+              )}
             </div>
           </div>
         </div>

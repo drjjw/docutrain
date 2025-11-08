@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Spinner } from '@/components/UI/Spinner';
 import { TOSGate } from '@/components/Auth/TOSGate';
@@ -10,6 +10,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   console.log('🔵 ProtectedRoute: RENDER - loading=', loading, 'user=', user ? 'Authenticated' : 'Not authenticated');
 
@@ -24,7 +25,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!user) {
     console.log('🔵 ProtectedRoute: No user found, redirecting to /login');
-    return <Navigate to="/login" replace />;
+    // Capture the current pathname and search params (without /app prefix since router basename is /app)
+    const currentPath = location.pathname || '/';
+    const currentSearch = location.search || '';
+    const currentUrl = currentPath + currentSearch;
+    const returnUrl = encodeURIComponent(currentUrl);
+    return <Navigate to={`/login?returnUrl=${returnUrl}`} replace />;
   }
 
   console.log('🔵 ProtectedRoute: User authenticated, checking TOS acceptance');

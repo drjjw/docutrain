@@ -27,6 +27,11 @@ RewriteRule ^(.*)$ http://127.0.0.1:3458/$1 [P,L,QSA]
     Header set Access-Control-Allow-Headers "Content-Type"
 </IfModule>
 
+# Request body size limit - Allow up to 200MB for PDF uploads and 10MB+ for JSON text uploads
+# This matches the Express.js multer limit (200MB) and JSON parser limit (10MB)
+# PDF uploads use multipart/form-data, text uploads use application/json
+LimitRequestBody 209715200
+
 # Security
 <FilesMatch "^(\.env|server\.js|package.*|\.git)">
     Require all denied

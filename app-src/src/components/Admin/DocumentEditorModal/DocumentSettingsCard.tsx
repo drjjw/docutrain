@@ -24,7 +24,7 @@ export function DocumentSettingsCard({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
-          <h4 className="text-lg font-semibold text-gray-900">Settings & Permissions</h4>
+          <h4 className="text-lg font-semibold text-gray-900">Permissions</h4>
         </div>
       </div>
       <div className="px-6 py-4">

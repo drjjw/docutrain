@@ -26,6 +26,9 @@ export function DocumentOwnerModal({ isOpen, customMessage, attemptedSlug }: Doc
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
   const ownerInputRef = useRef<HTMLInputElement>(null);
+  
+  // Detect if this is an owner error (message starts with "Owner" instead of "Document")
+  const isOwnerError = customMessage?.toLowerCase().startsWith('owner');
 
   // Load available owners for autocomplete
   useEffect(() => {
@@ -43,21 +46,34 @@ export function DocumentOwnerModal({ isOpen, customMessage, attemptedSlug }: Doc
       }
       loadOwners();
       
-      // Pre-fill document slug if attemptedSlug is provided
+      // Pre-fill document slug if attemptedSlug is provided and it's not an owner error
+      // Pre-fill owner slug if attemptedSlug is provided and it's an owner error
       if (attemptedSlug) {
-        setDocumentSlug(attemptedSlug);
+        const isOwnerErr = customMessage?.toLowerCase().startsWith('owner');
+        if (isOwnerErr) {
+          setOwnerSlug(attemptedSlug);
+        } else {
+          setDocumentSlug(attemptedSlug);
+        }
       }
       
-      // Focus document input when modal opens
+      // Focus appropriate input when modal opens
       setTimeout(() => {
-        documentInputRef.current?.focus();
-        // Select the text if there's an attempted slug
-        if (attemptedSlug && documentInputRef.current) {
-          documentInputRef.current.select();
+        const isOwnerErr = customMessage?.toLowerCase().startsWith('owner');
+        if (isOwnerErr && ownerInputRef.current) {
+          ownerInputRef.current.focus();
+          if (attemptedSlug) {
+            ownerInputRef.current.select();
+          }
+        } else if (documentInputRef.current) {
+          documentInputRef.current.focus();
+          if (attemptedSlug && !isOwnerErr) {
+            documentInputRef.current.select();
+          }
         }
       }, 100);
     }
-  }, [isOpen, attemptedSlug]);
+  }, [isOpen, attemptedSlug, customMessage]);
 
   // Clear owner input when typing in document input
   const handleDocumentChange = (value: string) => {
@@ -182,7 +198,9 @@ export function DocumentOwnerModal({ isOpen, customMessage, attemptedSlug }: Doc
                   }`}>
                     {customMessage.toLowerCase().includes('permission') || customMessage.toLowerCase().includes('access denied')
                       ? 'Access Denied'
-                      : 'Document Not Found'}
+                      : isOwnerError
+                        ? 'Owner Not Found'
+                        : 'Document Not Found'}
                   </div>
                   <p className={`text-sm leading-relaxed ${
                     customMessage.toLowerCase().includes('permission') || customMessage.toLowerCase().includes('access denied')

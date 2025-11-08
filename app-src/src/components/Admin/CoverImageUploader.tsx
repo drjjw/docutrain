@@ -223,7 +223,7 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId, al
 
       {/* Help Text */}
       <p className="text-xs text-gray-500">
-        Upload an image to Supabase storage (PNG, JPG, GIF, WebP, max 5MB). Recommended size: 1200x630px (for optimal display).
+        Upload an image to DocuTrain storage (PNG, JPG, GIF, WebP, max 5MB). Recommended size: 1200x630px (for optimal display).
       </p>
     </div>
   );

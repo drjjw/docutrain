@@ -292,10 +292,10 @@ export function DocumentRetrainer({
               />
               <div className="flex-1">
                 <div className="text-sm font-medium text-gray-900">
-                  Replace all chunks
+                  Replace all data
                 </div>
                 <div className="text-xs text-gray-600 mt-0.5">
-                  Deletes all existing chunks and replaces them with new content
+                  Deletes all existing chunks and replaces with new content. Abstract and keywords regenerated from new chunks only.
                 </div>
               </div>
             </label>
@@ -311,10 +311,10 @@ export function DocumentRetrainer({
               />
               <div className="flex-1">
                 <div className="text-sm font-medium text-gray-900">
-                  Add to existing chunks
+                  Add to existing data
                 </div>
                 <div className="text-xs text-gray-600 mt-0.5">
-                  Keeps existing chunks and adds new ones. Abstract and keywords will be regenerated from all chunks (old + new)
+                  Keeps existing chunks and adds new content. Abstract and keywords regenerated from all chunks (old + new)
                   {existingChunkCount !== null && (
                     <span className="ml-1 font-medium text-amber-600">
                       ({existingChunkCount} existing chunks)
@@ -323,15 +323,6 @@ export function DocumentRetrainer({
                 </div>
               </div>
             </label>
-          </div>
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <p className="text-xs text-gray-500">
-              <strong>When to use each mode:</strong>
-            </p>
-            <ul className="mt-1 ml-4 text-xs text-gray-500 space-y-0.5 list-disc">
-              <li><strong>Replace:</strong> When you want to completely update the document content</li>
-              <li><strong>Add:</strong> When you want to supplement existing content with additional information</li>
-            </ul>
           </div>
         </div>
 
@@ -361,10 +352,10 @@ export function DocumentRetrainer({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 {retrainMode === 'replace' 
-                  ? 'Warning: This will replace all existing training data for this document'
+                  ? 'All existing training data will be replaced'
                   : existingChunkCount !== null 
-                    ? `This will add new chunks to the existing ${existingChunkCount} chunks`
-                    : 'This will add new chunks to existing chunks'}
+                    ? `Will add to ${existingChunkCount} existing chunks`
+                    : 'Will add to existing chunks'}
               </p>
             </div>
 
@@ -386,7 +377,7 @@ export function DocumentRetrainer({
                   </div>
                 </div>
                 <Button
-                  onClick={handleRetrain}
+                  onClick={() => handleRetrain()}
                   loading={retraining}
                   size="sm"
                   className="ml-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
@@ -407,7 +398,7 @@ export function DocumentRetrainer({
                   id="retrain-text-content"
                   value={textContent}
                   onChange={(e) => setTextContent(e.target.value)}
-                  placeholder="Paste your new text content here... This will completely replace the existing document content."
+                  placeholder="Paste your new text content here..."
                   className="w-full h-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 sm:text-sm font-mono resize-vertical"
                   disabled={retraining}
                   maxLength={5000000}
@@ -422,10 +413,10 @@ export function DocumentRetrainer({
                 </div>
                 <p className="text-xs text-gray-500">
                   {retrainMode === 'replace' 
-                    ? 'Paste new text content to replace the existing document. All current chunks will be deleted and replaced.'
+                    ? 'All existing chunks will be deleted and replaced.'
                     : existingChunkCount !== null
-                      ? `Paste new text content to add to the existing document. New chunks will be added to the existing ${existingChunkCount} chunks.`
-                      : 'Paste new text content to add to the existing document. New chunks will be added to existing chunks.'}
+                      ? `New chunks will be added to the existing ${existingChunkCount} chunks.`
+                      : 'New chunks will be added to existing chunks.'}
                 </p>
               </div>
 

@@ -66,6 +66,7 @@ export function DocumentFileDetailsCard({
             coverUrl={cover || ''}
             onChange={onCoverChange}
             documentId={documentId}
+            allowManualUrl={false}
           />
         </div>
       </div>

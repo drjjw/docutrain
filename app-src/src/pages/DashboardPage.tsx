@@ -276,9 +276,10 @@ export function DashboardPage() {
                 onClick={() => handleTabChange('documents')}
                 className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
                   activeTab === 'documents'
-                    ? 'text-docutrain-light border border-blue-100 border-b-2 border-b-docutrain-light bg-blue-50'
+                    ? 'border border-blue-100'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
                 }`}
+                style={activeTab === 'documents' ? { backgroundColor: 'rgb(219 234 254 / var(--tw-border-opacity))', color: 'rgb(18 136 254)', '--tw-text-opacity': '1' } as React.CSSProperties : undefined}
               >
                 Documents & Uploads
               </button>
@@ -287,9 +288,10 @@ export function DashboardPage() {
                   onClick={() => handleTabChange('users')}
                 className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
                   activeTab === 'users'
-                    ? 'text-docutrain-light border border-blue-100 border-b-2 border-b-docutrain-light bg-blue-50'
+                    ? 'border border-blue-100'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 sm:ml-1'
                   }`}
+                  style={activeTab === 'users' ? { backgroundColor: 'rgb(219 234 254 / var(--tw-border-opacity))', color: 'rgb(18 136 254)', '--tw-text-opacity': '1' } as React.CSSProperties : undefined}
                 >
                   User Management
                 </button>
@@ -299,9 +301,10 @@ export function DashboardPage() {
                   onClick={() => handleTabChange('owner-settings')}
                 className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
                   activeTab === 'owner-settings'
-                    ? 'text-docutrain-light border border-blue-100 border-b-2 border-b-docutrain-light bg-blue-50'
+                    ? 'border border-blue-100'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 sm:ml-1'
                   }`}
+                  style={activeTab === 'owner-settings' ? { backgroundColor: 'rgb(219 234 254 / var(--tw-border-opacity))', color: 'rgb(18 136 254)', '--tw-text-opacity': '1' } as React.CSSProperties : undefined}
                 >
                   Owner Settings
                 </button>
@@ -311,9 +314,10 @@ export function DashboardPage() {
                   onClick={() => handleTabChange('owners')}
                 className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
                   activeTab === 'owners'
-                    ? 'text-docutrain-light border border-blue-100 border-b-2 border-b-docutrain-light bg-blue-50'
+                    ? 'border border-blue-100'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 sm:ml-1'
                   }`}
+                  style={activeTab === 'owners' ? { backgroundColor: 'rgb(219 234 254 / var(--tw-border-opacity))', color: 'rgb(18 136 254)', '--tw-text-opacity': '1' } as React.CSSProperties : undefined}
                 >
                   Owner Management
                 </button>

@@ -30,9 +30,10 @@ interface DocumentSelectorProps {
   inline?: boolean; // If true, renders content only (no button/dropdown) for inline use
   onItemClick?: () => void; // Callback when document is selected (useful for closing mobile menu)
   hasAuthError?: boolean; // Skip fetch if we already know auth is required
+  onOwnerNotFound?: (ownerSlug: string) => void; // Callback when owner is not found (404)
 }
 
-export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, hasAuthError = false }: DocumentSelectorProps) {
+export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, hasAuthError = false, onOwnerNotFound }: DocumentSelectorProps) {
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { isSuperAdmin, isOwnerAdmin, loading: permissionsLoading } = usePermissions();
@@ -258,6 +259,17 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
 
           // Handle non-OK responses gracefully (e.g., 403 for passcode-protected docs)
           if (!response.ok) {
+            if (response.status === 404 && ownerParam) {
+              // Owner not found - notify parent to show DocumentOwnerModal
+              console.log(`[DocumentSelector] Owner "${ownerParam}" not found (404)`);
+              if (onOwnerNotFound) {
+                onOwnerNotFound(ownerParam);
+              }
+              setDocuments([]);
+              setShouldShow(false);
+              return;
+            }
+            
             if (response.status === 403) {
               // Try to parse error response to check if login is required
               let errorData;
