@@ -278,6 +278,22 @@ Different documents require different security levels. DocuTrain supports:
 - ✅ More comprehensive analysis with less effort
 - ✅ Better foundation for new research directions
 
+### **Scenario 5: Restaurant Training & Operations**
+
+**The Maker Pizza Story**: How a restaurant chain transformed employee training with instant access to operational knowledge.
+
+Maker Pizza, a growing restaurant franchise, faced a common challenge in the food service industry: training staff across multiple locations while maintaining consistency in operations, recipes, and customer service standards. Their training materials included four comprehensive documents covering front-of-house operations, franchise training protocols, menu specifications, and prep recipes—each critical for daily operations but difficult to navigate during busy shifts.
+
+Before DocuTrain, new employees would spend their first week flipping through physical binders or scrolling through PDFs on tablets, trying to memorize procedures, recipes, and service standards. During peak hours, when a question arose about ingredient substitutions or proper greeting protocols, staff would either guess, interrupt a manager, or serve customers incorrectly—all costly outcomes.
+
+The solution came when Maker Pizza uploaded all four training documents to DocuTrain with owner-restricted access. Now, when a new server needs to know how to greet customers according to company standards, they simply ask: "How do I greet customers?" and receive an instant answer with exact citations from the FOH Training Guide. Kitchen staff can query recipe details mid-service: "What's the recipe for marinara sauce?" and get precise measurements and preparation steps from the Prep Recipe Deck. Franchise managers can quickly reference training protocols: "What are the steps for opening the restaurant?" and receive comprehensive, step-by-step guidance from the Franchise Training Manual.
+
+The impact has been transformative. New employees become productive in days instead of weeks, as they can instantly access any information they need rather than memorizing hundreds of pages. During busy periods, staff can get accurate answers in seconds without interrupting managers or making mistakes. The document selector feature allows seamless navigation between the four training documents, so whether someone needs menu information, prep recipes, service protocols, or franchise procedures, everything is accessible through a single, intuitive interface.
+
+Maker Pizza configured the system with a 30-chunk retrieval limit optimized for their shorter, focused training content—ensuring fast, relevant responses without unnecessary context. Regular staff members access the chat interface directly, while managers have dashboard access to manage documents and user permissions. The system even includes pizza-themed facts during loading, adding personality to the training experience.
+
+The result is a workforce that's better trained, more confident, and more consistent—all while reducing training time and operational errors. What used to require weeks of memorization and constant manager intervention now happens instantly, allowing Maker Pizza to scale their operations while maintaining the quality standards that define their brand.
+
 ---
 
 ## 💰 Return on Investment
