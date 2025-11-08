@@ -5,9 +5,10 @@ import { supabase } from '@/lib/supabase/client';
 
 interface TextUploadZoneProps {
   onUploadSuccess?: () => void;
+  suppressSuccessMessage?: boolean;
 }
 
-export function TextUploadZone({ onUploadSuccess }: TextUploadZoneProps) {
+export function TextUploadZone({ onUploadSuccess, suppressSuccessMessage = false }: TextUploadZoneProps) {
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -109,7 +110,7 @@ export function TextUploadZone({ onUploadSuccess }: TextUploadZoneProps) {
         </Alert>
       )}
 
-      {success && uploadedDocument && (
+      {success && uploadedDocument && !suppressSuccessMessage && (
         <Alert variant="success" onDismiss={reset}>
           <div className="space-y-1">
             <p className="font-medium">Text uploaded successfully!</p>

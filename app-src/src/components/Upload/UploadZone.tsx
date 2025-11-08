@@ -6,9 +6,10 @@ import { usePermissions } from '@/hooks/usePermissions';
 
 interface UploadZoneProps {
   onUploadSuccess?: () => void;
+  suppressSuccessMessage?: boolean;
 }
 
-export function UploadZone({ onUploadSuccess }: UploadZoneProps) {
+export function UploadZone({ onUploadSuccess, suppressSuccessMessage = false }: UploadZoneProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { upload, uploading, progress, error, success, uploadedDocument, retryingProcessing, retryMessage, reset } = useUpload();
@@ -46,7 +47,7 @@ export function UploadZone({ onUploadSuccess }: UploadZoneProps) {
         </Alert>
       )}
 
-      {success && uploadedDocument && (
+      {success && uploadedDocument && !suppressSuccessMessage && (
         <Alert variant="success" onDismiss={reset}>
           <div className="space-y-1">
             <p className="font-medium">Upload successful!</p>

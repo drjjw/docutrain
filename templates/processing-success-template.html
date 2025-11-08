@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Processing Complete</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        .email-header {
+            background: #ffffff;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        .logo {
+            max-width: 200px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        .email-content {
+            padding: 40px 30px;
+        }
+        .email-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin: 0 0 16px 0;
+            text-align: center;
+        }
+        .email-text {
+            font-size: 16px;
+            color: #555555;
+            margin: 0 0 24px 0;
+            text-align: center;
+        }
+        .button-container {
+            text-align: center;
+            margin: 32px 0;
+        }
+        .view-button {
+            display: inline-block;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
+        }
+        .view-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+        }
+        .email-footer {
+            padding: 30px;
+            background-color: #f9f9f9;
+            text-align: center;
+            border-top: 1px solid #e5e5e5;
+        }
+        .footer-text {
+            font-size: 14px;
+            color: #888888;
+            margin: 0 0 8px 0;
+        }
+        .footer-link {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .info-box {
+            background-color: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            padding: 16px;
+            margin: 24px 0;
+            border-radius: 4px;
+        }
+        .info-box-text {
+            font-size: 14px;
+            color: #555555;
+            margin: 0;
+        }
+        .stats-box {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 30px;
+            margin: 24px 0;
+            border-radius: 8px;
+        }
+        .stats-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin: 0 0 20px 0;
+            text-align: center;
+        }
+        .stats-grid {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+        .stats-item-prominent {
+            display: table-cell;
+            width: 50%;
+            text-align: center;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            vertical-align: top;
+        }
+        .stats-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+        .stats-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stats-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+        .success-icon {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .success-icon div {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto;
+            background-color: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header with Logo -->
+        <div class="email-header">
+            <img src="https://www.docutrain.io/docutrain-logo.png" alt="DocuTrain Logo" class="logo">
+        </div>
+        
+        <!-- Main Content -->
+        <div class="email-content">
+            <div class="success-icon">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                    <tr>
+                        <td style="width: 64px; height: 64px; background-color: #10b981; border-radius: 50%; text-align: center; vertical-align: middle; font-size: 36px; color: white; font-weight: bold; line-height: 64px;">✓</td>
+                    </tr>
+                </table>
+            </div>
+            <h2 class="email-title">Document Processing Complete!</h2>
+            
+            <p class="email-text">
+                Your document <strong>{{ .DocumentTitle }}</strong> has been successfully processed and is now ready to use.
+            </p>
+            
+            {{ if .Stats }}
+            <div class="stats-box">
+                <div class="stats-title">Processing Summary</div>
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" class="stats-grid">
+                    <tr>
+                        {{ if .Stats.Pages }}
+                        <td class="stats-item-prominent">
+                            <div class="stats-icon">📄</div>
+                            <div class="stats-content">
+                                <div class="stats-label">Pages processed</div>
+                                <div class="stats-value">{{ .Stats.Pages }}</div>
+                            </div>
+                        </td>
+                        {{ end }}
+                        {{ if .Stats.ProcessingTime }}
+                        <td class="stats-item-prominent">
+                            <div class="stats-icon">⏱️</div>
+                            <div class="stats-content">
+                                <div class="stats-label">Processing time</div>
+                                <div class="stats-value">{{ .Stats.ProcessingTime }}</div>
+                            </div>
+                        </td>
+                        {{ end }}
+                    </tr>
+                </table>
+            </div>
+            {{ end }}
+            
+            <div class="button-container">
+                <a href="{{ .DocumentUrl }}" class="view-button">View Document</a>
+            </div>
+            
+            <div class="info-box">
+                <p class="info-box-text">
+                    <strong>What's next?</strong> You can now ask questions about this document in your DocuTrain chat interface. The document has been indexed and is ready for AI-powered queries.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="email-footer">
+            <p class="footer-text">
+                This email was sent by DocuTrain.<br>
+                If you have any questions, please contact our support team.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+

@@ -1,27 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useImperativeHandle, forwardRef } from 'react';
 import { UploadZone } from './UploadZone';
 import { TextUploadZone } from './TextUploadZone';
 import { Modal } from '@/components/UI/Modal';
 import { Button } from '@/components/UI/Button';
+import { Alert } from '@/components/UI/Alert';
 
 interface CombinedUploadZoneProps {
   onUploadSuccess?: () => void;
 }
 
-export function CombinedUploadZone({ onUploadSuccess }: CombinedUploadZoneProps) {
+export interface CombinedUploadZoneRef {
+  closeModal: () => void;
+}
+
+export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUploadZoneProps>(
+  ({ onUploadSuccess }, ref) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'pdf' | 'text'>('pdf');
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   const handleUploadSuccess = () => {
     if (onUploadSuccess) {
       onUploadSuccess();
     }
-    // Close modal after successful upload
-    setTimeout(() => {
-      setIsModalOpen(false);
-      setActiveTab('pdf'); // Reset to PDF tab for next time
-    }, 1500);
+    // Show success message - modal stays open so user can read it
+    setShowSuccessMessage(true);
   };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setActiveTab('pdf');
+    setShowSuccessMessage(false);
+  };
+
+  // Expose closeModal method via ref
+  useImperativeHandle(ref, () => ({
+    closeModal: handleModalClose
+  }));
 
   return (
     <>
@@ -32,6 +47,7 @@ export function CombinedUploadZone({ onUploadSuccess }: CombinedUploadZoneProps)
           <button
             onClick={() => {
               setActiveTab('pdf');
+              setShowSuccessMessage(false);
               setIsModalOpen(true);
             }}
             className="group relative bg-gradient-to-br from-docutrain-light to-docutrain-medium hover:from-docutrain-medium hover:to-docutrain-dark text-white rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-docutrain-light focus:ring-offset-2 flex flex-row items-center gap-2 px-4 py-3 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-100 flex-shrink-0 h-full"
@@ -58,6 +74,7 @@ export function CombinedUploadZone({ onUploadSuccess }: CombinedUploadZoneProps)
           <button
             onClick={() => {
               setActiveTab('text');
+              setShowSuccessMessage(false);
               setIsModalOpen(true);
             }}
             className="group relative bg-gradient-to-br from-docutrain-medium to-docutrain-dark hover:from-docutrain-dark hover:to-docutrain-dark/90 text-white rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-docutrain-medium focus:ring-offset-2 flex flex-row items-center gap-2 px-4 py-3 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-100 flex-shrink-0 h-full"
@@ -83,73 +100,102 @@ export function CombinedUploadZone({ onUploadSuccess }: CombinedUploadZoneProps)
       {/* Upload Modal */}
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Upload New Document"
+        onClose={handleModalClose}
+        title={showSuccessMessage ? "Upload Successful" : "Upload New Document"}
         size="lg"
       >
-        <div className="space-y-4">
-          {/* Tab Navigation */}
-          <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab('pdf')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'pdf'
-                  ? 'border-docutrain-light text-docutrain-light'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Upload PDF File
-            </button>
-            <button
-              onClick={() => setActiveTab('text')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'text'
-                  ? 'border-docutrain-light text-docutrain-light'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Paste Text Content
-            </button>
+        {showSuccessMessage ? (
+          /* Success View - Clean and focused */
+          <div className="space-y-4">
+            <Alert variant="success">
+              <div className="space-y-3">
+                <p className="font-semibold text-lg">
+                  {activeTab === 'pdf' ? 'PDF Upload Successful!' : 'Text Upload Successful!'}
+                </p>
+                <p className="text-sm">
+                  Your {activeTab === 'pdf' ? 'document' : 'text'} is now being processed. You can watch the progress in the <strong>"Your Uploaded Documents"</strong> section below.
+                </p>
+                <div className="pt-2">
+                  <Button onClick={handleModalClose} className="w-full">
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </Alert>
           </div>
+        ) : (
+          /* Upload View - Normal upload interface */
+          <div className="space-y-4">
+            {/* Tab Navigation */}
+            <div className="flex border-b border-gray-200">
+              <button
+                onClick={() => {
+                  setActiveTab('pdf');
+                  setShowSuccessMessage(false);
+                }}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'pdf'
+                    ? 'border-docutrain-light text-docutrain-light'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Upload PDF File
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('text');
+                  setShowSuccessMessage(false);
+                }}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'text'
+                    ? 'border-docutrain-light text-docutrain-light'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Paste Text Content
+              </button>
+            </div>
 
-          {/* Tab Content */}
-          <div className="max-h-[calc(100vh-250px)] overflow-y-auto">
-            {activeTab === 'pdf' ? (
-              <div className="space-y-4">
-                <div className="text-sm text-gray-600">
-                  <p className="mb-2">
-                    <strong>PDF Upload:</strong> Upload PDF documents that will be automatically processed and made searchable.
-                  </p>
-                  <ul className="ml-4 space-y-1 text-xs">
-                    <li>• Supports PDF files up to 75MB (superadmin) or 50MB (regular users)</li>
-                    <li>• Text is automatically extracted from the PDF</li>
-                    <li>• Processing includes text chunking and AI embedding generation</li>
-                    <li>• Takes 1-10 minutes depending on document size</li>
-                  </ul>
+            {/* Tab Content */}
+            <div className="max-h-[calc(100vh-250px)] overflow-y-auto">
+              {activeTab === 'pdf' ? (
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-600">
+                    <p className="mb-2">
+                      <strong>PDF Upload:</strong> Upload PDF documents that will be automatically processed and made searchable.
+                    </p>
+                    <ul className="ml-4 space-y-1 text-xs">
+                      <li>• Supports PDF files up to 75MB (superadmin) or 50MB (regular users)</li>
+                      <li>• Text is automatically extracted from the PDF</li>
+                      <li>• Processing includes text chunking and AI embedding generation</li>
+                      <li>• Takes 1-10 minutes depending on document size</li>
+                    </ul>
+                  </div>
+                  <UploadZone onUploadSuccess={handleUploadSuccess} suppressSuccessMessage />
                 </div>
-                <UploadZone onUploadSuccess={handleUploadSuccess} />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="text-sm text-gray-600">
-                  <p className="mb-2">
-                    <strong>Text Upload:</strong> Directly paste text content to train the AI without needing a PDF file.
-                  </p>
-                  <ul className="ml-4 space-y-1 text-xs">
-                    <li>• Supports up to 5 million characters of text</li>
-                    <li>• Perfect for articles, notes, research papers, or any text content</li>
-                    <li>• Bypasses PDF extraction - text goes directly to processing</li>
-                    <li>• Faster processing since no file download/extraction is needed</li>
-                    <li>• Great for content that's already in text format</li>
-                  </ul>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-600">
+                    <p className="mb-2">
+                      <strong>Text Upload:</strong> Directly paste text content to train the AI without needing a PDF file.
+                    </p>
+                    <ul className="ml-4 space-y-1 text-xs">
+                      <li>• Supports up to 5 million characters of text</li>
+                      <li>• Perfect for articles, notes, research papers, or any text content</li>
+                      <li>• Bypasses PDF extraction - text goes directly to processing</li>
+                      <li>• Faster processing since no file download/extraction is needed</li>
+                      <li>• Great for content that's already in text format</li>
+                    </ul>
+                  </div>
+                  <TextUploadZone onUploadSuccess={handleUploadSuccess} suppressSuccessMessage />
                 </div>
-                <TextUploadZone onUploadSuccess={handleUploadSuccess} />
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </Modal>
     </>
   );
-}
+  }
+);
 

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dashboard } from '@/components/Dashboard/Dashboard';
-import { CombinedUploadZone } from '@/components/Upload/CombinedUploadZone';
+import { CombinedUploadZone, CombinedUploadZoneRef } from '@/components/Upload/CombinedUploadZone';
 import { DocumentsTable, DocumentsTableRef } from '@/components/Admin/DocumentsTable';
 import { UserDocumentsTable, UserDocumentsTableRef } from '@/components/Admin/UserDocumentsTable';
 import { UsersTable } from '@/components/Admin/UsersTable';
@@ -30,6 +30,7 @@ export function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'documents' | 'users' | 'owners' | 'owner-settings'>('documents');
   const userDocumentsTableRef = useRef<UserDocumentsTableRef>(null);
   const documentsTableRef = useRef<DocumentsTableRef>(null);
+  const uploadZoneRef = useRef<CombinedUploadZoneRef>(null);
   const [hasActiveDocuments, setHasActiveDocuments] = useState(false);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const prevHasActiveRef = useRef<boolean>(false);
@@ -82,6 +83,8 @@ export function DashboardPage() {
             
             if (completedDoc) {
               console.log('✅ Found completed document:', completedDoc.id, completedDoc.title);
+              // Close upload success modal if it's still open
+              uploadZoneRef.current?.closeModal();
               // Check if document already has category configured
               const needsConfig = !completedDoc.category;
               // Open modal with config prompt if category is missing
@@ -96,6 +99,8 @@ export function DashboardPage() {
                   return metadata?.user_document_id === completedDocumentId;
                 });
                 if (retryDoc) {
+                  // Close upload success modal if it's still open
+                  uploadZoneRef.current?.closeModal();
                   const needsConfig = !retryDoc.category;
                   await documentsTableRef.current?.openEditorModal(retryDoc.id, needsConfig);
                 }
@@ -355,7 +360,9 @@ export function DashboardPage() {
                 </p>
               </div>
               <div className="p-5 sm:p-7">
-                <CombinedUploadZone onUploadSuccess={() => {
+                <CombinedUploadZone 
+                  ref={uploadZoneRef}
+                  onUploadSuccess={() => {
                   // Immediately show the processing section (upload always creates active doc)
                   setHasActiveDocuments(true);
                   // Wait 200ms before first refresh to avoid race condition with database commit

@@ -557,13 +557,13 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
   };
 
   const getStatusBadge = (doc: UserDocument, logs?: ProcessingLog[]) => {
-    const baseClasses = 'px-2 py-1 text-xs font-medium rounded-full inline-flex items-center gap-1';
+    const baseClasses = 'px-3 py-1.5 text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 transition-all duration-200';
     
     switch (doc.status) {
       case 'pending':
         return (
-          <span className={`${baseClasses} bg-gray-100 text-gray-700`}>
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span className={`${baseClasses} bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200 shadow-sm`}>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Pending
@@ -575,25 +575,38 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
           const progress = parseProcessingProgress(logs);
           console.log(`🎨 [getStatusBadge] Parsed progress:`, progress);
           return (
-            <div className="flex flex-col gap-1.5 w-full md:min-w-[140px]">
-              <span className={`${baseClasses} bg-blue-100 text-blue-700`}>
+            <div className="flex flex-col gap-2 w-full md:min-w-[180px]">
+              <span className={`${baseClasses} bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border border-blue-200 shadow-sm`}>
                 <Spinner size="sm" />
-                {progress.stageLabel}
+                <span className="font-semibold">{progress.stageLabel}</span>
               </span>
               {progress.batchInfo && (
-                <span className="text-xs text-gray-600 px-1 font-medium">
+                <span className="text-xs text-gray-600 px-2 py-0.5 font-medium bg-gray-50 rounded-md inline-block w-fit">
                   {progress.batchInfo}
                 </span>
               )}
               {progress.progressPercent > 0 && (
-                <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner border border-gray-200">
                   <div 
-                    className="h-full bg-blue-600 transition-all duration-500 ease-out"
+                    className="h-full bg-gradient-to-r from-blue-500 via-blue-600 to-blue-500 transition-all duration-700 ease-out relative overflow-hidden"
                     style={{ width: `${progress.progressPercent}%` }}
-                  />
+                  >
+                    {/* Animated shimmer effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+                  </div>
                 </div>
               )}
-              {progress.message && progress.message !== progress.stageLabel && (
+              {progress.progressPercent > 0 && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500 font-medium">{progress.progressPercent}%</span>
+                  {progress.message && progress.message !== progress.stageLabel && (
+                    <span className="text-gray-400 truncate flex-1 ml-2" title={progress.message}>
+                      {progress.message}
+                    </span>
+                  )}
+                </div>
+              )}
+              {progress.message && progress.message !== progress.stageLabel && !progress.progressPercent && (
                 <span className="text-xs text-gray-500 px-1 truncate" title={progress.message}>
                   {progress.message}
                 </span>
@@ -603,15 +616,15 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         }
         // Fallback if no logs available yet
         return (
-          <span className={`${baseClasses} bg-blue-100 text-blue-700`}>
+          <span className={`${baseClasses} bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border border-blue-200 shadow-sm`}>
             <Spinner size="sm" />
             Processing
           </span>
         );
       case 'ready':
         return (
-          <span className={`${baseClasses} bg-green-100 text-green-700`}>
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span className={`${baseClasses} bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200 shadow-sm`}>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
             Ready
@@ -619,8 +632,8 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         );
       case 'error':
         return (
-          <span className={`${baseClasses} bg-red-100 text-red-700`}>
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span className={`${baseClasses} bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border border-red-200 shadow-sm`}>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
             Error
@@ -663,51 +676,51 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Desktop Table View */}
-      <div className="hidden md:block overflow-x-auto">
+      <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Title
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 File Size
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Uploaded
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Last Updated
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-100">
             {activeDocuments.map((doc) => (
-              <tr key={doc.id} className="hover:bg-gray-50">
+              <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors duration-150">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{doc.title}</div>
+                  <div className="text-sm font-semibold text-gray-900">{doc.title}</div>
                   {doc.error_message && (
-                    <div className="text-xs text-red-600 mt-1">{doc.error_message}</div>
+                    <div className="text-xs text-red-600 mt-1.5 font-medium">{doc.error_message}</div>
                   )}
                 </td>
                 <td className="px-6 py-4">
                   {getStatusBadge(doc, logsMap[doc.id])}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">
                   {formatFileSize(doc.file_size)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {formatDate(doc.created_at)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {formatDate(doc.updated_at)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -750,16 +763,18 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
       </div>
 
       {/* Mobile Card View */}
-      <div className="md:hidden space-y-3">
+      <div className="md:hidden space-y-4">
         {activeDocuments.map((doc) => (
-          <div key={doc.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="space-y-3">
+          <div key={doc.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200">
+            <div className="space-y-4">
               {/* Title and Status */}
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 <div className="w-full">
-                  <div className="text-sm font-medium text-gray-900 break-words">{doc.title}</div>
+                  <div className="text-sm font-semibold text-gray-900 break-words">{doc.title}</div>
                   {doc.error_message && (
-                    <div className="text-xs text-red-600 mt-1 break-words">{doc.error_message}</div>
+                    <div className="text-xs text-red-600 mt-2 break-words font-medium bg-red-50 p-2 rounded-md border border-red-100">
+                      {doc.error_message}
+                    </div>
                   )}
                 </div>
                 <div className="w-full">
@@ -768,25 +783,25 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
               </div>
               
               {/* File Info */}
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-2 gap-4 text-xs bg-gray-50 p-3 rounded-lg">
                 <div>
-                  <div className="text-gray-500">File Size</div>
-                  <div className="text-gray-900 font-medium">{formatFileSize(doc.file_size)}</div>
+                  <div className="text-gray-500 font-medium mb-1">File Size</div>
+                  <div className="text-gray-900 font-semibold">{formatFileSize(doc.file_size)}</div>
                 </div>
                 <div>
-                  <div className="text-gray-500">Uploaded</div>
-                  <div className="text-gray-900 font-medium">{formatDate(doc.created_at)}</div>
+                  <div className="text-gray-500 font-medium mb-1">Uploaded</div>
+                  <div className="text-gray-900 font-semibold">{formatDate(doc.created_at)}</div>
                 </div>
               </div>
               
-              <div className="text-xs">
-                <div className="text-gray-500">Last Updated</div>
-                <div className="text-gray-900 font-medium">{formatDate(doc.updated_at)}</div>
+              <div className="text-xs bg-gray-50 p-3 rounded-lg">
+                <div className="text-gray-500 font-medium mb-1">Last Updated</div>
+                <div className="text-gray-900 font-semibold">{formatDate(doc.updated_at)}</div>
               </div>
               
               {/* Actions - Show for non-ready documents */}
               {doc.status !== 'ready' && (
-                <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+                <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
                   {/* Show retry button for error, pending, or stuck processing documents */}
                   {(doc.status === 'error' || doc.status === 'pending' || (doc.status === 'processing' && isDocumentStuck(doc))) && (
                     <Button

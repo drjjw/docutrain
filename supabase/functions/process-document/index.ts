@@ -905,6 +905,51 @@ async function processUserDocument(userDocId: string) {
       chunks: inserted
     });
     
+    // Send success notification email
+    try {
+      const baseUrl = Deno.env.get('SITE_URL') || Deno.env.get('PUBLIC_BASE_URL') || 'https://docutrain.io';
+      const documentUrl = `/app/documents?doc=${documentSlug}`;
+      
+      const notificationUrl = `${supabaseUrl}/functions/v1/send-processing-notification`;
+      console.log(`📧 Sending success notification for user ${userDoc.user_id}, document: ${userDoc.title}`);
+      
+      const notificationResponse = await fetch(notificationUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+        },
+        body: JSON.stringify({
+          user_id: userDoc.user_id,
+          document_title: userDoc.title,
+          document_url: documentUrl,
+          status: 'success',
+          stats: {
+            pages,
+            chunks: inserted,
+            processingTimeMs: processingTime
+          },
+          processing_method: 'edge_function'
+        }),
+      });
+      
+      if (!notificationResponse.ok) {
+        const errorText = await notificationResponse.text();
+        console.error(`❌ Failed to send success notification (${notificationResponse.status}):`, errorText);
+      } else {
+        const result = await notificationResponse.json();
+        console.log(`✅ Success notification sent:`, result);
+      }
+    } catch (notificationError) {
+      // Don't fail processing if notification fails
+      console.error('⚠️ Failed to send success notification:', notificationError);
+      console.error('Error details:', notificationError instanceof Error ? notificationError.message : String(notificationError));
+      if (notificationError instanceof Error && notificationError.stack) {
+        console.error('Stack trace:', notificationError.stack);
+      }
+    }
+    
     return {
       success: true,
       documentSlug,
@@ -933,6 +978,56 @@ async function processUserDocument(userDocId: string) {
         updated_at: new Date().toISOString()
       })
       .eq('id', userDocId);
+    
+    // Send failure notification email
+    try {
+      // Get user document for title and user_id
+      const { data: userDocForError } = await supabase
+        .from('user_documents')
+        .select('title, user_id, processing_method')
+        .eq('id', userDocId)
+        .single();
+      
+      if (userDocForError) {
+        const baseUrl = Deno.env.get('SITE_URL') || Deno.env.get('PUBLIC_BASE_URL') || 'https://docutrain.io';
+        const documentUrl = documentSlug ? `/app/documents?doc=${documentSlug}` : null;
+        
+        const notificationUrl = `${supabaseUrl}/functions/v1/send-processing-notification`;
+        console.log(`📧 Sending failure notification for user ${userDocForError.user_id}, document: ${userDocForError.title}`);
+        
+        const notificationResponse = await fetch(notificationUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+          },
+          body: JSON.stringify({
+            user_id: userDocForError.user_id,
+            document_title: userDocForError.title || 'Document',
+            document_url: documentUrl,
+            status: 'failure',
+            error_message: errorMessage,
+            error_details: error instanceof Error ? error.stack : undefined,
+            processing_method: userDocForError.processing_method || 'edge_function'
+          }),
+        });
+        
+        if (!notificationResponse.ok) {
+          const errorText = await notificationResponse.text();
+          console.error(`❌ Failed to send failure notification (${notificationResponse.status}):`, errorText);
+        } else {
+          const result = await notificationResponse.json();
+          console.log(`✅ Failure notification sent:`, result);
+        }
+      } else {
+        console.warn(`⚠️ Could not find user document ${userDocId} for failure notification`);
+      }
+    } catch (notificationError) {
+      // Don't fail processing if notification fails
+      console.error('⚠️ Failed to send failure notification:', notificationError);
+      console.error('Error details:', notificationError instanceof Error ? notificationError.message : String(notificationError));
+    }
     
     throw error;
   }
