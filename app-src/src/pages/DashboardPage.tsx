@@ -271,7 +271,7 @@ export function DashboardPage() {
         {/* Navigation Tabs - Only show if user has admin access */}
         {hasAdminAccess && (
           <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden">
-            <nav className="flex flex-col sm:flex-row gap-2 sm:gap-1 sm:space-x-1 sm:space-x-2 px-2 sm:px-4 py-2">
+            <nav className="flex flex-col sm:flex-row">
               <button
                 onClick={() => handleTabChange('documents')}
                 className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
@@ -288,7 +288,7 @@ export function DashboardPage() {
                 className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
                   activeTab === 'users'
                     ? 'text-docutrain-light border border-blue-100 border-b-2 border-b-docutrain-light bg-blue-50'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 sm:ml-1'
                   }`}
                 >
                   User Management
@@ -300,7 +300,7 @@ export function DashboardPage() {
                 className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
                   activeTab === 'owner-settings'
                     ? 'text-docutrain-light border border-blue-100 border-b-2 border-b-docutrain-light bg-blue-50'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 sm:ml-1'
                   }`}
                 >
                   Owner Settings
@@ -312,7 +312,7 @@ export function DashboardPage() {
                 className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
                   activeTab === 'owners'
                     ? 'text-docutrain-light border border-blue-100 border-b-2 border-b-docutrain-light bg-blue-50'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 sm:ml-1'
                   }`}
                 >
                   Owner Management
