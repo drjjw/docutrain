@@ -5,6 +5,7 @@ import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/UI/Tabs';
 import { updateDocument, checkSlugUniqueness } from '@/lib/supabase/admin';
 import { DocumentOverviewSection } from './DocumentOverviewSection';
 import { DocumentRetrainSection } from './DocumentRetrainSection';
+import { DocumentTrainingHistory } from './DocumentTrainingHistory';
 import { DocumentBasicInfoCard } from './DocumentBasicInfoCard';
 import { DocumentFileDetailsCard } from './DocumentFileDetailsCard';
 import { DocumentSettingsCard } from './DocumentSettingsCard';
@@ -314,7 +315,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
               </div>
               <button
                 onClick={handleClose}
-                className="relative w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2"
+                className="relative w-10 h-10 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600 text-white border-2 border-white transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
                 aria-label="Close modal"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -342,12 +343,13 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
               <TabList>
                 <Tab index={0}>Overview</Tab>
                 <Tab index={1}>Retrain Document</Tab>
-                <Tab index={2}>Settings & Access</Tab>
-                <Tab index={3}>UI</Tab>
-                <Tab index={4}>Disclaimer</Tab>
-                <Tab index={5}>Attachments</Tab>
-                <Tab index={6}>Embed Code</Tab>
-                {isSuperAdmin && <Tab index={7}>Metadata</Tab>}
+                <Tab index={2}>Training History</Tab>
+                <Tab index={3}>Settings & Access</Tab>
+                <Tab index={4}>UI</Tab>
+                <Tab index={5}>Disclaimer</Tab>
+                <Tab index={6}>Attachments</Tab>
+                <Tab index={7}>Embed Code</Tab>
+                {isSuperAdmin && <Tab index={8}>Metadata</Tab>}
               </TabList>
 
               <TabPanels>
@@ -413,7 +415,14 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                   </div>
                 </TabPanel>
 
-                {/* Tab 3: Settings & Access */}
+                {/* Tab 3: Training History */}
+                <TabPanel>
+                  <div className="space-y-8">
+                    <DocumentTrainingHistory documentSlug={document.slug || ''} />
+                  </div>
+                </TabPanel>
+
+                {/* Tab 4: Settings & Access */}
                 <TabPanel>
                   <div className="space-y-8">
                     <DocumentSettingsCard

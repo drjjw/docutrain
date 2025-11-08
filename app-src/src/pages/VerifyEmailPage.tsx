@@ -29,6 +29,11 @@ export function VerifyEmailPage() {
   }, [tokenHash, type]);
 
   const handleVerify = async () => {
+    // Prevent double-clicks
+    if (verifying) {
+      return;
+    }
+
     if (!tokenHash || !type) {
       setError('Invalid verification link.');
       return;

@@ -25,7 +25,7 @@ export function DocumentRetrainSection({
           </div>
           <div className="text-left">
             <h4 className="text-lg font-semibold text-gray-900">Retrain Document</h4>
-            <p className="text-sm text-gray-600">Replace existing content with new PDF or text</p>
+            <p className="text-sm text-gray-600">Replace or add to existing content with new PDF or text</p>
           </div>
         </div>
       </div>
@@ -63,12 +63,12 @@ export function DocumentRetrainSection({
             <div className="space-y-4">
               <div className="text-sm text-gray-600">
                 <p className="mb-2">
-                  <strong>PDF Retraining:</strong> Upload a new PDF to replace all existing training data.
+                  <strong>PDF Retraining:</strong> Upload a new PDF to replace or add to existing training data.
                 </p>
                 <ul className="ml-4 space-y-1 text-xs">
                   <li>• Supports PDF files up to 75MB (superadmin) or 50MB (regular users)</li>
                   <li>• Text is automatically extracted from the PDF</li>
-                  <li>• All existing chunks for this document will be deleted</li>
+                  <li>• Choose "Replace" to delete all existing chunks, or "Add" to keep existing chunks</li>
                   <li>• Processing includes text chunking and AI embedding generation</li>
                 </ul>
               </div>
@@ -77,14 +77,14 @@ export function DocumentRetrainSection({
             <div className="space-y-4">
               <div className="text-sm text-gray-600">
                 <p className="mb-2">
-                  <strong>Text Retraining:</strong> Directly replace content with new text without needing a PDF file.
+                  <strong>Text Retraining:</strong> Directly replace or add content with new text without needing a PDF file.
                 </p>
                 <ul className="ml-4 space-y-1 text-xs">
                   <li>• Supports up to 5 million characters of text</li>
                   <li>• Perfect for articles, notes, research papers, or any text content</li>
                   <li>• Bypasses PDF extraction - text goes directly to processing</li>
                   <li>• Faster processing since no file download/extraction is needed</li>
-                  <li>• All existing chunks for this document will be deleted</li>
+                  <li>• Choose "Replace" to delete all existing chunks, or "Add" to keep existing chunks</li>
                 </ul>
               </div>
             </div>
@@ -98,9 +98,10 @@ export function DocumentRetrainSection({
               <div className="text-sm text-amber-800">
                 <p className="font-medium mb-1">Important:</p>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>This will delete all existing chunks for this document</li>
+                  <li>In "Replace" mode, all existing chunks will be deleted. In "Add" mode, existing chunks are preserved.</li>
                   <li>The document slug <span className="font-mono bg-amber-100 px-1 rounded">{document.slug}</span> will be preserved</li>
                   <li>All metadata and settings will remain unchanged</li>
+                  <li>In "Add" mode, abstract and keywords will be regenerated from all chunks (old + new)</li>
                   <li>Processing may take several minutes</li>
                 </ul>
               </div>

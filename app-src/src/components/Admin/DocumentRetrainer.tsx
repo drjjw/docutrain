@@ -34,6 +34,30 @@ export function DocumentRetrainer({
   const [success, setSuccess] = useState(false);
   const [userDocumentId, setUserDocumentId] = useState<string | null>(null);
   const [processingStatus, setProcessingStatus] = useState<string>('');
+  const [retrainMode, setRetrainMode] = useState<'replace' | 'add'>('replace');
+  const [existingChunkCount, setExistingChunkCount] = useState<number | null>(null);
+
+  // Fetch existing chunk count when component mounts or documentSlug changes
+  useEffect(() => {
+    const fetchChunkCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('document_chunks')
+          .select('*', { count: 'exact', head: true })
+          .eq('document_slug', documentSlug);
+        
+        if (!error && count !== null && count !== undefined) {
+          setExistingChunkCount(count);
+        }
+      } catch (err) {
+        console.error('Error fetching chunk count:', err);
+      }
+    };
+
+    if (documentSlug) {
+      fetchChunkCount();
+    }
+  }, [documentSlug]);
 
   // Poll processing status
   useEffect(() => {
@@ -123,7 +147,7 @@ export function DocumentRetrainer({
         if (!fileToUpload) {
           throw new Error('No file selected');
         }
-        const result = await retrainDocument(documentId, fileToUpload, false);
+        const result = await retrainDocument(documentId, fileToUpload, false, retrainMode);
         setUserDocumentId(result.user_document_id);
         setProgress(20);
         setProcessingStatus('Processing started...');
@@ -163,7 +187,8 @@ export function DocumentRetrainer({
           },
           body: JSON.stringify({
             document_id: documentId,
-            content: textContent.trim()
+            content: textContent.trim(),
+            retrain_mode: retrainMode
           }),
         });
 
@@ -202,6 +227,7 @@ export function DocumentRetrainer({
     setSuccess(false);
     setProgress(0);
     setProcessingStatus('');
+    setRetrainMode('replace');
     if (uploadMode === 'pdf') {
       setSelectedFile(null);
     } else {
@@ -222,13 +248,74 @@ export function DocumentRetrainer({
           <div className="space-y-1">
             <p className="font-medium">Retraining complete!</p>
             <p className="text-sm">
-              Document <strong>{documentSlug}</strong> has been successfully retrained with the new PDF content.
+              Document <strong>{documentSlug}</strong> has been successfully {retrainMode === 'replace' ? 'retrained' : 'updated'} with the new {uploadMode === 'pdf' ? 'PDF' : 'text'} content.
             </p>
           </div>
         </Alert>
       )}
 
       <div className="space-y-4">
+        {/* Retrain Mode Selection */}
+        <div className="space-y-3 p-4 bg-white border border-gray-200 rounded-lg">
+          <label className="block text-sm font-medium text-gray-700">
+            Retrain Mode
+          </label>
+          <div className="space-y-2">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="retrainMode"
+                value="replace"
+                checked={retrainMode === 'replace'}
+                onChange={(e) => setRetrainMode(e.target.value as 'replace' | 'add')}
+                disabled={retraining}
+                className="mt-1 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300"
+              />
+              <div className="flex-1">
+                <div className="text-sm font-medium text-gray-900">
+                  Replace all chunks
+                </div>
+                <div className="text-xs text-gray-600 mt-0.5">
+                  Deletes all existing chunks and replaces them with new content
+                </div>
+              </div>
+            </label>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="retrainMode"
+                value="add"
+                checked={retrainMode === 'add'}
+                onChange={(e) => setRetrainMode(e.target.value as 'replace' | 'add')}
+                disabled={retraining}
+                className="mt-1 h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300"
+              />
+              <div className="flex-1">
+                <div className="text-sm font-medium text-gray-900">
+                  Add to existing chunks
+                </div>
+                <div className="text-xs text-gray-600 mt-0.5">
+                  Keeps existing chunks and adds new ones. Abstract and keywords will be regenerated from all chunks (old + new)
+                  {existingChunkCount !== null && (
+                    <span className="ml-1 font-medium text-amber-600">
+                      ({existingChunkCount} existing chunks)
+                    </span>
+                  )}
+                </div>
+              </div>
+            </label>
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <p className="text-xs text-gray-500">
+              <strong>When to use each mode:</strong>
+            </p>
+            <ul className="mt-1 ml-4 text-xs text-gray-500 space-y-0.5 list-disc">
+              <li><strong>Replace:</strong> When you want to completely update the document content</li>
+              <li><strong>Add:</strong> When you want to supplement existing content with additional information</li>
+            </ul>
+          </div>
+        </div>
+
         {uploadMode === 'pdf' ? (
           <>
             <div>
@@ -254,7 +341,11 @@ export function DocumentRetrainer({
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                Warning: This will replace all existing training data for this document
+                {retrainMode === 'replace' 
+                  ? 'Warning: This will replace all existing training data for this document'
+                  : existingChunkCount !== null 
+                    ? `This will add new chunks to the existing ${existingChunkCount} chunks`
+                    : 'This will add new chunks to existing chunks'}
               </p>
             </div>
 
@@ -311,7 +402,11 @@ export function DocumentRetrainer({
                   </span>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Paste new text content to replace the existing document. All current chunks will be deleted and replaced.
+                  {retrainMode === 'replace' 
+                    ? 'Paste new text content to replace the existing document. All current chunks will be deleted and replaced.'
+                    : existingChunkCount !== null
+                      ? `Paste new text content to add to the existing document. New chunks will be added to the existing ${existingChunkCount} chunks.`
+                      : 'Paste new text content to add to the existing document. New chunks will be added to existing chunks.'}
                 </p>
               </div>
 

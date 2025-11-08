@@ -13,16 +13,21 @@ if [ "$SKIP_DEPS" = true ]; then
 else
   DEPS_CMD="PACKAGE_HASH=\$(md5sum package.json 2>/dev/null | cut -d' ' -f1 || md5 -q package.json 2>/dev/null) && \
     STORED_HASH=\$(cat .package.json.hash 2>/dev/null || echo '') && \
-    if [ \"\$PACKAGE_HASH\" != \"\$STORED_HASH\" ] || [ ! -d node_modules ]; then \
-      echo '📦 package.json changed or node_modules missing - cleaning and reinstalling...' && \
+    NODE_MODULES_VALID=\$([ -d node_modules/express ] && echo 'true' || echo 'false') && \
+    if [ \"\$PACKAGE_HASH\" != \"\$STORED_HASH\" ] || [ ! -d node_modules ] || [ \"\$NODE_MODULES_VALID\" != 'true' ]; then \
+      echo '📦 package.json changed, node_modules missing, or invalid - cleaning and reinstalling...' && \
       rm -rf node_modules package-lock.json && \
       echo 'Installing dependencies...' && \
-      npm install --ignore-scripts=false --legacy-peer-deps && \
-      echo \$PACKAGE_HASH > .package.json.hash && \
-      echo 'Verifying sharp installation...' && \
-      (node -e \"require('sharp')\" 2>/dev/null && echo '✓ sharp module OK' || echo '⚠️  sharp may need rebuild: npm rebuild sharp'); \
+      if npm install --ignore-scripts=false --legacy-peer-deps; then \
+        echo \$PACKAGE_HASH > .package.json.hash && \
+        echo 'Verifying critical modules...' && \
+        (node -e \"require('express')\" 2>/dev/null && echo '✓ express OK' || (echo '❌ express missing!' && exit 1)) && \
+        (node -e \"require('sharp')\" 2>/dev/null && echo '✓ sharp OK' || echo '⚠️  sharp may need rebuild: npm rebuild sharp'); \
+      else \
+        echo '❌ npm install failed!' && exit 1; \
+      fi; \
     else \
-      echo '📦 No package.json changes - skipping dependency reinstall'; \
+      echo '📦 No package.json changes and node_modules valid - skipping dependency reinstall'; \
     fi &&"
 fi
 

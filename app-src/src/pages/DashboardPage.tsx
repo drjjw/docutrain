@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dashboard } from '@/components/Dashboard/Dashboard';
 import { CombinedUploadZone } from '@/components/Upload/CombinedUploadZone';
 import { DocumentsTable, DocumentsTableRef } from '@/components/Admin/DocumentsTable';
@@ -13,6 +13,7 @@ import { Alert } from '@/components/UI/Alert';
 import { Spinner } from '@/components/UI/Spinner';
 import { getUserProfile } from '@/lib/supabase/database';
 import { getDocuments } from '@/lib/supabase/admin';
+import { docutrainIconUrl } from '@/assets';
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -201,8 +202,17 @@ export function DashboardPage() {
         <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 p-6 sm:p-8 hover:shadow-xl transition-shadow duration-300">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* User Avatar or Owner Logo */}
-            {!isSuperAdmin && hasAdminAccess && ownerGroups.length > 0 && ownerGroups[0].owner_logo_url ? (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-white border-2 border-gray-200/60 shadow-sm flex items-center justify-center flex-shrink-0 p-3 transition-transform duration-300 hover:scale-105">
+            {isSuperAdmin ? (
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-white border-2 border-gray-200/60 shadow-sm flex items-center justify-center flex-shrink-0 p-2 transition-transform duration-300 hover:scale-105">
+                <img 
+                  src={docutrainIconUrl} 
+                  alt="DocuTrain" 
+                  className="w-full h-full object-contain"
+                  title="Super Administrator"
+                />
+              </div>
+            ) : hasAdminAccess && ownerGroups.length > 0 && ownerGroups[0].owner_logo_url ? (
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-white border-2 border-gray-200/60 shadow-sm flex items-center justify-center flex-shrink-0 p-2 transition-transform duration-300 hover:scale-105">
                 <img 
                   src={ownerGroups[0].owner_logo_url} 
                   alt={ownerGroups[0].owner_name} 
@@ -211,28 +221,36 @@ export function DashboardPage() {
                 />
               </div>
             ) : (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-docutrain-light flex items-center justify-center text-xl sm:text-2xl font-bold text-white flex-shrink-0 shadow-lg shadow-docutrain-light/30 transition-transform duration-300 hover:scale-105">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-docutrain-light flex items-center justify-center text-xl sm:text-2xl font-bold text-white flex-shrink-0 shadow-lg shadow-docutrain-light/30 transition-transform duration-300 hover:scale-105">
                 {getUserInitials()}
               </div>
             )}
-            <div className="flex-1 min-w-0 text-center sm:text-left">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-                Welcome back!
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-500 mb-2">
+                Welcome back
               </h1>
-              <p className="text-base sm:text-lg text-gray-600 break-words font-medium mb-3">
+              <p className="text-2xl sm:text-3xl text-gray-900 break-words font-bold mb-4">
                 {getUserDisplayName()}
               </p>
-              <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
+              <div className="flex flex-wrap items-center gap-3">
                 {isSuperAdmin ? (
                   <PermissionsBadge role="super_admin" />
                 ) : hasAdminAccess ? (
-                  ownerGroups.map((og) => (
-                    <PermissionsBadge
-                      key={og.owner_id}
-                      role={og.role}
-                      ownerName={og.owner_name}
-                    />
-                  ))
+                  <>
+                    {ownerGroups.map((og) => (
+                      <div key={og.owner_id} className="flex items-center gap-2.5">
+                        <PermissionsBadge role={og.role} />
+                        {og.owner_name && (
+                          <>
+                            <span className="text-gray-300">|</span>
+                            <span className="text-sm text-gray-700 font-medium">
+                              {og.owner_name}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </>
                 ) : null}
               </div>
             </div>
@@ -242,10 +260,10 @@ export function DashboardPage() {
         {/* Navigation Tabs - Only show if user has admin access */}
         {hasAdminAccess && (
           <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden">
-            <nav className="flex space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 min-w-max">
+            <nav className="flex flex-col sm:flex-row gap-2 sm:gap-1 sm:space-x-1 sm:space-x-2 px-2 sm:px-4 py-2">
               <button
                 onClick={() => handleTabChange('documents')}
-                className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-sm whitespace-nowrap transition-all duration-200 ${
+                className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 ${
                   activeTab === 'documents'
                     ? 'bg-docutrain-light text-white shadow-md shadow-docutrain-light/30'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
@@ -256,7 +274,7 @@ export function DashboardPage() {
               {(isSuperAdmin || isOwnerAdmin) && (
                 <button
                   onClick={() => handleTabChange('users')}
-                className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-sm whitespace-nowrap transition-all duration-200 ${
+                className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 ${
                   activeTab === 'users'
                     ? 'bg-docutrain-light text-white shadow-md shadow-docutrain-light/30'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
@@ -268,7 +286,7 @@ export function DashboardPage() {
               {isSuperAdmin && (
                 <button
                   onClick={() => handleTabChange('owners')}
-                className={`px-4 sm:px-6 py-3 rounded-lg font-semibold text-sm whitespace-nowrap transition-all duration-200 ${
+                className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 ${
                   activeTab === 'owners'
                     ? 'bg-docutrain-light text-white shadow-md shadow-docutrain-light/30'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
@@ -291,7 +309,11 @@ export function DashboardPage() {
                 Once a system administrator assigns you a role and owner group, you'll be able to access all features.
               </p>
               <p className="text-sm text-gray-600">
-                Please check back later or contact a system administrator if you have questions.
+                Please check back later or{' '}
+                <Link to="/contact" className="text-blue-600 hover:text-blue-700 font-medium underline">
+                  contact us
+                </Link>
+                {' '}if you have questions.
               </p>
             </div>
           </Alert>
@@ -301,31 +323,6 @@ export function DashboardPage() {
           </Alert>
         ) : activeTab === 'documents' ? (
           <div className="space-y-6">
-            {/* Access Level Info */}
-            <div className="bg-docutrain-light/10 border border-docutrain-light/30 rounded-xl p-4 sm:p-5 shadow-sm backdrop-blur-sm">
-              <h3 className="text-sm font-semibold text-docutrain-dark mb-2 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                Your Access Level
-              </h3>
-              {isSuperAdmin ? (
-                <p className="text-sm text-docutrain-dark leading-relaxed">
-                  <strong className="font-semibold text-docutrain-dark">Super Administrator</strong> - You can view and edit all documents across all owner groups, upload new documents, and manage all system users.
-                </p>
-              ) : (
-                <p className="text-sm text-docutrain-dark leading-relaxed">
-                  <strong className="font-semibold text-docutrain-dark">Owner Administrator</strong> - You can view and edit documents for the following owner groups:
-                  <span className="ml-2 font-semibold break-words text-docutrain-dark">
-                    {ownerGroups
-                      .filter(og => og.role === 'owner_admin')
-                      .map(og => og.owner_name)
-                      .join(', ')}
-                  </span>
-                </p>
-              )}
-            </div>
-
             {/* Upload Section */}
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
