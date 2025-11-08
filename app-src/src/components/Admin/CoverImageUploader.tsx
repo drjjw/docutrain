@@ -6,12 +6,13 @@ interface CoverImageUploaderProps {
   coverUrl: string;
   onChange: (url: string) => void;
   documentId?: string;
-  ownerId?: string;
+  ownerId?: string; // Optional - if not provided, only URL entry is available
+  allowManualUrl?: boolean; // Allow manual URL entry as alternative
 }
 
 const COVERS_BUCKET = 'thumbs';
 
-export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: CoverImageUploaderProps) {
+export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId, allowManualUrl = true }: CoverImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(coverUrl || null);
@@ -25,12 +26,17 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: 
     if (documentId) {
       return documentId;
     }
-    throw new Error('Either documentId or ownerId must be provided');
+    throw new Error('Either documentId or ownerId must be provided for uploads');
   };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    if (!ownerId && !documentId) {
+      setUploadError('Owner ID or Document ID is required for uploads');
+      return;
+    }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -93,9 +99,9 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: 
       setUploading(true);
       setUploadError(null);
 
-      // Extract the file path from the URL
+      // Only try to delete from storage if this is a Supabase storage URL
       const urlParts = coverUrl.split(`/${COVERS_BUCKET}/`);
-      if (urlParts.length === 2) {
+      if (urlParts.length === 2 && (ownerId || documentId)) {
         const filePath = urlParts[1];
         
         // Delete from storage
@@ -118,6 +124,12 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: 
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleUrlChange = (url: string) => {
+    setUploadError(null);
+    onChange(url);
+    setPreviewUrl(url || null);
   };
 
   // Update preview when coverUrl changes externally
@@ -156,27 +168,47 @@ export function CoverImageUploader({ coverUrl, onChange, documentId, ownerId }: 
         </div>
       )}
 
-      {/* Upload Button */}
-      <div className="flex gap-2">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          size="sm"
-        >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          {uploading ? 'Uploading...' : previewUrl ? 'Change Image' : 'Upload Image'}
-        </Button>
+      {/* Upload Button and URL Input */}
+      <div className="space-y-3">
+        {(ownerId || documentId) && (
+          <div className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              size="sm"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {uploading ? 'Uploading...' : previewUrl ? 'Change Image' : 'Upload Image'}
+            </Button>
+          </div>
+        )}
+        
+        {allowManualUrl && (
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">
+              {(ownerId || documentId) ? 'Or enter URL manually:' : 'Enter image URL:'}
+            </label>
+            <input
+              type="url"
+              value={coverUrl}
+              onChange={(e) => handleUrlChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
+              placeholder="https://example.com/cover.jpg"
+              disabled={uploading}
+            />
+          </div>
+        )}
       </div>
 
       {/* Error Message */}

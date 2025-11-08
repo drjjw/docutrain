@@ -1,5 +1,7 @@
 import { Button } from '@/components/UI/Button';
 import { Modal } from '@/components/UI/Modal';
+import { LogoUploader } from '@/components/Admin/LogoUploader';
+import { CoverImageUploader } from '@/components/Admin/CoverImageUploader';
 import type { Owner } from '@/types/admin';
 
 interface EditOwnerModalProps {
@@ -129,15 +131,23 @@ export function EditOwnerModal({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Logo URL
+            Logo
           </label>
-          <input
-            type="url"
-            value={logoUrl}
-            onChange={(e) => onLogoUrlChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
-            placeholder="https://example.com/logo.png"
-          />
+          {owner ? (
+            <LogoUploader
+              logoUrl={logoUrl}
+              onChange={onLogoUrlChange}
+              ownerId={owner.id}
+            />
+          ) : (
+            <input
+              type="url"
+              value={logoUrl}
+              onChange={(e) => onLogoUrlChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
+              placeholder="https://example.com/logo.png"
+            />
+          )}
         </div>
 
         <div>
@@ -158,15 +168,23 @@ export function EditOwnerModal({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Default Cover Image URL
+            Default Cover Image
           </label>
-          <input
-            type="url"
-            value={defaultCover}
-            onChange={(e) => onDefaultCoverChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
-            placeholder="https://example.com/cover.jpg"
-          />
+          {owner ? (
+            <CoverImageUploader
+              coverUrl={defaultCover}
+              onChange={onDefaultCoverChange}
+              ownerId={owner.id}
+            />
+          ) : (
+            <input
+              type="url"
+              value={defaultCover}
+              onChange={(e) => onDefaultCoverChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
+              placeholder="https://example.com/cover.jpg"
+            />
+          )}
         </div>
 
         <div>

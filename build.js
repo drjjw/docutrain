@@ -167,6 +167,32 @@ if (!fs.existsSync(htmlSourcePath)) {
         console.log('   - Removed landing.js script reference (file not found)');
     }
 
+    // Copy docutrain-embed.js (required for embed widgets)
+    const embedJsSource = path.join(__dirname, 'public/js/docutrain-embed.js');
+    const embedJsDest = path.join(publicDistDir, 'js/docutrain-embed.js');
+    if (fs.existsSync(embedJsSource)) {
+        // Ensure js directory exists (already created above if landing.js exists)
+        const jsDistDir = path.join(publicDistDir, 'js');
+        if (!fs.existsSync(jsDistDir)) {
+            fs.mkdirSync(jsDistDir, { recursive: true });
+        }
+        fs.copyFileSync(embedJsSource, embedJsDest);
+        console.log('   - Copied docutrain-embed.js (required for embed widgets)');
+    }
+
+    // Copy docutrain-embed.css (required for embed widgets)
+    const embedCssSource = path.join(__dirname, 'public/css/docutrain-embed.css');
+    const embedCssDest = path.join(publicDistDir, 'css/docutrain-embed.css');
+    if (fs.existsSync(embedCssSource)) {
+        // Ensure css directory exists (already created above)
+        const cssDistDir = path.join(publicDistDir, 'css');
+        if (!fs.existsSync(cssDistDir)) {
+            fs.mkdirSync(cssDistDir, { recursive: true });
+        }
+        fs.copyFileSync(embedCssSource, embedCssDest);
+        console.log('   - Copied docutrain-embed.css (required for embed widgets)');
+    }
+
     // Write processed index.html
     const htmlDestPath = path.join(publicDistDir, 'index.html');
     fs.writeFileSync(htmlDestPath, htmlContent);

@@ -3,9 +3,10 @@
  * Matches vanilla JS document-cover-and-welcome container
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { CoverImage } from './CoverImage';
 import { WelcomeMessage } from './WelcomeMessage';
+import { useCanEditDocument } from '@/hooks/useCanEditDocument';
 
 interface CoverAndWelcomeProps {
   cover?: string;
@@ -53,6 +54,45 @@ function equalizeContainerHeights() {
   }
 }
 
+/**
+ * Save document field via API (same pattern as WelcomeMessage)
+ */
+async function saveDocumentField(
+  documentSlug: string,
+  field: string,
+  value: string
+): Promise<boolean> {
+  const sessionKey = 'sb-mlxctdgnojvkgfqldaob-auth-token';
+  const sessionData = localStorage.getItem(sessionKey);
+  if (!sessionData) {
+    throw new Error('Not authenticated');
+  }
+
+  const session = JSON.parse(sessionData);
+  const token = session?.access_token;
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/documents/${documentSlug}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      [field]: value
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to save');
+  }
+
+  return true;
+}
+
 export function CoverAndWelcome({
   cover,
   title,
@@ -63,6 +103,27 @@ export function CoverAndWelcome({
   documentSlug,
 }: CoverAndWelcomeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { canEdit } = useCanEditDocument(documentSlug);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Handle cover image save
+  const handleCoverSave = useCallback(async (url: string) => {
+    console.log(`[CoverAndWelcome] Saving cover for document: ${documentSlug}`);
+    const success = await saveDocumentField(documentSlug, 'cover', url);
+    if (success) {
+      console.log(`[CoverAndWelcome] ✅ Cover save successful, dispatching document-updated event`);
+      // Force refresh by updating key
+      setRefreshKey(prev => prev + 1);
+      // Dispatch event immediately to trigger local refresh
+      window.dispatchEvent(new CustomEvent('document-updated', {
+        detail: { documentSlug }
+      }));
+      console.log(`[CoverAndWelcome] Event dispatched for slug: ${documentSlug}`);
+    } else {
+      console.error(`[CoverAndWelcome] ❌ Cover save failed`);
+    }
+    return success;
+  }, [documentSlug]);
 
   // Equalize heights after render and on window resize/orientation change
   useEffect(() => {
@@ -114,6 +175,8 @@ export function CoverAndWelcome({
         category={category}
         year={year}
         onImageLoad={handleImageLoad}
+        documentSlug={canEdit ? documentSlug : undefined}
+        onCoverSave={canEdit ? handleCoverSave : undefined}
       />
       <WelcomeMessage
         welcomeMessage={welcomeMessage}

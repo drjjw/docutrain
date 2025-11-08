@@ -22,7 +22,7 @@
   overflow: hidden;
   padding: 0;
   margin: 0;
-  border-radius: 12px;
+  border-radius: 5px;
   background: white;
   display: flex;
   align-items: center;
@@ -43,7 +43,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  border-radius: 0;
+  border-radius: 5px;
 }
 
 .document-cover-overlay {
@@ -58,7 +58,7 @@
   align-items: flex-start;
   justify-content: flex-end;
   padding: 20px 16px;
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 5px 5px;
   backdrop-filter: blur(2px);
 }
 
@@ -113,6 +113,7 @@
   width: 100%;
   max-width: 100% !important;
   box-sizing: border-box;
+  border-radius: 5px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   /* Prevent WYSIWYG editor from breaking out of container */
@@ -210,7 +211,7 @@
     margin: 0;
     display: flex;
     align-items: stretch;
-    border-radius: 12px;
+    border-radius: 5px;
     overflow: hidden;
     background: white;
     border: 1px solid #e9ecef;
@@ -244,12 +245,12 @@
     width: 100%;
     height: auto;
     object-fit: cover;
-    border-radius: 0;
+    border-radius: 5px;
     display: block;
   }
 
   .document-cover-overlay {
-    border-radius: 0 0 12px 12px;
+    border-radius: 0;
     height: 30%;
     padding: 16px 14px;
     min-height: 90px;
@@ -288,7 +289,7 @@
     margin: 0;
     display: flex;
     align-items: stretch;
-    border-radius: 8px; /* Slightly less rounded for small screens */
+    border-radius: 5px; /* Match boxes border radius */
     overflow: hidden;
     background: white;
     border: 1px solid #e9ecef;
@@ -319,13 +320,14 @@
 
   .document-cover-image {
     height: auto; /* Let image determine height based on aspect ratio */
-    border-radius: 6px; /* Match container border radius */
+    border-radius: 5px; /* Match container border radius */
   }
 
   .document-cover-overlay {
     height: 35%; /* Even taller overlay on very small screens */
     min-height: 90px; /* More minimum height for very small screens */
     padding: 14px 10px; /* More padding */
+    border-radius: 0;
   }
 
   .document-cover-title {

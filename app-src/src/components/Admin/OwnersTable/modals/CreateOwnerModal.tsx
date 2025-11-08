@@ -1,5 +1,7 @@
 import { Button } from '@/components/UI/Button';
 import { Modal } from '@/components/UI/Modal';
+import { LogoUploader } from '@/components/Admin/LogoUploader';
+import { CoverImageUploader } from '@/components/Admin/CoverImageUploader';
 
 interface CreateOwnerModalProps {
   isOpen: boolean;
@@ -132,14 +134,12 @@ export function CreateOwnerModal({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Logo URL
+            Logo
           </label>
-          <input
-            type="url"
-            value={logoUrl}
-            onChange={(e) => onLogoUrlChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
-            placeholder="https://example.com/logo.png"
+          <LogoUploader
+            logoUrl={logoUrl}
+            onChange={onLogoUrlChange}
+            allowManualUrl={true}
           />
         </div>
 
@@ -161,14 +161,12 @@ export function CreateOwnerModal({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Default Cover Image URL
+            Default Cover Image
           </label>
-          <input
-            type="url"
-            value={defaultCover}
-            onChange={(e) => onDefaultCoverChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
-            placeholder="https://example.com/cover.jpg"
+          <CoverImageUploader
+            coverUrl={defaultCover}
+            onChange={onDefaultCoverChange}
+            allowManualUrl={true}
           />
         </div>
 

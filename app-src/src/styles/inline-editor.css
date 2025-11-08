@@ -30,13 +30,10 @@
 }
 
 /* Edit icon when positioned inline (for headerTitle and welcomeTitle) */
-/* Now uses absolute positioning to keep title centered */
+/* Now uses relative positioning beside the title */
 .header-title-wrapper .inline-edit-icon,
 .welcome-title-wrapper .inline-edit-icon {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
+    position: relative;
     flex-shrink: 0;
 }
 

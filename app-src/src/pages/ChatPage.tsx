@@ -342,7 +342,7 @@ function ChatPageContent({
         className={`flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 space-y-4 chat-main-container ${
           isStreamingRef.current ? 'chat-container-streaming' : ''
         } ${hasHeaderSubtitle ? 'has-subtitle-offset' : ''}`}
-        style={{ paddingBottom: shouldShowFooter ? '160px' : '100px' }}
+        style={{ paddingBottom: shouldShowFooter ? '180px' : '120px' }}
       >
         {/* Cover and Welcome Message - shown for single documents */}
         {shouldShowCoverAndWelcome && docConfig && (

@@ -1,10 +1,11 @@
 /**
  * DownloadsAndKeywords - Container for downloads and keywords sections
- * Matches vanilla JS downloads-keywords-container layout
+ * Now using a drawer-based UI pattern
  */
 
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { Minus, Plus } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Plus } from 'lucide-react';
 import { KeywordsCloud } from './KeywordsCloud';
 import { DownloadsSection } from './DownloadsSection';
 import { Keyword, Download } from '@/hooks/useDocumentConfig';
@@ -56,15 +57,68 @@ export function DownloadsAndKeywords({
   inputRef,
   onKeywordClick,
 }: DownloadsAndKeywordsProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const portalRootRef = useRef<HTMLDivElement | null>(null);
+  const [portalReady, setPortalReady] = useState(false);
   const isMobile = useIsMobile();
-  const [isContainerExpanded, setIsContainerExpanded] = useState(!isMobile);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
-  const [containerHeight, setContainerHeight] = useState<number | undefined>(undefined);
-  const prevKeywordsLengthRef = useRef<number>(0);
-  const prevDownloadsLengthRef = useRef<number>(0);
-  const isCalculatingRef = useRef<boolean>(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   
+  // Setup portal for drawer overlay
+  useEffect(() => {
+    // Check if we're in an iframe and try to use parent window
+    const isInIframe = window.self !== window.top;
+    let targetDocument = document;
+    let targetBody = document.body;
+    
+    if (isInIframe) {
+      try {
+        // Try to access parent window (may fail due to cross-origin restrictions)
+        const parentWindow = window.parent;
+        if (parentWindow && parentWindow.document) {
+          targetDocument = parentWindow.document;
+          targetBody = parentWindow.document.body;
+        }
+      } catch (e) {
+        // Cross-origin restriction - stay in current iframe
+        console.warn('Cannot access parent window, using iframe body:', e);
+      }
+    }
+    
+    let portalRoot = targetDocument.getElementById('drawer-portal-root');
+    if (!portalRoot) {
+      portalRoot = targetDocument.createElement('div');
+      portalRoot.id = 'drawer-portal-root';
+      targetBody.appendChild(portalRoot);
+    }
+    portalRootRef.current = portalRoot;
+    setPortalReady(true);
+
+    return () => {
+      // Don't remove portal root on unmount as it might be used by other components
+    };
+  }, []);
+
+  // Handle escape key to close drawer
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isDrawerOpen) {
+        setIsDrawerOpen(false);
+      }
+    };
+
+    if (isDrawerOpen) {
+      document.addEventListener('keydown', handleEscape);
+      // Prevent body scroll when drawer is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
+  }, [isDrawerOpen]);
+
   // DEBUG: Log keywords received
   useEffect(() => {
     debugLog('[DownloadsAndKeywords] 🔍 DEBUG - Keywords received:', {
@@ -72,154 +126,25 @@ export function DownloadsAndKeywords({
       keywordsType: typeof keywords,
       isArray: Array.isArray(keywords),
       keywordsLength: Array.isArray(keywords) ? keywords.length : 'N/A',
-      keywordsDetails: Array.isArray(keywords) ? keywords.map(k => ({
-        term: k?.term,
-        weight: k?.weight,
-        hasTerm: !!k?.term,
-        termType: typeof k?.term,
-        termLength: k?.term?.length || 0,
-        termTrimmed: k?.term?.trim().length || 0
-      })) : 'N/A'
     });
   }, [keywords]);
   
   // Use useMemo to ensure proper re-computation when keywords change
-  // Check for valid array with actual keyword objects (not just empty array)
   const hasKeywords = useMemo(() => {
     const isArray = Array.isArray(keywords);
     const hasLength = isArray && keywords.length > 0;
     const hasValidTerms = hasLength && keywords.some(k => k && k.term && k.term.trim().length > 0);
-    const result = isArray && hasLength && hasValidTerms;
-    
-    debugLog('[DownloadsAndKeywords] 🔍 DEBUG - hasKeywords calculation:', {
-      isArray,
-      hasLength,
-      hasValidTerms,
-      result,
-      keywordsLength: isArray ? keywords.length : 0,
-      validKeywordsCount: isArray ? keywords.filter(k => k && k.term && k.term.trim().length > 0).length : 0
-    });
-    
-    return result;
+    return isArray && hasLength && hasValidTerms;
   }, [keywords]);
   
   const hasDownloads = useMemo(() => {
     return Array.isArray(downloads) && downloads.length > 0;
   }, [downloads]);
 
-  // Update container expanded state when mobile state changes, but only if user hasn't manually interacted
-  useEffect(() => {
-    if (!hasUserInteracted) {
-      setIsContainerExpanded(!isMobile);
-    }
-  }, [isMobile, hasUserInteracted]);
-
-  // Track changes to keywords/downloads to trigger height recalculation
-  useEffect(() => {
-    const keywordsLength = Array.isArray(keywords) ? keywords.length : 0;
-    const downloadsLength = Array.isArray(downloads) ? downloads.length : 0;
-    
-    // If keywords or downloads count changed, reset container height to force recalculation
-    if (keywordsLength !== prevKeywordsLengthRef.current || downloadsLength !== prevDownloadsLengthRef.current) {
-      prevKeywordsLengthRef.current = keywordsLength;
-      prevDownloadsLengthRef.current = downloadsLength;
-      setContainerHeight(undefined); // Reset to trigger recalculation
-    }
-  }, [keywords, downloads]);
-
-  // Measure and update container height for smooth animation
-  useEffect(() => {
-    if (!containerRef.current || (!hasKeywords && !hasDownloads)) return;
-    
-    // Prevent infinite loops by checking if already calculating
-    if (isCalculatingRef.current) return;
-
-    const updateHeight = () => {
-      if (containerRef.current && !isCalculatingRef.current) {
-        isCalculatingRef.current = true;
-        
-        // Temporarily remove max-height and collapsed class to measure natural height
-        const wasCollapsed = containerRef.current.classList.contains('collapsed');
-        const originalMaxHeight = containerRef.current.style.maxHeight;
-        const originalDisplay = containerRef.current.style.display;
-        const originalOverflow = containerRef.current.style.overflow;
-        
-        containerRef.current.classList.remove('collapsed');
-        containerRef.current.style.maxHeight = 'none';
-        containerRef.current.style.opacity = '0';
-        containerRef.current.style.position = 'absolute';
-        containerRef.current.style.visibility = 'hidden';
-        containerRef.current.style.overflow = 'visible';
-        
-        // Measure both the container and its content wrapper for accurate height
-        const contentWrapper = containerRef.current.querySelector('.downloads-keywords-container-content');
-        const keywordsSection = contentWrapper?.querySelector('#keywords-section');
-        const measuredContainerHeight = containerRef.current.scrollHeight;
-        const contentHeight = contentWrapper ? contentWrapper.scrollHeight : 0;
-        
-        // Use the larger of container or content height, scrollHeight already includes padding
-        // Add extra buffer to ensure footnote and bottom padding are fully visible
-        const height = Math.max(measuredContainerHeight, contentHeight) + 12;
-        
-        // Restore original state
-        containerRef.current.style.maxHeight = originalMaxHeight;
-        containerRef.current.style.opacity = '';
-        containerRef.current.style.position = '';
-        containerRef.current.style.visibility = '';
-        containerRef.current.style.display = originalDisplay;
-        containerRef.current.style.overflow = originalOverflow;
-        if (wasCollapsed) {
-          containerRef.current.classList.add('collapsed');
-        }
-        
-        // Only update if height changed significantly (more than 2px) to prevent loops
-        if (!containerHeight || Math.abs(height - containerHeight) > 2) {
-          setContainerHeight(height);
-        }
-        
-        isCalculatingRef.current = false;
-      }
-    };
-
-    // Measure height when expanded or when content changes
-    // Always recalculate when keywords/downloads change to catch async updates
-    const shouldRecalculate = isContainerExpanded || !containerHeight;
-    if (shouldRecalculate && !isCalculatingRef.current) {
-      // Delay measurement to ensure content is rendered, especially for async keywords
-      // Use requestAnimationFrame to ensure DOM is updated
-      const timeoutId = setTimeout(() => {
-        requestAnimationFrame(() => {
-          updateHeight();
-        });
-      }, 100); // Delay to ensure keywords are rendered
-
-      return () => {
-        clearTimeout(timeoutId);
-        isCalculatingRef.current = false;
-      };
-    }
-  }, [hasKeywords, hasDownloads, keywords, downloads, isContainerExpanded]);
-
-  // Height equalization no longer needed with unified container
-
   // Don't render if neither keywords nor downloads are present
   if (!hasKeywords && !hasDownloads) {
-    debugLog('[DownloadsAndKeywords] 🔍 DEBUG - Not rendering (no keywords or downloads):', {
-      hasKeywords,
-      hasDownloads,
-      keywordsLength: Array.isArray(keywords) ? keywords.length : 0,
-      downloadsLength: Array.isArray(downloads) ? downloads.length : 0
-    });
     return null;
   }
-  
-  debugLog('[DownloadsAndKeywords] 🔍 DEBUG - Rendering component:', {
-    hasKeywords,
-    hasDownloads,
-    isContainerExpanded,
-    containerHeight,
-    keywordsLength: Array.isArray(keywords) ? keywords.length : 0
-  });
 
   // Prepare downloads with document titles for multi-doc
   const downloadsWithTitles = downloads?.map((download, index) => ({
@@ -227,114 +152,109 @@ export function DownloadsAndKeywords({
     documentTitle: isMultiDoc && documentTitles[index] ? documentTitles[index] : undefined,
   }));
 
-  // Determine header text based on what's available
-  let headerText = '';
+  // Determine button text and badge count
+  let buttonText = '';
+  let badgeCount = 0;
   if (hasKeywords && hasDownloads) {
-    headerText = 'Downloads & Key Topics';
+    buttonText = 'Downloads & Key Topics';
+    badgeCount = (keywords?.length || 0) + (downloads?.length || 0);
   } else if (hasKeywords) {
-    headerText = 'Key Topics';
+    buttonText = 'Key Topics';
+    badgeCount = keywords?.length || 0;
   } else if (hasDownloads) {
-    headerText = 'Downloads';
+    buttonText = 'Downloads';
+    badgeCount = downloads?.length || 0;
   }
 
+  const handleOpenDrawer = () => {
+    setIsDrawerOpen(true);
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+  };
+
   return (
-    <div className="downloads-keywords-wrapper">
-      <button
-        className={`downloads-keywords-container-header ${isContainerExpanded ? 'expanded' : ''}`}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setHasUserInteracted(true);
-          setIsContainerExpanded(!isContainerExpanded);
-        }}
-        aria-expanded={isContainerExpanded}
-        aria-label={isContainerExpanded ? `Collapse ${headerText}` : `Expand ${headerText}`}
-        type="button"
-      >
-        <span>{headerText}</span>
-        <div 
-          className="collapse-icon" 
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            width: '28px',
-            height: '28px',
-            borderRadius: '50%',
-            backgroundColor: isContainerExpanded ? '#ef4444' : '#22c55e',
-            flexShrink: 0,
-            transition: 'background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}
+    <>
+      {/* Trigger Button */}
+      <div className="downloads-keywords-drawer-trigger">
+        <button
+          onClick={handleOpenDrawer}
+          className="drawer-trigger-button"
+          aria-label={`Open ${buttonText}`}
+          type="button"
         >
-          <div style={{ position: 'relative', width: '16px', height: '16px' }}>
-            <Minus 
-              size={16} 
-              strokeWidth={3} 
-              style={{ 
-                color: 'white',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                transition: 'opacity 0.25s ease-out, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                opacity: isContainerExpanded ? 1 : 0,
-                transform: isContainerExpanded ? 'scale(1) rotate(0deg)' : 'scale(0.8) rotate(-90deg)',
-                pointerEvents: 'none',
-              }} 
-            />
-            <Plus 
-              size={16} 
-              strokeWidth={3} 
-              style={{ 
-                color: 'white',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                transition: 'opacity 0.25s ease-out, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                opacity: isContainerExpanded ? 0 : 1,
-                transform: isContainerExpanded ? 'scale(0.8) rotate(90deg)' : 'scale(1) rotate(0deg)',
-                pointerEvents: 'none',
-              }} 
-            />
+          <div className="drawer-trigger-content">
+            <span>{buttonText}</span>
+            <div className="drawer-plus-icon">
+              <Plus size={16} />
+            </div>
           </div>
-        </div>
-      </button>
-      <div
-        ref={containerRef}
-        id="downloadsKeywordsContainer"
-        className={`downloads-keywords-container ${!isContainerExpanded ? 'collapsed' : ''}`}
-        style={{ 
-          display: hasKeywords || hasDownloads ? 'flex' : 'none',
-          maxHeight: isContainerExpanded && containerHeight ? `${containerHeight}px` : '0px',
-        }}
-      >
-        <div className="downloads-keywords-container-content">
-          {hasKeywords && keywords && (() => {
-            debugLog('[DownloadsAndKeywords] 🔍 DEBUG - About to render KeywordsCloud:', {
-              hasKeywords,
-              keywordsExists: !!keywords,
-              keywordsLength: Array.isArray(keywords) ? keywords.length : 'N/A',
-              isExpanded: isContainerExpanded,
-              keywordsPreview: Array.isArray(keywords) ? keywords.slice(0, 3) : 'N/A'
-            });
-            return (
-              <KeywordsCloud 
-                keywords={keywords} 
-                inputRef={inputRef} 
-                onKeywordClick={onKeywordClick}
-                isExpanded={isContainerExpanded}
-              />
-            );
-          })()}
-          {hasDownloads && downloadsWithTitles && (
-            <DownloadsSection 
-              downloads={downloadsWithTitles} 
-              isMultiDoc={isMultiDoc}
-              isExpanded={isContainerExpanded}
-            />
-          )}
-        </div>
+        </button>
       </div>
-    </div>
+
+      {/* Drawer Overlay - Render via portal */}
+      {isDrawerOpen && portalReady && portalRootRef.current && createPortal(
+        <>
+          {/* Backdrop */}
+          <div
+            ref={overlayRef}
+            className="drawer-backdrop"
+            onClick={handleCloseDrawer}
+            style={{ zIndex: 10000 }}
+          />
+
+          {/* Drawer Panel */}
+          <div
+            ref={drawerRef}
+            className={`drawer-panel ${isMobile ? 'drawer-panel-mobile' : 'drawer-panel-desktop'}`}
+            style={{ zIndex: 10001 }}
+          >
+            {/* Header */}
+            <div className="drawer-header" style={{ position: 'relative', zIndex: 10003 }}>
+              <h2 className="drawer-title">{buttonText}</h2>
+            </div>
+
+            {/* Content */}
+            <div className="drawer-content">
+              {hasKeywords && keywords && (
+                <KeywordsCloud 
+                  keywords={keywords} 
+                  inputRef={inputRef} 
+                  onKeywordClick={(term) => {
+                    if (onKeywordClick) {
+                      onKeywordClick(term);
+                    }
+                    // Close drawer after clicking keyword
+                    setTimeout(() => setIsDrawerOpen(false), 300);
+                  }}
+                  isExpanded={true}
+                />
+              )}
+              {hasDownloads && downloadsWithTitles && (
+                <DownloadsSection 
+                  downloads={downloadsWithTitles} 
+                  isMultiDoc={isMultiDoc}
+                  isExpanded={true}
+                />
+              )}
+            </div>
+
+            {/* Footer with Close Button */}
+            <div className="drawer-footer">
+              <button
+                onClick={handleCloseDrawer}
+                className="drawer-footer-close-button"
+                aria-label="Close drawer"
+              >
+                Close Drawer
+              </button>
+            </div>
+          </div>
+        </>,
+        portalRootRef.current
+      )}
+    </>
   );
 }
 

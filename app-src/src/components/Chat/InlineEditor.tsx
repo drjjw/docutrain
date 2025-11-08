@@ -6,6 +6,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Modal } from '@/components/UI/Modal';
+import { Pencil } from 'lucide-react';
 
 interface InlineEditorProps {
   value: string;
@@ -365,44 +366,56 @@ export function InlineEditor({
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        <Element
-          ref={elementRef as any}
-          id={id}
-          className={className}
-          style={{ cursor: 'pointer', margin: 0, ...style }}
-          onClick={handleStartEditing}
-        >
-          {displayValue}
-        </Element>
-        <button
-          type="button"
-          className="inline-edit-icon"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleStartEditing();
-          }}
-          title="Click to edit"
+        <div
           style={{
-            position: 'absolute',
-            right: '0',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            background: 'rgba(0, 0, 0, 0.7)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '4px 8px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            zIndex: 100,
-            opacity: isHovering ? 1 : 0,
-            transition: 'opacity 0.2s',
-            pointerEvents: isHovering ? 'auto' : 'none',
-            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            position: 'relative',
           }}
         >
-          ✏️
-        </button>
+          <Element
+            ref={elementRef as any}
+            id={id}
+            className={className}
+            style={{ cursor: 'pointer', margin: 0, ...style }}
+            onClick={handleStartEditing}
+          >
+            {displayValue}
+          </Element>
+          <button
+            type="button"
+            className="inline-edit-icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStartEditing();
+            }}
+            title="Click to edit"
+            style={{
+              position: 'relative',
+              background: 'rgba(0, 0, 0, 0.7)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '4px 8px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              zIndex: 100,
+              opacity: isHovering ? 1 : 0,
+              transition: 'opacity 0.2s',
+              pointerEvents: isHovering ? 'auto' : 'none',
+              flexShrink: 0,
+              alignSelf: 'flex-start',
+              marginTop: '0.1em',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Pencil size={12} />
+          </button>
+        </div>
       </div>
     );
   }
@@ -455,9 +468,12 @@ export function InlineEditor({
             transition: 'opacity 0.2s',
             pointerEvents: isHovering ? 'auto' : 'none',
             flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          ✏️
+          <Pencil size={12} />
         </button>
       </div>
     );
@@ -504,9 +520,12 @@ export function InlineEditor({
           opacity: isHovering ? 1 : 0,
           transition: 'opacity 0.2s',
           pointerEvents: isHovering ? 'auto' : 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
-        ✏️
+        <Pencil size={12} />
       </button>
     </div>
   );

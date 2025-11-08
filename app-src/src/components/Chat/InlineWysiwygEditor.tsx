@@ -6,6 +6,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Modal } from '@/components/UI/Modal';
+import { Pencil } from 'lucide-react';
 
 interface InlineWysiwygEditorProps {
   value: string;
@@ -501,9 +502,12 @@ export function InlineWysiwygEditor({
           opacity: isHovering ? 1 : 0,
           transition: 'opacity 0.2s',
           pointerEvents: isHovering ? 'auto' : 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
-        ✏️
+        <Pencil size={12} />
       </button>
     </div>
   );

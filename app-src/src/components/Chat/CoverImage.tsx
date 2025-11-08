@@ -4,6 +4,8 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { InlineImageEditor } from './InlineImageEditor';
+import { useCanEditDocument } from '@/hooks/useCanEditDocument';
 
 interface CoverImageProps {
   cover?: string;
@@ -11,9 +13,11 @@ interface CoverImageProps {
   category?: string;
   year?: string;
   onImageLoad?: () => void;
+  documentSlug?: string;
+  onCoverSave?: (url: string) => Promise<boolean>;
 }
 
-export function CoverImage({ cover, title, category, year, onImageLoad }: CoverImageProps) {
+export function CoverImage({ cover, title, category, year, onImageLoad, documentSlug, onCoverSave }: CoverImageProps) {
   const coverSectionRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -77,8 +81,12 @@ export function CoverImage({ cover, title, category, year, onImageLoad }: CoverI
     };
   }, [onImageLoad]);
 
-  return (
-    <div ref={coverSectionRef} className="document-cover-section">
+  // Check if user can edit (only if documentSlug and onCoverSave are provided)
+  const canEdit = documentSlug && onCoverSave;
+  const { canEdit: hasEditPermission } = useCanEditDocument(canEdit ? documentSlug : null);
+
+  const imageElement = (
+    <>
       <img
         ref={imageRef}
         src={imageSrc}
@@ -95,6 +103,22 @@ export function CoverImage({ cover, title, category, year, onImageLoad }: CoverI
           <div className="document-cover-meta">{metaText}</div>
         )}
       </div>
+    </>
+  );
+
+  return (
+    <div ref={coverSectionRef} className="document-cover-section">
+      {canEdit && hasEditPermission ? (
+        <InlineImageEditor
+          coverUrl={cover}
+          documentSlug={documentSlug!}
+          onSave={onCoverSave!}
+        >
+          {imageElement}
+        </InlineImageEditor>
+      ) : (
+        imageElement
+      )}
     </div>
   );
 }

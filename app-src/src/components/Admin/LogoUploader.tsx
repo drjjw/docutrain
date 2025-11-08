@@ -5,12 +5,13 @@ import { Button } from '@/components/UI/Button';
 interface LogoUploaderProps {
   logoUrl: string;
   onChange: (url: string) => void;
-  ownerId: string;
+  ownerId?: string; // Optional - if not provided, only URL entry is available
+  allowManualUrl?: boolean; // Allow manual URL entry as alternative
 }
 
 const LOGOS_BUCKET = 'thumbs'; // Using thumbs bucket for now, can be changed to 'logos' if needed
 
-export function LogoUploader({ logoUrl, onChange, ownerId }: LogoUploaderProps) {
+export function LogoUploader({ logoUrl, onChange, ownerId, allowManualUrl = true }: LogoUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(logoUrl || null);
@@ -19,6 +20,11 @@ export function LogoUploader({ logoUrl, onChange, ownerId }: LogoUploaderProps) 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    if (!ownerId) {
+      setUploadError('Owner ID is required for uploads');
+      return;
+    }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -81,9 +87,9 @@ export function LogoUploader({ logoUrl, onChange, ownerId }: LogoUploaderProps) 
       setUploading(true);
       setUploadError(null);
 
-      // Extract the file path from the URL
+      // Only try to delete from storage if this is a Supabase storage URL
       const urlParts = logoUrl.split(`/${LOGOS_BUCKET}/`);
-      if (urlParts.length === 2) {
+      if (urlParts.length === 2 && ownerId) {
         const filePath = urlParts[1];
         
         // Delete from storage
@@ -106,6 +112,12 @@ export function LogoUploader({ logoUrl, onChange, ownerId }: LogoUploaderProps) 
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleUrlChange = (url: string) => {
+    setUploadError(null);
+    onChange(url);
+    setPreviewUrl(url || null);
   };
 
   // Update preview when logoUrl changes externally
@@ -143,27 +155,47 @@ export function LogoUploader({ logoUrl, onChange, ownerId }: LogoUploaderProps) 
         </div>
       )}
 
-      {/* Upload Button */}
-      <div className="flex gap-2">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          size="sm"
-        >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          {uploading ? 'Uploading...' : previewUrl ? 'Change Logo' : 'Upload Logo'}
-        </Button>
+      {/* Upload Button and URL Input */}
+      <div className="space-y-3">
+        {ownerId && (
+          <div className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              size="sm"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {uploading ? 'Uploading...' : previewUrl ? 'Change Logo' : 'Upload Logo'}
+            </Button>
+          </div>
+        )}
+        
+        {allowManualUrl && (
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">
+              {ownerId ? 'Or enter URL manually:' : 'Enter image URL:'}
+            </label>
+            <input
+              type="url"
+              value={logoUrl}
+              onChange={(e) => handleUrlChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm"
+              placeholder="https://example.com/logo.png"
+              disabled={uploading}
+            />
+          </div>
+        )}
       </div>
 
       {/* Error Message */}

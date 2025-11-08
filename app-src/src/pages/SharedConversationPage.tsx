@@ -479,7 +479,7 @@ function SharedConversationContent({
           chatMessages.isStreamingRef.current ? 'chat-container-streaming' : ''
         } ${hasHeaderSubtitle ? 'has-subtitle-offset' : ''}`}
         style={{ 
-          paddingBottom: shouldShowFooter ? '160px' : '100px'
+          paddingBottom: shouldShowFooter ? '180px' : '120px'
         }}
       >
         {/* Cover and Welcome Message - shown for single documents */}

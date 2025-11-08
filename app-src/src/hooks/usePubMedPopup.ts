@@ -100,21 +100,36 @@ async function fetchPubMedArticleWithRetry(
 ): Promise<PubMedArticle> {
   let lastError: Error | null = null;
 
+  // Clean and validate PubMed ID
+  const cleanPmid = String(pmid).trim();
+  if (!cleanPmid || !/^\d+$/.test(cleanPmid)) {
+    throw new Error(`Invalid PubMed ID: ${pmid}`);
+  }
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${pmid}&retmode=json`;
+      // Use clean PMID in URL
+      // Add tool and email parameters as recommended by PubMed API documentation
+      const url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${cleanPmid}&retmode=json&tool=DocuTrain&email=support@doctrain.ai`;
 
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           Accept: 'application/json',
         },
+        // Add mode to handle CORS
+        mode: 'cors',
       });
 
       if (!response.ok) {
         if (response.status === 429) {
           throw new Error(
             `Rate limit exceeded. Please wait before making another request.`
+          );
+        } else if (response.status === 0 || response.type === 'opaque') {
+          // CORS error
+          throw new Error(
+            `CORS error: Unable to fetch from PubMed API. This may be a browser security restriction.`
           );
         } else {
           throw new Error(
@@ -123,27 +138,82 @@ async function fetchPubMedArticleWithRetry(
         }
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        const text = await response.text();
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          console.error('[PubMed] Failed to parse API response:', parseError);
+          console.error('[PubMed] Response text:', text.substring(0, 500));
+          throw new Error('Invalid JSON response from PubMed API');
+        }
+      } catch (fetchError) {
+        if (fetchError instanceof Error && fetchError.message.includes('Invalid JSON')) {
+          throw fetchError;
+        }
+        console.error('[PubMed] Failed to read response:', fetchError);
+        throw new Error('Failed to read response from PubMed API');
+      }
 
       if (data.error) {
         throw new Error(`PubMed API returned error: ${data.error}`);
       }
 
-      // Extract article data
-      const result = data.result[pmid];
+      // Check if result object exists
+      if (!data.result) {
+        console.error('[PubMed] API response missing result:', data);
+        throw new Error('Invalid response from PubMed API');
+      }
+
+      // Extract article data - try both clean PMID and original PMID
+      const result = data.result[cleanPmid] || data.result[pmid];
+      
       if (!result) {
-        throw new Error('Article not found in PubMed');
+        // Log available keys for debugging
+        const availableIds = Object.keys(data.result || {}).filter(key => key !== 'uids');
+        console.error('[PubMed] Article not found. Available IDs:', availableIds);
+        console.error('[PubMed] Requested PMID:', cleanPmid);
+        console.error('[PubMed] Response structure:', {
+          hasResult: !!data.result,
+          resultKeys: Object.keys(data.result || {}),
+          uids: data.result?.uids
+        });
+        
+        // Check if there's a uids array that might contain the ID
+        if (data.result?.uids && Array.isArray(data.result.uids)) {
+          const firstUid = data.result.uids[0];
+          if (firstUid && data.result[firstUid]) {
+            // Use the first UID from the array
+            const fallbackResult = data.result[firstUid];
+            if (fallbackResult) {
+              // Format article data
+              const articleData: PubMedArticle = {
+                pmid: cleanPmid,
+                title: fallbackResult.title || 'Title not available',
+                authors: formatAuthors(fallbackResult.authors || []),
+                journal: fallbackResult.source || fallbackResult.fulljournalname || 'Journal not available',
+                year: formatPubDate(fallbackResult),
+                abstract: fallbackResult.abstract || undefined,
+                url: `https://pubmed.ncbi.nlm.nih.gov/${cleanPmid}/`,
+              };
+              return articleData;
+            }
+          }
+        }
+        
+        throw new Error(`Article not found in PubMed (PMID: ${cleanPmid})`);
       }
 
       // Format article data to match expected structure
       const articleData: PubMedArticle = {
-        pmid: pmid,
+        pmid: cleanPmid,
         title: result.title || 'Title not available',
         authors: formatAuthors(result.authors || []),
         journal: result.source || result.fulljournalname || 'Journal not available',
         year: formatPubDate(result),
         abstract: result.abstract || undefined,
-        url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
+        url: `https://pubmed.ncbi.nlm.nih.gov/${cleanPmid}/`,
       };
 
       return articleData;
