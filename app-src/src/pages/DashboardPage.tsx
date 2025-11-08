@@ -199,7 +199,7 @@ export function DashboardPage() {
       <div className="space-y-8">
         {/* Welcome Section */}
         <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 p-6 sm:p-8 hover:shadow-xl transition-shadow duration-300">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* User Avatar or Owner Logo */}
             {!isSuperAdmin && hasAdminAccess && ownerGroups.length > 0 && ownerGroups[0].owner_logo_url ? (
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-white border-2 border-gray-200/60 shadow-sm flex items-center justify-center flex-shrink-0 p-3 transition-transform duration-300 hover:scale-105">
@@ -215,14 +215,14 @@ export function DashboardPage() {
                 {getUserInitials()}
               </div>
             )}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 text-center sm:text-left">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                 Welcome back!
               </h1>
               <p className="text-base sm:text-lg text-gray-600 break-words font-medium mb-3">
                 {getUserDisplayName()}
               </p>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
                 {isSuperAdmin ? (
                   <PermissionsBadge role="super_admin" />
                 ) : hasAdminAccess ? (
