@@ -15,6 +15,7 @@
   margin: 0;
   background: #ffffff !important;
   border: 1px solid #e9ecef;
+  border-left: 4px solid var(--accent-color, #34a2ff); /* Accent color left border when collapsed */
   border-radius: 8px;
   cursor: pointer;
   user-select: none;
@@ -33,14 +34,16 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transition: border-radius 0.4s ease-out,
               border-color 0.4s ease-out,
+              border-left-color 0.4s ease-out,
               box-shadow 0.4s ease-out;
 }
 
-/* When expanded, remove bottom border-radius and box shadow to blend with container */
+/* When expanded, remove bottom border-radius, box shadow, and accent color left border */
 .downloads-keywords-container-header.expanded {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   border-bottom-color: transparent;
+  border-left: 1px solid #e9ecef; /* Remove accent color when expanded */
   box-shadow: none;
 }
 

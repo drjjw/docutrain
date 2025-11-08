@@ -282,7 +282,8 @@ function ChatPageContent({
   // ============================================================================
   // Show loading spinner while auth is loading OR while checking document access
   // This prevents flash of content when redirecting to login for restricted documents
-  const isCheckingAccess = documentSlug && !user && (configLoading || (!docConfig && !errorDetails));
+  // Don't show loading if we already have an error (access denied, not found, etc.)
+  const isCheckingAccess = documentSlug && !user && configLoading && !errorDetails;
   
   // Check if we should show cover and welcome (single document, not multi-doc)
   const shouldShowCoverAndWelcome = documentSlug && docConfig;

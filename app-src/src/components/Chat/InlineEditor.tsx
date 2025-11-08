@@ -1,14 +1,16 @@
 /**
  * InlineEditor - React component for inline editing of text fields
  * Ported from vanilla JS inline-editor.js
+ * Uses modal for headerTitle and welcomeTitle, inline editing for others
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Modal } from '@/components/UI/Modal';
 
 interface InlineEditorProps {
   value: string;
-  field: string;
-  documentSlug: string;
+  field: string; // Used for API calls, kept for compatibility
+  documentSlug: string; // Used for API calls, kept for compatibility
   type?: 'text' | 'textarea';
   onSave: (value: string) => Promise<boolean>;
   className?: string;
@@ -103,11 +105,15 @@ export function InlineEditor({
     setIsEditing(true);
     setEditValue(displayValue);
     
-    // Focus input after state update
-    setTimeout(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }, 0);
+    // For modal editing (headerTitle/welcomeTitle), focus happens in modal
+    // For inline editing, focus input after state update
+    const isModalEditing = id === 'headerTitle' || id === 'welcomeTitle';
+    if (!isModalEditing) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }, 0);
+    }
   };
 
   const handleFinishEditing = async () => {
@@ -155,12 +161,13 @@ export function InlineEditor({
   useEffect(() => {
     if (!isEditing || !inputRef.current) return;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && !e.shiftKey && type === 'text') {
-        e.preventDefault();
+    const handleKeyDown = (e: Event) => {
+      const keyEvent = e as KeyboardEvent;
+      if (keyEvent.key === 'Enter' && !keyEvent.shiftKey && type === 'text') {
+        keyEvent.preventDefault();
         handleFinishEditing();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
+      } else if (keyEvent.key === 'Escape') {
+        keyEvent.preventDefault();
         handleCancel();
       }
     };
@@ -207,6 +214,101 @@ export function InlineEditor({
     return baseStyles;
   };
 
+  // Determine the element type based on ID (needed for modal check)
+  const isHeaderTitle = id === 'headerTitle';
+  const isWelcomeTitle = id === 'welcomeTitle';
+  const isHeaderSubtitle = id === 'headerSubtitle';
+  const isTitle = id?.includes('Title');
+  const isSubtitle = id?.includes('Subtitle');
+  // welcomeTitle should be h2 (not h1) to avoid duplicate h1 tags - headerTitle is the page h1
+  const Element = isHeaderTitle ? 'h1' : (isWelcomeTitle ? 'h2' : (isTitle ? 'h1' : (isSubtitle ? 'p' : 'span')));
+  const useModalEditing = isHeaderTitle || isWelcomeTitle;
+
+  // Modal editing for headerTitle and welcomeTitle
+  if (useModalEditing && isEditing) {
+    const modalTitle = isHeaderTitle ? 'Edit Document Title' : 'Edit Welcome Message';
+    const InputComponent = type === 'textarea' ? 'textarea' : 'input';
+    
+    return (
+      <>
+        {/* Render the display element */}
+        <Element
+          ref={elementRef as any}
+          id={id}
+          className={className}
+          style={{ cursor: 'pointer', margin: 0, ...style }}
+        >
+          {displayValue}
+        </Element>
+        
+        {/* Modal for editing */}
+        <Modal
+          isOpen={isEditing}
+          onClose={handleCancel}
+          title={modalTitle}
+          size="md"
+        >
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="modal-edit-input" className="block text-sm font-medium text-gray-700 mb-2">
+                {isHeaderTitle ? 'Document Title' : 'Welcome Message'}
+              </label>
+              <InputComponent
+                id="modal-edit-input"
+                ref={inputRef as any}
+                type="text"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                disabled={saving}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                style={type === 'textarea' ? { minHeight: '100px', resize: 'vertical' } : {}}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && type === 'text') {
+                    e.preventDefault();
+                    handleFinishEditing();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleCancel();
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={saving}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleFinishEditing}
+                disabled={saving}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      </>
+    );
+  }
+
+  // Inline editing for other elements
   if (isEditing) {
     const InputComponent = type === 'textarea' ? 'textarea' : 'input';
     
@@ -240,25 +342,15 @@ export function InlineEditor({
     );
   }
 
-  // Determine the element type based on ID
-  const isTitle = id?.includes('Title');
-  const isSubtitle = id?.includes('Subtitle');
-  const isHeaderTitle = id === 'headerTitle';
-  const isWelcomeTitle = id === 'welcomeTitle';
-  const isHeaderSubtitle = id === 'headerSubtitle';
-  // welcomeTitle should be h2 (not h1) to avoid duplicate h1 tags - headerTitle is the page h1
-  const Element = isHeaderTitle ? 'h1' : (isWelcomeTitle ? 'h2' : (isTitle ? 'h1' : (isSubtitle ? 'p' : 'span')));
-
-  // For headerTitle, welcomeTitle, and headerSubtitle, use inline positioning (beside text)
+  // For headerSubtitle, use inline positioning (beside text)
   // For others, use absolute positioning
-  const useInlinePositioning = isHeaderTitle || isWelcomeTitle || isHeaderSubtitle;
+  const useInlinePositioning = isHeaderSubtitle;
 
-  if (useInlinePositioning) {
-    // For titles and subtitles, use flex wrapper with icon beside the text
-    // Use absolute positioning for edit button to keep title centered
+  // Modal editing display (headerTitle and welcomeTitle)
+  if (useModalEditing) {
     const wrapperClassName = isHeaderTitle 
       ? 'header-title-wrapper' 
-      : (isWelcomeTitle ? 'welcome-title-wrapper' : '');
+      : 'welcome-title-wrapper';
     
     return (
       <div
@@ -269,6 +361,62 @@ export function InlineEditor({
           justifyContent: 'center',
           position: 'relative',
           marginBottom: isWelcomeTitle ? '12px' : '0',
+        }}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        <Element
+          ref={elementRef as any}
+          id={id}
+          className={className}
+          style={{ cursor: 'pointer', margin: 0, ...style }}
+          onClick={handleStartEditing}
+        >
+          {displayValue}
+        </Element>
+        <button
+          type="button"
+          className="inline-edit-icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleStartEditing();
+          }}
+          title="Click to edit"
+          style={{
+            position: 'absolute',
+            right: '0',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            background: 'rgba(0, 0, 0, 0.7)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            padding: '4px 8px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            zIndex: 100,
+            opacity: isHovering ? 1 : 0,
+            transition: 'opacity 0.2s',
+            pointerEvents: isHovering ? 'auto' : 'none',
+            flexShrink: 0,
+          }}
+        >
+          ✏️
+        </button>
+      </div>
+    );
+  }
+
+  // Inline positioning for headerSubtitle
+  if (useInlinePositioning) {
+    return (
+      <div
+        className="header-subtitle-wrapper"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
         }}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}

@@ -300,12 +300,16 @@ function SharedConversationContent({
   
   // Show DocumentOwnerModal if:
   // - We have an accessError that requires auth (and NOT passcode), OR
+  // - We have an accessError with type 'access_denied' (user logged in but doesn't have permission), OR
   // - We have a documentSlug AND DocumentAccessContext says access is denied (and it's not a passcode issue)
   // - AND we're not showing the passcode modal
   // Priority: accessError from API over DocumentAccessContext
-  const shouldShowDocumentOwnerModal = (accessError?.requires_auth && !accessError?.requires_passcode) || 
-                                       (!accessError && !!documentSlug && documentAccess?.errorDetails?.type !== 'passcode_required' && 
-                                        documentAccess?.accessStatus === 'denied' && !shouldShowPasscodeModal);
+  const isAccessDeniedFromAPI = accessError?.type === 'access_denied' || 
+                                 (accessError?.requires_auth && !accessError?.requires_passcode);
+  const isAccessDeniedFromContext = !accessError && !!documentSlug && 
+                                     documentAccess?.errorDetails?.type === 'access_denied' && 
+                                     !shouldShowPasscodeModal;
+  const shouldShowDocumentOwnerModal = isAccessDeniedFromAPI || isAccessDeniedFromContext;
   const isDocumentNotFound = !!documentSlug && documentAccess?.accessStatus === 'not_found';
 
   // Debug logging
@@ -334,7 +338,7 @@ function SharedConversationContent({
           shouldShowPasscodeModal={shouldShowPasscodeModal}
           documentSlug={documentSlug}
           errorDetails={documentAccess?.errorDetails || {
-            type: accessError.requires_auth ? 'access_denied' : 'passcode_required',
+            type: accessError.type === 'access_denied' || accessError.requires_auth ? 'access_denied' : 'passcode_required',
             message: accessError.message
           }}
           shouldShowDocumentOwnerModal={shouldShowDocumentOwnerModal}
@@ -360,7 +364,7 @@ function SharedConversationContent({
           shouldShowPasscodeModal={shouldShowPasscodeModal}
           documentSlug={documentSlug}
           errorDetails={documentAccess?.errorDetails || {
-            type: accessError?.requires_auth ? 'access_denied' : 'passcode_required',
+            type: accessError?.type === 'access_denied' || accessError?.requires_auth ? 'access_denied' : 'passcode_required',
             message: accessError?.message || 'Access denied'
           }}
           shouldShowDocumentOwnerModal={shouldShowDocumentOwnerModal}

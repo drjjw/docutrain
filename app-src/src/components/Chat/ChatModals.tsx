@@ -81,11 +81,19 @@ export function ChatModals({
       )}
       
       {/* Document/Owner Selection Modal - shown when no document is selected and no owner param */}
-      {/* Also shown when document is not found (404) */}
+      {/* Also shown when document is not found (404) or access is denied */}
       <DocumentOwnerModal 
         isOpen={shouldShowDocumentOwnerModal}
-        customMessage={isDocumentNotFound ? errorDetails?.message : undefined}
-        attemptedSlug={isDocumentNotFound ? documentSlug || undefined : undefined}
+        customMessage={
+          isDocumentNotFound || errorDetails?.type === 'access_denied' 
+            ? errorDetails?.message 
+            : undefined
+        }
+        attemptedSlug={
+          isDocumentNotFound || errorDetails?.type === 'access_denied'
+            ? documentSlug || undefined 
+            : undefined
+        }
       />
       
       {/* Document Selector Modal - shown when owner param is present but no doc is selected */}

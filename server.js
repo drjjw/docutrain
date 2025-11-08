@@ -189,6 +189,12 @@ app.use('/api', createHealthRouter(supabase, documentRegistry, registryState));
 app.use('/api', createContactRouter());
 app.use('/api/monitoring', createMonitoringRouter(supabase));
 
+// Document routes - mount at /api so /api/documents routes work correctly
+app.use('/api', createDocumentsRouter(supabase, documentRegistry, registryState, escapeHtml));
+
+// Also mount at / for root routes (/?doc=slug)
+app.use('/', createDocumentsRouter(supabase, documentRegistry, registryState, escapeHtml));
+
 // Global error handler for API routes
 app.use('/api', (err, req, res, next) => {
     console.error('❌ API Error:', err);
@@ -634,9 +640,7 @@ app.get('/chat', async (req, res) => {
     */
 });
 
-// Document routes for main app (after static files so dynamic meta injection still works)
-// This handles dynamic document routes like /?doc=slug
-app.use('/', createDocumentsRouter(supabase, documentRegistry, registryState, escapeHtml));
+// Document routes are mounted earlier (before error handler) - see line 193
 
 // Start server
 async function start() {

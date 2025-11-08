@@ -17,13 +17,16 @@ export function useModalState(
   // Check if we should show the document/owner selection modal
   // Show when:
   // 1. No document is selected and no owner parameter is present, OR
-  // 2. Document was not found (404 error)
+  // 2. Document was not found (404 error), OR
+  // 3. Access denied error (user logged in but doesn't have permission)
   const isDocumentNotFound = errorDetails?.type === 'document_not_found';
-  const shouldShowDocumentOwnerModal = (!documentSlug && !ownerParam) || isDocumentNotFound;
+  const isAccessDenied = errorDetails?.type === 'access_denied';
+  const shouldShowDocumentOwnerModal = (!documentSlug && !ownerParam) || isDocumentNotFound || isAccessDenied;
 
   // When owner param is present but no doc is selected, DocumentSelector should show as modal
   // DocumentSelector handles its own modal rendering when in modal mode
-  const shouldShowDocumentSelectorModal = !!ownerParam && !documentSlug;
+  // Don't show selector if access is denied
+  const shouldShowDocumentSelectorModal = !!ownerParam && !documentSlug && !isAccessDenied;
 
   return {
     shouldShowPasscodeModal,

@@ -1,9 +1,11 @@
 /**
  * InlineWysiwygEditor - React component for inline editing of rich text fields (intro message)
  * Ported from vanilla JS inline-editor.js
+ * Uses modal for editing instead of inline editing
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { Modal } from '@/components/UI/Modal';
 
 interface InlineWysiwygEditorProps {
   value: string;
@@ -327,9 +329,10 @@ export function InlineWysiwygEditor({
   useEffect(() => {
     if (!isEditing || !editorRef.current) return;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
+    const handleKeyDown = (e: Event) => {
+      const keyEvent = e as KeyboardEvent;
+      if (keyEvent.key === 'Escape') {
+        keyEvent.preventDefault();
         handleCancel();
       }
     };
@@ -340,105 +343,127 @@ export function InlineWysiwygEditor({
     };
   }, [isEditing, value]);
 
+  // Modal editing view
   if (isEditing) {
     return (
-      <div className="inline-wysiwyg-editor">
-        {/* Toolbar */}
-        <div ref={toolbarRef} className="inline-editor-toolbar">
-          <button
-            type="button"
-            className="inline-editor-toolbar-btn"
-            onClick={() => execCommand('bold')}
-            title="Bold"
-          >
-            B
-          </button>
-          <button
-            type="button"
-            className="inline-editor-toolbar-btn"
-            onClick={() => execCommand('italic')}
-            title="Italic"
-          >
-            I
-          </button>
-          <button
-            type="button"
-            className="inline-editor-toolbar-btn"
-            onClick={() => execCommand('underline')}
-            title="Underline"
-          >
-            U
-          </button>
-          <div className="inline-editor-toolbar-separator" />
-          <button
-            type="button"
-            className="inline-editor-toolbar-btn"
-            onClick={() => execCommand('insertUnorderedList')}
-            title="Bullet List"
-          >
-            •
-          </button>
-          <button
-            type="button"
-            className="inline-editor-toolbar-btn"
-            onClick={() => execCommand('insertOrderedList')}
-            title="Numbered List"
-          >
-            1.
-          </button>
-          <div className="inline-editor-toolbar-separator" />
-          <button
-            type="button"
-            className="inline-editor-toolbar-btn"
-            onClick={() => execCommand('createLink')}
-            title="Insert Link"
-          >
-            🔗
-          </button>
-          <button
-            type="button"
-            className="inline-editor-toolbar-btn"
-            onClick={() => execCommand('unlink')}
-            title="Remove Link"
-          >
-            🔗❌
-          </button>
-          <div className="inline-editor-toolbar-actions">
-            <button
-              type="button"
-              className="inline-editor-save-btn"
-              onClick={handleSave}
-              disabled={saving}
-              style={{ 
-                color: 'white',
-                backgroundColor: '#007bff',
-                borderColor: '#007bff'
-              }}
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              className="inline-editor-cancel-btn"
-              onClick={handleCancel}
-              disabled={saving}
-            >
-              Cancel
-            </button>
+      <>
+        {/* Modal for editing */}
+        <Modal
+          isOpen={isEditing}
+          onClose={handleCancel}
+          title="Edit Intro Message"
+          size="lg"
+          flexColumn={true}
+        >
+          <div className="flex flex-col h-full">
+            {/* Toolbar */}
+            <div ref={toolbarRef} className="inline-editor-toolbar mb-4 flex-shrink-0">
+              <button
+                type="button"
+                className="inline-editor-toolbar-btn"
+                onClick={() => execCommand('bold')}
+                title="Bold"
+              >
+                B
+              </button>
+              <button
+                type="button"
+                className="inline-editor-toolbar-btn"
+                onClick={() => execCommand('italic')}
+                title="Italic"
+              >
+                I
+              </button>
+              <button
+                type="button"
+                className="inline-editor-toolbar-btn"
+                onClick={() => execCommand('underline')}
+                title="Underline"
+              >
+                U
+              </button>
+              <div className="inline-editor-toolbar-separator" />
+              <button
+                type="button"
+                className="inline-editor-toolbar-btn"
+                onClick={() => execCommand('insertUnorderedList')}
+                title="Bullet List"
+              >
+                •
+              </button>
+              <button
+                type="button"
+                className="inline-editor-toolbar-btn"
+                onClick={() => execCommand('insertOrderedList')}
+                title="Numbered List"
+              >
+                1.
+              </button>
+              <div className="inline-editor-toolbar-separator" />
+              <button
+                type="button"
+                className="inline-editor-toolbar-btn"
+                onClick={() => execCommand('createLink')}
+                title="Insert Link"
+              >
+                🔗
+              </button>
+              <button
+                type="button"
+                className="inline-editor-toolbar-btn"
+                onClick={() => execCommand('unlink')}
+                title="Remove Link"
+              >
+                🔗❌
+              </button>
+            </div>
+            
+            {/* Editor */}
+            <div className="flex-1 min-h-0 flex flex-col">
+              <div
+                ref={editorRef}
+                contentEditable
+                className={`inline-editor-active ${className} flex-1 overflow-y-auto border border-gray-300 rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                id={`${id}-editor`}
+                style={{ minHeight: '300px', maxHeight: '500px' }}
+                onInput={(e) => {
+                  setEditValue(e.currentTarget.innerHTML);
+                }}
+              />
+            </div>
+            
+            {/* Action buttons */}
+            <div className="flex justify-end gap-3 pt-4 mt-4 border-t flex-shrink-0">
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={saving}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </button>
+            </div>
           </div>
-        </div>
-        
-        {/* Editor */}
-        <div
-          ref={editorRef}
-          contentEditable
-          className={`inline-editor-active ${className}`}
-          id={id}
-          onInput={(e) => {
-            setEditValue(e.currentTarget.innerHTML);
-          }}
-        />
-      </div>
+        </Modal>
+      </>
     );
   }
 
