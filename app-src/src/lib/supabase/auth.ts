@@ -3,6 +3,10 @@ import { supabase } from './client';
 export interface SignUpData {
   email: string;
   password: string;
+  firstName?: string;
+  lastName?: string;
+  tosAcceptedAt?: string;
+  tosVersion?: string;
 }
 
 export interface SignInData {
@@ -13,11 +17,67 @@ export interface SignInData {
 /**
  * Sign up a new user with email and password
  * @param inviteToken Optional invitation token for auto-verification
+ * @param firstName Optional first name for profile creation
+ * @param lastName Optional last name for profile creation
+ * @param tosAcceptedAt Optional TOS acceptance timestamp
+ * @param tosVersion Optional TOS version
  */
-export async function signUp({ email, password, inviteToken }: SignUpData & { inviteToken?: string }) {
+export async function signUp({ email, password, inviteToken, firstName, lastName, tosAcceptedAt, tosVersion }: SignUpData & { inviteToken?: string }) {
   // Normalize email (trim and lowercase) to ensure consistency
   const normalizedEmail = email.toLowerCase().trim();
   
+  // For invited users, use backend endpoint that creates user via Admin API
+  // This prevents Supabase from sending confirmation emails
+  if (inviteToken) {
+    try {
+      const response = await fetch('/api/users/create-invited-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          invite_token: inviteToken,
+          email: normalizedEmail,
+          password: password,
+          first_name: firstName,
+          last_name: lastName,
+          tos_accepted_at: tosAcceptedAt,
+          tos_version: tosVersion,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to create invited user:', errorData);
+        throw new Error(errorData.error || 'Failed to create user account');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        console.log('Invited user created successfully, signing in...');
+        // Sign the user in with their password to get a session
+        const signInResult = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
+
+        if (signInResult.error) {
+          console.error('Failed to sign in after user creation:', signInResult.error);
+          throw new Error('Account created and verified, but failed to sign in. Please try logging in manually.');
+        }
+
+        // Return the sign-in result which includes the session
+        return signInResult.data;
+      } else {
+        throw new Error(result.error || 'Failed to create user account');
+      }
+    } catch (err) {
+      console.error('Error creating invited user:', err);
+      throw err; // Re-throw so the form can handle the error
+    }
+  }
+  
+  // For regular signups, use standard Supabase signUp
   const { data, error } = await supabase.auth.signUp({
     email: normalizedEmail,
     password,
@@ -25,57 +85,11 @@ export async function signUp({ email, password, inviteToken }: SignUpData & { in
       // Use TokenHash approach to prevent email prefetching
       // The email template will construct a link to our verify page
       emailRedirectTo: `${window.location.origin}/app/verify-email`,
-      // If invite token is present, we'll handle verification via backend
-      data: inviteToken ? { invite_token: inviteToken } : undefined,
     },
   });
 
   if (error) {
     throw new Error(error.message);
-  }
-
-  // If invite token is present, call backend to auto-verify and add to owner group
-  if (inviteToken && data.user) {
-    try {
-      const response = await fetch('/api/users/complete-invite-signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: data.user.id,
-          invite_token: inviteToken,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Failed to complete invite signup:', errorData);
-        throw new Error(errorData.error || 'Failed to complete invite signup');
-      }
-
-      const result = await response.json();
-      if (result.success) {
-        console.log('Invite signup completed successfully, signing user in...');
-        // Sign the user in with their password to get a session
-        // This works because email is now confirmed
-        const signInResult = await supabase.auth.signInWithPassword({
-          email: normalizedEmail,
-          password,
-        });
-
-        if (signInResult.error) {
-          console.error('Failed to sign in after invite signup:', signInResult.error);
-          throw new Error('Account created and verified, but failed to sign in. Please try logging in manually.');
-        }
-
-        // Return the sign-in result which includes the session
-        return signInResult.data;
-      }
-    } catch (err) {
-      console.error('Error completing invite signup:', err);
-      throw err; // Re-throw so the form can handle the error
-    }
   }
 
   return data;

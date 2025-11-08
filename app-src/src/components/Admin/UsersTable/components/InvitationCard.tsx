@@ -1,35 +1,48 @@
-import { Button } from '@/components/UI/Button';
 import type { PendingInvitation } from '@/types/admin';
 import { formatDate } from '../utils';
+import { InvitationActionsModal } from '../modals/InvitationActionsModal';
+import { useState } from 'react';
 
 interface InvitationCardProps {
   invitation: PendingInvitation;
+  selectedInvitationIds: Set<string>;
   saving: boolean;
   resendingInvitationId: string | null;
   deletingInvitationId: string | null;
+  onToggleSelection: (invitationId: string) => void;
   onResend: (invitationId: string) => void;
   onDelete: (invitationId: string) => void;
 }
 
 export function InvitationCard({
   invitation,
+  selectedInvitationIds,
   saving,
   resendingInvitationId,
   deletingInvitationId,
+  onToggleSelection,
   onResend,
   onDelete,
 }: InvitationCardProps) {
   const expiresAt = new Date(invitation.expires_at);
   const daysUntilExpiry = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   const isExpiringSoon = daysUntilExpiry <= 7;
+  const isSelected = selectedInvitationIds.has(invitation.id);
+  const [showActionsModal, setShowActionsModal] = useState(false);
   
   return (
     <div 
-      className="bg-docutrain-light/10 rounded-lg shadow-sm border border-docutrain-light/30 border-l-4 border-l-docutrain-light overflow-hidden"
+      className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${isSelected ? 'bg-docutrain-light/10' : ''}`}
     >
       {/* Card Header */}
-      <div className="px-4 py-4 bg-gradient-to-r from-docutrain-light/10 to-white border-b border-docutrain-light/20">
+      <div className={`px-4 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200 ${isSelected ? 'bg-docutrain-light/10' : ''}`}>
         <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggleSelection(invitation.id)}
+            className="w-4 h-4 text-docutrain-light border-gray-300 rounded focus:ring-docutrain-light flex-shrink-0"
+          />
           <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-medium">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -98,37 +111,31 @@ export function InvitationCard({
           </div>
           
           {/* Actions */}
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onResend(invitation.id)}
-              disabled={saving || resendingInvitationId === invitation.id}
-              loading={resendingInvitationId === invitation.id}
-              className="flex-1 min-w-[120px]"
-              title="Resend invitation email"
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowActionsModal(true)}
+              disabled={saving}
+              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Actions"
             >
-              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
               </svg>
-              Resend
-            </Button>
-            <Button
-              size="sm"
-              variant="danger"
-              onClick={() => onDelete(invitation.id)}
-              disabled={saving || deletingInvitationId === invitation.id}
-              className="flex-1 min-w-[120px]"
-              title="Delete invitation"
-            >
-              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              Delete
-            </Button>
+            </button>
           </div>
         </div>
       </div>
+      
+      <InvitationActionsModal
+        isOpen={showActionsModal}
+        onClose={() => setShowActionsModal(false)}
+        invitationEmail={invitation.email}
+        saving={saving}
+        isResending={resendingInvitationId === invitation.id}
+        isDeleting={deletingInvitationId === invitation.id}
+        onResend={() => onResend(invitation.id)}
+        onDelete={() => onDelete(invitation.id)}
+      />
     </div>
   );
 }

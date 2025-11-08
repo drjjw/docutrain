@@ -1,12 +1,14 @@
 import { Button } from '@/components/UI/Button';
 import { Modal } from '@/components/UI/Modal';
-import type { UserWithRoles } from '@/types/admin';
+import type { UserWithRoles, PendingInvitation } from '@/types/admin';
 
 interface BulkDeleteModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedUserIds: Set<string>;
+  selectedInvitationIds: Set<string>;
   users: UserWithRoles[];
+  pendingInvitations: PendingInvitation[];
   selectedCount: number;
   saving: boolean;
   onConfirm: () => void;
@@ -16,16 +18,25 @@ export function BulkDeleteModal({
   isOpen,
   onClose,
   selectedUserIds,
+  selectedInvitationIds,
   users,
+  pendingInvitations,
   selectedCount,
   saving,
   onConfirm,
 }: BulkDeleteModalProps) {
+  const userCount = selectedUserIds.size;
+  const invitationCount = selectedInvitationIds.size;
+  const items = [];
+  if (userCount > 0) items.push(`${userCount} user${userCount !== 1 ? 's' : ''}`);
+  if (invitationCount > 0) items.push(`${invitationCount} invitation${invitationCount !== 1 ? 's' : ''}`);
+  const itemLabel = items.join(' and ');
+  
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Delete Multiple Users"
+      title="Delete Multiple Items"
       size="md"
     >
       <div className="space-y-4">
@@ -39,20 +50,28 @@ export function BulkDeleteModal({
                 This action cannot be undone
               </p>
               <p className="mt-1 text-xs text-red-600">
-                This will permanently delete {selectedCount} user{selectedCount !== 1 ? 's' : ''} and all associated data.
+                This will permanently delete {itemLabel} and all associated data.
               </p>
             </div>
           </div>
         </div>
 
         <div className="bg-gray-50 rounded-lg p-3 max-h-48 overflow-y-auto">
-          <div className="text-xs font-medium text-gray-700 mb-2">Users to be deleted:</div>
+          <div className="text-xs font-medium text-gray-700 mb-2">Items to be deleted:</div>
           <div className="space-y-1">
             {Array.from(selectedUserIds).map(userId => {
               const user = users.find(u => u.id === userId);
               return user ? (
                 <div key={userId} className="text-sm text-gray-600">
-                  • {user.email}
+                  • {user.email} (User)
+                </div>
+              ) : null;
+            })}
+            {Array.from(selectedInvitationIds).map(invitationId => {
+              const invitation = pendingInvitations.find(i => i.id === invitationId);
+              return invitation ? (
+                <div key={invitationId} className="text-sm text-gray-600">
+                  • {invitation.email} (Invitation)
                 </div>
               ) : null;
             })}
@@ -67,7 +86,7 @@ export function BulkDeleteModal({
             loading={saving}
             className="flex-1"
           >
-            Delete {selectedCount} User{selectedCount !== 1 ? 's' : ''}
+            Delete {itemLabel}
           </Button>
           <Button
             variant="outline"

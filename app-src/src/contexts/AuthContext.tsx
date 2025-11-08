@@ -51,28 +51,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const signUp = async (email: string, password: string, inviteToken?: string) => {
+  const signUp = async (data: Parameters<typeof authService.signUp>[0]) => {
     try {
-      console.log('AuthContext: signUp called for', email, inviteToken ? 'with invite token' : '');
-      const data = await authService.signUp({ email, password, inviteToken });
+      console.log('AuthContext: signUp called for', data.email, data.inviteToken ? 'with invite token' : '');
+      const result = await authService.signUp(data);
       console.log('AuthContext: signUp response:', { 
-        hasSession: !!data.session, 
-        hasUser: !!data.user,
-        user: data.user
+        hasSession: !!result.session, 
+        hasUser: !!result.user,
+        user: result.user
       });
       // Only set session/user if there's a valid session (email confirmed)
       // If email confirmation is required, session will be null and we shouldn't set user
       // For invite signups, session should be available immediately
-      if (data.session) {
-        setSession(data.session);
-        setUser(data.user);
+      if (result.session) {
+        setSession(result.session);
+        setUser(result.user);
       } else {
         // No session means email confirmation required - clear any existing user
         setSession(null);
         setUser(null);
       }
       // Return the signup data so the form can use it
-      return data;
+      return result;
     } catch (error) {
       console.error('AuthContext: signUp error:', error);
       throw new Error(getAuthErrorMessage(error as Error));

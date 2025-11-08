@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
@@ -43,13 +43,41 @@ export function UsersTable() {
   // Selection management
   const {
     selectedUserIds,
+    selectedInvitationIds,
     setSelectedUserIds,
+    setSelectedInvitationIds,
     toggleUserSelection,
+    toggleInvitationSelection,
+    toggleSelection,
     toggleSelectAll,
     selectedCount,
     allSelected,
     someSelected,
-  } = useUsersSelection(users);
+  } = useUsersSelection(users, pendingInvitations);
+
+  // Merge and sort users and invitations by email
+  const mergedItems = useMemo(() => {
+    const userItems = users.map(user => ({
+      type: 'user' as const,
+      id: user.id,
+      email: user.email,
+      created_at: user.created_at,
+      data: user,
+    }));
+    
+    const invitationItems = pendingInvitations.map(invitation => ({
+      type: 'invitation' as const,
+      id: invitation.id,
+      email: invitation.email,
+      created_at: invitation.created_at,
+      data: invitation,
+    }));
+    
+    return [...userItems, ...invitationItems].sort((a, b) => {
+      // Sort by email alphabetically
+      return a.email.localeCompare(b.email);
+    });
+  }, [users, pendingInvitations]);
 
   // Modal state
   const [saving, setSaving] = useState(false);
@@ -91,8 +119,10 @@ export function UsersTable() {
   // Handlers
   const handlers = useUsersHandlers({
     users,
+    pendingInvitations,
     owners,
     selectedUserIds,
+    selectedInvitationIds,
     editingPermissions,
     editRole,
     editOwnerId,
@@ -126,6 +156,7 @@ export function UsersTable() {
     setUserStats,
     setLoadingStats,
     setSelectedUserIds,
+    setSelectedInvitationIds,
     setBulkEditPermissions,
     setBulkRole,
     setBulkOwnerId,
@@ -204,7 +235,10 @@ export function UsersTable() {
           setBulkOwnerId(null);
         }}
         onDeleteSelected={() => setBulkDeleteConfirm(true)}
-        onClearSelection={() => setSelectedUserIds(new Set())}
+        onClearSelection={() => {
+          setSelectedUserIds(new Set());
+          setSelectedInvitationIds(new Set());
+        }}
       />
 
       {/* Desktop Table View */}
@@ -231,6 +265,9 @@ export function UsersTable() {
                   Role & Permissions
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Owner
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -239,44 +276,51 @@ export function UsersTable() {
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Created
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((user) => (
-                <UsersTableRow
-                  key={user.id}
-                  user={user}
-                  isSuperAdmin={isSuperAdmin}
-                  selectedUserIds={selectedUserIds}
-                  saving={saving}
-                  resendingInvitationId={resendingInvitationId}
-                  deletingInvitationId={deletingInvitationId}
-                  onToggleSelection={toggleUserSelection}
-                  onEditPermissions={handlers.openEditPermissions}
-                  onViewStats={handlers.handleViewStats}
-                  onResetPassword={(email) => setResetPasswordConfirm(email)}
-                  onSetPassword={(userId) => setPasswordEditUserId(userId)}
-                  onUnban={handlers.handleUnban}
-                  onDelete={(userId) => {
-                    setDeleteConfirmId(userId);
-                    setDeleteAction('delete');
-                  }}
-                />
-              ))}
-              {pendingInvitations.map((invitation) => (
-                <InvitationRow
-                  key={`invitation-${invitation.id}`}
-                  invitation={invitation}
-                  saving={saving}
-                  resendingInvitationId={resendingInvitationId}
-                  deletingInvitationId={deletingInvitationId}
-                  onResend={handlers.handleResendInvitation}
-                  onDelete={(id) => setDeletingInvitationId(id)}
-                />
-              ))}
+              {mergedItems.map((item) => {
+                if (item.type === 'user') {
+                  return (
+                    <UsersTableRow
+                      key={item.id}
+                      user={item.data}
+                      isSuperAdmin={isSuperAdmin}
+                      selectedUserIds={selectedUserIds}
+                      saving={saving}
+                      resendingInvitationId={resendingInvitationId}
+                      deletingInvitationId={deletingInvitationId}
+                      onToggleSelection={toggleUserSelection}
+                      onEditPermissions={handlers.openEditPermissions}
+                      onViewStats={handlers.handleViewStats}
+                      onResetPassword={(email) => setResetPasswordConfirm(email)}
+                      onSetPassword={(userId) => setPasswordEditUserId(userId)}
+                      onUnban={handlers.handleUnban}
+                      onDelete={(userId) => {
+                        setDeleteConfirmId(userId);
+                        setDeleteAction('delete');
+                      }}
+                    />
+                  );
+                } else {
+                  return (
+                    <InvitationRow
+                      key={`invitation-${item.id}`}
+                      invitation={item.data}
+                      selectedInvitationIds={selectedInvitationIds}
+                      saving={saving}
+                      resendingInvitationId={resendingInvitationId}
+                      deletingInvitationId={deletingInvitationId}
+                      onToggleSelection={toggleInvitationSelection}
+                      onResend={handlers.handleResendInvitation}
+                      onDelete={(id) => setDeletingInvitationId(id)}
+                    />
+                  );
+                }
+              })}
             </tbody>
           </table>
         </div>
@@ -284,34 +328,43 @@ export function UsersTable() {
 
       {/* Mobile/Tablet Card View */}
       <div className="lg:hidden space-y-4">
-        {users.map((user) => (
-          <UsersTableCard
-            key={user.id}
-            user={user}
-            isSuperAdmin={isSuperAdmin}
-            selectedUserIds={selectedUserIds}
-            saving={saving}
-            onToggleSelection={toggleUserSelection}
-            onEditPermissions={handlers.openEditPermissions}
-            onResetPassword={(email) => setResetPasswordConfirm(email)}
-            onSetPassword={(userId) => setPasswordEditUserId(userId)}
-            onDelete={(userId) => {
-              setDeleteConfirmId(userId);
-              setDeleteAction('delete');
-            }}
-          />
-        ))}
-        {pendingInvitations.map((invitation) => (
-          <InvitationCard
-            key={`invitation-${invitation.id}`}
-            invitation={invitation}
-            saving={saving}
-            resendingInvitationId={resendingInvitationId}
-            deletingInvitationId={deletingInvitationId}
-            onResend={handlers.handleResendInvitation}
-            onDelete={(id) => setDeletingInvitationId(id)}
-          />
-        ))}
+        {mergedItems.map((item) => {
+          if (item.type === 'user') {
+            return (
+              <UsersTableCard
+                key={item.id}
+                user={item.data}
+                isSuperAdmin={isSuperAdmin}
+                selectedUserIds={selectedUserIds}
+                saving={saving}
+                onToggleSelection={toggleUserSelection}
+                onEditPermissions={handlers.openEditPermissions}
+                onViewStats={handlers.handleViewStats}
+                onResetPassword={(email) => setResetPasswordConfirm(email)}
+                onSetPassword={(userId) => setPasswordEditUserId(userId)}
+                onUnban={handlers.handleUnban}
+                onDelete={(userId) => {
+                  setDeleteConfirmId(userId);
+                  setDeleteAction('delete');
+                }}
+              />
+            );
+          } else {
+            return (
+              <InvitationCard
+                key={`invitation-${item.id}`}
+                invitation={item.data}
+                selectedInvitationIds={selectedInvitationIds}
+                saving={saving}
+                resendingInvitationId={resendingInvitationId}
+                deletingInvitationId={deletingInvitationId}
+                onToggleSelection={toggleInvitationSelection}
+                onResend={handlers.handleResendInvitation}
+                onDelete={(id) => setDeletingInvitationId(id)}
+              />
+            );
+          }
+        })}
       </div>
 
       {users.length === 0 && pendingInvitations.length === 0 && (
@@ -411,7 +464,9 @@ export function UsersTable() {
         isOpen={bulkDeleteConfirm}
         onClose={() => setBulkDeleteConfirm(false)}
         selectedUserIds={selectedUserIds}
+        selectedInvitationIds={selectedInvitationIds}
         users={users}
+        pendingInvitations={pendingInvitations}
         selectedCount={selectedCount}
         saving={saving}
         onConfirm={handlers.handleBulkDelete}

@@ -1,4 +1,4 @@
-import type { UserWithRoles, Owner } from '@/types/admin';
+import type { UserWithRoles, Owner, PendingInvitation } from '@/types/admin';
 import type { EditingPermissions } from '../types';
 import { 
   updateUserRole, 
@@ -17,8 +17,10 @@ import {
 
 interface UseUsersHandlersParams {
   users: UserWithRoles[];
+  pendingInvitations: PendingInvitation[];
   owners: Owner[];
   selectedUserIds: Set<string>;
+  selectedInvitationIds: Set<string>;
   editingPermissions: EditingPermissions | null;
   editRole: 'registered' | 'owner_admin' | 'super_admin';
   editOwnerId: string | null;
@@ -52,6 +54,7 @@ interface UseUsersHandlersParams {
   setUserStats: (stats: any) => void;
   setLoadingStats: (loading: boolean) => void;
   setSelectedUserIds: (ids: Set<string>) => void;
+  setSelectedInvitationIds: (ids: Set<string>) => void;
   setBulkEditPermissions: (show: boolean) => void;
   setBulkRole: (role: 'registered' | 'owner_admin' | 'super_admin') => void;
   setBulkOwnerId: (id: string | null) => void;
@@ -69,8 +72,10 @@ interface UseUsersHandlersParams {
 export function useUsersHandlers(params: UseUsersHandlersParams) {
   const {
     users,
+    pendingInvitations,
     owners,
     selectedUserIds,
+    selectedInvitationIds,
     editingPermissions,
     editRole,
     editOwnerId,
@@ -104,6 +109,7 @@ export function useUsersHandlers(params: UseUsersHandlersParams) {
     setUserStats,
     setLoadingStats,
     setSelectedUserIds,
+    setSelectedInvitationIds,
     setBulkEditPermissions,
     setBulkRole,
     setBulkOwnerId,
@@ -142,6 +148,17 @@ export function useUsersHandlers(params: UseUsersHandlersParams) {
     } else if (ownerAdminRole) {
       initialRole = 'owner_admin';
       initialOwnerId = ownerAdminRole.owner_id || null;
+    } else {
+      // For registered users, check if they have an owner group
+      // Prioritize Maker Pizza if it exists, then any registered role, then any owner group
+      const registeredOwnerGroup = makerPizza || ownerGroups.find(og => 
+        og.role === 'registered' && og.owner_id
+      ) || ownerGroups.find(og => og.owner_id); // Fallback to any owner group with owner_id
+      
+      if (registeredOwnerGroup) {
+        initialRole = 'registered';
+        initialOwnerId = registeredOwnerGroup.owner_id || null;
+      }
     }
 
     // Fetch user profile data
@@ -368,33 +385,47 @@ export function useUsersHandlers(params: UseUsersHandlersParams) {
   };
 
   const handleBulkDelete = async () => {
-    if (selectedUserIds.size === 0) return;
+    if (selectedUserIds.size === 0 && selectedInvitationIds.size === 0) return;
 
     try {
       setSaving(true);
       setError(null);
 
       const userIds = Array.from(selectedUserIds);
-      const results = await Promise.allSettled(
-        userIds.map(userId => deleteUser(userId))
-      );
+      const invitationIds = Array.from(selectedInvitationIds);
+      
+      const userResults = userIds.length > 0 
+        ? await Promise.allSettled(userIds.map(userId => deleteUser(userId)))
+        : [];
+      
+      const invitationResults = invitationIds.length > 0
+        ? await Promise.allSettled(invitationIds.map(invitationId => deletePendingInvitation(invitationId)))
+        : [];
 
-      const failures = results.filter(r => r.status === 'rejected');
+      const allResults = [...userResults, ...invitationResults];
+      const failures = allResults.filter(r => r.status === 'rejected');
+      
       if (failures.length > 0) {
         const errorMessages = failures
           .map((r: PromiseRejectedResult) => r.reason?.message || 'Unknown error')
           .join(', ');
-        setError(`Failed to delete ${failures.length} user(s): ${errorMessages}`);
+        const totalItems = userIds.length + invitationIds.length;
+        setError(`Failed to delete ${failures.length} of ${totalItems} item(s): ${errorMessages}`);
       } else {
-        setError(`Successfully deleted ${userIds.length} user(s)`);
+        const totalItems = userIds.length + invitationIds.length;
+        const items = [];
+        if (userIds.length > 0) items.push(`${userIds.length} user${userIds.length !== 1 ? 's' : ''}`);
+        if (invitationIds.length > 0) items.push(`${invitationIds.length} invitation${invitationIds.length !== 1 ? 's' : ''}`);
+        setError(`Successfully deleted ${items.join(' and ')}`);
         setTimeout(() => setError(null), 3000);
       }
 
       await loadData();
       setSelectedUserIds(new Set());
+      setSelectedInvitationIds(new Set());
       setBulkDeleteConfirm(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete users');
+      setError(err instanceof Error ? err.message : 'Failed to delete items');
     } finally {
       setSaving(false);
     }

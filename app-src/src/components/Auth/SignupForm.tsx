@@ -111,8 +111,16 @@ export function SignupForm() {
         console.log('SignupForm: Invite info:', inviteInfo);
       }
       
-      // Signup user first - pass invite_token if present
-      const signupResult = await signUp(email, password, inviteToken || undefined);
+      // Signup user first - pass invite_token if present, along with name and TOS data
+      const signupResult = await signUp({
+        email,
+        password,
+        inviteToken: inviteToken || undefined,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        tosAcceptedAt: new Date().toISOString(),
+        tosVersion: '2025-10-31',
+      });
       console.log('SignupForm: Signup successful', signupResult);
       
       if (!signupResult) {
@@ -142,65 +150,70 @@ export function SignupForm() {
         return;
       }
       
-      // Record user profile with name and TOS acceptance
-      // Try authenticated endpoint first (if session exists), otherwise use signup-profile endpoint
-      const userId = signupResult.user?.id;
-      if (!userId) {
-        console.error('SignupForm: No user ID after signup');
-        setError('Account created but unable to retrieve user information. Please try logging in.');
-        setSignupEmail(email);
-        setSignupSuccess(true);
-        return;
-      }
-
-      try {
-        let response;
-        
-        if (session?.access_token) {
-          // Use authenticated endpoint if session exists
-          response = await fetch('/api/users/me/profile', {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
-              first_name: firstName.trim(),
-              last_name: lastName.trim(),
-              tos_accepted_at: new Date().toISOString(),
-              tos_version: '2025-10-31',
-            }),
-          });
-        } else {
-          // Use signup-profile endpoint when no session (email confirmation required)
-          response = await fetch('/api/users/signup-profile', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              user_id: userId,
-              first_name: firstName.trim(),
-              last_name: lastName.trim(),
-              tos_accepted_at: new Date().toISOString(),
-              tos_version: '2025-10-31',
-            }),
-          });
+      // For invited users, profile is already created in complete-invite-signup endpoint
+      // For regular signups, record user profile with name and TOS acceptance
+      if (!inviteToken) {
+        const userId = signupResult.user?.id;
+        if (!userId) {
+          console.error('SignupForm: No user ID after signup');
+          setError('Account created but unable to retrieve user information. Please try logging in.');
+          setSignupEmail(email);
+          setSignupSuccess(true);
+          return;
         }
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create profile');
-        }
+        try {
+          let response;
+          
+          if (session?.access_token) {
+            // Use authenticated endpoint if session exists
+            response = await fetch('/api/users/me/profile', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                first_name: firstName.trim(),
+                last_name: lastName.trim(),
+                tos_accepted_at: new Date().toISOString(),
+                tos_version: '2025-10-31',
+              }),
+            });
+          } else {
+            // Use signup-profile endpoint when no session (email confirmation required)
+            response = await fetch('/api/users/signup-profile', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                user_id: userId,
+                first_name: firstName.trim(),
+                last_name: lastName.trim(),
+                tos_accepted_at: new Date().toISOString(),
+                tos_version: '2025-10-31',
+              }),
+            });
+          }
 
-        console.log('SignupForm: User profile created with name and TOS acceptance');
-      } catch (profileError) {
-        console.error('SignupForm: Failed to create user profile:', profileError);
-        // Note: We don't block signup here because:
-        // 1. The user has already been created in auth.users
-        // 2. The TOSGate component will require TOS acceptance on first login
-        // 3. This prevents orphaned auth users if profile creation fails
-        setError('Account created, but profile setup failed. You will be asked to complete your profile on first login.');
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to create profile');
+          }
+
+          console.log('SignupForm: User profile created with name and TOS acceptance');
+        } catch (profileError) {
+          console.error('SignupForm: Failed to create user profile:', profileError);
+          // Note: We don't block signup here because:
+          // 1. The user has already been created in auth.users
+          // 2. The TOSGate component will require TOS acceptance on first login
+          // 3. This prevents orphaned auth users if profile creation fails
+          setError('Account created, but profile setup failed. You will be asked to complete your profile on first login.');
+        }
+      } else {
+        // For invited users, profile was already created in complete-invite-signup
+        console.log('SignupForm: Invited user profile created in complete-invite-signup endpoint');
       }
       
       // Show success message instead of redirecting

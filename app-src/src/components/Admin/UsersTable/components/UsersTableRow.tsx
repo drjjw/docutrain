@@ -1,6 +1,7 @@
-import { Button } from '@/components/UI/Button';
 import type { UserWithRoles } from '@/types/admin';
-import { formatDate, getRoleBadge, userNeedsApproval, isProtectedSuperAdmin } from '../utils';
+import { formatDate, getRoleBadge, userNeedsApproval, isProtectedSuperAdmin, getOwnerName } from '../utils';
+import { UserActionsModal } from '../modals/UserActionsModal';
+import { useState } from 'react';
 
 interface UsersTableRowProps {
   user: UserWithRoles;
@@ -34,9 +35,11 @@ export function UsersTableRow({
   const needsApproval = userNeedsApproval(user);
   const isProtected = isProtectedSuperAdmin(user);
   const roleBadge = getRoleBadge(user, isSuperAdmin);
+  const ownerName = getOwnerName(user);
   
   const isSelected = selectedUserIds.has(user.id);
   const canSelect = !isProtected;
+  const [showActionsModal, setShowActionsModal] = useState(false);
 
   // Get display name: use first_name + last_name if available, otherwise use email
   const displayName = (user.first_name || user.last_name)
@@ -92,29 +95,12 @@ export function UsersTableRow({
         </div>
       </td>
       <td className="px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex-1">
-            <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${roleBadge.color}`}>
-              {roleBadge.label}
-            </div>
-            {roleBadge.description && roleBadge.description !== 'Global Access' && (
-              <div className="text-xs text-gray-500 mt-1">
-                {roleBadge.description}
-              </div>
-            )}
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onEditPermissions(user)}
-            className="flex-shrink-0"
-          >
-            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Edit
-          </Button>
+        <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${roleBadge.color}`}>
+          {roleBadge.label}
         </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+        {ownerName || '—'}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
         {user.email_confirmed_at ? (
@@ -139,73 +125,37 @@ export function UsersTableRow({
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
         {formatDate(user.created_at)}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-        <div className="flex items-center justify-end gap-2 flex-wrap">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onViewStats(user.id)}
+      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+        <div className="flex items-center justify-center">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowActionsModal(true);
+            }}
             disabled={saving}
-            title="View user statistics"
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Actions"
           >
-            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
             </svg>
-            Stats
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onResetPassword(user.email)}
-            disabled={saving}
-            title="Send password reset email"
-          >
-            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            Reset
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onSetPassword(user.id)}
-            disabled={saving}
-            title="Set password directly"
-          >
-            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            Password
-          </Button>
-          {user.banned_until && new Date(user.banned_until) > new Date() ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onUnban(user.id)}
-              disabled={saving || isProtected}
-              title="Unban user"
-            >
-              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Unban
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              variant="danger"
-              onClick={() => onDelete(user.id)}
-              disabled={saving || isProtected}
-              title={isProtected ? 'Protected super admin cannot be deleted' : 'Delete or ban user'}
-            >
-              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              Delete
-            </Button>
-          )}
+          </button>
         </div>
       </td>
+      
+      <UserActionsModal
+        isOpen={showActionsModal}
+        onClose={() => setShowActionsModal(false)}
+        user={user}
+        saving={saving}
+        isProtected={isProtected}
+        onEdit={() => onEditPermissions(user)}
+        onViewStats={() => onViewStats(user.id)}
+        onResetPassword={() => onResetPassword(user.email)}
+        onSetPassword={() => onSetPassword(user.id)}
+        onUnban={user.banned_until && new Date(user.banned_until) > new Date() ? () => onUnban(user.id) : undefined}
+        onDelete={() => onDelete(user.id)}
+      />
     </tr>
   );
 }

@@ -1,34 +1,46 @@
-import { Button } from '@/components/UI/Button';
 import type { PendingInvitation } from '@/types/admin';
 import { formatDate } from '../utils';
+import { InvitationActionsModal } from '../modals/InvitationActionsModal';
+import { useState } from 'react';
 
 interface InvitationRowProps {
   invitation: PendingInvitation;
+  selectedInvitationIds: Set<string>;
   saving: boolean;
   resendingInvitationId: string | null;
   deletingInvitationId: string | null;
+  onToggleSelection: (invitationId: string) => void;
   onResend: (invitationId: string) => void;
   onDelete: (invitationId: string) => void;
 }
 
 export function InvitationRow({
   invitation,
+  selectedInvitationIds,
   saving,
   resendingInvitationId,
   deletingInvitationId,
+  onToggleSelection,
   onResend,
   onDelete,
 }: InvitationRowProps) {
   const expiresAt = new Date(invitation.expires_at);
   const daysUntilExpiry = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   const isExpiringSoon = daysUntilExpiry <= 7;
+  const isSelected = selectedInvitationIds.has(invitation.id);
+  const [showActionsModal, setShowActionsModal] = useState(false);
   
   return (
     <tr 
-      className="hover:bg-gray-50 transition-colors bg-docutrain-light/10 border-l-4 border-l-docutrain-light"
+      className={`hover:bg-gray-50 transition-colors ${isSelected ? 'bg-docutrain-light/10' : ''}`}
     >
       <td className="px-6 py-4 whitespace-nowrap">
-        {/* No checkbox for invitations */}
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onToggleSelection(invitation.id)}
+          className="w-4 h-4 text-docutrain-light border-gray-300 rounded focus:ring-docutrain-light"
+        />
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center gap-3">
@@ -77,40 +89,42 @@ export function InvitationRow({
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        {invitation.owner_name || '—'}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
         —
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
         {formatDate(invitation.created_at)}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onResend(invitation.id)}
-            disabled={saving || resendingInvitationId === invitation.id}
-            loading={resendingInvitationId === invitation.id}
-            title="Resend invitation email"
+      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+        <div className="flex items-center justify-center">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowActionsModal(true);
+            }}
+            disabled={saving}
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Actions"
           >
-            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
             </svg>
-            Resend
-          </Button>
-          <Button
-            size="sm"
-            variant="danger"
-            onClick={() => onDelete(invitation.id)}
-            disabled={saving || deletingInvitationId === invitation.id}
-            title="Delete invitation"
-          >
-            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            Delete
-          </Button>
+          </button>
         </div>
       </td>
+      
+      <InvitationActionsModal
+        isOpen={showActionsModal}
+        onClose={() => setShowActionsModal(false)}
+        invitationEmail={invitation.email}
+        saving={saving}
+        isResending={resendingInvitationId === invitation.id}
+        isDeleting={deletingInvitationId === invitation.id}
+        onResend={() => onResend(invitation.id)}
+        onDelete={() => onDelete(invitation.id)}
+      />
     </tr>
   );
 }
