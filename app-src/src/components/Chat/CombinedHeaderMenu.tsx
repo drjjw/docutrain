@@ -1,7 +1,7 @@
 /**
  * CombinedHeaderMenu - Combines UserMenu and DocumentSelector
- * On mobile: Shows as a hamburger menu with both options in an overlay
- * On desktop: Shows as separate buttons (original behavior)
+ * On smaller screens (≤1200px): Shows as a hamburger menu with both options in an overlay
+ * On larger screens (>1200px): Shows as separate buttons (original behavior)
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -40,10 +40,10 @@ export function CombinedHeaderMenu({
   const isModalMode = !!ownerParam && !docParam;
   const shouldShowInHeader = shouldShowDocumentSelector && !isModalMode;
 
-  // Check if mobile view
+  // Check if combined menu view (≤1200px)
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(window.innerWidth <= 1200);
     };
     
     checkMobile();

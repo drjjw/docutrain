@@ -91,7 +91,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', allowClos
           <div className={`${
             fullscreen || flexColumn
               ? 'p-4 flex-1 overflow-y-auto min-h-0 md:p-6'
-              : 'p-4 overflow-y-auto flex-1 min-h-0 md:p-6 md:overflow-y-visible md:flex-none'
+              : 'p-4 overflow-y-auto flex-1 min-h-0 md:p-6'
           }`}>
             {children}
           </div>

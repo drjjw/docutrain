@@ -144,7 +144,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
     return (
       <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-center w-full">
         <div className="flex items-center justify-center gap-2 md:gap-3 w-full">
-        <h1 className="m-0 text-base md:text-3xl font-semibold text-gray-900 line-clamp-2 md:line-clamp-none leading-tight md:leading-normal font-heading"
+        <h1 className="m-0 font-semibold text-gray-900 line-clamp-2 md:line-clamp-none leading-tight md:leading-normal font-heading responsive-title-text"
           style={ownerTitleStyles}
         >
           {ownerDisplayName} Documents
@@ -164,7 +164,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-center w-full">
-        <h1 className="m-0 text-base md:text-3xl font-semibold text-gray-400 animate-pulse line-clamp-2 md:line-clamp-none leading-tight md:leading-normal font-heading"
+        <h1 className="m-0 font-semibold text-gray-400 animate-pulse line-clamp-2 md:line-clamp-none leading-tight md:leading-normal font-heading responsive-title-text"
           style={loadingStyles}
         >
           Loading...
@@ -177,7 +177,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
     // Don't show "Document Not Found" - just return empty or loading state
     return (
       <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-center w-full">
-        <h1 className="m-0 text-base md:text-3xl font-semibold text-gray-400 line-clamp-2 md:line-clamp-none leading-tight md:leading-normal font-heading"
+        <h1 className="m-0 font-semibold text-gray-400 line-clamp-2 md:line-clamp-none leading-tight md:leading-normal font-heading responsive-title-text"
           style={loadingStyles}
         >
           Loading...
@@ -319,18 +319,18 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
           field="title"
           documentSlug={documentSlug}
           onSave={(value) => handleSave('title', value)}
-          className="m-0 text-base md:text-3xl font-semibold text-gray-900 w-full min-w-0
+          className="m-0 font-semibold text-gray-900 w-full min-w-0
             leading-tight md:leading-normal
             text-center
-            mobile-title-clamp font-heading"
+            mobile-title-clamp font-heading responsive-title-text"
           style={titleStyles}
         />
       ) : (
         <h1 
-          className="m-0 text-base md:text-3xl font-semibold text-gray-900 w-full min-w-0
+          className="m-0 font-semibold text-gray-900 w-full min-w-0
             leading-tight md:leading-normal
             text-center
-            mobile-title-clamp font-heading"
+            mobile-title-clamp font-heading responsive-title-text"
           title={config.title}
           style={titleStyles}
         >
@@ -343,8 +343,17 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
         </div>
       )}
       
-      {/* Mobile-only line clamp styling */}
+      {/* Responsive title styling with fluid typography */}
       <style>{`
+        /* Fluid typography that scales smoothly from mobile to desktop */
+        /* Prevents two-line wrapping by scaling down font size as viewport decreases */
+        .responsive-title-text {
+          /* Mobile (320px): 16px, Tablet (768px): ~23px, Desktop (1024px+): 30px */
+          /* Scales smoothly between breakpoints to prevent wrapping */
+          /* Formula: clamp(min, preferred, max) where preferred scales with viewport width */
+          font-size: clamp(1rem, 0.625rem + 1.75vw, 1.875rem);
+        }
+        
         @media (max-width: 768px) {
           .mobile-title-clamp {
             display: -webkit-box;

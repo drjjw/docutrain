@@ -10,7 +10,6 @@ import { MessageContent } from '@/components/Chat/MessageContent';
 import { ChatInput } from '@/components/Chat/ChatInput';
 import { ChatModals } from '@/components/Chat/ChatModals';
 import { CoverAndWelcome } from '@/components/Chat/CoverAndWelcome';
-import { DownloadsAndKeywords } from '@/components/Chat/DownloadsAndKeywords';
 import { LoadingMessage } from '@/components/Chat/LoadingMessage';
 import { Spinner } from '@/components/UI/Spinner';
 import { DocumentAccessProvider, useDocumentAccess } from '@/contexts/DocumentAccessContext';
@@ -22,6 +21,7 @@ import { useSessionId } from '@/hooks/useSessionId';
 import { useChatMessages } from '@/hooks/useChatMessages';
 import { useChatUrlParams } from '@/hooks/useChatUrlParams';
 import { useAutoScrollToMessage } from '@/hooks/useAutoScrollToMessage';
+import { useHeaderHeight } from '@/hooks/useHeaderHeight';
 import { getAuthHeaders } from '@/lib/api/authService';
 import '@/styles/messages.css';
 import '@/styles/loading.css';
@@ -264,6 +264,22 @@ function SharedConversationContent({
   // Chat messages hook for continuing conversation
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
+  const [ownerNotFound, setOwnerNotFound] = useState<{ slug: string; message: string } | null>(null);
+  
+  // Dynamically measure header height and adjust padding
+  const headerHeight = useHeaderHeight(headerRef);
+  
+  // Update isDesktop on resize
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth > 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
   const chatMessages = useChatMessages({
     documentSlug,
     sessionId,
@@ -345,6 +361,10 @@ function SharedConversationContent({
           isDocumentNotFound={isDocumentNotFound}
           shouldShowDocumentSelectorModal={false}
           hasAuthError={false}
+          ownerNotFound={ownerNotFound}
+          onOwnerNotFound={(ownerSlug: string) => {
+            setOwnerNotFound({ slug: ownerSlug, message: `Owner "${ownerSlug}" not found` });
+          }}
         />
       </div>
     );
@@ -371,6 +391,10 @@ function SharedConversationContent({
           isDocumentNotFound={isDocumentNotFound}
           shouldShowDocumentSelectorModal={false}
           hasAuthError={false}
+          ownerNotFound={ownerNotFound}
+          onOwnerNotFound={(ownerSlug: string) => {
+            setOwnerNotFound({ slug: ownerSlug, message: `Owner "${ownerSlug}" not found` });
+          }}
         />
         {/* Show read-only conversation view */}
         <div 
@@ -433,6 +457,10 @@ function SharedConversationContent({
           isDocumentNotFound={false}
           shouldShowDocumentSelectorModal={false}
           hasAuthError={false}
+          ownerNotFound={ownerNotFound}
+          onOwnerNotFound={(ownerSlug: string) => {
+            setOwnerNotFound({ slug: ownerSlug, message: `Owner "${ownerSlug}" not found` });
+          }}
         />
       </div>
     );
@@ -467,6 +495,7 @@ function SharedConversationContent({
   return (
     <div className="flex flex-col h-screen overflow-x-hidden">
       <ChatHeader 
+        ref={headerRef}
         documentSlug={documentSlug} 
         hasAuthError={false}
         onSubtitlePresence={setHasHeaderSubtitle}
@@ -477,9 +506,16 @@ function SharedConversationContent({
         ref={chatContainerRef}
         className={`flex-1 overflow-y-auto overflow-x-hidden px-4 py-6 md:px-6 lg:px-8 space-y-4 chat-main-container ${
           chatMessages.isStreamingRef.current ? 'chat-container-streaming' : ''
-        } ${hasHeaderSubtitle ? 'has-subtitle-offset' : ''}`}
+        }`}
         style={{ 
-          paddingBottom: shouldShowFooter ? '180px' : '120px'
+          paddingBottom: shouldShowFooter ? '180px' : '120px',
+          // Dynamically set padding-top based on header height (desktop only)
+          // Add extra baseline spacing (20px) for better visual separation
+          // Use fallback padding (155px) if header height not yet measured
+          // Mobile uses default CSS padding (16px)
+          paddingTop: isDesktop 
+            ? (headerHeight > 0 ? `${headerHeight + 20}px` : '155px') 
+            : undefined
         }}
       >
         {/* Cover and Welcome Message - shown for single documents */}
@@ -497,7 +533,7 @@ function SharedConversationContent({
               downloads={docConfig.showDownloads !== false ? docConfig.downloads : undefined}
               showKeywords={docConfig.showKeywords}
               showDownloads={docConfig.showDownloads}
-              inputRef={inputRef}
+              inputRef={inputRef as React.RefObject<HTMLInputElement | HTMLTextAreaElement>}
               onKeywordClick={(term) => {
                 chatMessages.setInputValue(`Tell me about ${term}`);
                 // Focus the input after state update

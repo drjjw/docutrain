@@ -4,7 +4,7 @@
  * Ported from vanilla JS header implementation
  */
 
-import React, { useState } from 'react';
+import React, { useState, forwardRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { OwnerLogo } from './OwnerLogo';
 import { DocumentTitle } from './DocumentTitle';
@@ -19,7 +19,11 @@ interface ChatHeaderProps {
   onSubtitlePresence?: (hasSubtitle: boolean) => void;
 }
 
-export function ChatHeader({ documentSlug, hasAuthError = false, onSubtitlePresence }: ChatHeaderProps) {
+export const ChatHeader = forwardRef<HTMLElement, ChatHeaderProps>(({ 
+  documentSlug, 
+  hasAuthError = false, 
+  onSubtitlePresence 
+}, ref) => {
   const [searchParams] = useSearchParams();
   const { config: docConfig } = useDocumentConfig(documentSlug || '');
   const { user } = useAuth();
@@ -64,6 +68,7 @@ export function ChatHeader({ documentSlug, hasAuthError = false, onSubtitlePrese
 
   return (
     <header 
+      ref={ref}
       className={`relative md:fixed md:top-0 left-0 right-0 text-gray-900 border-b border-gray-200 z-[100]
         py-3 md:py-6 px-4 md:px-6
         overflow-hidden ${hasSubtitle ? 'has-subtitle' : ''}`}
@@ -125,4 +130,6 @@ export function ChatHeader({ documentSlug, hasAuthError = false, onSubtitlePrese
 
     </header>
   );
-}
+});
+
+ChatHeader.displayName = 'ChatHeader';

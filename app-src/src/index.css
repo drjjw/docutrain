@@ -30,28 +30,8 @@ code {
   animation: gradientShift 30s ease-in-out infinite;
   /* Mobile: small padding-top for header spacing */
   padding-top: 16px;
-  /* Desktop: header is fixed, so add padding-top to account for header height */
-  /* Optional: Add subtle pattern overlay for texture (uncomment to enable) */
-  /* background-image: 
-    linear-gradient(135deg, #fafbfc 0%, #f5f7fa 50%, #fafbfc 100%),
-    repeating-linear-gradient(
-      45deg,
-      transparent,
-      transparent 10px,
-      rgba(255, 255, 255, 0.03) 10px,
-      rgba(255, 255, 255, 0.03) 20px
-    ); */
-}
-
-@media (min-width: 768px) {
-  .chat-main-container {
-    padding-top: 135px !important; /* Desktop: single row header with padding - use !important to override mobile padding */
-  }
-  
-  /* When header has a subtitle (3 rows: logo, title, subtitle), add extra padding on desktop */
-  .chat-main-container.has-subtitle-offset {
-    padding-top: 165px !important; /* Add ~30px extra for subtitle row */
-  }
+  /* Desktop: padding-top is now set dynamically via JavaScript based on header height */
+  /* This prevents content from being trapped behind the fixed header */
 }
 
 @keyframes gradientShift {

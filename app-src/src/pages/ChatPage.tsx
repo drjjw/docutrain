@@ -35,6 +35,7 @@ import { useModalState } from '@/hooks/useModalState';
 import { useChatMessages } from '@/hooks/useChatMessages';
 import { useTextSelection } from '@/hooks/useTextSelection';
 import { useAutoScrollToMessage } from '@/hooks/useAutoScrollToMessage';
+import { useHeaderHeight } from '@/hooks/useHeaderHeight';
 import { debugLog } from '@/utils/debug';
 import '@/styles/messages.css';
 import '@/styles/loading.css';
@@ -270,9 +271,13 @@ function ChatPageContent({
   // ============================================================================
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
   const [hasHeaderSubtitle, setHasHeaderSubtitle] = useState(false);
-
+  
+  // Dynamically measure header height and adjust padding
+  const headerHeight = useHeaderHeight(headerRef);
+  
   useEffect(() => {
     const handleResize = () => {
       setIsDesktop(window.innerWidth > 768);
@@ -357,6 +362,7 @@ function ChatPageContent({
       
       {/* Header - Fixed position */}
       <ChatHeader 
+        ref={headerRef}
         documentSlug={documentSlug} 
         hasAuthError={hasAuthError}
         onSubtitlePresence={setHasHeaderSubtitle}
@@ -367,8 +373,17 @@ function ChatPageContent({
         ref={chatContainerRef}
         className={`flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 space-y-4 chat-main-container ${
           isStreamingRef.current ? 'chat-container-streaming' : ''
-        } ${hasHeaderSubtitle ? 'has-subtitle-offset' : ''}`}
-        style={{ paddingBottom: shouldShowFooter ? '180px' : '120px' }}
+        }`}
+        style={{ 
+          paddingBottom: shouldShowFooter ? '180px' : '120px',
+          // Dynamically set padding-top based on header height (desktop only)
+          // Add extra baseline spacing (20px) for better visual separation
+          // Use fallback padding (155px) if header height not yet measured
+          // Mobile uses default CSS padding (16px)
+          paddingTop: isDesktop 
+            ? (headerHeight > 0 ? `${headerHeight + 20}px` : '155px') 
+            : undefined
+        }}
       >
         {/* Cover and Welcome Message - shown for single documents */}
         {shouldShowCoverAndWelcome && docConfig && (

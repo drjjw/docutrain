@@ -139,10 +139,13 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
   const restoreCollapsedState = (containers: NodeListOf<Element> | Element[]) => {
     const contentHash = getContentHash();
     const stateMap = globalCollapsedState.get(contentHash);
-    if (!stateMap) return;
+    if (!stateMap) {
+      return;
+    }
     
     Array.from(containers).forEach((container, index) => {
       const savedState = stateMap.get(index);
+      
       if (savedState !== undefined) {
         const contentWrapper = container.querySelector('.references-content');
         const toggle = container.querySelector('.references-toggle');
@@ -227,8 +230,22 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
     };
   }, [content, role, isStreaming]);
 
+  // Restore state after any render that might have replaced HTML (e.g., when isCopied changes)
+  useLayoutEffect(() => {
+    if (!contentRef.current || role !== 'assistant' || !content || isStreaming || !showReferences) return;
+    
+    // Check if containers exist - if not, useEffect will create them
+    const containers = contentRef.current.querySelectorAll('.references-container');
+    if (containers.length > 0) {
+      // Containers exist - restore their state immediately
+      restoreCollapsedState(containers);
+    }
+  }, [isCopied, content, role, isStreaming, showReferences]);
+
   useEffect(() => {
-    if (!contentRef.current || role !== 'assistant' || !content) return;
+    if (!contentRef.current || role !== 'assistant' || !content) {
+      return;
+    }
 
     // During streaming, do minimal work: only ensure references containers stay collapsed
     // This is lightweight (just class manipulation on existing elements) and prevents
@@ -249,7 +266,9 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
     // FULL PROCESSING: Only when NOT streaming (after stream completes)
     // Use requestAnimationFrame to ensure DOM is updated before styling
     requestAnimationFrame(() => {
-      if (!contentRef.current) return;
+      if (!contentRef.current) {
+        return;
+      }
       
       const contentChanged = content !== previousContentRef.current;
       
@@ -257,10 +276,16 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
       // During streaming, React's dangerouslySetInnerHTML replaces HTML, but if containers
       // already exist (from previous styling), we need to skip to prevent nesting
       const existingContainer = contentRef.current.querySelector('.references-container');
-      if (existingContainer && !contentChanged) {
+      
+      // If containers don't exist but should (showReferences is true), we need to create them
+      // This handles the case where React replaced HTML (e.g., when isCopied changed)
+      const needsContainerCreation = showReferences && !existingContainer;
+      
+      if (existingContainer && !contentChanged && !needsContainerCreation) {
         if (showReferences) {
           // Content hasn't changed and container exists - restore state immediately
-          restoreCollapsedState(contentRef.current.querySelectorAll('.references-container'));
+          const containers = contentRef.current.querySelectorAll('.references-container');
+          restoreCollapsedState(containers);
           // Only update citations for new content, don't reorganize
         }
         // When showReferences is false, references are already removed from markdown before parsing
@@ -303,7 +328,7 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
       // Update previous content ref after processing
       previousContentRef.current = content;
     });
-  }, [content, role, isStreaming, showReferences]);
+  }, [content, role, isStreaming, showReferences, isCopied]);
 
   // Helper function to remove references from a cloned DOM element
   const removeReferencesFromClone = (element: HTMLElement): void => {
@@ -465,9 +490,45 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
     return text.trim();
   };
 
+  // Helper function to collapse all references containers
+  const collapseAllReferences = () => {
+    if (!contentRef.current) {
+      return;
+    }
+    
+    const containers = contentRef.current.querySelectorAll('.references-container');
+    const contentHash = getContentHash();
+    let stateMap = globalCollapsedState.get(contentHash);
+    if (!stateMap) {
+      stateMap = new Map();
+      globalCollapsedState.set(contentHash, stateMap);
+    }
+    
+    containers.forEach((container, index) => {
+      const contentWrapper = container.querySelector('.references-content');
+      const toggle = container.querySelector('.references-toggle');
+      const plusIcon = toggle?.querySelector('.plus') as HTMLElement;
+      const minusIcon = toggle?.querySelector('.minus') as HTMLElement;
+      
+      if (contentWrapper && toggle) {
+        // Collapse the container
+        contentWrapper.classList.remove('expanded');
+        contentWrapper.classList.add('collapsed');
+        toggle.setAttribute('aria-expanded', 'false');
+        if (plusIcon) plusIcon.style.display = '';
+        if (minusIcon) minusIcon.style.display = 'none';
+        
+        // Update global state to reflect collapsed state
+        stateMap.set(index, false);
+      }
+    });
+  };
+
   // Handle copy to clipboard
   const handleCopy = async () => {
-    if (!contentRef.current) return;
+    if (!contentRef.current) {
+      return;
+    }
     
     try {
       // Clone the element to avoid modifying the original DOM
@@ -487,6 +548,9 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
       
       // Copy to clipboard
       await navigator.clipboard.writeText(textContent);
+      
+      // Collapse all references containers after copying
+      collapseAllReferences();
       
       // Show success feedback
       setIsCopied(true);
@@ -512,6 +576,9 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
+        
+        // Collapse all references containers after copying
+        collapseAllReferences();
         
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
