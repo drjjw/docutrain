@@ -8,6 +8,7 @@ export function DocumentUIConfigCard({
   showDownloads,
   showReferences,
   showRecentQuestions,
+  showCountryFlags,
   onFieldChange,
   isTextUpload = false
 }: DocumentUIConfigCardProps) {
@@ -62,6 +63,17 @@ export function DocumentUIConfigCard({
           description="Display a gallery of recent questions asked about this document. Note: The gallery will only appear if there are at least 2 recent questions available."
           size="md"
         />
+        {showRecentQuestions && (
+          <div className="ml-6 pl-4 border-l-2 border-gray-200">
+            <Toggle
+              checked={showCountryFlags === true}
+              onChange={(checked) => onFieldChange('show_country_flags', checked)}
+              label="Show Country Flags"
+              description="Display country flags next to recent questions based on the user's IP address location"
+              size="md"
+            />
+          </div>
+        )}
         {isTextUpload && (
           <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
             <div className="flex items-start gap-2">

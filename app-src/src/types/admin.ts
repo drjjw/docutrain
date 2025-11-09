@@ -82,6 +82,7 @@ export interface Document {
   show_downloads?: boolean;
   show_references?: boolean;
   show_recent_questions?: boolean;
+  show_country_flags?: boolean;
   access_level?: DocumentAccessLevel;
   passcode?: string;
   uploaded_by_user_id?: string;

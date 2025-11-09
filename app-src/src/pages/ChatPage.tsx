@@ -410,6 +410,7 @@ function ChatPageContent({
                 documentSlug={documentSlug || ''}
                 documentId={docConfig.id!}
                 inputRef={inputRef}
+                showCountryFlags={docConfig.showCountryFlags === true}
                 onQuestionClick={(question) => {
                   setInputValue(question);
                   setTimeout(() => {

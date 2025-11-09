@@ -124,7 +124,7 @@
   border: 1px solid #e9ecef;
   border-left: 1px solid #d1d5db; /* Subtle gray accent */
   border-radius: 5px;
-  padding: 16px 20px;
+  padding: 7px 20px;
   cursor: pointer;
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-left-color 0.2s ease-in-out;
   text-align: left;
@@ -198,6 +198,23 @@
   font-weight: 400;
   transition: color 0.2s ease;
   position: relative;
+}
+
+.recent-question-country {
+  width: 1.5rem;
+  height: auto;
+  aspect-ratio: 4 / 3; /* Standard flag aspect ratio */
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 2px; /* Slight rounding for flags */
+}
+
+.recent-question-card:hover .recent-question-country {
+  opacity: 1;
 }
 
 .recent-question-card:hover .recent-question-text {

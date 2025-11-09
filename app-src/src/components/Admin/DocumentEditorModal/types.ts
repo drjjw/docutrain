@@ -80,6 +80,7 @@ export interface DocumentUIConfigCardProps {
   showDownloads: boolean;
   showReferences: boolean;
   showRecentQuestions: boolean;
+  showCountryFlags: boolean;
   onFieldChange: FieldChangeHandler;
   isTextUpload?: boolean; // Whether this document is from a text upload (no pages)
 }

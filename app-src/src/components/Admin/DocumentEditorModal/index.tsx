@@ -104,6 +104,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         show_downloads: document.show_downloads !== false,
         show_references: document.show_references !== false,
         show_recent_questions: document.show_recent_questions === true,
+        show_country_flags: document.show_country_flags === true,
         active: document.active ?? true,
         access_level: document.access_level || 'public',
         passcode: document.passcode || '',
@@ -347,7 +348,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                 <Tab index={1}>Retrain Document</Tab>
                 <Tab index={2}>Training History</Tab>
                 <Tab index={3}>Settings & Access</Tab>
-                <Tab index={4}>UI</Tab>
+                <Tab index={4}>Options</Tab>
                 <Tab index={5}>Disclaimer</Tab>
                 <Tab index={6}>Attachments</Tab>
                 <Tab index={7}>Embed Code</Tab>
@@ -454,6 +455,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                       showDownloads={editingValues.show_downloads !== false}
                       showReferences={editingValues.show_references !== false}
                       showRecentQuestions={editingValues.show_recent_questions === true}
+                      showCountryFlags={editingValues.show_country_flags === true}
                       onFieldChange={handleFieldChange}
                       isTextUpload={
                         // Primary check: pdf_filename column (most reliable indicator)

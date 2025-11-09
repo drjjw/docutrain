@@ -11,6 +11,7 @@ interface RecentQuestion {
   id: string;
   question: string;
   created_at: string;
+  country?: string | null;
 }
 
 interface RecentQuestionsProps {
@@ -18,6 +19,7 @@ interface RecentQuestionsProps {
   documentId: string;
   inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement>;
   onQuestionClick?: (question: string) => void;
+  showCountryFlags?: boolean; // Whether to show country flags
 }
 
 // Hook to detect mobile screen size
@@ -43,11 +45,29 @@ function useIsMobile() {
   return isMobile;
 }
 
+/**
+ * Get flag CSS class for a country code
+ * Uses flag-icons library (https://github.com/lipis/flag-icons)
+ * @param countryCode - Two-letter country code (e.g., 'US', 'CA', 'GB')
+ * @returns CSS class string or null
+ */
+function getCountryFlagClass(countryCode: string | null | undefined): string | null {
+  if (!countryCode || countryCode.length !== 2) {
+    return null;
+  }
+  
+  // flag-icons uses format: fi fi-xx where xx is lowercase ISO 3166-1-alpha-2 code
+  // Regular flags (4:3 aspect ratio) - more natural looking
+  const normalizedCode = countryCode.toLowerCase();
+  return `fi fi-${normalizedCode}`;
+}
+
 export function RecentQuestions({ 
   documentSlug, 
   documentId,
   inputRef,
-  onQuestionClick 
+  onQuestionClick,
+  showCountryFlags = false
 }: RecentQuestionsProps) {
   const [questions, setQuestions] = useState<RecentQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +101,11 @@ export function RecentQuestions({
       }
 
       const data = await response.json();
+      console.log('[RecentQuestions] Fetched questions:', data.questions?.map(q => ({ 
+        id: q.id, 
+        question: q.question?.substring(0, 30), 
+        country: q.country 
+      })));
       setQuestions(data.questions || []);
     } catch (err) {
       console.error('[RecentQuestions] Error fetching questions:', err);
@@ -134,6 +159,7 @@ export function RecentQuestions({
               id: payload.new.id,
               question: payload.new.question,
               created_at: payload.new.created_at,
+              country: payload.new.country || null,
             };
             
             setQuestions((prev) => {
@@ -278,6 +304,12 @@ export function RecentQuestions({
                   />
                 </svg>
                 <span className="recent-question-text">{q.question}</span>
+                {showCountryFlags && q.country && getCountryFlagClass(q.country) && (
+                  <span 
+                    className={`recent-question-country ${getCountryFlagClass(q.country)}`}
+                    title={q.country}
+                  />
+                )}
               </div>
             </button>
           ))}

@@ -14,7 +14,8 @@
     "build:app": "cd app-src && vite build",
     "embed": "node scripts/chunk-and-embed.js",
     "embed:local": "node scripts/chunk-and-embed-local.js",
-    "compare": "node scripts/compare-embeddings.js"
+    "compare": "node scripts/compare-embeddings.js",
+    "backfill:country": "node scripts/backfill-country-data.js"
   },
   "keywords": [
     "chatbot",

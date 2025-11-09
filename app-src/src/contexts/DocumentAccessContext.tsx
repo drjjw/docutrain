@@ -46,6 +46,7 @@ export interface DocumentConfig {
   showDownloads?: boolean;
   showReferences?: boolean;
   showRecentQuestions?: boolean;
+  showCountryFlags?: boolean;
   showDisclaimer?: boolean;
   disclaimerText?: string;
   keywords?: Keyword[];
