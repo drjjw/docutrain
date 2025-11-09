@@ -91,14 +91,6 @@ export function PasscodeModal({ isOpen, documentSlug, documentTitle, onClose }: 
     }
   };
 
-  const handleGoBack = () => {
-    if (onClose) {
-      onClose();
-    } else {
-      navigate(-1);
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-[9999] flex items-start md:items-center justify-center bg-black bg-opacity-50 p-0 md:p-4">
       <div className="bg-white shadow-xl w-full h-full md:rounded-lg md:max-w-md md:w-full md:h-auto md:mx-4 p-4 md:p-6 flex flex-col">
@@ -139,16 +131,8 @@ export function PasscodeModal({ isOpen, documentSlug, documentTitle, onClose }: 
 
           <div className="flex gap-3">
             <button
-              type="button"
-              onClick={handleGoBack}
-              className="flex-1 md:flex-none px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              disabled={validating}
-            >
-              Go Back
-            </button>
-            <button
               type="submit"
-              className="flex-1 md:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={validating || !passcode.trim()}
             >
               {validating ? 'Validating...' : 'Submit'}
