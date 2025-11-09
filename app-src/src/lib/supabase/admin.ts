@@ -118,6 +118,7 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
       show_references,
       show_recent_questions,
       show_country_flags,
+      show_quizzes,
       show_disclaimer,
       disclaimer_text,
       access_level,

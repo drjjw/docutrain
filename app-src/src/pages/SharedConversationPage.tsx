@@ -22,6 +22,8 @@ import { useChatMessages } from '@/hooks/useChatMessages';
 import { useChatUrlParams } from '@/hooks/useChatUrlParams';
 import { useAutoScrollToMessage } from '@/hooks/useAutoScrollToMessage';
 import { useHeaderHeight } from '@/hooks/useHeaderHeight';
+import { useQuiz } from '@/hooks/useQuiz';
+import { QuizModal } from '@/components/Chat/QuizModal';
 import { getAuthHeaders } from '@/lib/api/authService';
 import { debugLog } from '@/utils/debug';
 import '@/styles/messages.css';
@@ -297,6 +299,12 @@ function SharedConversationContent({
     chatContainerRef,
   });
 
+  // Quiz hook
+  const quiz = useQuiz({
+    documentSlug,
+    numQuestions: 5,
+  });
+
   // Check if we should show cover and welcome (single document, not multi-doc)
   const shouldShowCoverAndWelcome = documentSlug && docConfig;
 
@@ -535,6 +543,7 @@ function SharedConversationContent({
               downloads={docConfig.showDownloads !== false ? docConfig.downloads : undefined}
               showKeywords={docConfig.showKeywords}
               showDownloads={docConfig.showDownloads}
+              showQuizzes={docConfig.showQuizzes}
               inputRef={inputRef as React.RefObject<HTMLInputElement | HTMLTextAreaElement>}
               onKeywordClick={(term) => {
                 chatMessages.setInputValue(`Tell me about ${term}`);
@@ -543,6 +552,7 @@ function SharedConversationContent({
                   inputRef.current?.focus();
                 }, 0);
               }}
+              onQuizClick={quiz.openQuiz}
             />
           </>
         )}
@@ -605,6 +615,22 @@ function SharedConversationContent({
         shouldShowFooter={shouldShowFooter}
         isMakerTheme={docConfig?.ownerInfo?.slug === 'maker'}
         isDesktop={window.innerWidth >= 768}
+      />
+
+      {/* Quiz Modal */}
+      <QuizModal
+        isOpen={quiz.isOpen}
+        onClose={quiz.closeQuiz}
+        questions={quiz.questions}
+        selectedAnswers={quiz.selectedAnswers}
+        onSelectAnswer={quiz.selectAnswer}
+        isLoading={quiz.isLoading}
+        error={quiz.error}
+        documentTitle={quiz.documentTitle}
+        currentQuestionIndex={quiz.currentQuestionIndex}
+        onNextQuestion={quiz.goToNextQuestion}
+        onPreviousQuestion={quiz.goToPreviousQuestion}
+        onGoToQuestion={quiz.goToQuestion}
       />
     </div>
   );

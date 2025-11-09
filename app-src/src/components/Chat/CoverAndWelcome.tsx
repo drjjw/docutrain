@@ -22,8 +22,10 @@ interface CoverAndWelcomeProps {
   downloads?: Download[];
   showKeywords?: boolean;
   showDownloads?: boolean;
+  showQuizzes?: boolean;
   inputRef?: React.RefObject<HTMLInputElement | HTMLTextAreaElement>;
   onKeywordClick?: (term: string) => void;
+  onQuizClick?: () => void;
 }
 
 /**
@@ -113,8 +115,10 @@ export function CoverAndWelcome({
   downloads,
   showKeywords,
   showDownloads,
+  showQuizzes,
   inputRef,
   onKeywordClick,
+  onQuizClick,
 }: CoverAndWelcomeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { canEdit } = useCanEditDocument(documentSlug);
@@ -200,8 +204,10 @@ export function CoverAndWelcome({
         downloads={downloads}
         showKeywords={showKeywords}
         showDownloads={showDownloads}
+        showQuizzes={showQuizzes}
         inputRef={inputRef}
         onKeywordClick={onKeywordClick}
+        onQuizClick={onQuizClick}
       />
     </div>
   );

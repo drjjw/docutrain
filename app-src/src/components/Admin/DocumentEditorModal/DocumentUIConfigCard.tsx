@@ -9,8 +9,10 @@ export function DocumentUIConfigCard({
   showReferences,
   showRecentQuestions,
   showCountryFlags,
+  showQuizzes,
   onFieldChange,
-  isTextUpload = false
+  isTextUpload = false,
+  isSuperAdmin = false
 }: DocumentUIConfigCardProps) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -46,6 +48,15 @@ export function DocumentUIConfigCard({
           description="Display the downloads section in the chat interface"
           size="md"
         />
+        {isSuperAdmin && (
+          <Toggle
+            checked={showQuizzes === true}
+            onChange={(checked) => onFieldChange('show_quizzes', checked)}
+            label="Show Quiz Button"
+            description="Display the quiz button next to keywords in the chat interface"
+            size="md"
+          />
+        )}
         <Toggle
           checked={showReferences !== false}
           onChange={(checked) => onFieldChange('show_references', checked)}

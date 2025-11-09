@@ -106,6 +106,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         show_references: document.show_references !== false,
         show_recent_questions: document.show_recent_questions === true,
         show_country_flags: document.show_country_flags === true,
+        show_quizzes: document.show_quizzes === true, // Explicitly check for true (defaults to false)
         active: document.active ?? true,
         access_level: document.access_level || 'public',
         passcode: document.passcode || '',
@@ -192,6 +193,12 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
       // Exclude downloads from document update - attachments are managed separately via FileUploadManager
       const { downloads, ...documentUpdates } = editingValues;
 
+      // Ensure boolean fields are explicitly set (including false values)
+      // This ensures they are properly saved to the database
+      if ('show_quizzes' in editingValues) {
+        documentUpdates.show_quizzes = editingValues.show_quizzes === true;
+      }
+
       // Prevent enabling references for text uploads
       // Primary check: pdf_filename column (most reliable indicator)
       const isTextUpload = 
@@ -205,6 +212,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         documentUpdates.show_references = false; // Force false for text uploads
       }
 
+      debugLog('DocumentEditorModal: Saving document updates:', documentUpdates);
       await updateDocument(document.id, documentUpdates);
       
       // Dispatch document-updated event with slug so listeners can clear the right cache
@@ -457,7 +465,9 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                       showReferences={editingValues.show_references !== false}
                       showRecentQuestions={editingValues.show_recent_questions === true}
                       showCountryFlags={editingValues.show_country_flags === true}
+                      showQuizzes={editingValues.show_quizzes === true}
                       onFieldChange={handleFieldChange}
+                      isSuperAdmin={isSuperAdmin}
                       isTextUpload={
                         // Primary check: pdf_filename column (most reliable indicator)
                         document.pdf_filename === 'text-upload' ||

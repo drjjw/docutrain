@@ -19,8 +19,10 @@ interface WelcomeMessageProps {
   downloads?: Download[];
   showKeywords?: boolean;
   showDownloads?: boolean;
+  showQuizzes?: boolean;
   inputRef?: React.RefObject<HTMLInputElement | HTMLTextAreaElement>;
   onKeywordClick?: (term: string) => void;
+  onQuizClick?: () => void;
 }
 
 /**
@@ -82,8 +84,10 @@ export function WelcomeMessage({
   downloads,
   showKeywords,
   showDownloads,
+  showQuizzes,
   inputRef,
-  onKeywordClick
+  onKeywordClick,
+  onQuizClick,
 }: WelcomeMessageProps) {
   const { canEdit } = useCanEditDocument(documentSlug);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -152,6 +156,8 @@ export function WelcomeMessage({
               isMultiDoc={false}
               inputRef={inputRef}
               onKeywordClick={onKeywordClick}
+              onQuizClick={showQuizzes === true ? onQuizClick : undefined}
+              documentSlug={documentSlug}
             />
           )}
         </div>

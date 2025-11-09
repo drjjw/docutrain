@@ -22,6 +22,7 @@ const { createProcessingRouter } = require('./lib/routes/processing');
 const { createContactRouter } = require('./lib/routes/contact');
 const { createMonitoringRouter } = require('./lib/routes/monitoring');
 const { createProfanityRouter } = require('./lib/routes/profanity');
+const { createQuizRouter } = require('./lib/routes/quiz');
 const rag = require('./lib/rag');
 
 const app = express();
@@ -189,6 +190,11 @@ app.use('/api', createCacheRouter(embeddingCache));
 app.use('/api', createHealthRouter(supabase, documentRegistry, registryState));
 app.use('/api', createContactRouter());
 app.use('/api', createProfanityRouter(supabase));
+app.use('/api/quiz', createQuizRouter({
+    supabase,
+    openaiClient,
+    documentRegistry
+}));
 app.use('/api/monitoring', createMonitoringRouter(supabase));
 
 // Document routes - mount at /api so /api/documents routes work correctly

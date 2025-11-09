@@ -81,8 +81,10 @@ export interface DocumentUIConfigCardProps {
   showReferences: boolean;
   showRecentQuestions: boolean;
   showCountryFlags: boolean;
+  showQuizzes: boolean;
   onFieldChange: FieldChangeHandler;
   isTextUpload?: boolean; // Whether this document is from a text upload (no pages)
+  isSuperAdmin?: boolean; // Whether the current user is a super admin
 }
 
 export interface DocumentMessagesCardProps {

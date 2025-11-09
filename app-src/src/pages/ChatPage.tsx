@@ -22,6 +22,7 @@ import { SelectionPrompt } from '@/components/Chat/SelectionPrompt';
 import { Spinner } from '@/components/UI/Spinner';
 import { ChatModals } from '@/components/Chat/ChatModals';
 import { ChatInput } from '@/components/Chat/ChatInput';
+import { QuizModal } from '@/components/Chat/QuizModal';
 import { DocumentAccessProvider } from '@/contexts/DocumentAccessContext';
 import { useDocumentConfig } from '@/hooks/useDocumentConfig';
 import { useOwnerLogo } from '@/hooks/useOwnerLogo';
@@ -36,6 +37,7 @@ import { useChatMessages } from '@/hooks/useChatMessages';
 import { useTextSelection } from '@/hooks/useTextSelection';
 import { useAutoScrollToMessage } from '@/hooks/useAutoScrollToMessage';
 import { useHeaderHeight } from '@/hooks/useHeaderHeight';
+import { useQuiz } from '@/hooks/useQuiz';
 import { debugLog } from '@/utils/debug';
 import '@/styles/messages.css';
 import '@/styles/loading.css';
@@ -307,6 +309,14 @@ function ChatPageContent({
   });
   
   // ============================================================================
+  // SECTION 9.7: Quiz Hook
+  // ============================================================================
+  const quiz = useQuiz({
+    documentSlug,
+    numQuestions: 5,
+  });
+
+  // ============================================================================
   // SECTION 10: Derived State & Conditions
   // ============================================================================
   // Show loading spinner while auth is loading OR while checking document access
@@ -362,6 +372,23 @@ function ChatPageContent({
         }}
       />
       
+      {/* Quiz Modal */}
+      <QuizModal
+        isOpen={quiz.isOpen}
+        onClose={quiz.closeQuiz}
+        isLoading={quiz.isLoading}
+        error={quiz.error}
+        questions={quiz.questions}
+        selectedAnswers={quiz.selectedAnswers}
+        documentTitle={quiz.documentTitle}
+        currentQuestionIndex={quiz.currentQuestionIndex}
+        onSelectAnswer={quiz.selectAnswer}
+        onNextQuestion={quiz.goToNextQuestion}
+        onPreviousQuestion={quiz.goToPreviousQuestion}
+        onGoToQuestion={quiz.goToQuestion}
+        onRetry={quiz.generateQuiz}
+      />
+      
       {/* Header - Fixed position */}
       <ChatHeader 
         ref={headerRef}
@@ -402,6 +429,7 @@ function ChatPageContent({
               downloads={docConfig.showDownloads !== false ? docConfig.downloads : undefined}
               showKeywords={docConfig.showKeywords}
               showDownloads={docConfig.showDownloads}
+              showQuizzes={docConfig.showQuizzes}
               inputRef={inputRef}
               onKeywordClick={(term) => {
                 setInputValue(`Tell me about ${term}`);
@@ -410,6 +438,7 @@ function ChatPageContent({
                   inputRef.current?.focus();
                 }, 0);
               }}
+              onQuizClick={quiz.openQuiz}
             />
             
             {/* Recent Questions - shown if enabled */}

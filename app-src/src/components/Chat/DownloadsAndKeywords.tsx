@@ -45,6 +45,8 @@ interface DownloadsAndKeywordsProps {
   documentTitles?: string[]; // For multi-doc scenarios
   inputRef?: React.RefObject<HTMLInputElement | null>; // For keyword click handling
   onKeywordClick?: (term: string) => void; // Callback for keyword clicks
+  onQuizClick?: () => void; // Callback for quiz button click
+  documentSlug?: string | null; // Document slug for quiz button visibility
 }
 
 // Height equalization no longer needed with unified container
@@ -56,6 +58,8 @@ export function DownloadsAndKeywords({
   documentTitles = [],
   inputRef,
   onKeywordClick,
+  onQuizClick,
+  documentSlug,
 }: DownloadsAndKeywordsProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -177,7 +181,7 @@ export function DownloadsAndKeywords({
   return (
     <>
       {/* Trigger Button */}
-      <div className="downloads-keywords-drawer-trigger">
+      <div className="downloads-keywords-drawer-trigger" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
         <button
           onClick={handleOpenDrawer}
           className="drawer-trigger-button"
@@ -191,6 +195,26 @@ export function DownloadsAndKeywords({
             </div>
           </div>
         </button>
+        
+        {/* Quiz Button - shown if quizzes are enabled, keywords are shown, and documentSlug is available */}
+        {hasKeywords && onQuizClick && documentSlug && (
+          <>
+            <span style={{ color: '#9ca3af', fontSize: '14px' }}>|</span>
+            <button
+              onClick={onQuizClick}
+              className="drawer-trigger-button"
+              aria-label="Generate quiz"
+              type="button"
+            >
+              <div className="drawer-trigger-content">
+                <span>Quiz</span>
+                <div className="drawer-plus-icon">
+                  <Plus size={16} />
+                </div>
+              </div>
+            </button>
+          </>
+        )}
       </div>
 
       {/* Drawer Overlay - Render via portal */}
