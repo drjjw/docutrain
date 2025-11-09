@@ -302,7 +302,6 @@ function SharedConversationContent({
   // Quiz hook
   const quiz = useQuiz({
     documentSlug,
-    numQuestions: 5,
   });
 
   // Check if we should show cover and welcome (single document, not multi-doc)
@@ -628,9 +627,12 @@ function SharedConversationContent({
         error={quiz.error}
         documentTitle={quiz.documentTitle}
         currentQuestionIndex={quiz.currentQuestionIndex}
+        quizId={quiz.quizId}
         onNextQuestion={quiz.goToNextQuestion}
         onPreviousQuestion={quiz.goToPreviousQuestion}
         onGoToQuestion={quiz.goToQuestion}
+        onRetry={quiz.loadQuiz}
+        onReset={quiz.resetQuiz}
       />
     </div>
   );

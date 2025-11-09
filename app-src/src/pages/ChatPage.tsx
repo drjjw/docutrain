@@ -313,7 +313,6 @@ function ChatPageContent({
   // ============================================================================
   const quiz = useQuiz({
     documentSlug,
-    numQuestions: 5,
   });
 
   // ============================================================================
@@ -382,11 +381,13 @@ function ChatPageContent({
         selectedAnswers={quiz.selectedAnswers}
         documentTitle={quiz.documentTitle}
         currentQuestionIndex={quiz.currentQuestionIndex}
+        quizId={quiz.quizId}
         onSelectAnswer={quiz.selectAnswer}
         onNextQuestion={quiz.goToNextQuestion}
         onPreviousQuestion={quiz.goToPreviousQuestion}
         onGoToQuestion={quiz.goToQuestion}
-        onRetry={quiz.generateQuiz}
+        onRetry={quiz.loadQuiz}
+        onReset={quiz.resetQuiz}
       />
       
       {/* Header - Fixed position */}

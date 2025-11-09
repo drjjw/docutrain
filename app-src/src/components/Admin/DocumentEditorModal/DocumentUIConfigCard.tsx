@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Toggle } from '@/components/UI/Toggle';
+import { Spinner } from '@/components/UI/Spinner';
+import { generateAndStoreQuiz, type RegenerationLimitError } from '@/services/quizApi';
 import type { DocumentUIConfigCardProps } from './types';
+import { debugLog } from '@/utils/debug';
 
 export function DocumentUIConfigCard({
   showDocumentSelector,
@@ -10,10 +13,90 @@ export function DocumentUIConfigCard({
   showRecentQuestions,
   showCountryFlags,
   showQuizzes,
+  quizzesGenerated = false,
+  documentSlug,
   onFieldChange,
   isTextUpload = false,
   isSuperAdmin = false
 }: DocumentUIConfigCardProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [generationSuccess, setGenerationSuccess] = useState(false);
+  const [regenerationInfo, setRegenerationInfo] = useState<{
+    lastGenerated: Date | null;
+    nextAllowed: Date | null;
+  } | null>(null);
+
+  // Format date for display
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(date);
+  };
+
+  // Calculate time until next allowed generation
+  const getTimeUntilNextAllowed = (nextAllowed: Date) => {
+    const now = new Date();
+    const diff = nextAllowed.getTime() - now.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (days > 0) {
+      return `${days} day${days > 1 ? 's' : ''}`;
+    } else if (hours > 0) {
+      return `${hours} hour${hours > 1 ? 's' : ''}`;
+    } else {
+      return 'soon';
+    }
+  };
+
+  const handleGenerateQuizzes = async () => {
+    if (!documentSlug) {
+      setGenerationError('Document slug is required');
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationError(null);
+    setGenerationSuccess(false);
+
+    try {
+      debugLog('Generating quizzes for document:', documentSlug);
+      const result = await generateAndStoreQuiz(documentSlug);
+      debugLog('Quiz generation successful:', result);
+      
+      setGenerationSuccess(true);
+      // Update quizzes_generated flag
+      onFieldChange('quizzes_generated', true);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setGenerationSuccess(false);
+      }, 3000);
+    } catch (error) {
+      debugLog('Quiz generation error:', error);
+      
+      // Check if it's a regeneration limit error
+      if (error && typeof error === 'object' && 'nextAllowedDate' in error) {
+        const limitError = error as RegenerationLimitError;
+        setRegenerationInfo({
+          lastGenerated: new Date(limitError.lastGenerated),
+          nextAllowed: new Date(limitError.nextAllowedDate),
+        });
+        setGenerationError(limitError.message);
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to generate quizzes';
+        setGenerationError(errorMessage);
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div className="px-6 py-4 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-gray-200">
@@ -49,13 +132,86 @@ export function DocumentUIConfigCard({
           size="md"
         />
         {isSuperAdmin && (
-          <Toggle
-            checked={showQuizzes === true}
-            onChange={(checked) => onFieldChange('show_quizzes', checked)}
-            label="Show Quiz Button"
-            description="Display the quiz button next to keywords in the chat interface"
-            size="md"
-          />
+          <div className="space-y-3">
+            {/* Generate Quizzes Section */}
+            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h5 className="text-sm font-semibold text-gray-900 mb-1">Quiz Generation</h5>
+                  <p className="text-xs text-gray-600">
+                    Generate quiz questions for this document. Questions are scaled based on document size (1 per 2 chunks, min 10, max 100).
+                    {isSuperAdmin && ' Super admins can regenerate quizzes at any time.'}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Generate/Regenerate Button */}
+              <button
+                onClick={handleGenerateQuizzes}
+                disabled={isGenerating || !documentSlug}
+                className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${
+                  isGenerating || !documentSlug
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                {isGenerating ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Spinner size="sm" />
+                    Generating Quizzes...
+                  </span>
+                ) : quizzesGenerated ? (
+                  'Regenerate Quizzes'
+                ) : (
+                  'Generate Quizzes'
+                )}
+              </button>
+
+              {/* Generation Status Messages */}
+              {generationSuccess && (
+                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800 font-medium">
+                    ✓ Quizzes generated successfully! You can now enable the quiz toggle below.
+                  </p>
+                </div>
+              )}
+
+              {generationError && (
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-800 font-medium mb-1">{generationError}</p>
+                  {regenerationInfo && regenerationInfo.nextAllowed && !isSuperAdmin && (
+                    <p className="text-xs text-red-700">
+                      Last generated: {formatDate(regenerationInfo.lastGenerated!)}. 
+                      Next allowed: {formatDate(regenerationInfo.nextAllowed)} ({getTimeUntilNextAllowed(regenerationInfo.nextAllowed)})
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {quizzesGenerated && !generationError && !generationSuccess && regenerationInfo && !isSuperAdmin && (
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-800">
+                    Quizzes can be regenerated once per week. Next allowed: {formatDate(regenerationInfo.nextAllowed!)} ({getTimeUntilNextAllowed(regenerationInfo.nextAllowed!)})
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Show Quiz Toggle */}
+            <Toggle
+              checked={showQuizzes === true}
+              onChange={(checked) => onFieldChange('show_quizzes', checked)}
+              label="Show Quiz Button"
+              description="Display the quiz button next to keywords in the chat interface"
+              size="md"
+              disabled={!quizzesGenerated}
+            />
+            {!quizzesGenerated && (
+              <p className="text-xs text-gray-500 ml-6">
+                Generate quizzes above to enable this option.
+              </p>
+            )}
+          </div>
         )}
         <Toggle
           checked={showReferences !== false}

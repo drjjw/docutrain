@@ -84,6 +84,7 @@ export interface Document {
   show_recent_questions?: boolean;
   show_country_flags?: boolean;
   show_quizzes?: boolean;
+  quizzes_generated?: boolean;
   access_level?: DocumentAccessLevel;
   passcode?: string;
   uploaded_by_user_id?: string;

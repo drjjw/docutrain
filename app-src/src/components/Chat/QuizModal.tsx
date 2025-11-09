@@ -1,12 +1,13 @@
 /**
  * QuizModal Component
- * Displays quiz questions in a modal with answer selection
+ * Displays quiz questions in a modal with answer selection and score submission
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/UI/Modal';
 import { Spinner } from '@/components/UI/Spinner';
-import { QuizQuestion } from '@/services/quizApi';
+import { QuizQuestion, submitQuizAttempt } from '@/services/quizApi';
+import { debugLog } from '@/utils/debug';
 
 interface QuizModalProps {
   isOpen: boolean;
@@ -17,11 +18,13 @@ interface QuizModalProps {
   selectedAnswers: Record<number, number>;
   documentTitle: string | null;
   currentQuestionIndex: number;
+  quizId: string | null;
   onSelectAnswer: (questionIndex: number, optionIndex: number) => void;
   onNextQuestion: () => void;
   onPreviousQuestion: () => void;
   onGoToQuestion: (index: number) => void;
   onRetry?: () => void;
+  onReset?: () => void;
 }
 
 export function QuizModal({
@@ -33,18 +36,77 @@ export function QuizModal({
   selectedAnswers,
   documentTitle,
   currentQuestionIndex,
+  quizId,
   onSelectAnswer,
   onNextQuestion,
   onPreviousQuestion,
   onGoToQuestion,
   onRetry,
+  onReset,
 }: QuizModalProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [score, setScore] = useState<{ score: number; total: number } | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  
   const currentQuestion = questions[currentQuestionIndex];
   const selectedAnswer = selectedAnswers[currentQuestionIndex];
   const isAnswered = selectedAnswer !== undefined;
   const isCorrect = isAnswered && selectedAnswer === currentQuestion?.correctAnswer;
   const isFirstQuestion = currentQuestionIndex === 0;
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
+  const allQuestionsAnswered = questions.length > 0 && questions.every((_, index) => selectedAnswers[index] !== undefined);
+
+  // Calculate score when all questions are answered
+  useEffect(() => {
+    if (allQuestionsAnswered && questions.length > 0 && !score && !isSubmitting && quizId) {
+      calculateAndSubmitScore();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allQuestionsAnswered, questions.length, score, isSubmitting, quizId]);
+
+  const calculateAndSubmitScore = async () => {
+    if (!quizId || questions.length === 0) {
+      return;
+    }
+
+    // Calculate score
+    const calculatedScore = questions.reduce((correct, question, index) => {
+      const userAnswer = selectedAnswers[index];
+      return correct + (userAnswer === question.correctAnswer ? 1 : 0);
+    }, 0);
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      debugLog('Submitting quiz attempt:', { quizId, score: calculatedScore, total: questions.length });
+      await submitQuizAttempt(quizId, calculatedScore);
+      setScore({ score: calculatedScore, total: questions.length });
+      debugLog('Quiz attempt submitted successfully');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to submit quiz attempt';
+      setSubmitError(errorMessage);
+      debugLog('Quiz attempt submission error:', errorMessage);
+      // Still show score even if submission fails
+      setScore({ score: calculatedScore, total: questions.length });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFinish = () => {
+    if (allQuestionsAnswered && !score && quizId) {
+      calculateAndSubmitScore();
+    }
+  };
+
+  const handleRetake = () => {
+    setScore(null);
+    setSubmitError(null);
+    if (onReset) {
+      onReset();
+    }
+  };
 
   const getAnswerClass = (optionIndex: number) => {
     if (!isAnswered || selectedAnswer !== optionIndex) {
@@ -76,7 +138,7 @@ export function QuizModal({
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-12">
             <Spinner />
-            <p className="mt-4 text-gray-600">Generating quiz questions...</p>
+            <p className="mt-4 text-gray-600">Loading quiz questions...</p>
           </div>
         )}
 
@@ -112,8 +174,42 @@ export function QuizModal({
           </div>
         )}
 
+        {/* Score Display */}
+        {score && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-blue-900 mb-2">
+                Quiz Complete!
+              </h3>
+              <p className="text-lg text-blue-800 mb-4">
+                You scored <span className="font-bold">{score.score}</span> out of <span className="font-bold">{score.total}</span>
+              </p>
+              <p className="text-sm text-blue-700 mb-4">
+                {score.score === score.total
+                  ? 'Perfect score! 🎉'
+                  : score.score >= score.total * 0.8
+                  ? 'Great job! 👍'
+                  : score.score >= score.total * 0.6
+                  ? 'Good effort! 💪'
+                  : 'Keep practicing! 📚'}
+              </p>
+              {submitError && (
+                <p className="text-xs text-red-600 mb-2">
+                  Note: Score could not be saved, but you can retake the quiz.
+                </p>
+              )}
+              <button
+                onClick={handleRetake}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Retake Quiz
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Questions */}
-        {!isLoading && !error && questions.length > 0 && currentQuestion && (
+        {!isLoading && !error && questions.length > 0 && currentQuestion && !score && (
           <div className="space-y-6">
             {/* Progress Indicator */}
             <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
@@ -231,26 +327,47 @@ export function QuizModal({
                 >
                   Close
                 </button>
-                <button
-                  onClick={onNextQuestion}
-                  disabled={isLastQuestion || !isAnswered}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    isLastQuestion || !isAnswered
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  {isLastQuestion ? 'Finish' : 'Next →'}
-                </button>
+                {isLastQuestion ? (
+                  <button
+                    onClick={handleFinish}
+                    disabled={!allQuestionsAnswered || isSubmitting}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      !allQuestionsAnswered || isSubmitting
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
+                  >
+                    {isSubmitting ? (
+                      <span className="flex items-center gap-2">
+                        <Spinner size="sm" />
+                        Submitting...
+                      </span>
+                    ) : (
+                      'Finish Quiz'
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    onClick={onNextQuestion}
+                    disabled={!isAnswered}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      !isAnswered
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
+                  >
+                    Next →
+                  </button>
+                )}
               </div>
             </div>
           </div>
         )}
 
         {/* Empty State */}
-        {!isLoading && !error && questions.length === 0 && (
+        {!isLoading && !error && questions.length === 0 && !score && (
           <div className="text-center py-12">
-            <p className="text-gray-600">No questions available. Click "Generate Quiz" to create questions.</p>
+            <p className="text-gray-600">No questions available. Please generate quizzes first.</p>
           </div>
         )}
       </div>

@@ -107,6 +107,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         show_recent_questions: document.show_recent_questions === true,
         show_country_flags: document.show_country_flags === true,
         show_quizzes: document.show_quizzes === true, // Explicitly check for true (defaults to false)
+        quizzes_generated: document.quizzes_generated === true, // Explicitly check for true (defaults to false)
         active: document.active ?? true,
         access_level: document.access_level || 'public',
         passcode: document.passcode || '',
@@ -197,6 +198,9 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
       // This ensures they are properly saved to the database
       if ('show_quizzes' in editingValues) {
         documentUpdates.show_quizzes = editingValues.show_quizzes === true;
+      }
+      if ('quizzes_generated' in editingValues) {
+        documentUpdates.quizzes_generated = editingValues.quizzes_generated === true;
       }
 
       // Prevent enabling references for text uploads
@@ -466,6 +470,8 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                       showRecentQuestions={editingValues.show_recent_questions === true}
                       showCountryFlags={editingValues.show_country_flags === true}
                       showQuizzes={editingValues.show_quizzes === true}
+                      quizzesGenerated={editingValues.quizzes_generated === true}
+                      documentSlug={editingValues.slug || document.slug}
                       onFieldChange={handleFieldChange}
                       isSuperAdmin={isSuperAdmin}
                       isTextUpload={
