@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { validateEmail, validatePassword, validatePasswordMatch } from '@/lib/utils/validation';
 import { TermsOfServiceModal } from './TermsOfServiceModal';
 import { supabase } from '@/lib/supabase/client';
+import { debugLog } from '@/utils/debug';
 
 export function SignupForm() {
   const { signUp } = useAuth();
@@ -105,10 +106,10 @@ export function SignupForm() {
 
     try {
       setLoading(true);
-      console.log('SignupForm: Attempting signup with email:', email);
+      debugLog('SignupForm: Attempting signup with email:', email);
       if (inviteToken) {
-        console.log('SignupForm: Invite token present:', inviteToken);
-        console.log('SignupForm: Invite info:', inviteInfo);
+        debugLog('SignupForm: Invite token present:', inviteToken);
+        debugLog('SignupForm: Invite info:', inviteInfo);
       }
       
       // Signup user first - pass invite_token if present, along with name and TOS data
@@ -121,7 +122,7 @@ export function SignupForm() {
         tosAcceptedAt: new Date().toISOString(),
         tosVersion: '2025-10-31',
       });
-      console.log('SignupForm: Signup successful', signupResult);
+      debugLog('SignupForm: Signup successful', signupResult);
       
       if (!signupResult) {
         console.error('SignupForm: signUp returned undefined');
@@ -202,7 +203,7 @@ export function SignupForm() {
             throw new Error(errorData.error || 'Failed to create profile');
           }
 
-          console.log('SignupForm: User profile created with name and TOS acceptance');
+          debugLog('SignupForm: User profile created with name and TOS acceptance');
         } catch (profileError) {
           console.error('SignupForm: Failed to create user profile:', profileError);
           // Note: We don't block signup here because:
@@ -213,7 +214,7 @@ export function SignupForm() {
         }
       } else {
         // For invited users, profile was already created in complete-invite-signup
-        console.log('SignupForm: Invited user profile created in complete-invite-signup endpoint');
+        debugLog('SignupForm: Invited user profile created in complete-invite-signup endpoint');
       }
       
       // Show success message instead of redirecting

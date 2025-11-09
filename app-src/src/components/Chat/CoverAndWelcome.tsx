@@ -8,6 +8,7 @@ import { CoverImage } from './CoverImage';
 import { WelcomeMessage } from './WelcomeMessage';
 import { useCanEditDocument } from '@/hooks/useCanEditDocument';
 import { Keyword, Download } from '@/hooks/useDocumentConfig';
+import { debugLog } from '@/utils/debug';
 
 interface CoverAndWelcomeProps {
   cover?: string;
@@ -121,17 +122,17 @@ export function CoverAndWelcome({
 
   // Handle cover image save
   const handleCoverSave = useCallback(async (url: string) => {
-    console.log(`[CoverAndWelcome] Saving cover for document: ${documentSlug}`);
+    debugLog(`[CoverAndWelcome] Saving cover for document: ${documentSlug}`);
     const success = await saveDocumentField(documentSlug, 'cover', url);
     if (success) {
-      console.log(`[CoverAndWelcome] ✅ Cover save successful, dispatching document-updated event`);
+      debugLog(`[CoverAndWelcome] ✅ Cover save successful, dispatching document-updated event`);
       // Force refresh by updating key
       setRefreshKey(prev => prev + 1);
       // Dispatch event immediately to trigger local refresh
       window.dispatchEvent(new CustomEvent('document-updated', {
         detail: { documentSlug }
       }));
-      console.log(`[CoverAndWelcome] Event dispatched for slug: ${documentSlug}`);
+      debugLog(`[CoverAndWelcome] Event dispatched for slug: ${documentSlug}`);
     } else {
       console.error(`[CoverAndWelcome] ❌ Cover save failed`);
     }

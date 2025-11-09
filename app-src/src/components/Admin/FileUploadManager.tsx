@@ -7,6 +7,7 @@ import {
   deleteDocumentAttachment 
 } from '@/lib/supabase/admin';
 import { CopyrightDisclaimerModal } from './CopyrightDisclaimerModal';
+import { debugLog } from '@/utils/debug';
 import {
   FileText,
   Presentation,
@@ -133,7 +134,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log('File selected:', file.name);
+    debugLog('File selected:', file.name);
     
     // Store file and show copyright disclaimer first
     setPendingFile(file);
@@ -170,7 +171,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
       return;
     }
 
-    console.log('Starting file upload:', pendingFile.name, 'with title:', pendingTitle);
+    debugLog('Starting file upload:', pendingFile.name, 'with title:', pendingTitle);
 
     try {
       setUploading(true);
@@ -182,7 +183,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
       const sanitizedFileName = pendingFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const filePath = `${documentId}/${timestamp}-${sanitizedFileName}`;
 
-      console.log('Uploading to path:', filePath);
+      debugLog('Uploading to path:', filePath);
 
       // Upload to Supabase storage
       const { data, error } = await supabase.storage
@@ -197,14 +198,14 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
         throw new Error(`Upload failed: ${error.message}`);
       }
 
-      console.log('Upload successful, data:', data);
+      debugLog('Upload successful, data:', data);
 
       // Get public URL
       const { data: urlData } = supabase.storage
         .from(DOWNLOADS_BUCKET)
         .getPublicUrl(filePath);
 
-      console.log('Public URL:', urlData.publicUrl);
+      debugLog('Public URL:', urlData.publicUrl);
 
       // Create attachment record via API
       const newAttachment = await createDocumentAttachment(documentId, {
@@ -219,7 +220,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
       // Update local state
       setAttachments(prev => [...prev, newAttachment].sort((a, b) => a.display_order - b.display_order));
 
-      console.log('Attachment created successfully');
+      debugLog('Attachment created successfully');
 
       // Reset state
       setPendingFile(null);
@@ -229,7 +230,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
         fileInputRef.current.value = '';
       }
 
-      console.log('File upload completed successfully');
+      debugLog('File upload completed successfully');
     } catch (error) {
       console.error('Upload error:', error);
       setUploadError(error instanceof Error ? error.message : 'Failed to upload file');
@@ -295,7 +296,7 @@ export function FileUploadManager({ downloads, onChange, documentId }: FileUploa
   };
 
 
-  console.log('FileUploadManager rendering - uploading:', uploading, 'attachments:', attachments.length);
+  debugLog('FileUploadManager rendering - uploading:', uploading, 'attachments:', attachments.length);
 
   if (loading) {
     return (

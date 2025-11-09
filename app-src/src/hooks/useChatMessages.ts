@@ -6,6 +6,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import type { DocumentConfig } from './useDocumentConfig';
+import { debugLog } from '@/utils/debug';
 
 interface Message {
   id: string;
@@ -47,6 +48,15 @@ export function useChatMessages({
   const messageTimestamps = useRef<number[]>([]);
   const countdownInterval = useRef<NodeJS.Timeout | null>(null);
   
+  // Conversation limit state
+  const [conversationLimitError, setConversationLimitError] = useState<string | null>(null);
+  
+  // Get max conversation length from environment (default: 3)
+  const MAX_CONVERSATION_LENGTH = parseInt(
+    import.meta.env.VITE_MAX_CONVERSATION_LENGTH || '3',
+    10
+  );
+  
   // Get auth headers (same logic as vanilla JS)
   const getAuthHeaders = () => {
     try {
@@ -69,8 +79,6 @@ export function useChatMessages({
     const now = Date.now();
     const oneMinuteAgo = now - 60 * 1000;
     const tenSecondsAgo = now - 10 * 1000;
-    // Enable debug logging if explicitly enabled via env var, or in development mode
-    const debugEnabled = (import.meta as any).env?.VITE_DEBUG === 'true' || (import.meta as any).env?.DEV;
     
     // Clean up old timestamps
     messageTimestamps.current = messageTimestamps.current.filter(ts => ts > oneMinuteAgo);
@@ -78,23 +86,19 @@ export function useChatMessages({
     const messagesInLastMinute = messageTimestamps.current.length;
     const messagesInLastTenSeconds = messageTimestamps.current.filter(ts => ts > tenSecondsAgo).length;
     
-    // Debug logging (only if enabled)
-    if (debugEnabled) {
-      console.log('🔍 Frontend Rate Limit Check:');
-      console.log(`   📊 Last minute: ${messagesInLastMinute}/10 messages`);
-      console.log(`   ⚡ Last 10 sec: ${messagesInLastTenSeconds}/3 messages`);
-      console.log(`   ✅ Status: ${messagesInLastMinute < 10 && messagesInLastTenSeconds < 3 ? 'WITHIN LIMITS' : 'APPROACHING/EXCEEDED'}`);
-    }
+    // Debug logging
+    debugLog('🔍 Frontend Rate Limit Check:');
+    debugLog(`   📊 Last minute: ${messagesInLastMinute}/10 messages`);
+    debugLog(`   ⚡ Last 10 sec: ${messagesInLastTenSeconds}/3 messages`);
+    debugLog(`   ✅ Status: ${messagesInLastMinute < 10 && messagesInLastTenSeconds < 3 ? 'WITHIN LIMITS' : 'APPROACHING/EXCEEDED'}`);
     
     // Check 10-second burst limit (3 messages)
     if (messagesInLastTenSeconds >= 3) {
       const oldestInBurst = messageTimestamps.current.filter(ts => ts > tenSecondsAgo)[0];
       const retryAfter = Math.ceil((oldestInBurst + 10 * 1000 - now) / 1000);
       
-      if (debugEnabled) {
-        console.log(`   ❌ BURST LIMIT EXCEEDED: ${messagesInLastTenSeconds}/3 in 10 seconds`);
-        console.log(`   ⏱️  Retry after: ${retryAfter} seconds`);
-      }
+      debugLog(`   ❌ BURST LIMIT EXCEEDED: ${messagesInLastTenSeconds}/3 in 10 seconds`);
+      debugLog(`   ⏱️  Retry after: ${retryAfter} seconds`);
       
       return { allowed: false, retryAfter: Math.max(retryAfter, 1), reason: 'burst' };
     }
@@ -104,17 +108,13 @@ export function useChatMessages({
       const oldestInMinute = messageTimestamps.current[0];
       const retryAfter = Math.ceil((oldestInMinute + 60 * 1000 - now) / 1000);
       
-      if (debugEnabled) {
-        console.log(`   ❌ RATE LIMIT EXCEEDED: ${messagesInLastMinute}/10 in 1 minute`);
-        console.log(`   ⏱️  Retry after: ${retryAfter} seconds`);
-      }
+      debugLog(`   ❌ RATE LIMIT EXCEEDED: ${messagesInLastMinute}/10 in 1 minute`);
+      debugLog(`   ⏱️  Retry after: ${retryAfter} seconds`);
       
       return { allowed: false, retryAfter: Math.max(retryAfter, 1), reason: 'rate' };
     }
     
-    if (debugEnabled) {
-      console.log(`   ✅ Request ALLOWED - Will record timestamp`);
-    }
+    debugLog(`   ✅ Request ALLOWED - Will record timestamp`);
     
     return { allowed: true, retryAfter: 0 };
   };
@@ -122,6 +122,22 @@ export function useChatMessages({
   // Send message (ported from vanilla JS chat.js)
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading || !sessionId) return;
+    
+    // Check conversation length limit (count user messages only)
+    // Note: This is a client-side check. The backend also enforces this limit.
+    // Session ID is stored in sessionStorage, so it resets when the tab closes.
+    const userMessageCount = messages.filter(msg => msg.role === 'user' && !msg.isLoading).length;
+    if (userMessageCount >= MAX_CONVERSATION_LENGTH) {
+      setConversationLimitError(
+        `You've reached the conversation limit of ${MAX_CONVERSATION_LENGTH} messages. Please start a new chat to continue.`
+      );
+      return;
+    }
+    
+    // Clear conversation limit error if we're under the limit
+    if (conversationLimitError) {
+      setConversationLimitError(null);
+    }
     
     // Client-side rate limit check
     const rateLimitCheck = checkRateLimit();
@@ -161,12 +177,9 @@ export function useChatMessages({
     const timestamp = Date.now();
     messageTimestamps.current.push(timestamp);
     
-    const debugEnabled = (import.meta as any).env?.VITE_DEBUG === 'true' || (import.meta as any).env?.DEV;
-    if (debugEnabled) {
-      const messagesInLastMinute = messageTimestamps.current.filter(ts => ts > timestamp - 60 * 1000).length;
-      const messagesInLastTenSeconds = messageTimestamps.current.filter(ts => ts > timestamp - 10 * 1000).length;
-      console.log(`   📈 Timestamp recorded - New counts: ${messagesInLastMinute}/10 (minute), ${messagesInLastTenSeconds}/3 (10sec)`);
-    }
+    const messagesInLastMinute = messageTimestamps.current.filter(ts => ts > timestamp - 60 * 1000).length;
+    const messagesInLastTenSeconds = messageTimestamps.current.filter(ts => ts > timestamp - 10 * 1000).length;
+    debugLog(`   📈 Timestamp recorded - New counts: ${messagesInLastMinute}/10 (minute), ${messagesInLastTenSeconds}/3 (10sec)`);
     
     // Don't allow sending messages if no document is selected (owner mode)
     if (!documentSlug) {
@@ -263,8 +276,21 @@ export function useChatMessages({
         }, 1000);
         
         setIsLoading(false);
-        setMessages(prev => prev.filter(msg => msg.id !== loadingMsgId));
+        // Remove loading message and user message that was just added
+        setMessages(prev => prev.filter(msg => msg.id !== loadingMsgId && msg.id !== userMsg.id));
         return;
+      }
+      
+      // Handle conversation limit response (403)
+      if (response.status === 403) {
+        const errorData = await response.json();
+        if (errorData.conversationLimitExceeded) {
+          setConversationLimitError(errorData.error || 'Conversation limit reached');
+          setIsLoading(false);
+          // Remove loading message and user message that was just added
+          setMessages(prev => prev.filter(msg => msg.id !== loadingMsgId && msg.id !== userMsg.id));
+          return;
+        }
       }
       
       if (!response.ok) {
@@ -338,7 +364,7 @@ export function useChatMessages({
                     }
                   }
                   
-                  console.log('📊 RAG Performance:', performanceData);
+                  debugLog('📊 RAG Performance:', performanceData);
                 }
 
                 setIsLoading(false);
@@ -364,6 +390,12 @@ export function useChatMessages({
                 setIsLoading(false);
                 isStreamingRef.current = false; // Reset streaming flag on error
                 setMessages(prev => prev.filter(msg => msg.id !== loadingMsgId));
+                
+                // Handle conversation limit errors from backend
+                if (data.conversationLimitExceeded) {
+                  setConversationLimitError(data.error || 'Conversation limit reached');
+                  return; // Don't throw error for conversation limits
+                }
                 
                 // Handle rate limit errors from backend
                 if (data.rateLimitExceeded) {
@@ -442,6 +474,7 @@ export function useChatMessages({
     handleSendMessage,
     rateLimitError,
     retryAfter,
+    conversationLimitError,
   };
 }
 

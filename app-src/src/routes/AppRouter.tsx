@@ -13,9 +13,10 @@ import { TermsPage } from '@/pages/TermsPage';
 import { DisclaimerDeclinedPage } from '@/pages/DisclaimerDeclinedPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { AdminRoute } from './AdminRoute';
+import { debugLog } from '@/utils/debug';
 
 export function AppRouter() {
-  console.log('AppRouter: Rendering');
+  debugLog('AppRouter: Rendering');
   return (
     <BrowserRouter basename="/app">
       <Routes>
@@ -50,6 +51,14 @@ export function AppRouter() {
         />
         <Route
           path="/owner-settings"
+          element={
+            <AdminRoute>
+              <DashboardPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/mission-control"
           element={
             <AdminRoute>
               <DashboardPage />

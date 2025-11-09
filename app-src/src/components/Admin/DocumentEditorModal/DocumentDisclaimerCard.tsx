@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Toggle } from '@/components/UI/Toggle';
 import { AlertTriangle } from 'lucide-react';
 import type { DocumentDisclaimerCardProps } from './types';
+import { debugLog } from '@/utils/debug';
 
 const DEFAULT_DISCLAIMER_TEXT = 'This content is provided for informational purposes only. Please review and verify all information before use.';
 const MAX_DISCLAIMER_LENGTH = 10000;
@@ -16,12 +17,12 @@ export function DocumentDisclaimerCard({
 
   // Update local text when prop changes (e.g., when document loads)
   useEffect(() => {
-    console.log('DocumentDisclaimerCard: disclaimerText prop changed:', disclaimerText);
+    debugLog('DocumentDisclaimerCard: disclaimerText prop changed:', disclaimerText);
     setLocalText(disclaimerText || '');
   }, [disclaimerText]);
 
   useEffect(() => {
-    console.log('DocumentDisclaimerCard: showDisclaimer prop:', showDisclaimer);
+    debugLog('DocumentDisclaimerCard: showDisclaimer prop:', showDisclaimer);
     // Mark as initialized after first render to prevent accidental clearing
     if (!isInitialized) {
       setIsInitialized(true);
@@ -37,7 +38,7 @@ export function DocumentDisclaimerCard({
   };
 
   const handleToggle = (checked: boolean) => {
-    console.log('DocumentDisclaimerCard: Toggle changed to:', checked, 'isInitialized:', isInitialized);
+    debugLog('DocumentDisclaimerCard: Toggle changed to:', checked, 'isInitialized:', isInitialized);
     // Only allow clearing text if we're intentionally disabling (not during initialization)
     if (!checked && isInitialized) {
       setLocalText('');

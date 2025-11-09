@@ -247,6 +247,7 @@ function ChatPageContent({
     handleSendMessage,
     rateLimitError,
     retryAfter,
+    conversationLimitError,
   } = useChatMessages({
     documentSlug,
     sessionId,
@@ -276,7 +277,8 @@ function ChatPageContent({
   const [hasHeaderSubtitle, setHasHeaderSubtitle] = useState(false);
   
   // Dynamically measure header height and adjust padding
-  const headerHeight = useHeaderHeight(headerRef);
+  // Pass hasHeaderSubtitle as trigger to re-measure when subtitle/category info appears
+  const headerHeight = useHeaderHeight(headerRef, hasHeaderSubtitle);
   
   useEffect(() => {
     const handleResize = () => {
@@ -477,6 +479,7 @@ function ChatPageContent({
         documentSlug={documentSlug}
         rateLimitError={rateLimitError}
         retryAfter={retryAfter}
+        conversationLimitError={conversationLimitError}
         shouldShowFooter={shouldShowFooter}
         isMakerTheme={isMakerTheme}
         isDesktop={isDesktop}

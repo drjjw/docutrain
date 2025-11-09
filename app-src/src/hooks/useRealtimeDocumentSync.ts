@@ -12,6 +12,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
+import { debugLog } from '@/utils/debug';
 
 // Detect if we're on mobile
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -35,7 +36,7 @@ export function useRealtimeDocumentSync(
     // If realtime has been globally disabled due to persistent errors, don't even try
     if (realtimeDisabledGlobally) {
       if (!hasLoggedDisabledRef.current) {
-        console.log(`[useRealtimeDocumentSync] ℹ️ Realtime disabled globally. App will work normally with updates on page refresh.`);
+        debugLog(`[useRealtimeDocumentSync] ℹ️ Realtime disabled globally. App will work normally with updates on page refresh.`);
         hasLoggedDisabledRef.current = true;
       }
       return;
@@ -49,7 +50,7 @@ export function useRealtimeDocumentSync(
     // Don't retry indefinitely - after max retries, disable globally
     if (connectionAttempts >= maxRetries) {
       console.warn(`[useRealtimeDocumentSync] ⚠️ Max connection attempts (${maxRetries}) reached. Disabling realtime globally.`);
-      console.log(`[useRealtimeDocumentSync] ℹ️ App will continue to work normally. Updates will appear on page refresh.`);
+      debugLog(`[useRealtimeDocumentSync] ℹ️ App will continue to work normally. Updates will appear on page refresh.`);
       realtimeDisabledGlobally = true;
       return;
     }
@@ -66,7 +67,7 @@ export function useRealtimeDocumentSync(
     
     const setupTimeout = setTimeout(() => {
       try {
-        console.log(`[useRealtimeDocumentSync] 🔌 Attempting Realtime connection for ${documentSlug} (attempt ${connectionAttempts + 1}/${maxRetries + 1})`);
+        debugLog(`[useRealtimeDocumentSync] 🔌 Attempting Realtime connection for ${documentSlug} (attempt ${connectionAttempts + 1}/${maxRetries + 1})`);
         
         const channel = supabase
           .channel(`document_${documentSlug}_changes`, {
@@ -84,7 +85,7 @@ export function useRealtimeDocumentSync(
               filter: `slug=eq.${documentSlug}`,
             },
             (payload) => {
-              console.log(`[useRealtimeDocumentSync] 📡 Realtime update received for ${documentSlug}:`, payload);
+              debugLog(`[useRealtimeDocumentSync] 📡 Realtime update received for ${documentSlug}:`, payload);
               // Reset connection attempts on successful message
               setConnectionAttempts(0);
               // Dispatch browser event to notify all useDocumentConfig instances
@@ -96,7 +97,7 @@ export function useRealtimeDocumentSync(
           .subscribe((status, err) => {
             // Handle different subscription states
             if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
-              console.log(`[useRealtimeDocumentSync] ✅ Realtime connected successfully`);
+              debugLog(`[useRealtimeDocumentSync] ✅ Realtime connected successfully`);
               setConnectionAttempts(0); // Reset on success
               isSubscribingRef.current = false;
             } else if (status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR) {
@@ -106,12 +107,12 @@ export function useRealtimeDocumentSync(
               // Only retry if we haven't exceeded max attempts
               if (connectionAttempts < maxRetries) {
                 const retryDelay = isMobile ? 5000 : 3000;
-                console.log(`[useRealtimeDocumentSync] 🔄 Will retry in ${retryDelay / 1000}s...`);
+                debugLog(`[useRealtimeDocumentSync] 🔄 Will retry in ${retryDelay / 1000}s...`);
                 retryTimeoutRef.current = setTimeout(() => {
                   setConnectionAttempts(prev => prev + 1);
                 }, retryDelay);
               } else {
-                console.log(`[useRealtimeDocumentSync] ℹ️ Realtime unavailable. App will work normally with updates on refresh.`);
+                debugLog(`[useRealtimeDocumentSync] ℹ️ Realtime unavailable. App will work normally with updates on refresh.`);
               }
             } else if (status === REALTIME_SUBSCRIBE_STATES.TIMED_OUT) {
               console.warn(`[useRealtimeDocumentSync] ⏱️ Realtime connection timed out`);
@@ -125,7 +126,7 @@ export function useRealtimeDocumentSync(
                 }, retryDelay);
               }
             } else if (status === REALTIME_SUBSCRIBE_STATES.CLOSED) {
-              console.log(`[useRealtimeDocumentSync] 🔌 Realtime connection closed`);
+              debugLog(`[useRealtimeDocumentSync] 🔌 Realtime connection closed`);
               isSubscribingRef.current = false;
             }
           });
@@ -141,7 +142,7 @@ export function useRealtimeDocumentSync(
             setConnectionAttempts(prev => prev + 1);
           }, isMobile ? 5000 : 3000);
         } else {
-          console.log(`[useRealtimeDocumentSync] ℹ️ Realtime unavailable. App will work normally with updates on refresh.`);
+          debugLog(`[useRealtimeDocumentSync] ℹ️ Realtime unavailable. App will work normally with updates on refresh.`);
         }
       }
     }, setupDelay);

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { docutrainLogoUrl } from '@/assets';
+import { debugLog } from '@/utils/debug';
 
 export function DashboardHeader() {
   const { user, signOut } = useAuth();
@@ -33,14 +34,14 @@ export function DashboardHeader() {
   }, [location.pathname]);
 
   const handleSignOut = async () => {
-    console.log('🔴 DashboardHeader: handleSignOut called');
-    console.log('🔴 DashboardHeader: Calling signOut...');
+    debugLog('🔴 DashboardHeader: handleSignOut called');
+    debugLog('🔴 DashboardHeader: Calling signOut...');
     await signOut();
-    console.log('🔴 DashboardHeader: signOut completed successfully');
+    debugLog('🔴 DashboardHeader: signOut completed successfully');
     
     // Small delay to ensure state propagation, then force full page reload to login with logout message
     setTimeout(() => {
-      console.log('🔴 DashboardHeader: Force navigating to login');
+      debugLog('🔴 DashboardHeader: Force navigating to login');
       window.location.href = '/app/login?logout=true';
     }, 100);
   };

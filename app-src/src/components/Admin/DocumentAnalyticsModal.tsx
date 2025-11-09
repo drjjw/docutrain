@@ -4,6 +4,7 @@ import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
 import { getDocumentAnalytics } from '@/lib/supabase/admin';
 import type { DocumentWithOwner, DocumentAnalytics } from '@/types/admin';
+import { debugLog } from '@/utils/debug';
 
 interface DocumentAnalyticsModalProps {
   document: DocumentWithOwner;
@@ -40,9 +41,9 @@ export function DocumentAnalyticsModal({ document, isOpen, onClose }: DocumentAn
     setError(null);
 
     try {
-      console.log('Loading analytics for document:', document.id, document.slug);
+      debugLog('Loading analytics for document:', document.id, document.slug);
       const data = await getDocumentAnalytics(document.id, convOffset, downloadOffset, itemsPerPage, itemsPerPage);
-      console.log('Analytics data received:', data);
+      debugLog('Analytics data received:', data);
       setAnalytics(data);
     } catch (err) {
       console.error('Error loading analytics:', err);

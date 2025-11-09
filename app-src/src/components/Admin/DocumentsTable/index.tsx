@@ -18,6 +18,7 @@ import { PaginationControls } from './components/PaginationControls';
 import { DeleteConfirmModal } from './modals/DeleteConfirmModal';
 import { BulkDeleteModal } from './modals/BulkDeleteModal';
 import type { DocumentsTableProps, DocumentsTableRef, BulkDeleteProgress } from './types';
+import { debugLog } from '@/utils/debug';
 
 export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>((props, ref) => {
   const { isSuperAdmin = false, onRetrainingStart, onRetrainSuccess } = props;
@@ -87,7 +88,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
 
   // Debug editorModalDoc changes
   React.useEffect(() => {
-    console.log('DocumentsTable: editorModalDoc changed:', editorModalDoc?.id || 'null');
+    debugLog('DocumentsTable: editorModalDoc changed:', editorModalDoc?.id || 'null');
   }, [editorModalDoc]);
 
   // Prevent body scroll when delete modal is open
@@ -558,7 +559,7 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
       {/* Editor Modal */}
       {editorModalDoc && (
         <>
-          {console.log('DocumentsTable: Passing document to editor:', {
+          {debugLog('DocumentsTable: Passing document to editor:', {
             id: editorModalDoc.id,
             slug: editorModalDoc.slug,
             show_disclaimer: editorModalDoc.show_disclaimer,

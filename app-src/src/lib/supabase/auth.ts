@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { debugLog } from '@/utils/debug';
 
 export interface SignUpData {
   email: string;
@@ -54,7 +55,7 @@ export async function signUp({ email, password, inviteToken, firstName, lastName
 
       const result = await response.json();
       if (result.success) {
-        console.log('Invited user created successfully, signing in...');
+        debugLog('Invited user created successfully, signing in...');
         // Sign the user in with their password to get a session
         const signInResult = await supabase.auth.signInWithPassword({
           email: normalizedEmail,
@@ -150,8 +151,8 @@ export async function signOut() {
   }
   passcodeKeys.forEach(key => localStorage.removeItem(key));
   
-  console.log('🟡 Cleared local/session storage keys:', keysToRemove);
-  console.log('🟡 Cleared passcode keys:', passcodeKeys);
+  debugLog('🟡 Cleared local/session storage keys:', keysToRemove);
+  debugLog('🟡 Cleared passcode keys:', passcodeKeys);
 }
 
 /**

@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { deleteDocument } from '@/lib/supabase/database';
 import { getValidSession } from '@/lib/supabase/admin';
+import { debugLog } from '@/utils/debug';
 
 interface UserDocument {
   id: string;
@@ -73,7 +74,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
   const loadDocuments = async (isInitialLoad = false) => {
     // Prevent concurrent requests - if one is already in flight, skip this call
     if (isLoadingRef.current && !isInitialLoad) {
-      console.log('⏭️ Skipping loadDocuments - request already in flight');
+      debugLog('⏭️ Skipping loadDocuments - request already in flight');
       return;
     }
 
@@ -100,12 +101,12 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
 
       // If we get a 401, try refreshing the session once and retry
       if (response.status === 401) {
-        console.log('🔄 Got 401, refreshing session and retrying...');
+        debugLog('🔄 Got 401, refreshing session and retrying...');
         try {
           // Force a refresh by getting a fresh session
           const { data: { session: freshSession } } = await supabase.auth.getSession();
           if (freshSession?.refresh_token) {
-            console.log('🔄 Attempting to refresh session with refresh_token...');
+            debugLog('🔄 Attempting to refresh session with refresh_token...');
             const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession(freshSession);
             
             if (refreshError) {
@@ -115,7 +116,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
             
             if (refreshData.session?.access_token) {
               access_token = refreshData.session.access_token;
-              console.log('✅ Got refreshed token, retrying request...');
+              debugLog('✅ Got refreshed token, retrying request...');
               // Small delay to ensure session is fully updated
               await new Promise(resolve => setTimeout(resolve, 100));
               response = await makeRequest(access_token);
@@ -239,13 +240,13 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
           filter: user ? `user_id=eq.${user.id}` : undefined,
         },
         (payload) => {
-          console.log('📡 Realtime update received:', payload);
+          debugLog('📡 Realtime update received:', payload);
           
           // Check if this is a status change to 'ready' - trigger immediately for faster modal
           if (payload.eventType === 'UPDATE' && payload.new?.status === 'ready') {
             const userDocId = payload.new?.id;
             if (userDocId && onStatusChange) {
-              console.log('✅ Realtime detected completion, immediately triggering status change:', userDocId);
+              debugLog('✅ Realtime detected completion, immediately triggering status change:', userDocId);
               // Trigger status change immediately - loadDocuments will also run but this is faster
               onStatusChange(userDocId);
             }
@@ -263,7 +264,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
       const processingDocs = documentsRef.current.filter(doc => doc.status === 'processing');
       
       if (processingDocs.length > 0) {
-        console.log(`🔄 Polling: Found ${processingDocs.length} processing documents, refreshing status and logs...`);
+        debugLog(`🔄 Polling: Found ${processingDocs.length} processing documents, refreshing status and logs...`);
         
         // Refresh document status
         await loadDocuments(false);
@@ -273,7 +274,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
           const { access_token } = await getValidSession();
           const logsPromises = processingDocs.map(async (doc) => {
             const logs = await fetchProcessingLogs(doc.id, access_token);
-            console.log(`🔄 [Polling] Document ${doc.id} (${doc.title}): ${logs.length} logs`);
+            debugLog(`🔄 [Polling] Document ${doc.id} (${doc.title}): ${logs.length} logs`);
             return { docId: doc.id, logs };
           });
           
@@ -282,7 +283,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
             const updated = { ...prev };
             logsResults.forEach(({ docId, logs }) => {
               updated[docId] = logs;
-              console.log(`🔄 [Polling] Updated logsMap for ${docId}: ${logs.length} logs`);
+              debugLog(`🔄 [Polling] Updated logsMap for ${docId}: ${logs.length} logs`);
             });
             return updated;
           });
@@ -335,7 +336,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         const errorData = await response.json().catch(() => ({}));
         const retryAfter = errorData.retry_after || 30;
         
-        console.log(`⚠️  Server busy (503), will retry in ${retryAfter} seconds...`);
+        debugLog(`⚠️  Server busy (503), will retry in ${retryAfter} seconds...`);
         alert(`Server is busy processing other documents. Will automatically retry in ${retryAfter} seconds...`);
         
         // Wait and retry once
@@ -403,7 +404,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
    */
   const parseProcessingProgress = (logs: ProcessingLog[]): ProcessingProgress => {
     if (!logs || logs.length === 0) {
-      console.log('🔍 [parseProcessingProgress] No logs provided');
+      debugLog('🔍 [parseProcessingProgress] No logs provided');
       return { stageLabel: 'Processing...', progressPercent: 0 };
     }
 
@@ -434,9 +435,9 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
     if (lastCompleteLogIndex >= 0) {
       // Only use logs after the last complete log (current processing run)
       currentRunLogs = logs.slice(lastCompleteLogIndex + 1);
-      console.log(`🔍 [parseProcessingProgress] Found previous complete log at index ${lastCompleteLogIndex}, using ${currentRunLogs.length} logs from current run`);
+      debugLog(`🔍 [parseProcessingProgress] Found previous complete log at index ${lastCompleteLogIndex}, using ${currentRunLogs.length} logs from current run`);
     } else {
-      console.log(`🔍 [parseProcessingProgress] No previous complete log found, using all ${logs.length} logs`);
+      debugLog(`🔍 [parseProcessingProgress] No previous complete log found, using all ${logs.length} logs`);
     }
 
     if (currentRunLogs.length === 0) {
@@ -446,7 +447,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
 
     // Find latest log entry from current run
     const latestLog = currentRunLogs[currentRunLogs.length - 1];
-    console.log(`🔍 [parseProcessingProgress] Current run logs: ${currentRunLogs.length}, latest log:`, {
+    debugLog(`🔍 [parseProcessingProgress] Current run logs: ${currentRunLogs.length}, latest log:`, {
       stage: latestLog.stage,
       status: latestLog.status,
       message: latestLog.message,
@@ -460,7 +461,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
       log.stage === 'embed' && log.status === 'progress' && log.metadata?.batch
     );
     
-    console.log(`🔍 [parseProcessingProgress] Found ${embedProgressLogs.length} embed:progress logs with batch numbers`);
+    debugLog(`🔍 [parseProcessingProgress] Found ${embedProgressLogs.length} embed:progress logs with batch numbers`);
     
     if (embedProgressLogs.length > 0) {
       // Sort by batch number descending to get the most recent batch
@@ -476,14 +477,14 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         message: l.message,
         created_at: l.created_at
       }));
-      console.log(`🔍 [parseProcessingProgress] Sorted embed logs (first 10):`, sortedBatchInfo);
-      console.log(`🔍 [parseProcessingProgress] Batch numbers only:`, sortedEmbedLogs.map(l => l.metadata?.batch));
+      debugLog(`🔍 [parseProcessingProgress] Sorted embed logs (first 10):`, sortedBatchInfo);
+      debugLog(`🔍 [parseProcessingProgress] Batch numbers only:`, sortedEmbedLogs.map(l => l.metadata?.batch));
       
       const latestEmbedLog = sortedEmbedLogs[0];
       const batch = latestEmbedLog.metadata?.batch;
       const totalBatches = latestEmbedLog.metadata?.total_batches;
       
-      console.log(`🔍 [parseProcessingProgress] Selected log: batch=${batch}, total=${totalBatches}`);
+      debugLog(`🔍 [parseProcessingProgress] Selected log: batch=${batch}, total=${totalBatches}`);
       
       if (batch && totalBatches && totalBatches > 0) {
         // Calculate embedding progress (embedding is stage 3 out of 5 stages)
@@ -499,7 +500,7 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
           message: latestEmbedLog.message
         };
         
-        console.log(`🔍 [parseProcessingProgress] Returning embed progress:`, result);
+        debugLog(`🔍 [parseProcessingProgress] Returning embed progress:`, result);
         return result;
       }
     }
@@ -562,14 +563,14 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
 
       const result = await response.json();
       const logs = result.logs || [];
-      console.log(`📋 [fetchProcessingLogs] Document ${documentId}: fetched ${logs.length} logs`);
+      debugLog(`📋 [fetchProcessingLogs] Document ${documentId}: fetched ${logs.length} logs`);
       if (logs.length > 0) {
         const embedLogs = logs.filter(l => l.stage === 'embed' && l.status === 'progress');
-        console.log(`📋 [fetchProcessingLogs] Found ${embedLogs.length} embed:progress logs`);
+        debugLog(`📋 [fetchProcessingLogs] Found ${embedLogs.length} embed:progress logs`);
         if (embedLogs.length > 0) {
           const batchNumbers = embedLogs.map(l => ({ batch: l.metadata?.batch, total: l.metadata?.total_batches, message: l.message, created_at: l.created_at }));
-          console.log(`📋 [fetchProcessingLogs] All embed:progress logs:`, batchNumbers);
-          console.log(`📋 [fetchProcessingLogs] Batch numbers only:`, embedLogs.map(l => l.metadata?.batch));
+          debugLog(`📋 [fetchProcessingLogs] All embed:progress logs:`, batchNumbers);
+          debugLog(`📋 [fetchProcessingLogs] Batch numbers only:`, embedLogs.map(l => l.metadata?.batch));
         }
       }
       return logs;
@@ -594,9 +595,9 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
         );
       case 'processing':
         if (logs && logs.length > 0) {
-          console.log(`🎨 [getStatusBadge] Document ${doc.id} (${doc.title}): parsing ${logs.length} logs`);
+          debugLog(`🎨 [getStatusBadge] Document ${doc.id} (${doc.title}): parsing ${logs.length} logs`);
           const progress = parseProcessingProgress(logs);
-          console.log(`🎨 [getStatusBadge] Parsed progress:`, progress);
+          debugLog(`🎨 [getStatusBadge] Parsed progress:`, progress);
           return (
             <div className="flex flex-col gap-2 w-full md:min-w-[180px]">
               <span className={`${baseClasses} bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border border-blue-200 shadow-sm`}>

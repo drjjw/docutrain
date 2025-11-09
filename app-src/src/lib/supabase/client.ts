@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { debugLog } from '@/utils/debug';
 
 // Validate environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://mlxctdgnojvkgfqldaob.supabase.co';
@@ -45,10 +46,10 @@ if (isMobile && typeof document !== 'undefined') {
     if (document.hidden) {
       // Page is hidden (backgrounded)
       wasHidden = true;
-      console.log('[Supabase] Page hidden, WebSocket may disconnect');
+      debugLog('[Supabase] Page hidden, WebSocket may disconnect');
     } else if (wasHidden) {
       // Page is visible again after being hidden
-      console.log('[Supabase] Page visible again, reconnecting channels...');
+      debugLog('[Supabase] Page visible again, reconnecting channels...');
       wasHidden = false;
       
       // Give the browser a moment to stabilize, then reconnect
@@ -56,7 +57,7 @@ if (isMobile && typeof document !== 'undefined') {
         // Get all channels and resubscribe
         const channels = supabase.getChannels();
         channels.forEach(channel => {
-          console.log(`[Supabase] Resubscribing channel: ${channel.topic}`);
+          debugLog(`[Supabase] Resubscribing channel: ${channel.topic}`);
           // Unsubscribe and resubscribe to force reconnection
           supabase.removeChannel(channel).then(() => {
             // The hook will recreate the subscription

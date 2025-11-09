@@ -63,6 +63,8 @@ export default defineConfig({
   plugins: [landingPagePlugin(), react()],
   root: '.',
   base: '/app/',
+  // Read .env files from parent directory (project root) instead of app-src/
+  envDir: '../',
   // Use default public directory (app-src/public) for Vite dev server
   // Images are copied to app-src/public for development
   // In production, Express serves from /public/

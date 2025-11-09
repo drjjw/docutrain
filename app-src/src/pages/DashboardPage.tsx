@@ -7,6 +7,7 @@ import { UserDocumentsTable, UserDocumentsTableRef } from '@/components/Admin/Us
 import { UsersTable } from '@/components/Admin/UsersTable';
 import { OwnersTable } from '@/components/Admin/OwnersTable';
 import { OwnerSettings } from '@/components/Admin/OwnerSettings';
+import { MissionControl } from '@/components/Admin/MissionControl';
 import { PermissionsBadge } from '@/components/Dashboard/PermissionsBadge';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -16,6 +17,7 @@ import { getUserProfile } from '@/lib/supabase/database';
 import { getDocuments } from '@/lib/supabase/admin';
 import { docutrainIconUrl } from '@/assets';
 import type { UserRole } from '@/types/permissions';
+import { debugLog } from '@/utils/debug';
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -23,11 +25,11 @@ export function DashboardPage() {
   const [userProfile, setUserProfile] = useState<{ first_name?: string; last_name?: string } | null>(null);
   
   // Debug logging
-  console.log('DashboardPage - ownerGroups:', ownerGroups);
+  debugLog('DashboardPage - ownerGroups:', ownerGroups);
   
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'documents' | 'users' | 'owners' | 'owner-settings'>('documents');
+  const [activeTab, setActiveTab] = useState<'documents' | 'users' | 'owners' | 'owner-settings' | 'mission-control'>('documents');
   const userDocumentsTableRef = useRef<UserDocumentsTableRef>(null);
   const documentsTableRef = useRef<DocumentsTableRef>(null);
   const uploadZoneRef = useRef<CombinedUploadZoneRef>(null);
@@ -67,7 +69,7 @@ export function DashboardPage() {
       
       // Refresh DocumentsTable on any status change
       // This ensures the main documents table updates when processing completes
-      console.log('📊 Status change detected:', { hasActive, prevHasActive, completedDocumentId });
+      debugLog('📊 Status change detected:', { hasActive, prevHasActive, completedDocumentId });
       
       // If a document completed processing, find it in the documents table and open modal
       if (completedDocumentId && user?.id) {
@@ -82,7 +84,7 @@ export function DashboardPage() {
             });
             
             if (completedDoc) {
-              console.log('✅ Found completed document:', completedDoc.id, completedDoc.title);
+              debugLog('✅ Found completed document:', completedDoc.id, completedDoc.title);
               // Close upload success modal if it's still open
               uploadZoneRef.current?.closeModal();
               // Check if document already has category configured
@@ -119,7 +121,7 @@ export function DashboardPage() {
       
       // Delay refresh to ensure document is fully created in database
       refreshTimeoutRef.current = setTimeout(() => {
-        console.log('🔄 Refreshing DocumentsTable after status change');
+        debugLog('🔄 Refreshing DocumentsTable after status change');
         documentsTableRef.current?.refresh();
       }, 1500);
     }
@@ -133,12 +135,14 @@ export function DashboardPage() {
       setActiveTab('owners');
     } else if (location.pathname.includes('/owner-settings')) {
       setActiveTab('owner-settings');
+    } else if (location.pathname.includes('/mission-control')) {
+      setActiveTab('mission-control');
     } else {
       setActiveTab('documents');
     }
   }, [location.pathname]);
 
-  const handleTabChange = (tab: 'documents' | 'users' | 'owners' | 'owner-settings') => {
+  const handleTabChange = (tab: 'documents' | 'users' | 'owners' | 'owner-settings' | 'mission-control') => {
     setActiveTab(tab);
     if (tab === 'users') {
       navigate('/users');
@@ -146,6 +150,8 @@ export function DashboardPage() {
       navigate('/owners');
     } else if (tab === 'owner-settings') {
       navigate('/owner-settings');
+    } else if (tab === 'mission-control') {
+      navigate('/mission-control');
     } else {
       navigate('/dashboard');
     }
@@ -310,17 +316,30 @@ export function DashboardPage() {
                 </button>
               )}
               {isSuperAdmin && (
-                <button
-                  onClick={() => handleTabChange('owners')}
-                className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
-                  activeTab === 'owners'
-                    ? 'border border-blue-100'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 sm:ml-1'
-                  }`}
-                  style={activeTab === 'owners' ? { backgroundColor: 'rgb(219 234 254 / var(--tw-border-opacity))', color: 'rgb(18 136 254)', '--tw-text-opacity': '1' } as React.CSSProperties : undefined}
-                >
-                  Owner Management
-                </button>
+                <>
+                  <button
+                    onClick={() => handleTabChange('owners')}
+                    className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
+                      activeTab === 'owners'
+                        ? 'border border-blue-100'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 sm:ml-1'
+                    }`}
+                    style={activeTab === 'owners' ? { backgroundColor: 'rgb(219 234 254 / var(--tw-border-opacity))', color: 'rgb(18 136 254)', '--tw-text-opacity': '1' } as React.CSSProperties : undefined}
+                  >
+                    Owner Management
+                  </button>
+                  <button
+                    onClick={() => handleTabChange('mission-control')}
+                    className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
+                      activeTab === 'mission-control'
+                        ? 'border border-blue-100'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 sm:ml-1'
+                    }`}
+                    style={activeTab === 'mission-control' ? { backgroundColor: 'rgb(219 234 254 / var(--tw-border-opacity))', color: 'rgb(18 136 254)', '--tw-text-opacity': '1' } as React.CSSProperties : undefined}
+                  >
+                    🚀 Mission Control
+                  </button>
+                </>
               )}
             </nav>
           </div>
@@ -427,7 +446,7 @@ export function DashboardPage() {
                   isSuperAdmin={isSuperAdmin}
                   onRetrainingStart={(userDocumentId) => {
                     // When retraining starts, refresh the processing area to show the retraining document
-                    console.log('🔄 Retraining started, refreshing processing area:', userDocumentId);
+                    debugLog('🔄 Retraining started, refreshing processing area:', userDocumentId);
                     setHasActiveDocuments(true);
                     // Refresh after a short delay to allow database to update
                     setTimeout(() => {
@@ -440,7 +459,7 @@ export function DashboardPage() {
                   }}
                   onRetrainSuccess={(userDocumentId) => {
                     // Immediately trigger status change handler to open modal - bypasses polling delay
-                    console.log('✅ Retraining completed, immediately triggering modal:', userDocumentId);
+                    debugLog('✅ Retraining completed, immediately triggering modal:', userDocumentId);
                     handleStatusChange(userDocumentId);
                   }}
                 />
@@ -486,6 +505,25 @@ export function DashboardPage() {
             {ownerGroups.length > 0 && ownerGroups[0].owner_id && (
               <OwnerSettings ownerId={ownerGroups[0].owner_id} />
             )}
+          </div>
+        ) : activeTab === 'mission-control' ? (
+          <div className="space-y-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+              <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  Mission Control
+                </h2>
+                <p className="text-sm text-gray-600 mt-1.5">
+                  System configuration verification and monitoring
+                </p>
+              </div>
+              <div className="p-5 sm:p-7">
+                <MissionControl />
+              </div>
+            </div>
           </div>
         ) : (
           <div className="space-y-6">

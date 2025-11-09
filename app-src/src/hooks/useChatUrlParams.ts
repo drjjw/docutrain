@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { debugLog } from '@/utils/debug';
 
 export function useChatUrlParams() {
   const [searchParams] = useSearchParams();
@@ -60,7 +61,7 @@ export function useChatUrlParams() {
   // Log model choice when it changes
   useEffect(() => {
     const modelParam = searchParams.get('model');
-    console.log(`🤖 Model choice: ${selectedModel}${modelParam ? '' : ' (default)'}`);
+    debugLog(`🤖 Model choice: ${selectedModel}${modelParam ? '' : ' (default)'}`);
   }, [selectedModel, searchParams]);
   
   return {

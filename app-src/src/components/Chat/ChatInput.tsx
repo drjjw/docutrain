@@ -27,6 +27,9 @@ interface ChatInputProps {
   rateLimitError: string | null;
   retryAfter: number;
   
+  // Conversation limit
+  conversationLimitError: string | null;
+  
   // UI state
   shouldShowFooter: boolean;
   isMakerTheme: boolean;
@@ -42,6 +45,7 @@ export function ChatInput({
   documentSlug,
   rateLimitError,
   retryAfter,
+  conversationLimitError,
   shouldShowFooter,
   isMakerTheme,
   isDesktop,
@@ -77,12 +81,12 @@ export function ChatInput({
             onChange={(e) => onInputChange(e.target.value)}
             placeholder={documentSlug ? "Ask a question..." : "Select a document to start chatting..."}
             className="flex-1 px-3 md:px-4 py-2.5 md:py-3 text-base border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200 focus:scale-[1.01] transition-all duration-200 ease-in-out shadow-sm hover:shadow-md focus:shadow-lg"
-            disabled={isLoading || !documentSlug || !!rateLimitError}
+            disabled={isLoading || !documentSlug || !!rateLimitError || !!conversationLimitError}
           />
           <button
             type="submit"
             id="sendButton"
-            disabled={isLoading || !inputValue.trim() || !documentSlug || !!rateLimitError}
+            disabled={isLoading || !inputValue.trim() || !documentSlug || !!rateLimitError || !!conversationLimitError}
             className={isMakerTheme ? 'maker-theme' : ''}
           >
             <span className="send-icon">
@@ -94,6 +98,35 @@ export function ChatInput({
             Send
           </button>
         </form>
+
+        {/* Conversation Limit Error Message */}
+        {conversationLimitError && (
+          <div className="mt-3 max-w-4xl mx-auto">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+              <svg 
+                className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+                />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm text-blue-800 font-medium">
+                  {conversationLimitError}
+                </p>
+                <p className="text-xs text-blue-700 mt-1">
+                  💡 Tip: Close this tab and open a new one to start a fresh chat session, or refresh the page.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Rate Limit Error Message */}
         {rateLimitError && (

@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import { getUserPermissions } from './permissions';
 import type { Document, DocumentWithOwner, Owner, UserWithRoles, UserRole, DocumentAttachment, PendingInvitation } from '@/types/admin';
+import { debugLog } from '@/utils/debug';
 
 /**
  * Get a valid session, refreshing if necessary
@@ -28,8 +29,8 @@ export async function getValidSession(): Promise<{ access_token: string }> {
   // If expired or expiring soon, try to refresh
   // Note: timeUntilExpiry can be negative if already expired
   if (!expiresAt || timeUntilExpiry < 60) {
-    console.log(`🔄 Session ${timeUntilExpiry < 0 ? 'expired' : 'expiring soon'} (${timeUntilExpiry}s), refreshing...`);
-    console.log('🔄 Current session has refresh_token:', !!session.refresh_token);
+    debugLog(`🔄 Session ${timeUntilExpiry < 0 ? 'expired' : 'expiring soon'} (${timeUntilExpiry}s), refreshing...`);
+    debugLog('🔄 Current session has refresh_token:', !!session.refresh_token);
     
     try {
       // Pass the current session to refreshSession to ensure it uses the refresh_token
@@ -55,8 +56,8 @@ export async function getValidSession(): Promise<{ access_token: string }> {
 
       if (refreshData.session?.access_token) {
         session = refreshData.session;
-        console.log('✅ Session refreshed successfully');
-        console.log('✅ New token expires at:', new Date((refreshData.session.expires_at || 0) * 1000).toISOString());
+        debugLog('✅ Session refreshed successfully');
+        debugLog('✅ New token expires at:', new Date((refreshData.session.expires_at || 0) * 1000).toISOString());
       } else {
         console.error('❌ Refresh succeeded but no session returned');
         throw new Error('Session expired - please log in again');
@@ -225,7 +226,7 @@ export async function updateDocument(
 
   // If we get a 401, try refreshing the session once and retry
   if (response.status === 401) {
-    console.log('🔄 Got 401, refreshing session and retrying...');
+    debugLog('🔄 Got 401, refreshing session and retrying...');
     try {
       const refreshed = await getValidSession();
       access_token = refreshed.access_token;
@@ -520,7 +521,7 @@ export async function getUsers(): Promise<UserWithRoles[]> {
 
   // If we get a 401, try refreshing the session once and retry
   if (response.status === 401) {
-    console.log('🔄 Got 401, refreshing session and retrying...');
+    debugLog('🔄 Got 401, refreshing session and retrying...');
     try {
       const refreshed = await getValidSession();
       const retryResponse = await fetch('/api/users', {
@@ -889,7 +890,7 @@ export async function retrainDocument(
   formData.append('use_edge_function', useEdgeFunction.toString());
   formData.append('retrain_mode', retrainMode);
 
-  console.log('📤 Starting retrain for document:', documentId, 'file:', file.name, 'size:', file.size);
+  debugLog('📤 Starting retrain for document:', documentId, 'file:', file.name, 'size:', file.size);
 
   // Make API call with retry logic for 401 errors
   const makeRequest = async (token: string) => {
@@ -906,7 +907,7 @@ export async function retrainDocument(
 
   // If we get a 401, try refreshing the session once and retry
   if (response.status === 401) {
-    console.log('🔄 Got 401, refreshing session and retrying...');
+    debugLog('🔄 Got 401, refreshing session and retrying...');
     try {
       const refreshed = await getValidSession();
       access_token = refreshed.access_token;

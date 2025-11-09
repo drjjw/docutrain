@@ -4,6 +4,7 @@ import type { DocumentWithOwner, Owner } from '@/types/admin';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase/client';
 import type { UseDocumentsDataReturn } from '../types';
+import { debugLog } from '@/utils/debug';
 
 export function useDocumentsData(): UseDocumentsDataReturn {
   const { user } = useAuth();
@@ -14,7 +15,7 @@ export function useDocumentsData(): UseDocumentsDataReturn {
   const documentsRef = useRef<DocumentWithOwner[]>([]);
 
   const loadData = useCallback(async (showLoading = true) => {
-    console.log('DocumentsTable: loadData called');
+    debugLog('DocumentsTable: loadData called');
     if (!user?.id) {
       if (showLoading) {
         setLoading(false);
@@ -34,7 +35,7 @@ export function useDocumentsData(): UseDocumentsDataReturn {
       setDocuments(docs);
       documentsRef.current = docs; // Keep ref in sync
       setOwners(ownersList);
-      console.log('DocumentsTable: loadData completed, documents loaded:', docs.length);
+      debugLog('DocumentsTable: loadData completed, documents loaded:', docs.length);
     } catch (err) {
       console.error('DocumentsTable: loadData error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -53,7 +54,7 @@ export function useDocumentsData(): UseDocumentsDataReturn {
   // Listen for document-updated events from inline edits in same browser window
   useEffect(() => {
     const handleDocumentUpdate = () => {
-      console.log('DocumentsTable: document-updated event received, refreshing...');
+      debugLog('DocumentsTable: document-updated event received, refreshing...');
       loadData(false);
     };
 
@@ -68,7 +69,7 @@ export function useDocumentsData(): UseDocumentsDataReturn {
   useEffect(() => {
     if (!user?.id) return;
 
-    console.log('DocumentsTable: Setting up Realtime subscription for documents table');
+    debugLog('DocumentsTable: Setting up Realtime subscription for documents table');
     
     const channel = supabase
       .channel('documents_changes')
@@ -80,16 +81,16 @@ export function useDocumentsData(): UseDocumentsDataReturn {
           table: 'documents',
         },
         (payload) => {
-          console.log('📡 DocumentsTable: Realtime update received:', payload.eventType, payload);
+          debugLog('📡 DocumentsTable: Realtime update received:', payload.eventType, payload);
           loadData(false);
         }
       )
       .subscribe((status) => {
-        console.log('DocumentsTable: Realtime subscription status:', status);
+        debugLog('DocumentsTable: Realtime subscription status:', status);
       });
 
     return () => {
-      console.log('DocumentsTable: Cleaning up Realtime subscription');
+      debugLog('DocumentsTable: Cleaning up Realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [user?.id, loadData]);

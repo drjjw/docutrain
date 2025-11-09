@@ -9,6 +9,7 @@ import { InlineWysiwygEditor } from './InlineWysiwygEditor';
 import { DownloadsAndKeywords } from './DownloadsAndKeywords';
 import { useState, useCallback } from 'react';
 import { Keyword, Download } from '@/hooks/useDocumentConfig';
+import { debugLog } from '@/utils/debug';
 
 interface WelcomeMessageProps {
   welcomeMessage: string;
@@ -89,10 +90,10 @@ export function WelcomeMessage({
 
   // Force refresh of document config after save
   const handleSave = useCallback(async (field: string, value: string) => {
-    console.log(`[WelcomeMessage] Saving ${field} for document: ${documentSlug}`);
+    debugLog(`[WelcomeMessage] Saving ${field} for document: ${documentSlug}`);
     const success = await saveDocumentField(documentSlug, field, value);
     if (success) {
-      console.log(`[WelcomeMessage] ✅ Save successful, dispatching document-updated event`);
+      debugLog(`[WelcomeMessage] ✅ Save successful, dispatching document-updated event`);
       // Force refresh by updating key
       setRefreshKey(prev => prev + 1);
       // Dispatch event immediately to trigger local refresh
@@ -100,7 +101,7 @@ export function WelcomeMessage({
       window.dispatchEvent(new CustomEvent('document-updated', {
         detail: { documentSlug }
       }));
-      console.log(`[WelcomeMessage] Event dispatched for slug: ${documentSlug}`);
+      debugLog(`[WelcomeMessage] Event dispatched for slug: ${documentSlug}`);
     } else {
       console.error(`[WelcomeMessage] ❌ Save failed`);
     }

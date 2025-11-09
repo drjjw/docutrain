@@ -6,6 +6,7 @@ import { getUploadErrorMessage } from '@/lib/utils/errors';
 import { useAuth } from './useAuth';
 import { usePermissions } from './usePermissions';
 import { supabase } from '@/lib/supabase/client';
+import { debugLog } from '@/utils/debug';
 
 export function useUpload() {
   const { user } = useAuth();
@@ -41,7 +42,7 @@ export function useUpload() {
     setRetryingProcessing(true);
     setRetryMessage(`Server busy. Retrying in ${delaySeconds} seconds... (attempt ${attempt}/${maxAttempts})`);
     
-    console.log(`⏳ Waiting ${delaySeconds}s before retry attempt ${attempt}/${maxAttempts}`);
+    debugLog(`⏳ Waiting ${delaySeconds}s before retry attempt ${attempt}/${maxAttempts}`);
     await new Promise(resolve => setTimeout(resolve, delay));
 
     try {
@@ -71,7 +72,7 @@ export function useUpload() {
       });
 
       if (response.ok) {
-        console.log(`✅ Processing started successfully on attempt ${attempt}`);
+        debugLog(`✅ Processing started successfully on attempt ${attempt}`);
         setRetryMessage(null);
         setRetryingProcessing(false);
         return true;
@@ -171,7 +172,7 @@ export function useUpload() {
       }
 
       const result = await response.json();
-      console.log('✅ Text upload successful:', result);
+      debugLog('✅ Text upload successful:', result);
 
       setProgress(100);
       setSuccess(true);
@@ -216,7 +217,7 @@ export function useUpload() {
 
       // For files > 50MB, use backend upload endpoint (bypasses Supabase client limit)
       if (file.size > FIFTY_MB) {
-        console.log(`📤 Large file detected (${(file.size / 1024 / 1024).toFixed(2)}MB), using backend upload...`);
+        debugLog(`📤 Large file detected (${(file.size / 1024 / 1024).toFixed(2)}MB), using backend upload...`);
         
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
@@ -251,7 +252,7 @@ export function useUpload() {
         }
 
         const result = await response.json();
-        console.log('✅ Backend upload successful:', result);
+        debugLog('✅ Backend upload successful:', result);
 
         setProgress(100);
         setSuccess(true);
@@ -270,9 +271,9 @@ export function useUpload() {
       setProgress(70);
 
       // Create database record
-      console.log('📝 Creating database record for:', documentTitle);
-      console.log('   user_id:', user.id);
-      console.log('   file_path:', uploadResult.path);
+      debugLog('📝 Creating database record for:', documentTitle);
+      debugLog('   user_id:', user.id);
+      debugLog('   file_path:', uploadResult.path);
       
       const document = await createDocument({
         user_id: user.id,
@@ -282,16 +283,16 @@ export function useUpload() {
         mime_type: file.type,
       });
       
-      console.log('✅ Database record created successfully!');
-      console.log('   document.id:', document.id);
-      console.log('   document.user_id:', document.user_id);
+      debugLog('✅ Database record created successfully!');
+      debugLog('   document.id:', document.id);
+      debugLog('   document.user_id:', document.user_id);
 
       setProgress(85);
 
       // Wait a moment for database replication/commit
-      console.log('⏳ Waiting 500ms for database commit...');
+      debugLog('⏳ Waiting 500ms for database commit...');
       await new Promise(resolve => setTimeout(resolve, 500));
-      console.log('✅ Wait complete, triggering processing...');
+      debugLog('✅ Wait complete, triggering processing...');
 
       // Trigger processing with automatic retry on 503
       let processingTriggered = false;
@@ -316,7 +317,7 @@ export function useUpload() {
 
           if (response.ok) {
             processingTriggered = true;
-            console.log('✅ Processing triggered successfully for document:', document.id);
+            debugLog('✅ Processing triggered successfully for document:', document.id);
           } else if (response.status === 503) {
             // Server busy - start automatic retry in background
             console.warn('⚠️  Server busy (503), starting automatic retry...');
@@ -325,7 +326,7 @@ export function useUpload() {
             // Start retry process asynchronously (don't wait for it)
             retryProcessing(document.id).then(success => {
               if (success) {
-                console.log('✅ Processing started after automatic retry');
+                debugLog('✅ Processing started after automatic retry');
               } else {
                 console.warn('⚠️  Automatic retry failed. User can retry manually.');
               }

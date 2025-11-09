@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
+import { debugLog } from './utils/debug';
 
 // Detect if running from source (Vite dev server) or built version
 function detectRunningMode() {
@@ -53,17 +54,17 @@ function detectRunningMode() {
     source = window.location.href;
   }
   
-  console.log('\n' + '='.repeat(60));
-  console.log(`⚛️  REACT DASHBOARD - Running Mode: ${mode}`);
-  console.log(`🔗 Source: ${source}`);
-  console.log(`🌐 Port: ${port}`);
-  console.log(`📦 Vite HMR: ${isViteDev ? '✅ Available' : '❌ Not available'}`);
-  console.log(`🏗️  Built bundles: ${hasHashedBundles || isBuiltByBundleName ? '✅ Detected' : '❌ Not detected'}`);
-  console.log(`📄 Scripts found: ${scripts.length}`);
+  debugLog('\n' + '='.repeat(60));
+  debugLog(`⚛️  REACT DASHBOARD - Running Mode: ${mode}`);
+  debugLog(`🔗 Source: ${source}`);
+  debugLog(`🌐 Port: ${port}`);
+  debugLog(`📦 Vite HMR: ${isViteDev ? '✅ Available' : '❌ Not available'}`);
+  debugLog(`🏗️  Built bundles: ${hasHashedBundles || isBuiltByBundleName ? '✅ Detected' : '❌ Not detected'}`);
+  debugLog(`📄 Scripts found: ${scripts.length}`);
   if (scripts.length > 0 && scripts[0]) {
-    console.log(`   Example: ${scripts[0].src || scripts[0].getAttribute('src')}`);
+    debugLog(`   Example: ${scripts[0].src || scripts[0].getAttribute('src')}`);
   }
-  console.log('='.repeat(60) + '\n');
+  debugLog('='.repeat(60) + '\n');
 }
 
 // Log running mode - ensure DOM is ready

@@ -59,7 +59,8 @@ export function getFileValidationError(file: File, isSuperAdmin?: boolean): stri
     ? (import.meta.env.PROD ? 75 : 200)
     : (import.meta.env.PROD ? 50 : 200);
   
-  console.log('[validation] PROD:', import.meta.env.PROD, 'DEV:', import.meta.env.DEV, 'SuperAdmin:', isSuperAdmin, 'Max size:', maxSize, 'MB');
+  // Note: Debug logging removed - use debugLog if needed
+  // debugLog('[validation] PROD:', import.meta.env.PROD, 'DEV:', import.meta.env.DEV, 'SuperAdmin:', isSuperAdmin, 'Max size:', maxSize, 'MB');
   
   if (!validateFileType(file)) {
     return 'Only PDF files are allowed';

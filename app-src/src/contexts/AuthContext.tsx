@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase/client';
 import * as authService from '@/lib/supabase/auth';
 import type { AuthContextType } from '@/types/auth';
 import { getAuthErrorMessage } from '@/lib/utils/errors';
+import { debugLog } from '@/utils/debug';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -17,10 +18,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('AuthProvider: Initializing...');
+    debugLog('AuthProvider: Initializing...');
     // Get initial session
     authService.getSession().then((session) => {
-      console.log('AuthProvider: Session loaded', session ? 'Authenticated' : 'Not authenticated');
+      debugLog('AuthProvider: Session loaded', session ? 'Authenticated' : 'Not authenticated');
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -31,7 +32,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('🟢 AuthContext: onAuthStateChange triggered', { event: _event, hasSession: !!session });
+      debugLog('🟢 AuthContext: onAuthStateChange triggered', { event: _event, hasSession: !!session });
       setSession(session);
       setUser(session?.user ?? null);
     });
@@ -53,9 +54,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signUp = async (data: Parameters<typeof authService.signUp>[0]) => {
     try {
-      console.log('AuthContext: signUp called for', data.email, data.inviteToken ? 'with invite token' : '');
+      debugLog('AuthContext: signUp called for', data.email, data.inviteToken ? 'with invite token' : '');
       const result = await authService.signUp(data);
-      console.log('AuthContext: signUp response:', { 
+      debugLog('AuthContext: signUp response:', { 
         hasSession: !!result.session, 
         hasUser: !!result.user,
         user: result.user
@@ -80,10 +81,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const signOut = async () => {
-    console.log('🟡 AuthContext: signOut called');
+    debugLog('🟡 AuthContext: signOut called');
     try {
       await authService.signOut();
-      console.log('🟡 AuthContext: authService.signOut completed');
+      debugLog('🟡 AuthContext: authService.signOut completed');
     } catch (error) {
       console.error('🔴 AuthContext: signOut error (will clear local state anyway):', error);
       // Don't throw - we still want to clear local state even if Supabase signOut fails
@@ -92,7 +93,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Always clear local state, even if Supabase signOut failed
     setSession(null);
     setUser(null);
-    console.log('🟡 AuthContext: Session and user cleared locally');
+    debugLog('🟡 AuthContext: Session and user cleared locally');
   };
 
   const value: AuthContextType = {

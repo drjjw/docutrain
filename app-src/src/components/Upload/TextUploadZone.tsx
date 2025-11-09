@@ -2,6 +2,7 @@ import { useState, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Alert } from '@/components/UI/Alert';
 import { supabase } from '@/lib/supabase/client';
+import { debugLog } from '@/utils/debug';
 
 interface TextUploadZoneProps {
   onUploadSuccess?: () => void;
@@ -81,7 +82,7 @@ export const TextUploadZone = forwardRef<TextUploadZoneRef, TextUploadZoneProps>
       }
 
       const result = await response.json();
-      console.log('✅ Text upload successful:', result);
+      debugLog('✅ Text upload successful:', result);
 
       setSuccess(true);
       setUploadedDocument({

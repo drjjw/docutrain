@@ -3,6 +3,7 @@ import { Button } from '@/components/UI/Button';
 import { Alert } from '@/components/UI/Alert';
 import { retrainDocument, getRetrainingStatus } from '@/lib/supabase/admin';
 import { supabase } from '@/lib/supabase/client';
+import { debugLog } from '@/utils/debug';
 
 interface DocumentRetrainerProps {
   documentId: string;
@@ -135,7 +136,7 @@ export function DocumentRetrainer({
       return;
     }
 
-    console.log(`🔄 Starting ${uploadMode} retraining for document ${documentId}`, {
+    debugLog(`🔄 Starting ${uploadMode} retraining for document ${documentId}`, {
       retrainMode,
       textLength: uploadMode === 'text' ? textContent.trim().length : null,
       fileName: uploadMode === 'pdf' ? fileToUse?.name : null
@@ -202,7 +203,7 @@ export function DocumentRetrainer({
           }),
         });
 
-        console.log('📡 Text retraining API response status:', response.status);
+        debugLog('📡 Text retraining API response status:', response.status);
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -211,7 +212,7 @@ export function DocumentRetrainer({
         }
 
         const result = await response.json();
-        console.log('✅ Text retraining successful:', result);
+        debugLog('✅ Text retraining successful:', result);
 
         setUserDocumentId(result.user_document_id);
         setProgress(20);
@@ -394,6 +395,40 @@ export function DocumentRetrainer({
                 <label htmlFor="retrain-text-content" className="block text-sm font-medium text-gray-700">
                   New Text Content *
                 </label>
+                
+                {/* Retraining button above textarea for better visibility */}
+                {textContent.trim() && (
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">
+                          Text Content Ready
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {textContent.trim().split(/\s+/).filter(word => word.length > 0).length} words, {(textContent.length / 1000).toFixed(1)}K characters
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        debugLog('🔘 Start Retraining button clicked for text mode');
+                        handleRetrain();
+                      }}
+                      loading={retraining}
+                      size="sm"
+                      className="ml-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
+                      disabled={!textContent.trim() || textContent.length > 5000000}
+                    >
+                      {retraining ? 'Retraining...' : 'Start Retraining'}
+                    </Button>
+                  </div>
+                )}
+                
                 <textarea
                   id="retrain-text-content"
                   value={textContent}
@@ -419,38 +454,6 @@ export function DocumentRetrainer({
                       : 'New chunks will be added to existing chunks.'}
                 </p>
               </div>
-
-              {textContent.trim() && (
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">
-                        Text Content Ready
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {textContent.trim().split(/\s+/).filter(word => word.length > 0).length} words, {(textContent.length / 1000).toFixed(1)}K characters
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={() => {
-                      console.log('🔘 Start Retraining button clicked for text mode');
-                      handleRetrain();
-                    }}
-                    loading={retraining}
-                    size="sm"
-                    className="ml-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
-                    disabled={!textContent.trim() || textContent.length > 5000000}
-                  >
-                    {retraining ? 'Retraining...' : 'Start Retraining'}
-                  </Button>
-                </div>
-              )}
             </div>
           </>
         )}

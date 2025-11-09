@@ -50,7 +50,8 @@ export function wrapDrugConversionContent(contentDiv: HTMLElement): boolean {
         wrapper.appendChild(el);
       });
       
-      console.log(`💊 Drug conversion detected: wrapped ${conversionElements.length} element(s)`);
+      // Note: Debug logging removed - use debugLog if needed
+      // debugLog(`💊 Drug conversion detected: wrapped ${conversionElements.length} element(s)`);
       return true;
     }
   }

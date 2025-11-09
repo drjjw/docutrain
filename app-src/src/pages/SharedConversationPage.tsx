@@ -23,6 +23,7 @@ import { useChatUrlParams } from '@/hooks/useChatUrlParams';
 import { useAutoScrollToMessage } from '@/hooks/useAutoScrollToMessage';
 import { useHeaderHeight } from '@/hooks/useHeaderHeight';
 import { getAuthHeaders } from '@/lib/api/authService';
+import { debugLog } from '@/utils/debug';
 import '@/styles/messages.css';
 import '@/styles/loading.css';
 import '@/styles/send-button.css';
@@ -269,7 +270,8 @@ function SharedConversationContent({
   const [ownerNotFound, setOwnerNotFound] = useState<{ slug: string; message: string } | null>(null);
   
   // Dynamically measure header height and adjust padding
-  const headerHeight = useHeaderHeight(headerRef);
+  // Pass hasHeaderSubtitle as trigger to re-measure when subtitle/category info appears
+  const headerHeight = useHeaderHeight(headerRef, hasHeaderSubtitle);
   
   // Update isDesktop on resize
   useEffect(() => {
@@ -330,7 +332,7 @@ function SharedConversationContent({
 
   // Debug logging
   if (accessError) {
-    console.log('🔒 Shared conversation access error:', {
+    debugLog('🔒 Shared conversation access error:', {
       type: accessError.type,
       requires_auth: accessError.requires_auth,
       requires_passcode: accessError.requires_passcode,

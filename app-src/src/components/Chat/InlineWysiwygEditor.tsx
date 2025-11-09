@@ -7,6 +7,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Modal } from '@/components/UI/Modal';
 import { Pencil } from 'lucide-react';
+import { debugLog } from '@/utils/debug';
 
 interface InlineWysiwygEditorProps {
   value: string;
@@ -229,18 +230,18 @@ export function InlineWysiwygEditor({
 
     // Normalize and sanitize HTML
     let newValue = editorRef.current.innerHTML;
-    console.log('📝 Before sanitization:', newValue);
+    debugLog('📝 Before sanitization:', newValue);
     newValue = newValue.replace(/<div>/gi, '<p>').replace(/<\/div>/gi, '</p>');
     newValue = newValue.replace(/<p><\/p>/gi, '<br>');
     newValue = sanitizeHTML(newValue);
-    console.log('✅ After sanitization:', newValue);
+    debugLog('✅ After sanitization:', newValue);
     
     // Check if links have target="_blank"
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = newValue;
     const links = tempDiv.querySelectorAll('a');
     links.forEach((link, i) => {
-      console.log(`🔗 Link ${i + 1}:`, {
+      debugLog(`🔗 Link ${i + 1}:`, {
         href: link.getAttribute('href'),
         target: link.getAttribute('target'),
         rel: link.getAttribute('rel')

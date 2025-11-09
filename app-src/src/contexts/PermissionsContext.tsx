@@ -7,6 +7,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getUserPermissions, checkUserNeedsApproval } from '@/lib/supabase/permissions';
 import type { UserPermissions } from '@/types/permissions';
 import { useAuth } from '@/hooks/useAuth';
+import { debugLog } from '@/utils/debug';
 
 // Helper to add timeout to promises
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallbackValue: T): Promise<T> {
@@ -65,24 +66,24 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const timeout = isMobile ? 10000 : 5000;
       
-      console.log('[PermissionsContext] Fetching permissions...');
+      debugLog('[PermissionsContext] Fetching permissions...');
       const perms = await withTimeout(
         getUserPermissions(user.id),
         timeout,
         { permissions: [], is_super_admin: false, owner_groups: [] }
       );
-      console.log('[PermissionsContext] Fetched permissions:', perms);
+      debugLog('[PermissionsContext] Fetched permissions:', perms);
       setPermissions(perms);
       
       // Check if user needs approval (has no roles or owner access)
       // This is less critical, so use shorter timeout and default to false
-      console.log('[PermissionsContext] Checking approval status...');
+      debugLog('[PermissionsContext] Checking approval status...');
       const needsApp = await withTimeout(
         checkUserNeedsApproval(user.id),
         isMobile ? 5000 : 3000,
         false // Default to not needing approval if check times out
       );
-      console.log('[PermissionsContext] Needs approval:', needsApp);
+      debugLog('[PermissionsContext] Needs approval:', needsApp);
       setNeedsApproval(needsApp);
     } catch (err) {
       console.error('[PermissionsContext] Error:', err);
@@ -91,7 +92,7 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
       setPermissions({ permissions: [], is_super_admin: false, owner_groups: [] });
       setNeedsApproval(false);
     } finally {
-      console.log('[PermissionsContext] Loading complete');
+      debugLog('[PermissionsContext] Loading complete');
       setLoading(false);
     }
   };

@@ -11,6 +11,7 @@ import { createPortal } from 'react-dom';
 import { DocumentAccessContext } from '@/contexts/DocumentAccessContext';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
+import { debugLog } from '@/utils/debug';
 
 interface Document {
   slug: string;
@@ -175,7 +176,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
 
         // Skip if auth error already detected (passcode required, access denied, etc.)
         if (hasAuthError) {
-          console.log('[DocumentSelector] Auth error detected, skipping document fetch');
+          debugLog('[DocumentSelector] Auth error detected, skipping document fetch');
           setDocuments([]);
           setShouldShow(false);
           setLoading(false);
@@ -186,7 +187,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
         // This eliminates duplicate API calls, but we still need to check for owner expansion
         // BUT: If document_selector=true is in URL, we need to fetch owner documents regardless
         if (documentContext?.config && currentDocSlug && documentSelectorParam !== 'true') {
-          console.log('[DocumentSelector] Using document from context instead of fetching');
+          debugLog('[DocumentSelector] Using document from context instead of fetching');
           const contextDoc = documentContext.config;
           setDocuments([contextDoc]);
           setShouldShow(contextDoc.showDocumentSelector !== false);
@@ -196,7 +197,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
           // This ensures passcode-protected pages show other owner documents
           if (contextDoc.ownerInfo && contextDoc.showDocumentSelector !== false) {
             try {
-              console.log('[DocumentSelector] Attempting owner expansion for passcode-protected document');
+              debugLog('[DocumentSelector] Attempting owner expansion for passcode-protected document');
               const ownerApiUrl = `/api/documents?owner=${encodeURIComponent(contextDoc.ownerInfo.slug)}${passcodeParam ? `&passcode=${encodeURIComponent(passcodeParam)}` : ''}`;
 
               // Get auth headers using centralized service
@@ -208,18 +209,18 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
               if (ownerResponse.ok) {
                 const ownerData = await ownerResponse.json();
                 const ownerDocs = ownerData.documents || [];
-                console.log(`[DocumentSelector] Owner expansion successful, found ${ownerDocs.length} documents`);
+                debugLog(`[DocumentSelector] Owner expansion successful, found ${ownerDocs.length} documents`);
                 setDocuments(ownerDocs.length > 0 ? ownerDocs : [contextDoc]); // Use owner docs if available, fallback to context doc
                 // When we have multiple documents from owner expansion, always show the selector
                 if (ownerDocs.length > 1) {
                   setShouldShow(true);
                 }
               } else {
-                console.log(`[DocumentSelector] Owner expansion failed with status ${ownerResponse.status}, keeping single document`);
+                debugLog(`[DocumentSelector] Owner expansion failed with status ${ownerResponse.status}, keeping single document`);
                 // Keep the single document from context
               }
             } catch (error) {
-              console.log('[DocumentSelector] Owner expansion error, keeping single document:', error);
+              debugLog('[DocumentSelector] Owner expansion error, keeping single document:', error);
               // Keep the single document from context
             }
           }
@@ -261,7 +262,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
           if (!response.ok) {
             if (response.status === 404 && ownerParam) {
               // Owner not found - notify parent to show DocumentOwnerModal
-              console.log(`[DocumentSelector] Owner "${ownerParam}" not found (404)`);
+              debugLog(`[DocumentSelector] Owner "${ownerParam}" not found (404)`);
               if (onOwnerNotFound) {
                 onOwnerNotFound(ownerParam);
               }
@@ -308,7 +309,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
               }
               
               // Passcode required or access denied - don't show selector, user will see modal
-              console.log('[DocumentSelector] Document requires authentication, skipping selector');
+              debugLog('[DocumentSelector] Document requires authentication, skipping selector');
               setDocuments([]);
               setShouldShow(false);
               return;
@@ -320,7 +321,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
 
           const data = await response.json();
           const loadedDocuments = data.documents || [];
-          console.log(`[DocumentSelector] Loaded ${loadedDocuments.length} documents for owner=${ownerParam}`);
+          debugLog(`[DocumentSelector] Loaded ${loadedDocuments.length} documents for owner=${ownerParam}`);
           setDocuments(loadedDocuments);
 
           // Determine if selector should be shown (matches vanilla JS logic)
@@ -358,7 +359,7 @@ export function DocumentSelector({ currentDocSlug, inline = false, onItemClick, 
         }
       } catch (error) {
         // Silently handle errors - passcode/auth errors are expected and handled by modal
-        console.log('[DocumentSelector] Error loading documents (may be expected for passcode-protected docs)');
+        debugLog('[DocumentSelector] Error loading documents (may be expected for passcode-protected docs)');
         setDocuments([]);
         setShouldShow(false);
       } finally {

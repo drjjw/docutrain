@@ -5,7 +5,10 @@
 
 import { useEffect, useState, RefObject } from 'react';
 
-export function useHeaderHeight(headerRef: RefObject<HTMLElement | null>): number {
+export function useHeaderHeight(
+  headerRef: RefObject<HTMLElement | null>,
+  triggerDependency?: unknown
+): number {
   const [headerHeight, setHeaderHeight] = useState(0);
 
   useEffect(() => {
@@ -51,6 +54,41 @@ export function useHeaderHeight(headerRef: RefObject<HTMLElement | null>): numbe
       window.removeEventListener('resize', updateHeight);
     };
   }, [headerRef]);
+
+  // Trigger re-measurement when dependency changes (e.g., subtitle presence)
+  useEffect(() => {
+    if (triggerDependency !== undefined) {
+      const header = headerRef.current;
+      if (!header) {
+        return;
+      }
+      
+      // Use multiple timing strategies to ensure we catch the height change
+      // This handles cases where content is added but ResizeObserver hasn't fired yet
+      const updateHeight = () => {
+        const height = header.offsetHeight;
+        if (height > 0) {
+          setHeaderHeight(height);
+        }
+      };
+      
+      // Immediate measurement
+      updateHeight();
+      
+      // Delayed measurements to catch async layout changes
+      const timeout1 = setTimeout(updateHeight, 50);
+      const timeout2 = setTimeout(updateHeight, 150);
+      const rafId = requestAnimationFrame(() => {
+        requestAnimationFrame(updateHeight); // Double RAF for layout completion
+      });
+      
+      return () => {
+        clearTimeout(timeout1);
+        clearTimeout(timeout2);
+        cancelAnimationFrame(rafId);
+      };
+    }
+  }, [headerRef, triggerDependency]);
 
   return headerHeight;
 }

@@ -1,7 +1,7 @@
 /* Recent Questions Component - Modern, Slick Design */
 
 .recent-questions-container {
-  margin: 20px -20px; /* Exact same margins as intro container */
+  margin: 0 0 24px 0; /* Normal margins - match cover-and-welcome content width */
   padding: 28px 32px;
   padding-bottom: 24px;
   background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
@@ -9,9 +9,11 @@
   border: 1px solid #e9ecef;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
   position: relative;
-  width: calc(100% + 40px); /* Exact same width calculation as intro container */
+  width: 100%; /* Normal width - matches cover-and-welcome content area */
+  max-width: 100%; /* Prevent overflow */
   box-sizing: border-box;
   transition: padding-bottom 0.3s ease;
+  overflow-x: hidden; /* Prevent horizontal overflow while allowing vertical scrolling if needed */
 }
 
 /* Desktop: collapsed state keeps padding-bottom (24px from base rule) */
@@ -104,6 +106,9 @@
   gap: 1rem;
   margin-top: 0;
   animation: fadeInGrid 0.5s ease-out;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 @keyframes fadeInGrid {

@@ -16,6 +16,7 @@ import { DocumentDownloadsCard } from './DocumentDownloadsCard';
 import { DocumentMetadataCard } from './DocumentMetadataCard';
 import { DocumentEmbedCodeCard } from './DocumentEmbedCodeCard';
 import type { DocumentEditorModalProps } from './types';
+import { debugLog } from '@/utils/debug';
 
 export function DocumentEditorModal({ document, owners, isSuperAdmin = false, onSave, onCancel, onRetrainingStart, onRetrainSuccess }: DocumentEditorModalProps) {
   const [editingValues, setEditingValues] = useState<Record<string, any>>({});
@@ -25,20 +26,20 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   const [isClosing, setIsClosing] = useState(false);
   const [yearError, setYearError] = useState<string | null>(null);
 
-  console.log('DocumentEditorModal rendering - document:', document?.id, 'editingValues.downloads:', editingValues.downloads?.length);
+  debugLog('DocumentEditorModal rendering - document:', document?.id, 'editingValues.downloads:', editingValues.downloads?.length);
 
   // Debug component lifecycle
   React.useEffect(() => {
-    console.log('DocumentEditorModal mounted for document:', document?.id);
+    debugLog('DocumentEditorModal mounted for document:', document?.id);
     
     return () => {
-      console.log('DocumentEditorModal unmounting for document:', document?.id);
+      debugLog('DocumentEditorModal unmounting for document:', document?.id);
     };
   }, []);
 
   React.useEffect(() => {
     if (error) {
-      console.log('DocumentEditorModal: Error state changed:', error);
+      debugLog('DocumentEditorModal: Error state changed:', error);
     }
   }, [error]);
 
@@ -50,7 +51,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   }, [onCancel]);
 
   if (!document) {
-    console.log('DocumentEditorModal: No document provided, returning null');
+    debugLog('DocumentEditorModal: No document provided, returning null');
     return null;
   }
 
@@ -83,9 +84,9 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   // Initialize editing values when document changes
   React.useEffect(() => {
     if (document) {
-      console.log('DocumentEditorModal: Initializing editing values for document:', document.slug);
-      console.log('DocumentEditorModal: show_disclaimer =', document.show_disclaimer);
-      console.log('DocumentEditorModal: disclaimer_text =', document.disclaimer_text);
+      debugLog('DocumentEditorModal: Initializing editing values for document:', document.slug);
+      debugLog('DocumentEditorModal: show_disclaimer =', document.show_disclaimer);
+      debugLog('DocumentEditorModal: disclaimer_text =', document.disclaimer_text);
       setEditingValues({
         title: document.title || '',
         subtitle: document.subtitle || '',
@@ -115,15 +116,15 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         disclaimer_text: document.disclaimer_text || null,
         include_in_sitemap: document.include_in_sitemap !== false, // Default to true
       });
-      console.log('DocumentEditorModal: Set show_disclaimer to', document.show_disclaimer === true);
-      console.log('DocumentEditorModal: Set disclaimer_text to', document.disclaimer_text || null);
-      console.log('DocumentEditorModal: Full document object keys:', Object.keys(document));
+      debugLog('DocumentEditorModal: Set show_disclaimer to', document.show_disclaimer === true);
+      debugLog('DocumentEditorModal: Set disclaimer_text to', document.disclaimer_text || null);
+      debugLog('DocumentEditorModal: Full document object keys:', Object.keys(document));
       setYearError(null); // Clear year error when document changes
     }
   }, [document]);
 
   const handleFieldChange = (field: string, value: any) => {
-    console.log('DocumentEditorModal: Field change:', field, value);
+    debugLog('DocumentEditorModal: Field change:', field, value);
     
     // Validate year field
     if (field === 'year') {
@@ -159,7 +160,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   };
 
   const handleSave = async () => {
-    console.log('DocumentEditorModal: handleSave called');
+    debugLog('DocumentEditorModal: handleSave called');
     try {
       setSaving(true);
       setError(null);

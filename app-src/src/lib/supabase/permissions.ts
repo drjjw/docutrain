@@ -1,5 +1,6 @@
 import { supabase } from './client';
 import type { UserPermissions } from '@/types/permissions';
+import { debugLog } from '@/utils/debug';
 
 /**
  * Get current user's permissions
@@ -14,7 +15,7 @@ export async function getUserPermissions(userId: string): Promise<UserPermission
     throw new Error(`Failed to fetch permissions: ${error.message}`);
   }
 
-  console.log('getUserPermissions - raw data from DB:', data);
+  debugLog('getUserPermissions - raw data from DB:', data);
 
   const isSuperAdmin = data?.some(p => p.role === 'super_admin') || false;
 

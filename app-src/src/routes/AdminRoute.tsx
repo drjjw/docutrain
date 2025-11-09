@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Spinner } from '@/components/UI/Spinner';
 import { ProtectedRoute } from './ProtectedRoute';
+import { debugLog } from '@/utils/debug';
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -40,7 +41,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
 
         // If user doesn't have admin access, redirect to profile page
         if (!hasAdminAccess) {
-          console.log('AdminRoute: User does not have admin access, redirecting to profile');
+          debugLog('AdminRoute: User does not have admin access, redirecting to profile');
           return <Navigate to="/profile" replace />;
         }
 

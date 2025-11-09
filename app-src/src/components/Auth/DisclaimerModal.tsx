@@ -12,6 +12,7 @@ import { Modal } from '@/components/UI/Modal';
 import { Button } from '@/components/UI/Button';
 import { AlertTriangle } from 'lucide-react';
 import { DocumentAccessContext } from '@/contexts/DocumentAccessContext';
+import { debugLog } from '@/utils/debug';
 
 const COOKIE_NAME_PREFIX = '_document_disclaimer_agree';
 const DEFAULT_DISCLAIMER_TEXT = 'This content is provided for informational purposes only. Please review and verify all information before use.';
@@ -56,14 +57,14 @@ export function DisclaimerModal({ shouldShow, documentSlug, disclaimerText, onAc
     if (shouldShow) {
       // Check if running in iframe (parent handles disclaimer)
       if (window.self !== window.top) {
-        console.log('🖼️  Running in iframe - disclaimer handled by parent');
+        debugLog('🖼️  Running in iframe - disclaimer handled by parent');
         onAccept(); // Auto-accept in iframe context
         return;
       }
 
       // Check if user has already agreed to this document's disclaimer
       if (Cookies.get(cookieName)) {
-        console.log(`✅ Disclaimer already accepted for document: ${documentSlug || 'unknown'}`);
+        debugLog(`✅ Disclaimer already accepted for document: ${documentSlug || 'unknown'}`);
         onAccept(); // Auto-accept if cookie exists
         return;
       }
@@ -83,13 +84,13 @@ export function DisclaimerModal({ shouldShow, documentSlug, disclaimerText, onAc
       path: '/'
       // No expires property = session cookie
     });
-    console.log(`✅ User accepted disclaimer for document: ${documentSlug || 'unknown'} (session only)`);
+    debugLog(`✅ User accepted disclaimer for document: ${documentSlug || 'unknown'} (session only)`);
     setIsOpen(false);
     onAccept();
   };
 
   const handleDecline = () => {
-    console.log('❌ User declined disclaimer');
+    debugLog('❌ User declined disclaimer');
     setIsOpen(false);
     onDecline();
   };
@@ -186,7 +187,7 @@ export function useDisclaimer(options: string | null | undefined | UseDisclaimer
   useEffect(() => {
     // Skip if auth error already detected (passcode required, access denied, etc.)
     if (hasAuthError) {
-      console.log('[useDisclaimer] Auth error detected, skipping disclaimer check');
+      debugLog('[useDisclaimer] Auth error detected, skipping disclaimer check');
       setNeedsDisclaimer(false);
       setDisclaimerAccepted(true);
       setIsChecking(false);
@@ -210,15 +211,15 @@ export function useDisclaimer(options: string | null | undefined | UseDisclaimer
 
     // If we have document config, check if it requires disclaimer
     if (documentContext.config) {
-      console.log('[useDisclaimer] Using document from context');
+      debugLog('[useDisclaimer] Using document from context');
       const requiresDisclaimer = documentContext.config.showDisclaimer === true;
 
       if (requiresDisclaimer) {
-        console.log('[useDisclaimer] Document requires disclaimer');
+        debugLog('[useDisclaimer] Document requires disclaimer');
         setNeedsDisclaimer(true);
         setDisclaimerAccepted(false);
       } else {
-        console.log('[useDisclaimer] Document does not require disclaimer');
+        debugLog('[useDisclaimer] Document does not require disclaimer');
         setNeedsDisclaimer(false);
         setDisclaimerAccepted(true);
       }
@@ -227,7 +228,7 @@ export function useDisclaimer(options: string | null | undefined | UseDisclaimer
 
     // If no config but no error (document doesn't exist or access denied), skip disclaimer
     if (!documentContext.config && !documentContext.error) {
-      console.log('[useDisclaimer] No document config available, skipping disclaimer');
+      debugLog('[useDisclaimer] No document config available, skipping disclaimer');
       setNeedsDisclaimer(false);
       setDisclaimerAccepted(true);
       return;
@@ -235,7 +236,7 @@ export function useDisclaimer(options: string | null | undefined | UseDisclaimer
 
     // If there's an error (passcode required, access denied, etc.), skip disclaimer
     if (documentContext.errorDetails) {
-      console.log('[useDisclaimer] Document access error, skipping disclaimer check');
+      debugLog('[useDisclaimer] Document access error, skipping disclaimer check');
       setNeedsDisclaimer(false);
       setDisclaimerAccepted(true);
       return;
@@ -272,13 +273,13 @@ export function clearDisclaimerCookie(documentSlug?: string | null) {
   if (documentSlug) {
     const cookieName = getCookieName(documentSlug);
     Cookies.remove(cookieName, { path: '/' });
-    console.log(`🗑️  Disclaimer cookie cleared for document: ${documentSlug}`);
+    debugLog(`🗑️  Disclaimer cookie cleared for document: ${documentSlug}`);
   } else {
     // Clear all disclaimer cookies (for testing purposes)
     // Note: This requires iterating through all cookies, which js-cookie doesn't support directly
     // So we'll just clear the universal one and log a warning
     Cookies.remove(COOKIE_NAME_PREFIX, { path: '/' });
-    console.log('🗑️  Universal disclaimer cookie cleared (note: document-specific cookies may still exist)');
+    debugLog('🗑️  Universal disclaimer cookie cleared (note: document-specific cookies may still exist)');
   }
 }
 

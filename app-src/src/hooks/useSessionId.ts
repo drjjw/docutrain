@@ -1,7 +1,7 @@
 /**
  * useSessionId - Hook for managing chat session ID
- * Generates and persists a unique session ID in localStorage
- * Ported from ChatPage.tsx
+ * Generates a unique session ID per browser session (using sessionStorage)
+ * This ensures each chat session is independent and limits reset when the tab is closed
  */
 
 import { useState, useEffect } from 'react';
@@ -18,12 +18,15 @@ export function useSessionId() {
       });
     };
     
-    const storedSessionId = localStorage.getItem('chat-session-id');
+    // Use sessionStorage instead of localStorage
+    // This persists only for the current browser tab session
+    // When the tab closes, a new session ID will be generated on next visit
+    const storedSessionId = sessionStorage.getItem('chat-session-id');
     if (storedSessionId) {
       setSessionId(storedSessionId);
     } else {
       const newSessionId = generateSessionId();
-      localStorage.setItem('chat-session-id', newSessionId);
+      sessionStorage.setItem('chat-session-id', newSessionId);
       setSessionId(newSessionId);
     }
   }, []);

@@ -14,6 +14,7 @@ import {
   deletePendingInvitation, 
   resendPendingInvitation 
 } from '@/lib/supabase/admin';
+import { debugLog } from '@/utils/debug';
 
 interface UseUsersHandlersParams {
   users: UserWithRoles[];
@@ -462,7 +463,7 @@ export function useUsersHandlers(params: UseUsersHandlersParams) {
       setInviting(true);
       setError(null);
       
-      console.log('Inviting user:', { email: inviteEmail, owner_id: ownerIdToUse, isSuperAdmin, isOwnerAdmin });
+      debugLog('Inviting user:', { email: inviteEmail, owner_id: ownerIdToUse, isSuperAdmin, isOwnerAdmin });
       
       const result = await inviteUser(inviteEmail, ownerIdToUse);
       

@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
 import { supabase } from '@/lib/supabase/client';
+import { debugLog } from '@/utils/debug';
 
 interface OwnerInfo {
   id: string;
@@ -109,7 +110,7 @@ export function LoginPage() {
   }, [session, loading, navigate]);
 
   useEffect(() => {
-    console.log('🟣 LoginPage: useEffect - loading:', loading, 'user:', !!user, 'session:', !!session, 'redirecting:', redirecting);
+    debugLog('🟣 LoginPage: useEffect - loading:', loading, 'user:', !!user, 'session:', !!session, 'redirecting:', redirecting);
     
     // Don't auto-redirect if we're showing verification success message
     if (showVerificationSuccess) {
@@ -117,7 +118,7 @@ export function LoginPage() {
     }
     
     if (!loading && user && session && !redirecting) {
-      console.log('🟣 LoginPage: User is authenticated, preparing to redirect...');
+      debugLog('🟣 LoginPage: User is authenticated, preparing to redirect...');
       setRedirecting(true);
 
       // Clear owner info from sessionStorage after login
@@ -141,7 +142,7 @@ export function LoginPage() {
           return;
         }
 
-        console.log('LoginPage: Fetching user permissions...');
+        debugLog('LoginPage: Fetching user permissions...');
         fetch('/api/permissions', {
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
@@ -149,21 +150,21 @@ export function LoginPage() {
         })
         .then(response => response.json())
         .then(data => {
-          console.log('LoginPage: Permissions received:', data);
+          debugLog('LoginPage: Permissions received:', data);
           // Only redirect to dashboard if no returnUrl was set
           // This allows users to return to the page they were trying to access
           if (data.is_super_admin) {
             // SuperAdmins go to dashboard for admin functions (unless returnUrl was set)
-            console.log('LoginPage: Redirecting super admin to dashboard');
+            debugLog('LoginPage: Redirecting super admin to dashboard');
             window.location.href = '/app/dashboard';
           } else if (data.owner_groups && data.owner_groups.length > 0) {
             // Regular users go to their primary owner group
             const primaryOwner = data.owner_groups[0];
-            console.log('LoginPage: Redirecting to owner:', primaryOwner.owner_slug);
+            debugLog('LoginPage: Redirecting to owner:', primaryOwner.owner_slug);
             window.location.href = `/?owner=${primaryOwner.owner_slug}`;
           } else {
             // Fallback to dashboard if no owner groups
-            console.log('LoginPage: No owner groups, redirecting to dashboard');
+            debugLog('LoginPage: No owner groups, redirecting to dashboard');
             window.location.href = '/app/dashboard';
           }
         })

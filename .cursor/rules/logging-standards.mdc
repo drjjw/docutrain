@@ -1,0 +1,57 @@
+---
+alwaysApply: true
+---
+# Cursor Rules - Logging Standards
+
+## Debug Logging Rules
+
+**CRITICAL: Always use conditional debug logging instead of direct console.log statements.**
+
+### Frontend (React/TypeScript)
+- ✅ **DO**: Use `debugLog()`, `debugWarn()`, `debugError()` from `@/utils/debug`
+- ❌ **DON'T**: Use `console.log()`, `console.warn()`, `console.error()` for debug statements
+- ✅ **EXCEPTION**: Use `console.error()` for critical errors that must always log
+- ✅ **EXCEPTION**: Use `console.log()` for operational monitoring logs (e.g., `[Processing]` prefix)
+
+**Example:**
+```typescript
+import { debugLog } from '@/utils/debug';
+
+// ✅ CORRECT
+debugLog('User clicked button:', buttonId);
+
+// ❌ WRONG
+console.log('User clicked button:', buttonId);
+```
+
+### Backend (Node.js)
+- ✅ **DO**: Use `debugLog()`, `debugWarn()`, `debugError()` from `../utils/debug`
+- ❌ **DON'T**: Use `console.log()`, `console.warn()`, `console.error()` for debug statements
+- ✅ **EXCEPTION**: Use `console.error()` for critical errors that must always log
+- ✅ **EXCEPTION**: Use `console.log()` for operational monitoring logs (e.g., `[Processing]` prefix)
+
+**Example:**
+```javascript
+const { debugLog } = require('../utils/debug');
+
+// ✅ CORRECT
+debugLog('Processing request:', requestId);
+
+// ❌ WRONG
+console.log('Processing request:', requestId);
+```
+
+### When Adding New Code
+- Always import the debug utilities first
+- Use `debugLog()` for debug information
+- Use `debugWarn()` for debug warnings
+- Use `debugError()` for debug errors
+- Only use `console.log/error/warn` for operational logs that must always appear
+
+### Why This Matters
+- Debug logs are automatically disabled in production builds
+- Keeps production logs clean and performant
+- Debug logs still available in development mode
+- Can be enabled in production via environment variables when needed
+
+See `docs/development/LOGGING-STANDARDS.md` for complete guidelines.

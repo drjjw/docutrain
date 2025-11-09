@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { getAuthHeaders } from '@/lib/api/authService';
+import { debugLog } from '@/utils/debug';
 
 interface RecentQuestion {
   id: string;
@@ -81,7 +82,7 @@ export function RecentQuestions({
     return false; // Default to expanded on server/desktop
   });
 
-  console.log('[RecentQuestions] Component rendered:', { documentSlug, documentId });
+  debugLog('[RecentQuestions] Component rendered:', { documentSlug, documentId });
 
   // Fetch recent questions
   const fetchQuestions = useCallback(async () => {
@@ -101,7 +102,7 @@ export function RecentQuestions({
       }
 
       const data = await response.json();
-      console.log('[RecentQuestions] Fetched questions:', data.questions?.map(q => ({ 
+      debugLog('[RecentQuestions] Fetched questions:', data.questions?.map(q => ({ 
         id: q.id, 
         question: q.question?.substring(0, 30), 
         country: q.country 
@@ -126,7 +127,7 @@ export function RecentQuestions({
   useEffect(() => {
     if (!documentId) return;
 
-    console.log(`[RecentQuestions] 🔌 Setting up realtime subscription for document ${documentId}`);
+    debugLog(`[RecentQuestions] 🔌 Setting up realtime subscription for document ${documentId}`);
 
     const channel = supabase
       .channel(`recent_questions_${documentId}`, {
@@ -146,7 +147,7 @@ export function RecentQuestions({
           // We'll filter in the callback instead
         },
         (payload) => {
-          console.log(`[RecentQuestions] 📡 New conversation received:`, payload);
+          debugLog(`[RecentQuestions] 📡 New conversation received:`, payload);
           
           // Check if this conversation is for our document and not banned
           const newDocIds = payload.new.document_ids;
@@ -174,11 +175,11 @@ export function RecentQuestions({
         }
       )
       .subscribe((status) => {
-        console.log(`[RecentQuestions] Realtime subscription status:`, status);
+        debugLog(`[RecentQuestions] Realtime subscription status:`, status);
       });
 
     return () => {
-      console.log(`[RecentQuestions] Cleaning up realtime subscription`);
+      debugLog(`[RecentQuestions] Cleaning up realtime subscription`);
       supabase.removeChannel(channel);
     };
   }, [documentId, documentSlug]);
