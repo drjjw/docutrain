@@ -81,11 +81,13 @@ export interface Document {
   show_keywords?: boolean;
   show_downloads?: boolean;
   show_references?: boolean;
+  show_recent_questions?: boolean;
   access_level?: DocumentAccessLevel;
   passcode?: string;
   uploaded_by_user_id?: string;
   show_disclaimer?: boolean;
   disclaimer_text?: string;
+  include_in_sitemap?: boolean;
 }
 
 export interface DocumentWithOwner extends Document {

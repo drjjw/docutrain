@@ -31,6 +31,7 @@ export interface Download {
 }
 
 export interface DocumentConfig {
+  id?: string; // Document ID for API calls
   slug: string;
   title: string;
   subtitle?: string;
@@ -44,6 +45,7 @@ export interface DocumentConfig {
   showKeywords?: boolean;
   showDownloads?: boolean;
   showReferences?: boolean;
+  showRecentQuestions?: boolean;
   showDisclaimer?: boolean;
   disclaimerText?: string;
   keywords?: Keyword[];

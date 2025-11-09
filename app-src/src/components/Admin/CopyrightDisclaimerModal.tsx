@@ -143,11 +143,11 @@ export function CopyrightDisclaimerModal({
         </div>
 
         {/* Footer buttons */}
-        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-gray-200">
+        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
           <Button
             variant="outline"
             onClick={handleCancel}
-            className="w-full sm:w-auto"
+            className="flex-1 md:flex-none"
           >
             Cancel
           </Button>
@@ -155,7 +155,7 @@ export function CopyrightDisclaimerModal({
             variant="primary"
             onClick={handleAccept}
             disabled={!acknowledged}
-            className="w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 md:flex-none disabled:opacity-50 disabled:cursor-not-allowed"
           >
             I Agree & Continue
           </Button>

@@ -68,6 +68,7 @@ export function ChatModals({
       {/* Disclaimer Modal - shown for documents with show_disclaimer enabled */}
       <DisclaimerModal
         shouldShow={needsDisclaimer && !disclaimerAccepted}
+        documentSlug={documentSlug}
         disclaimerText={disclaimerText}
         onAccept={onDisclaimerAccept}
         onDecline={onDisclaimerDecline}

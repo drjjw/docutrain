@@ -493,24 +493,19 @@ function SharedConversationContent({
               welcomeMessage={docConfig.welcomeMessage || `Welcome to ${docConfig.title}`}
               introMessage={docConfig.introMessage || null}
               documentSlug={documentSlug}
+              keywords={docConfig.showKeywords !== false ? docConfig.keywords : undefined}
+              downloads={docConfig.showDownloads !== false ? docConfig.downloads : undefined}
+              showKeywords={docConfig.showKeywords}
+              showDownloads={docConfig.showDownloads}
+              inputRef={inputRef}
+              onKeywordClick={(term) => {
+                chatMessages.setInputValue(`Tell me about ${term}`);
+                // Focus the input after state update
+                setTimeout(() => {
+                  inputRef.current?.focus();
+                }, 0);
+              }}
             />
-            {/* Downloads and Keywords - shown below cover and welcome */}
-            {/* Only show if at least one of keywords or downloads should be displayed */}
-            {(docConfig.showKeywords !== false || docConfig.showDownloads !== false) && (
-              <DownloadsAndKeywords
-                keywords={docConfig.showKeywords !== false ? docConfig.keywords : undefined}
-                downloads={docConfig.showDownloads !== false ? docConfig.downloads : undefined}
-                isMultiDoc={false}
-                inputRef={inputRef}
-                onKeywordClick={(term) => {
-                  chatMessages.setInputValue(`Tell me about ${term}`);
-                  // Focus the input after state update
-                  setTimeout(() => {
-                    inputRef.current?.focus();
-                  }, 0);
-                }}
-              />
-            )}
           </>
         )}
 

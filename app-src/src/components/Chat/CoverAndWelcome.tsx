@@ -7,6 +7,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { CoverImage } from './CoverImage';
 import { WelcomeMessage } from './WelcomeMessage';
 import { useCanEditDocument } from '@/hooks/useCanEditDocument';
+import { Keyword, Download } from '@/hooks/useDocumentConfig';
 
 interface CoverAndWelcomeProps {
   cover?: string;
@@ -16,6 +17,12 @@ interface CoverAndWelcomeProps {
   welcomeMessage: string;
   introMessage?: string | null;
   documentSlug: string;
+  keywords?: Keyword[];
+  downloads?: Download[];
+  showKeywords?: boolean;
+  showDownloads?: boolean;
+  inputRef?: React.RefObject<HTMLInputElement | HTMLTextAreaElement>;
+  onKeywordClick?: (term: string) => void;
 }
 
 /**
@@ -101,6 +108,12 @@ export function CoverAndWelcome({
   welcomeMessage,
   introMessage,
   documentSlug,
+  keywords,
+  downloads,
+  showKeywords,
+  showDownloads,
+  inputRef,
+  onKeywordClick,
 }: CoverAndWelcomeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { canEdit } = useCanEditDocument(documentSlug);
@@ -182,6 +195,12 @@ export function CoverAndWelcome({
         welcomeMessage={welcomeMessage}
         introMessage={introMessage}
         documentSlug={documentSlug}
+        keywords={keywords}
+        downloads={downloads}
+        showKeywords={showKeywords}
+        showDownloads={showDownloads}
+        inputRef={inputRef}
+        onKeywordClick={onKeywordClick}
       />
     </div>
   );

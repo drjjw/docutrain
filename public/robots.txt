@@ -1,0 +1,53 @@
+# robots.txt for DocuTrain
+# https://www.docutrain.io/robots.txt
+
+# Allow all search engines to crawl the site
+User-agent: *
+
+# Disallow API endpoints (not meant for indexing)
+Disallow: /api/
+
+# Disallow admin and authenticated pages
+Disallow: /app/dashboard
+Disallow: /app/users
+Disallow: /app/owners
+Disallow: /app/owner-settings
+Disallow: /app/profile
+Disallow: /app/admin
+Disallow: /app/login
+Disallow: /app/signup
+Disallow: /app/reset-password
+Disallow: /app/verify-email
+Disallow: /app/logout
+
+# Disallow monitoring and internal pages
+Disallow: /monitor.html
+Disallow: /api/monitoring
+
+# Allow public pages
+Allow: /
+Allow: /app/chat
+Allow: /app/contact
+Allow: /app/terms
+Allow: /app/shared/
+
+# Allow static assets (CSS, JS, images, etc.)
+Allow: /css/
+Allow: /js/
+Allow: /public/
+Allow: /*.css$
+Allow: /*.js$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.gif$
+Allow: /*.svg$
+Allow: /*.ico$
+Allow: /*.woff$
+Allow: /*.woff2$
+
+# Sitemap location
+Sitemap: https://www.docutrain.io/sitemap.xml
+
+# Crawl-delay (optional - helps prevent server overload)
+# Crawl-delay: 1

@@ -115,6 +115,7 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
       show_keywords,
       show_downloads,
       show_references,
+      show_recent_questions,
       show_disclaimer,
       disclaimer_text,
       access_level,

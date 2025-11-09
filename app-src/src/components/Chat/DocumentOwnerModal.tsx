@@ -137,22 +137,22 @@ export function DocumentOwnerModal({ isOpen, customMessage, attemptedSlug }: Doc
 
   return (
     <div 
-      className="fixed inset-0 z-[9999999] flex items-center justify-center bg-black bg-opacity-50 p-4"
+      className="fixed inset-0 z-[9999999] flex items-start md:items-center justify-center bg-black bg-opacity-50 p-0 md:p-4"
       onClick={(e) => e.stopPropagation()} // Prevent dismissal on backdrop click
     >
       <div 
-        className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col relative overflow-hidden"
+        className="bg-white shadow-2xl w-full h-full md:rounded-lg md:max-w-4xl md:w-full md:max-h-[85vh] flex flex-col relative overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex-shrink-0 px-6 pt-6 pb-4">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+        <div className="flex-shrink-0 px-4 pt-4 pb-3 md:px-6 md:pt-6 md:pb-4">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6 text-center">
             Document or Owner Required
           </h2>
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 min-h-0">
+        <div className="flex-1 overflow-y-auto px-4 md:px-6 min-h-0">
           {/* Custom Message (e.g., document not found or access denied) */}
           {customMessage && (
             <div className={`mb-4 p-4 rounded-lg ${
@@ -339,7 +339,7 @@ export function DocumentOwnerModal({ isOpen, customMessage, attemptedSlug }: Doc
         </div>
 
         {/* Footer with escape links */}
-        <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="flex-shrink-0 px-4 py-3 md:px-6 md:py-4 border-t border-gray-200 bg-gray-50">
           <div className="flex flex-row items-center justify-center gap-4 sm:gap-6">
             {!user && (
               <>

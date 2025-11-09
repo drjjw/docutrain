@@ -59,18 +59,18 @@ export function DownloadsEditor({ downloads, onSave, onCancel }: DownloadsEditor
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start md:items-center justify-center z-50 p-0 md:p-4">
+      <div className="bg-white shadow-xl w-full h-full md:rounded-lg md:max-w-2xl md:w-full md:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Edit Downloads</h2>
+        <div className="px-4 py-3 md:px-6 md:py-4 border-b border-gray-200 flex-shrink-0">
+          <h2 className="text-lg md:text-xl font-semibold text-gray-900">Edit Downloads</h2>
           <p className="mt-1 text-sm text-gray-500">
             Add or modify download links for this document
           </p>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 overflow-y-auto px-4 py-3 md:px-6 md:py-4 min-h-0">
           {errors.length > 0 && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
               <h3 className="text-sm font-medium text-red-800 mb-1">Please fix the following errors:</h3>
@@ -141,15 +141,17 @@ export function DownloadsEditor({ downloads, onSave, onCancel }: DownloadsEditor
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+        <div className="px-4 py-3 md:px-6 md:py-4 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0">
           <Button
             onClick={onCancel}
             variant="outline"
+            className="flex-1 md:flex-none"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSave}
+            className="flex-1 md:flex-none"
           >
             Save Changes
           </Button>

@@ -100,11 +100,11 @@ export function PasscodeModal({ isOpen, documentSlug, documentTitle, onClose }: 
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Passcode Required</h2>
+    <div className="fixed inset-0 z-[9999] flex items-start md:items-center justify-center bg-black bg-opacity-50 p-0 md:p-4">
+      <div className="bg-white shadow-xl w-full h-full md:rounded-lg md:max-w-md md:w-full md:h-auto md:mx-4 p-4 md:p-6 flex flex-col">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Passcode Required</h2>
         
-        <div className="mb-6">
+        <div className="mb-6 flex-1 overflow-y-auto min-h-0">
           <p className="text-gray-700 mb-2">
             The document <strong className="font-semibold">"{documentTitle}"</strong> requires a passcode to access.
           </p>
@@ -113,7 +113,7 @@ export function PasscodeModal({ isOpen, documentSlug, documentTitle, onClose }: 
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="flex-shrink-0">
           <div className="mb-4">
             <input
               type="password"
@@ -141,14 +141,14 @@ export function PasscodeModal({ isOpen, documentSlug, documentTitle, onClose }: 
             <button
               type="button"
               onClick={handleGoBack}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex-1 md:flex-none px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
               disabled={validating}
             >
               Go Back
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 md:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={validating || !passcode.trim()}
             >
               {validating ? 'Validating...' : 'Submit'}

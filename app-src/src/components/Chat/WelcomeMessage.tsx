@@ -6,12 +6,20 @@
 import { useCanEditDocument } from '@/hooks/useCanEditDocument';
 import { InlineEditor } from './InlineEditor';
 import { InlineWysiwygEditor } from './InlineWysiwygEditor';
+import { DownloadsAndKeywords } from './DownloadsAndKeywords';
 import { useState, useCallback } from 'react';
+import { Keyword, Download } from '@/hooks/useDocumentConfig';
 
 interface WelcomeMessageProps {
   welcomeMessage: string;
   introMessage?: string | null;
   documentSlug: string;
+  keywords?: Keyword[];
+  downloads?: Download[];
+  showKeywords?: boolean;
+  showDownloads?: boolean;
+  inputRef?: React.RefObject<HTMLInputElement | HTMLTextAreaElement>;
+  onKeywordClick?: (term: string) => void;
 }
 
 /**
@@ -65,7 +73,17 @@ async function saveDocumentField(
   return true;
 }
 
-export function WelcomeMessage({ welcomeMessage, introMessage, documentSlug }: WelcomeMessageProps) {
+export function WelcomeMessage({ 
+  welcomeMessage, 
+  introMessage, 
+  documentSlug,
+  keywords,
+  downloads,
+  showKeywords,
+  showDownloads,
+  inputRef,
+  onKeywordClick
+}: WelcomeMessageProps) {
   const { canEdit } = useCanEditDocument(documentSlug);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -124,6 +142,16 @@ export function WelcomeMessage({ welcomeMessage, introMessage, documentSlug }: W
                 dangerouslySetInnerHTML={{ __html: convertH1ToH2(introMessage) }}
               />
             )
+          )}
+          {/* Downloads and Keywords - rendered inside intro message */}
+          {(showKeywords !== false || showDownloads !== false) && (
+            <DownloadsAndKeywords
+              keywords={showKeywords !== false ? keywords : undefined}
+              downloads={showDownloads !== false ? downloads : undefined}
+              isMultiDoc={false}
+              inputRef={inputRef}
+              onKeywordClick={onKeywordClick}
+            />
           )}
         </div>
       </div>

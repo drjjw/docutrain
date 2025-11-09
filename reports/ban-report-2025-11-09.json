@@ -1,0 +1,49 @@
+{
+  "generated_at": "2025-11-09T02:15:56.683Z",
+  "total_conversations": 1000,
+  "summary": {
+    "already_banned": 3,
+    "would_be_banned": 2,
+    "would_be_banned_profanity": 1,
+    "would_be_banned_junk": 1
+  },
+  "already_banned": [
+    {
+      "id": "32a819b3-5820-4b22-8fe4-cdb2aff7beb0",
+      "question": "shit!!! this sucks!",
+      "ban_reason": "profanity",
+      "created_at": "2025-11-09T01:26:41.938931+00:00",
+      "document_name": "1762644113826-AI_IN_MEDICINE.key.pdf"
+    },
+    {
+      "id": "be1413c4-977e-4fc0-8ce5-679c25c28e9b",
+      "question": "can you detect the word faggot?",
+      "ban_reason": "profanity",
+      "created_at": "2025-11-09T01:17:48.57946+00:00",
+      "document_name": "1762644113826-AI_IN_MEDICINE.key.pdf"
+    },
+    {
+      "id": "a49cb67a-8639-43c4-b341-21d5589cfdba",
+      "question": "what the fuck is your problem?",
+      "ban_reason": "profanity",
+      "created_at": "2025-11-09T01:16:48.741647+00:00",
+      "document_name": "1762644113826-AI_IN_MEDICINE.key.pdf"
+    }
+  ],
+  "would_be_banned": [
+    {
+      "id": "3050111e-68fa-4753-abca-4396d0a477c5",
+      "question": "go fuck yourself",
+      "reason": "profanity",
+      "created_at": "2025-11-03T15:41:04.165137+00:00",
+      "document_name": "smh-manual-2023.pdf"
+    },
+    {
+      "id": "78d13193-0f01-4954-9041-43ec2de8ab02",
+      "question": "g",
+      "reason": "junk",
+      "created_at": "2025-11-03T03:44:31.311073+00:00",
+      "document_name": "Intro to Nephrolithiasis-OCR.pdf"
+    }
+  ]
+}

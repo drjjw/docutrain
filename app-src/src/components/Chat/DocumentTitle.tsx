@@ -144,11 +144,11 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
     return (
       <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-center w-full">
         <div className="flex items-center justify-center gap-2 md:gap-3 w-full">
-          <h1 className="m-0 text-sm md:text-2xl font-semibold text-gray-900 line-clamp-2 md:line-clamp-none leading-tight md:leading-normal"
-            style={ownerTitleStyles}
-          >
-            {ownerDisplayName} Documents
-          </h1>
+        <h1 className="m-0 text-base md:text-3xl font-semibold text-gray-900 line-clamp-2 md:line-clamp-none leading-tight md:leading-normal font-heading"
+          style={ownerTitleStyles}
+        >
+          {ownerDisplayName} Documents
+        </h1>
         </div>
       </div>
     );
@@ -164,7 +164,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-center w-full">
-        <h1 className="m-0 text-sm md:text-2xl font-semibold text-gray-400 animate-pulse line-clamp-2 md:line-clamp-none leading-tight md:leading-normal"
+        <h1 className="m-0 text-base md:text-3xl font-semibold text-gray-400 animate-pulse line-clamp-2 md:line-clamp-none leading-tight md:leading-normal font-heading"
           style={loadingStyles}
         >
           Loading...
@@ -177,7 +177,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
     // Don't show "Document Not Found" - just return empty or loading state
     return (
       <div className="flex flex-col items-center justify-center flex-1 min-w-0 text-center w-full">
-        <h1 className="m-0 text-sm md:text-2xl font-semibold text-gray-400 line-clamp-2 md:line-clamp-none leading-tight md:leading-normal"
+        <h1 className="m-0 text-base md:text-3xl font-semibold text-gray-400 line-clamp-2 md:line-clamp-none leading-tight md:leading-normal font-heading"
           style={loadingStyles}
         >
           Loading...
@@ -319,18 +319,18 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
           field="title"
           documentSlug={documentSlug}
           onSave={(value) => handleSave('title', value)}
-          className="m-0 text-sm md:text-2xl font-semibold text-gray-900 w-full min-w-0
+          className="m-0 text-base md:text-3xl font-semibold text-gray-900 w-full min-w-0
             leading-tight md:leading-normal
             text-center
-            mobile-title-clamp"
+            mobile-title-clamp font-heading"
           style={titleStyles}
         />
       ) : (
         <h1 
-          className="m-0 text-sm md:text-2xl font-semibold text-gray-900 w-full min-w-0
+          className="m-0 text-base md:text-3xl font-semibold text-gray-900 w-full min-w-0
             leading-tight md:leading-normal
             text-center
-            mobile-title-clamp"
+            mobile-title-clamp font-heading"
           title={config.title}
           style={titleStyles}
         >

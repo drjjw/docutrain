@@ -1,9 +1,10 @@
 /**
  * ShareButton - Component for sharing conversations via shareable links
  * Displays share icon and handles copying share URL to clipboard
+ * Hides button if conversation is banned
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Share2, Check } from 'lucide-react';
 
 interface ShareButtonProps {
@@ -14,6 +15,33 @@ interface ShareButtonProps {
 export function ShareButton({ conversationId, shareToken }: ShareButtonProps) {
   const [isSharing, setIsSharing] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isBanned, setIsBanned] = useState(false);
+
+  // Check if conversation is banned
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const checkBannedStatus = async () => {
+      try {
+        const response = await fetch(`/api/chat/conversation/${conversationId}/banned-status`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setIsBanned(data.banned === true);
+        }
+      } catch (error) {
+        // Silently fail - if we can't check, assume not banned
+        console.error('Error checking banned status:', error);
+      }
+    };
+
+    checkBannedStatus();
+  }, [conversationId]);
 
   const handleShare = async () => {
     if (isSharing) return;
@@ -38,6 +66,12 @@ export function ShareButton({ conversationId, shareToken }: ShareButtonProps) {
         });
 
         if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          // If conversation is banned, don't show error - just return
+          if (errorData.error?.includes('banned') || response.status === 403) {
+            setIsBanned(true);
+            return;
+          }
           throw new Error('Failed to generate share link');
         }
 
@@ -63,8 +97,13 @@ export function ShareButton({ conversationId, shareToken }: ShareButtonProps) {
     }
   };
 
-  // Don't render if no conversation ID or share token
+  // Don't render if no conversation ID or share token, or if banned
   if (!conversationId && !shareToken) {
+    return null;
+  }
+
+  // Hide button if conversation is banned or if shareToken is explicitly null (banned conversations don't get tokens)
+  if (isBanned || shareToken === null) {
     return null;
   }
 

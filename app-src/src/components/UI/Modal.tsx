@@ -51,19 +51,28 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', allowClos
       {/* Backdrop - must be before content to be behind it */}
       <div className="fixed inset-0 bg-black bg-opacity-50" aria-hidden="true" />
       
-      <div className={`flex min-h-screen ${fullscreen ? 'items-start p-2' : 'items-center justify-center p-4'}`}>
+      {/* Mobile: fullscreen, Desktop: centered with padding */}
+      <div className={`flex h-screen ${
+        fullscreen 
+          ? 'items-start p-2 md:items-start md:p-2' 
+          : 'items-start p-0 md:items-center md:justify-center md:p-4'
+      }`}>
         <div
-          className={`relative bg-white rounded-lg shadow-xl w-full z-10 ${
+          className={`relative bg-white shadow-xl w-full z-10 ${
             fullscreen
-              ? 'h-[calc(100vh-1rem)] max-h-[calc(100vh-1rem)] flex flex-col' 
+              ? 'h-[calc(100vh-1rem)] max-h-[calc(100vh-1rem)] flex flex-col rounded-lg md:rounded-lg' 
               : flexColumn
-              ? `${sizeClasses[size]} max-h-[calc(100vh-2rem)] flex flex-col`
-              : sizeClasses[size]
+              ? `h-full flex flex-col md:h-auto md:max-h-[calc(100vh-2rem)] md:rounded-lg md:${sizeClasses[size]}`
+              : `h-full flex flex-col md:h-auto md:max-h-[calc(100vh-2rem)] md:rounded-lg md:${sizeClasses[size]}`
           }`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className={`flex items-center justify-between border-b flex-shrink-0 ${fullscreen ? 'p-4' : 'p-6'}`}>
+          <div className={`flex items-center justify-between border-b flex-shrink-0 ${
+            fullscreen 
+              ? 'p-4' 
+              : 'p-4 md:p-6'
+          }`}>
             <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
             {allowClose && (
               <button
@@ -79,7 +88,11 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', allowClos
           </div>
 
           {/* Content */}
-          <div className={`${fullscreen || flexColumn ? 'p-6 flex-1 overflow-y-auto min-h-0' : 'p-6'}`}>
+          <div className={`${
+            fullscreen || flexColumn 
+              ? 'p-4 flex-1 overflow-y-auto min-h-0 md:p-6' 
+              : 'p-4 md:p-6'
+          }`}>
             {children}
           </div>
         </div>

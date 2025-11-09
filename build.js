@@ -207,6 +207,17 @@ console.log('   - chat.html is deprecated and moved to deprecated/public/chat.ht
 console.log('   - The /chat route now redirects to /app/chat (React app)');
 console.log('   - All chat functionality is handled by React app');
 
+// Copy robots.txt to public directory
+console.log('\n🤖 Copying robots.txt:');
+const robotsSourcePath = path.join(__dirname, 'public/robots.txt');
+const robotsDestPath = path.join(publicDistDir, 'robots.txt');
+if (fs.existsSync(robotsSourcePath)) {
+    fs.copyFileSync(robotsSourcePath, robotsDestPath);
+    console.log('✓ Copied robots.txt to dist/public/robots.txt');
+} else {
+    console.log('⚠️  Warning: robots.txt not found in public/ directory');
+}
+
 // Copy other required files
 console.log('\n📦 Copying other files:');
 const otherFiles = [
@@ -284,6 +295,25 @@ if (fs.existsSync(libSourceDir)) {
     copyDirRecursive(libSourceDir, libDestDir);
 } else {
     console.log('⊘ No lib directory found (optional)');
+}
+
+// Generate sitemap.xml
+console.log('\n🗺️  Generating sitemap.xml:');
+const { execSync } = require('child_process');
+try {
+    const sitemapOutputPath = path.join(publicDistDir, 'sitemap.xml');
+    const baseUrl = process.env.SITE_URL || process.env.PUBLIC_BASE_URL || 'https://www.docutrain.io';
+    
+    // Run the sitemap generation script
+    execSync(
+        `node ${path.join(__dirname, 'scripts', 'generate-sitemap.js')} --output "${sitemapOutputPath}" --base-url "${baseUrl}"`,
+        { stdio: 'inherit', cwd: __dirname }
+    );
+    console.log('✓ Sitemap generated successfully');
+} catch (error) {
+    console.log('⚠️  Warning: Failed to generate sitemap.xml');
+    console.log('   This is not critical - the build will continue');
+    console.log('   Error:', error.message);
 }
 
 let copiedCount = 0;

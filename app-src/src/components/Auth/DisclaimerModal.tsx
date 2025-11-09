@@ -13,12 +13,25 @@ import { Button } from '@/components/UI/Button';
 import { AlertTriangle } from 'lucide-react';
 import { DocumentAccessContext } from '@/contexts/DocumentAccessContext';
 
-const COOKIE_NAME = '_document_disclaimer_agree';
+const COOKIE_NAME_PREFIX = '_document_disclaimer_agree';
 const DEFAULT_DISCLAIMER_TEXT = 'This content is provided for informational purposes only. Please review and verify all information before use.';
+
+/**
+ * Get document-specific cookie name
+ */
+function getCookieName(documentSlug: string | null | undefined): string {
+  if (!documentSlug) {
+    // Fallback to universal cookie if no document slug (shouldn't happen in normal flow)
+    return COOKIE_NAME_PREFIX;
+  }
+  return `${COOKIE_NAME_PREFIX}_${documentSlug}`;
+}
 
 interface DisclaimerModalProps {
   /** Whether the modal should be shown */
   shouldShow: boolean;
+  /** Document slug for document-specific cookie tracking */
+  documentSlug?: string | null;
   /** Custom disclaimer text (optional - uses default if not provided) */
   disclaimerText?: string | null;
   /** Callback when user accepts */
@@ -27,7 +40,7 @@ interface DisclaimerModalProps {
   onDecline: () => void;
 }
 
-export function DisclaimerModal({ shouldShow, disclaimerText, onAccept, onDecline }: DisclaimerModalProps) {
+export function DisclaimerModal({ shouldShow, documentSlug, disclaimerText, onAccept, onDecline }: DisclaimerModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   
   // Use custom text if provided, otherwise use default
@@ -35,6 +48,9 @@ export function DisclaimerModal({ shouldShow, disclaimerText, onAccept, onDeclin
   
   // Parse the text into paragraphs if it contains newlines
   const textParagraphs = displayText.split('\n').filter(p => p.trim().length > 0);
+
+  // Get document-specific cookie name
+  const cookieName = getCookieName(documentSlug);
 
   useEffect(() => {
     if (shouldShow) {
@@ -45,9 +61,9 @@ export function DisclaimerModal({ shouldShow, disclaimerText, onAccept, onDeclin
         return;
       }
 
-      // Check if user has already agreed
-      if (Cookies.get(COOKIE_NAME)) {
-        console.log('✅ Disclaimer already accepted');
+      // Check if user has already agreed to this document's disclaimer
+      if (Cookies.get(cookieName)) {
+        console.log(`✅ Disclaimer already accepted for document: ${documentSlug || 'unknown'}`);
         onAccept(); // Auto-accept if cookie exists
         return;
       }
@@ -59,15 +75,15 @@ export function DisclaimerModal({ shouldShow, disclaimerText, onAccept, onDeclin
 
       return () => clearTimeout(timer);
     }
-  }, [shouldShow, onAccept]);
+  }, [shouldShow, documentSlug, cookieName, onAccept]);
 
   const handleAccept = () => {
-    // Set session cookie (expires when browser closes)
-    Cookies.set(COOKIE_NAME, 'Yes', { 
+    // Set session cookie (expires when browser closes) - document-specific
+    Cookies.set(cookieName, 'Yes', { 
       path: '/'
       // No expires property = session cookie
     });
-    console.log('✅ User accepted disclaimer (session only)');
+    console.log(`✅ User accepted disclaimer for document: ${documentSlug || 'unknown'} (session only)`);
     setIsOpen(false);
     onAccept();
   };
@@ -90,8 +106,9 @@ export function DisclaimerModal({ shouldShow, disclaimerText, onAccept, onDeclin
       }
       size="md"
       allowClose={false} // Prevent X button
+      flexColumn={true}
     >
-      <div className="flex flex-col" style={{ maxHeight: 'calc(60vh - 120px)' }}>
+      <div className="flex flex-col h-full">
         {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto pr-2 -mr-2 min-h-0">
           <div className="text-left space-y-4 text-gray-700">
@@ -122,13 +139,14 @@ export function DisclaimerModal({ shouldShow, disclaimerText, onAccept, onDeclin
           <Button 
             variant="outline" 
             onClick={handleDecline}
-            className="text-red-600 border-red-600 hover:bg-red-50"
+            className="text-red-600 border-red-600 hover:bg-red-50 flex-1 md:flex-none"
           >
             I Decline
           </Button>
           <Button 
             variant="primary" 
             onClick={handleAccept}
+            className="flex-1 md:flex-none"
           >
             I Agree
           </Button>
@@ -248,16 +266,32 @@ export function useDisclaimer(options: string | null | undefined | UseDisclaimer
 
 /**
  * Utility function to clear disclaimer cookie (useful for testing)
+ * @param documentSlug - Optional document slug. If provided, clears only that document's cookie. If omitted, clears all disclaimer cookies.
  */
-export function clearDisclaimerCookie() {
-  Cookies.remove(COOKIE_NAME, { path: '/' });
-  console.log('🗑️  Disclaimer cookie cleared');
+export function clearDisclaimerCookie(documentSlug?: string | null) {
+  if (documentSlug) {
+    const cookieName = getCookieName(documentSlug);
+    Cookies.remove(cookieName, { path: '/' });
+    console.log(`🗑️  Disclaimer cookie cleared for document: ${documentSlug}`);
+  } else {
+    // Clear all disclaimer cookies (for testing purposes)
+    // Note: This requires iterating through all cookies, which js-cookie doesn't support directly
+    // So we'll just clear the universal one and log a warning
+    Cookies.remove(COOKIE_NAME_PREFIX, { path: '/' });
+    console.log('🗑️  Universal disclaimer cookie cleared (note: document-specific cookies may still exist)');
+  }
 }
 
 /**
  * Utility function to check if user has accepted disclaimer
+ * @param documentSlug - Document slug to check. If omitted, checks universal cookie (legacy behavior).
  */
-export function hasAcceptedDisclaimer() {
-  return !!Cookies.get(COOKIE_NAME);
+export function hasAcceptedDisclaimer(documentSlug?: string | null) {
+  if (documentSlug) {
+    const cookieName = getCookieName(documentSlug);
+    return !!Cookies.get(cookieName);
+  }
+  // Legacy: check universal cookie
+  return !!Cookies.get(COOKIE_NAME_PREFIX);
 }
 

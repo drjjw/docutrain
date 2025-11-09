@@ -103,6 +103,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         show_keywords: document.show_keywords !== false,
         show_downloads: document.show_downloads !== false,
         show_references: document.show_references !== false,
+        show_recent_questions: document.show_recent_questions === true,
         active: document.active ?? true,
         access_level: document.access_level || 'public',
         passcode: document.passcode || '',
@@ -111,6 +112,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         downloads: document.downloads || [],
         show_disclaimer: document.show_disclaimer === true, // Explicitly check for true
         disclaimer_text: document.disclaimer_text || null,
+        include_in_sitemap: document.include_in_sitemap !== false, // Default to true
       });
       console.log('DocumentEditorModal: Set show_disclaimer to', document.show_disclaimer === true);
       console.log('DocumentEditorModal: Set disclaimer_text to', document.disclaimer_text || null);
@@ -436,6 +438,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                       ownerId={editingValues.owner_id}
                       owners={owners}
                       chunkLimitOverride={editingValues.chunk_limit_override}
+                      includeInSitemap={editingValues.include_in_sitemap !== false}
                       onFieldChange={handleFieldChange}
                       isSuperAdmin={isSuperAdmin}
                     />
@@ -450,6 +453,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                       showKeywords={editingValues.show_keywords !== false}
                       showDownloads={editingValues.show_downloads !== false}
                       showReferences={editingValues.show_references !== false}
+                      showRecentQuestions={editingValues.show_recent_questions === true}
                       onFieldChange={handleFieldChange}
                       isTextUpload={
                         // Primary check: pdf_filename column (most reliable indicator)
@@ -518,11 +522,12 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0">
+          <div className="bg-gray-50 px-4 py-3 md:px-6 md:py-4 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0">
             <Button
               variant="outline"
               onClick={handleClose}
               disabled={saving}
+              className="flex-1 md:flex-none"
             >
               Cancel
             </Button>
@@ -530,6 +535,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
               onClick={handleSave}
               disabled={saving || retraining}
               loading={saving}
+              className="flex-1 md:flex-none"
             >
               {retraining ? 'Retraining in progress...' : 'Save Changes'}
             </Button>

@@ -7,6 +7,7 @@ export function DocumentUIConfigCard({
   showKeywords,
   showDownloads,
   showReferences,
+  showRecentQuestions,
   onFieldChange,
   isTextUpload = false
 }: DocumentUIConfigCardProps) {
@@ -53,6 +54,13 @@ export function DocumentUIConfigCard({
             : "Display references section at the end of chat messages"}
           size="md"
           disabled={isTextUpload}
+        />
+        <Toggle
+          checked={showRecentQuestions === true}
+          onChange={(checked) => onFieldChange('show_recent_questions', checked)}
+          label="Show Recent Questions"
+          description="Display a gallery of recent questions asked about this document. Note: The gallery will only appear if there are at least 2 recent questions available."
+          size="md"
         />
         {isTextUpload && (
           <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">

@@ -31,7 +31,7 @@ interface TabListProps {
 export function TabList({ children, className = '' }: TabListProps) {
   return (
     <div
-      className={`flex border-b border-gray-200 mb-6 ${className}`}
+      className={`flex border-b border-gray-200 mb-6 overflow-x-auto flex-nowrap md:flex-wrap ${className}`}
       role="tablist"
     >
       {children}
@@ -90,7 +90,7 @@ export function Tab({ children, index, className = '' }: TabProps) {
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       className={`
-        px-6 py-3 text-sm font-medium transition-colors border-b-2 focus:outline-none
+        px-4 py-3 text-sm font-medium transition-colors border-b-2 focus:outline-none flex-shrink-0 md:px-6
         ${isSelected
           ? 'border-blue-600 text-blue-600'
           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'

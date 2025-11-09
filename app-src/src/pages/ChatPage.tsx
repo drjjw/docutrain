@@ -15,6 +15,7 @@ import { ChatHeader } from '@/components/Chat/ChatHeader';
 import { LoadingMessage } from '@/components/Chat/LoadingMessage';
 import { CoverAndWelcome } from '@/components/Chat/CoverAndWelcome';
 import { DownloadsAndKeywords } from '@/components/Chat/DownloadsAndKeywords';
+import { RecentQuestions } from '@/components/Chat/RecentQuestions';
 import { DocumentMeta } from '@/components/Chat/DocumentMeta';
 import { useDisclaimer } from '@/components/Auth/DisclaimerModal';
 import { SelectionPrompt } from '@/components/Chat/SelectionPrompt';
@@ -40,6 +41,7 @@ import '@/styles/loading.css';
 import '@/styles/cover-and-welcome.css';
 import '@/styles/keywords.css';
 import '@/styles/downloads.css';
+import '@/styles/recent-questions.css';
 import '@/styles/inline-editor.css';
 import '@/styles/send-button.css';
 
@@ -379,34 +381,37 @@ function ChatPageContent({
               welcomeMessage={docConfig.welcomeMessage || `Welcome to ${docConfig.title}`}
               introMessage={docConfig.introMessage || null}
               documentSlug={documentSlug}
+              keywords={docConfig.showKeywords !== false ? docConfig.keywords : undefined}
+              downloads={docConfig.showDownloads !== false ? docConfig.downloads : undefined}
+              showKeywords={docConfig.showKeywords}
+              showDownloads={docConfig.showDownloads}
+              inputRef={inputRef}
+              onKeywordClick={(term) => {
+                setInputValue(`Tell me about ${term}`);
+                // Focus the input after state update
+                setTimeout(() => {
+                  inputRef.current?.focus();
+                }, 0);
+              }}
             />
-            {/* Downloads and Keywords - shown below cover and welcome */}
-            {/* Only show if at least one of keywords or downloads should be displayed */}
-            {/* Hide only if both are explicitly set to false */}
-            {(docConfig.showKeywords !== false || docConfig.showDownloads !== false) && (
-              <DownloadsAndKeywords
-                keywords={(() => {
-                  const keywordsToPass = docConfig.showKeywords !== false ? docConfig.keywords : undefined;
-                  debugLog('[ChatPage] 🔍 DEBUG - Keywords being passed to DownloadsAndKeywords:', {
-                    showKeywords: docConfig.showKeywords,
-                    keywordsRaw: docConfig.keywords,
-                    keywordsType: typeof docConfig.keywords,
-                    isArray: Array.isArray(docConfig.keywords),
-                    keywordsLength: Array.isArray(docConfig.keywords) ? docConfig.keywords.length : 'N/A',
-                    keywordsToPass,
-                    keywordsToPassType: typeof keywordsToPass,
-                    keywordsToPassIsArray: Array.isArray(keywordsToPass),
-                    keywordsToPassLength: Array.isArray(keywordsToPass) ? keywordsToPass.length : 'N/A',
-                    fullDocConfig: docConfig
-                  });
-                  return keywordsToPass;
-                })()}
-                downloads={docConfig.showDownloads !== false ? docConfig.downloads : undefined}
-                isMultiDoc={false}
+            
+            {/* Recent Questions - shown if enabled */}
+            {(() => {
+              const shouldShow = docConfig.showRecentQuestions === true && docConfig.id;
+              debugLog('[ChatPage] 🔍 DEBUG - Recent Questions check:', {
+                showRecentQuestions: docConfig.showRecentQuestions,
+                docId: docConfig.id,
+                shouldShow,
+                fullDocConfig: docConfig
+              });
+              return shouldShow;
+            })() && (
+              <RecentQuestions
+                documentSlug={documentSlug || ''}
+                documentId={docConfig.id!}
                 inputRef={inputRef}
-                onKeywordClick={(term) => {
-                  setInputValue(`Tell me about ${term}`);
-                  // Focus the input after state update
+                onQuestionClick={(question) => {
+                  setInputValue(question);
                   setTimeout(() => {
                     inputRef.current?.focus();
                   }, 0);

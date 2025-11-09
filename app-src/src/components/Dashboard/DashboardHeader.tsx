@@ -286,9 +286,13 @@ export function DashboardHeader() {
                 {isLoggedIn && (
                   <button
                     onClick={() => {
-                      const chatPath = primaryOwnerSlug 
-                        ? `/chat?owner=${encodeURIComponent(primaryOwnerSlug)}`
-                        : '/chat';
+                      // Superadmins go to /chat without owner param (can see all documents)
+                      // Others go to their primary owner's documents
+                      const chatPath = isSuperAdmin 
+                        ? '/chat'
+                        : (primaryOwnerSlug 
+                          ? `/chat?owner=${encodeURIComponent(primaryOwnerSlug)}`
+                          : '/chat');
                       handleNavigation(chatPath);
                     }}
                     className={`group relative flex items-center gap-3 w-full px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 ${
@@ -305,7 +309,7 @@ export function DashboardHeader() {
                       </svg>
                     </span>
                     <span className="font-medium">
-                      {primaryOwnerName ? `Documents: ${primaryOwnerName}` : 'Documents'}
+                      {isSuperAdmin ? 'Documents' : (primaryOwnerName ? `Documents: ${primaryOwnerName}` : 'Documents')}
                     </span>
                     {isDocuments && (
                       <span className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-docutrain-light rounded-r-full" />

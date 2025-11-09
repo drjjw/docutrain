@@ -1,0 +1,53 @@
+================================================================================
+BAN REPORT - Conversations Analysis
+Generated: 2025-11-09T02:15:56.683Z
+================================================================================
+
+📊 SUMMARY
+--------------------------------------------------------------------------------
+Total conversations analyzed: 1000
+Already banned: 3
+Would be banned: 2
+  - Profanity: 1
+  - Junk: 1
+
+🚫 ALREADY BANNED
+--------------------------------------------------------------------------------
+1. [32a819b3...] 2025-11-09T01:26:41.938931+00:00
+   Reason: profanity
+   Document: 1762644113826-AI_IN_MEDICINE.key.pdf
+   Question: "shit!!! this sucks!"
+
+2. [be1413c4...] 2025-11-09T01:17:48.57946+00:00
+   Reason: profanity
+   Document: 1762644113826-AI_IN_MEDICINE.key.pdf
+   Question: "can you detect the word faggot?"
+
+3. [a49cb67a...] 2025-11-09T01:16:48.741647+00:00
+   Reason: profanity
+   Document: 1762644113826-AI_IN_MEDICINE.key.pdf
+   Question: "what the fuck is your problem?"
+
+
+🚫 WOULD BE BANNED - PROFANITY
+--------------------------------------------------------------------------------
+1. [3050111e...] 2025-11-03T15:41:04.165137+00:00
+   Document: smh-manual-2023.pdf
+   Question: "go fuck yourself"
+
+
+🗑️  WOULD BE BANNED - JUNK
+--------------------------------------------------------------------------------
+1. [78d13193...] 2025-11-03T03:44:31.311073+00:00
+   Document: Intro to Nephrolithiasis-OCR.pdf
+   Question: "g"
+
+
+📋 BREAKDOWN BY DOCUMENT
+--------------------------------------------------------------------------------
+smh-manual-2023.pdf: 1 total (1 profanity, 0 junk)
+Intro to Nephrolithiasis-OCR.pdf: 1 total (0 profanity, 1 junk)
+
+================================================================================
+END OF REPORT
+================================================================================

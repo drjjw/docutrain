@@ -69,6 +69,7 @@ export interface DocumentSettingsCardProps {
   ownerId?: string;
   owners: Owner[];
   chunkLimitOverride: number | null;
+  includeInSitemap?: boolean;
   onFieldChange: FieldChangeHandler;
   isSuperAdmin: boolean;
 }
@@ -78,6 +79,7 @@ export interface DocumentUIConfigCardProps {
   showKeywords: boolean;
   showDownloads: boolean;
   showReferences: boolean;
+  showRecentQuestions: boolean;
   onFieldChange: FieldChangeHandler;
   isTextUpload?: boolean; // Whether this document is from a text upload (no pages)
 }

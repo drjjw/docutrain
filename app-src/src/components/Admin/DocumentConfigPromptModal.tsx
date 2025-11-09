@@ -59,11 +59,11 @@ export function DocumentConfigPromptModal({
       ></div>
 
       {/* Modal container */}
-      <div className="fixed inset-0 z-20 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-20 flex items-start md:items-center justify-center p-0 md:p-4">
         {/* Modal panel */}
-        <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full modal-content relative">
+        <div className="bg-white shadow-2xl w-full h-full md:rounded-2xl md:max-w-2xl md:w-full md:h-auto modal-content relative flex flex-col">
           {/* Header with icon */}
-          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-8 py-6 rounded-t-2xl">
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-4 py-4 md:px-8 md:py-6 md:rounded-t-2xl flex-shrink-0">
             <div className="flex items-center gap-4">
               <div className="flex-shrink-0 w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,7 +82,7 @@ export function DocumentConfigPromptModal({
           </div>
 
           {/* Content */}
-          <div className="px-8 py-6">
+          <div className="px-4 py-4 md:px-8 md:py-6 flex-1 overflow-y-auto min-h-0">
             <div className="mb-6">
               <div className="flex items-start gap-4 mb-4">
                 <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -145,16 +145,18 @@ export function DocumentConfigPromptModal({
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 px-8 py-5 rounded-b-2xl border-t border-gray-200 flex justify-end gap-3">
+          <div className="bg-gray-50 px-4 py-4 md:px-8 md:py-5 md:rounded-b-2xl border-t border-gray-200 flex justify-end gap-3 flex-shrink-0">
             <Button
               variant="outline"
               onClick={onDismiss}
+              className="flex-1 md:flex-none"
             >
               Configure Later
             </Button>
             <Button
               onClick={onConfigure}
               variant="primary"
+              className="flex-1 md:flex-none"
             >
               Configure Now
             </Button>

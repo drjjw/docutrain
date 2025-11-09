@@ -120,11 +120,11 @@ export function TermsOfServiceModal({ isOpen, onClose, onAccept, accepting = fal
         <div className="flex justify-end space-x-3 pt-4 border-t">
           {/* Only show Close button if onClose is provided (signup flow) */}
           {onClose && (
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onClose} className="flex-1 md:flex-none">
               Close
             </Button>
           )}
-          <Button variant="primary" onClick={onAccept} loading={accepting} disabled={accepting}>
+          <Button variant="primary" onClick={onAccept} loading={accepting} disabled={accepting} className={onClose ? "flex-1 md:flex-none" : ""}>
             {accepting ? 'Accepting...' : 'I Accept'}
           </Button>
         </div>

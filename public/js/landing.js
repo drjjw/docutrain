@@ -1,5 +1,95 @@
 // Landing Page JavaScript
 
+// Beta Banner Dismissal
+function initBetaBanner() {
+    const betaBanner = document.getElementById('betaBanner');
+    const betaBannerClose = document.getElementById('betaBannerClose');
+    const nav = document.querySelector('.nav');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const hero = document.querySelector('.hero');
+    const STORAGE_KEY = 'betaBannerDismissed';
+    
+    if (!betaBanner || !betaBannerClose) return;
+    
+    // Function to adjust nav and mobile menu positions based on banner visibility
+    function adjustPositions() {
+        const bannerHeight = betaBanner.offsetHeight;
+        const navHeight = nav ? nav.offsetHeight : 73;
+        
+        if (!betaBanner.classList.contains('hidden')) {
+            // Banner is visible - position nav below banner
+            if (nav) {
+                nav.style.top = `${bannerHeight}px`;
+            }
+            if (mobileMenu) {
+                mobileMenu.style.top = `${bannerHeight + navHeight}px`;
+            }
+            // Set CSS custom property for banner height
+            document.documentElement.style.setProperty('--banner-height', `${bannerHeight}px`);
+        } else {
+            // Banner is hidden - reset positions
+            if (nav) {
+                nav.style.top = '0';
+            }
+            if (mobileMenu) {
+                mobileMenu.style.top = `${navHeight}px`;
+            }
+            document.documentElement.style.setProperty('--banner-height', '0');
+        }
+    }
+    
+    // Function to adjust hero padding based on banner visibility
+    function adjustHeroPadding() {
+        if (hero && !betaBanner.classList.contains('hidden')) {
+            // Banner is visible - add extra padding for banner + nav
+            const bannerHeight = betaBanner.offsetHeight;
+            const navHeight = nav ? nav.offsetHeight : 73;
+            hero.style.paddingTop = `calc(6rem + ${bannerHeight + navHeight}px)`;
+        } else if (hero) {
+            // Banner is hidden - add padding for nav only
+            const navHeight = nav ? nav.offsetHeight : 73;
+            hero.style.paddingTop = `calc(6rem + ${navHeight}px)`;
+        }
+    }
+    
+    // Check if banner was previously dismissed
+    const isDismissed = localStorage.getItem(STORAGE_KEY) === 'true';
+    if (isDismissed) {
+        betaBanner.classList.add('hidden');
+        // Initialize CSS custom property even when hidden
+        document.documentElement.style.setProperty('--banner-height', '0');
+    } else {
+        // Initialize CSS custom property with banner height
+        const bannerHeight = betaBanner.offsetHeight;
+        document.documentElement.style.setProperty('--banner-height', `${bannerHeight}px`);
+    }
+    
+    // Adjust positions and padding initially
+    adjustPositions();
+    adjustHeroPadding();
+    
+    // Adjust on window resize
+    window.addEventListener('resize', () => {
+        adjustPositions();
+        adjustHeroPadding();
+    });
+    
+    // Handle close button click
+    betaBannerClose.addEventListener('click', () => {
+        betaBanner.classList.add('hidden');
+        localStorage.setItem(STORAGE_KEY, 'true');
+        adjustPositions();
+        adjustHeroPadding();
+    });
+}
+
+// Initialize beta banner when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBetaBanner);
+} else {
+    initBetaBanner();
+}
+
 // Mobile menu toggle
 const mobileMenuToggle = document.getElementById('mobileMenuToggle');
 const mobileMenu = document.getElementById('mobileMenu');
@@ -43,7 +133,12 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         e.preventDefault();
         const target = document.querySelector(href);
         if (target) {
-            const offsetTop = target.offsetTop - 100; // Account for fixed nav (80px header + 20px padding)
+            // Calculate offset: nav height + banner height (if visible) + padding
+            const nav = document.querySelector('.nav');
+            const banner = document.getElementById('betaBanner');
+            const navHeight = nav ? nav.offsetHeight : 73;
+            const bannerHeight = banner && !banner.classList.contains('hidden') ? banner.offsetHeight : 0;
+            const offsetTop = target.offsetTop - navHeight - bannerHeight - 20;
             window.scrollTo({
                 top: offsetTop,
                 behavior: 'smooth'
@@ -60,7 +155,11 @@ function handleHashNavigation() {
         if (target) {
             // Wait for page to fully render
             setTimeout(() => {
-                const headerHeight = 100; // Account for fixed nav (80px header + 20px padding)
+                const nav = document.querySelector('.nav');
+                const banner = document.getElementById('betaBanner');
+                const navHeight = nav ? nav.offsetHeight : 73;
+                const bannerHeight = banner && !banner.classList.contains('hidden') ? banner.offsetHeight : 0;
+                const headerHeight = navHeight + bannerHeight + 20; // nav + banner + padding
                 const offsetTop = target.getBoundingClientRect().top + window.pageYOffset - headerHeight;
                 window.scrollTo({
                     top: offsetTop,
