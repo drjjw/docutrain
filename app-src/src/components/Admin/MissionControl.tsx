@@ -102,6 +102,7 @@ export function MissionControl() {
       PORT: config.PORT,
       NODE_ENV: config.NODE_ENV,
       DEBUG: config.DEBUG,
+      ALLOW_DEBUG_OVERRIDE: config.ALLOW_DEBUG_OVERRIDE,
     },
     'API Keys Status': {
       GEMINI_API_KEY: config.GEMINI_API_KEY,
@@ -130,6 +131,9 @@ export function MissionControl() {
     }
     if (typeof value === 'number') {
       return value.toString();
+    }
+    if (value === undefined || value === null) {
+      return 'Not set';
     }
     return String(value);
   };

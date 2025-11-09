@@ -5,6 +5,22 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 import { debugLog } from './utils/debug';
 
+// Pre-fetch debug override setting from server
+if (typeof window !== 'undefined') {
+  fetch('/api/debug-config')
+    .then(res => res.ok ? res.json() : null)
+    .then(data => {
+      if (data) {
+        // Store in a way the debug utility can access synchronously
+        (window as any).__ALLOW_DEBUG_OVERRIDE__ = data.allowDebugOverride !== false;
+      }
+    })
+    .catch(() => {
+      // Default to allowing override if check fails (backward compatible)
+      (window as any).__ALLOW_DEBUG_OVERRIDE__ = true;
+    });
+}
+
 // Detect if running from source (Vite dev server) or built version
 function detectRunningMode() {
   // Check if Vite HMR is available (dev server indicator)

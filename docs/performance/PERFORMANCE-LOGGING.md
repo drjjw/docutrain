@@ -221,9 +221,10 @@ All logging is already enabled. To see more detail:
 
 Potential improvements to the logging system:
 
-1. **Configurable Log Levels**
-   - Add `?debug=verbose` for more detail
-   - Add `?debug=quiet` for summary only
+1. **Configurable Log Levels** (Future Enhancement)
+   - Currently: `?debug=true` or `?debug=verbose` enables all debug logs (simple on/off)
+   - Future: Add `?debug=quiet` for summary only, `?debug=verbose` for detailed logs
+   - See [DEBUG-URL-PARAMETER.md](../api-docs/DEBUG-URL-PARAMETER.md) for current implementation
 
 2. **Performance Metrics Export**
    - Export timing data to analytics

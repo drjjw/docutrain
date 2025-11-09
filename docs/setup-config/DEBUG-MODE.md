@@ -1,6 +1,6 @@
 # Debug Mode Configuration
 
-**Date:** November 3, 2025  
+**Date:** January 2025 (Updated with runtime debug enabling)  
 **Status:** ✅ Complete
 
 ## Overview
@@ -29,12 +29,20 @@ DEBUG=false
 **Values:** `true` | `false` (or unset)  
 **Default:** Enabled in development mode, disabled in production builds
 
+**Server Control:** `ALLOW_DEBUG_OVERRIDE`  
+**Values:** `true` | `false` (or unset)  
+**Default:** `true` (allows runtime overrides)  
+**Purpose:** Controls whether users can enable debug via URL parameter (`?debug=true`) or localStorage. Set to `false` to disable runtime overrides for security.
+
 ```bash
 # Enable frontend debug logging in production
 VITE_DEBUG=true
 
 # Disable frontend debug logging (or omit the variable)
 VITE_DEBUG=false
+
+# Disable runtime overrides (URL/localStorage won't work)
+ALLOW_DEBUG_OVERRIDE=false
 ```
 
 ## Usage
@@ -49,12 +57,42 @@ No configuration needed - just start your dev server and check the console.
 
 ### Production Environment
 
-Debug logging is **disabled by default** in production. To enable:
+Debug logging is **disabled by default** in production. There are three ways to enable it:
+
+#### Option 1: Runtime Enable (Frontend Only - No Rebuild Needed) ⚡
+
+**Fastest method** - Works immediately without rebuilding or restarting:
+
+**Method A: URL Parameter**
+Add `?debug=true` to any URL:
+```
+https://www.docutrain.io/app/chat?debug=true
+https://www.docutrain.io/app/dashboard?debug=true
+```
+
+**Method B: Browser Console**
+Open browser console and run:
+```javascript
+localStorage.setItem('debug', 'true')
+```
+Then refresh the page.
+
+**To disable:**
+- Remove `?debug=true` from URL, or
+- Run: `localStorage.setItem('debug', 'false')` or `localStorage.removeItem('debug')`
+
+**Priority:** URL parameter > localStorage > build-time env vars
+
+**Note:** This only enables **frontend** debug logs (browser console). For backend logs, use Option 2 or 3.
+
+**⚠️ Security Control:** Runtime overrides (URL/localStorage) can be disabled by setting `ALLOW_DEBUG_OVERRIDE=false` in the server's `.env` file. When disabled, only build-time `VITE_DEBUG=true` will work. This prevents users from enabling debug logs via URL parameters or localStorage.
+
+#### Option 2: Environment Variables (Requires Rebuild/Restart)
 
 1. **Add to your `.env` file:**
    ```bash
-   DEBUG=true
-   VITE_DEBUG=true
+   DEBUG=true          # Backend debug logs (PM2 logs)
+   VITE_DEBUG=true    # Frontend debug logs (browser console)
    ```
 
 2. **Restart your application:**
@@ -68,11 +106,30 @@ Debug logging is **disabled by default** in production. To enable:
    npm start
    ```
 
-3. **Debug logs will now appear** in production console
+3. **Debug logs will now appear** in production
 
 4. **When finished troubleshooting:**
    - Remove or set to `false` in `.env`
    - Rebuild and restart
+
+#### Option 3: Backend Only (No Frontend Rebuild)
+
+For backend debugging only (PM2 logs):
+
+1. **Add to `.env`:**
+   ```bash
+   DEBUG=true
+   ```
+
+2. **Restart backend:**
+   ```bash
+   pm2 restart docutrainio-bot
+   ```
+
+3. **View logs:**
+   ```bash
+   pm2 logs docutrainio-bot
+   ```
 
 ## What Gets Logged
 
@@ -222,13 +279,17 @@ This checks:
 ### Frontend Check Pattern
 
 ```typescript
-const debugEnabled = import.meta.env.VITE_DEBUG === 'true' || import.meta.env.DEV;
+const debugEnabled = isDebugEnabled(); // Checks multiple sources
 ```
 
-This checks:
-1. Is `VITE_DEBUG` explicitly set to `'true'`? → Enable
-2. Is Vite running in dev mode? → Enable
-3. Otherwise → Disable
+This checks (in priority order):
+1. **URL parameter:** `?debug=true` → Enable (runtime, no rebuild) - **Only if `ALLOW_DEBUG_OVERRIDE` is not `false`**
+2. **localStorage:** `localStorage.getItem('debug') === 'true'` → Enable (runtime, no rebuild) - **Only if `ALLOW_DEBUG_OVERRIDE` is not `false`**
+3. **Build-time:** `VITE_DEBUG === 'true'` → Enable (requires rebuild)
+4. **Dev mode:** `import.meta.env.DEV === true` → Enable (automatic in dev)
+5. Otherwise → Disable
+
+**Runtime enabling (URL/localStorage) takes priority over build-time settings**, allowing you to enable debug logs in production without rebuilding. However, this can be disabled by setting `ALLOW_DEBUG_OVERRIDE=false` in the server's `.env` file for security.
 
 ### Why Two Variables?
 
@@ -310,7 +371,22 @@ pm2 restart all
 # Backend logs will appear, frontend logs won't
 ```
 
-### Example 3: Debug Frontend Only
+### Example 3: Debug Frontend Only (Runtime - No Rebuild)
+
+**Fastest method** - No rebuild needed:
+
+```javascript
+// In browser console:
+localStorage.setItem('debug', 'true')
+// Refresh page
+```
+
+Or add `?debug=true` to URL:
+```
+https://www.docutrain.io/app/chat?debug=true
+```
+
+### Example 4: Debug Frontend Only (Build-time)
 
 ```bash
 # Only enable frontend debugging
@@ -327,18 +403,29 @@ npm run build
 
 ### Debug logs not appearing in production
 
+**For Frontend (Browser Console):**
+
+**Check runtime options first:**
+1. Try URL parameter: `?debug=true` (works immediately)
+2. Check localStorage: `localStorage.getItem('debug')` in console
+3. If using build-time: Verify `VITE_DEBUG=true` in `.env` and rebuild
+
+**For Backend (PM2 Logs):**
+
 **Check:**
-1. Environment variable is set correctly in `.env`
-2. Application was restarted after adding variable
-3. Frontend was rebuilt after adding `VITE_DEBUG`
-4. Variable value is exactly `'true'` (string, lowercase)
+1. Environment variable is set correctly in `.env`: `DEBUG=true`
+2. Application was restarted: `pm2 restart docutrainio-bot`
+3. Variable value is exactly `'true'` (string, lowercase)
 
 **Verify:**
 ```bash
 # Backend - check if DEBUG is set
 echo $DEBUG
 
-# Frontend - check build output
+# Check PM2 logs
+pm2 logs docutrainio-bot --lines 50
+
+# Frontend - check build output (if using build-time)
 npm run build
 # Look for VITE_DEBUG in build logs
 ```

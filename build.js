@@ -225,6 +225,7 @@ const otherFiles = [
     { from: 'package.json', to: 'package.json' },
     { from: 'package-lock.json', to: 'package-lock.json' },
     { from: 'docutrainio-bot.js', to: 'docutrainio-bot.js' },
+    { from: 'ecosystem.config.js', to: 'ecosystem.config.js' },
     { from: '.htaccess', to: '.htaccess', optional: true }
 ];
 
@@ -274,6 +275,12 @@ console.log('\n📦 Copying lib directory:');
 const libSourceDir = path.join(__dirname, 'lib');
 const libDestDir = path.join(distDir, 'lib');
 if (fs.existsSync(libSourceDir)) {
+    // Clean old lib directory to prevent stale files from persisting
+    if (fs.existsSync(libDestDir)) {
+        console.log('🗑️  Cleaning old lib directory to prevent stale files...');
+        fs.rmSync(libDestDir, { recursive: true, force: true });
+    }
+    
     // Function to copy directory recursively
     function copyDirRecursive(src, dest) {
         if (!fs.existsSync(dest)) {

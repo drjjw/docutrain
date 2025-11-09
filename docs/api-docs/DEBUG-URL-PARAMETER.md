@@ -2,213 +2,95 @@
 
 ## Overview
 
-You can now control the amount of performance logging using the `?debug` URL parameter. This allows you to see more or less detail depending on your needs.
+You can enable debug logging in production using the `?debug` URL parameter. This allows you to see debug logs (`debugLog()`, `debugWarn()`, `debugError()`) that are normally hidden in production builds.
+
+**Note:** This only works if `ALLOW_DEBUG_OVERRIDE=true` is set on the server (which it is by default).
 
 ## Usage
 
-Add `?debug=<level>` to any document URL:
+Add `?debug=<value>` to any document URL:
 
 ```
-http://localhost:3456/chat?doc=smh&debug=verbose
-http://localhost:3456/chat?doc=smh&debug=quiet
-http://localhost:3456/chat?doc=smh&debug=off
+https://www.docutrain.io/app/chat?doc=smh&debug=verbose
+https://www.docutrain.io/app/chat?doc=smh&debug=true
+https://www.docutrain.io/app/chat?doc=smh&debug=off
 ```
 
-## Debug Levels
+## Debug Values
 
-### `?debug=off` (or `false` or `0`)
-**No performance logging**
-- Completely silent - no performance logs
-- Use when you don't want any debug output
-- Fastest (minimal overhead)
+### Enable Debug Mode
 
-**Output:**
-```
-(no output)
-```
+These values **enable** debug logging:
+- `?debug=true`
+- `?debug=1`
+- `?debug=verbose`
 
----
+**What you'll see:**
+- All `debugLog()` calls will output to console
+- All `debugWarn()` calls will output to console
+- All `debugError()` calls will output to console
+- Any code that checks `isDebug()` will return `true`
 
-### `?debug=quiet` (or `summary`)
-**Summary only**
-- Shows only the final performance summary
-- No step-by-step progress
-- Good for quick performance checks
+### Disable Debug Mode
 
-**Output:**
-```
-═══════════════════════════════════════════════════════════
-✅ PAGE LOAD COMPLETE
-═══════════════════════════════════════════════════════════
-⏱️  Performance Summary:
-  Step 1 (Logos):         1.23ms (0.4%)
-  Step 2 (Access):        12.34ms (3.8%)
-  Step 3 (Document):      245.67ms (75.5%)
-  ...
-  🏁 TOTAL TIME:          325.39ms
+These values **disable** debug logging:
+- `?debug=false`
+- `?debug=0`
+- `?debug=off`
 
-⚠️  BOTTLENECK DETECTED: Document took 245.67ms (75.5%)
-═══════════════════════════════════════════════════════════
-```
+**What you'll see:**
+- No debug logs (clean console)
+- Minimal performance overhead
 
----
+### Default Behavior
 
-### **Default (no parameter)**
-**Normal logging**
-- Shows step-by-step progress
-- Shows timing for each major step
-- Shows performance summary
-- **This is the default if no `?debug` parameter is provided**
+**In Development (Vite dev server):**
+- Debug logging is **ON by default**
+- No URL parameter needed
 
-**Output:**
-```
-═══════════════════════════════════════════════════════════
-🚀 PAGE LOAD STARTED
-═══════════════════════════════════════════════════════════
-
-[STEP 1/10] 🎨 Preloading logos...
-✓ Logos preloaded in 1.23ms
-
-[STEP 2/10] 🔒 Checking document access...
-✓ Access check completed in 12.34ms
-
-[STEP 3/10] 📄 Initializing document...
-✓ Document initialized in 245.67ms
-
-...
-
-═══════════════════════════════════════════════════════════
-✅ PAGE LOAD COMPLETE
-═══════════════════════════════════════════════════════════
-⏱️  Performance Summary:
-  Step 1 (Logos):         1.23ms (0.4%)
-  ...
-  🏁 TOTAL TIME:          325.39ms
-═══════════════════════════════════════════════════════════
-```
-
----
-
-### `?debug=verbose` (or `true` or `1`)
-**Everything**
-- Shows all nested function calls
-- Shows detailed timing for sub-operations
-- Shows URL parameters, cache hits/misses
-- Shows API request/response timing
-- Most detailed output
-
-**Output:**
-```
-═══════════════════════════════════════════════════════════
-🚀 PAGE LOAD STARTED
-═══════════════════════════════════════════════════════════
-⏱️  Start Time: 2025-10-27T14:23:45.123Z
-📍 Location: http://localhost:3456/chat?doc=smh
-🐛 Debug Level: verbose
-
-[STEP 1/10] 🎨 Preloading logos...
-✓ Logos preloaded in 1.23ms
-
-[STEP 2/10] 🔒 Checking document access...
-  → Checking access for 1 document(s): smh
-  → Access granted for all documents
-✓ Access check completed in 12.34ms
-
-[STEP 3/10] 📄 Initializing document...
-  ┌─ initializeDocument() started
-  │  → Parsing URL parameters...
-  │     doc: smh
-  │     owner: none
-  │     embedding: openai
-  │     model: default
-  │  → Model set to: grok
-  │     (0.45ms)
-  │  → Starting document validation...
-  │     Config module imported (1.23ms)
-  │     Validating 1 document(s): smh
-      ┌─ loadDocuments() started
-      │  → Force refresh: true
-      │  → Loading specific document(s): smh
-      │  → Skipping cache due to force refresh
-      │  → Fetching documents from API...
-      │     No session data found (0.12ms)
-      │     Fetching from: http://localhost:3456/api/documents?doc=smh
-      │     Response received: 200 (45.67ms)
-      │     JSON parsed (2.34ms)
-      │     Processed 1 documents (0.89ms)
-      │     Cached to localStorage (1.23ms)
-      │  ✓ Loaded 1 documents from registry
-      └─ loadDocuments() completed (from API) in 51.48ms
-  │       ✓ Validated: smh (52.34ms)
-  │     Total validation time: 54.56ms
-  │  → Updating document UI...
-    ┌─ updateDocumentUI() started
-    │  → Document: smh
-    │  → Force refresh: true
-    │  → Send button found: true (0.23ms)
-    │  → Parsed 1 slug(s): smh (0.34ms)
-    │  → Fetching document configs...
-      │  ✓ Using cached documents (age: 0.1s, 0.45ms)
-    │     Configs fetched (1.23ms)
-    │  → Valid configs: 1/1
-    │  → Primary config: smh - SMH Housestaff Manual
-    │  → Updating logo for owner: ukidney
-    │     Logo config retrieved (12.34ms)
-    │     Logo elements found: img=true, link=true
-    │     Logo processing complete (23.45ms)
-    │  → Processing document cover and welcome message...
-    │     Loading cover image: https://example.com/cover.jpg
-    │     ✓ Cover image loaded (156.78ms)
-    │     Container heights equalized (2.34ms)
-    │     Cover image layout displayed
-    │     Cover/welcome processing complete (162.34ms)
-    │  ✓ Document set to: SMH - SMH Housestaff Manual
-    └─ updateDocumentUI() completed in 189.23ms
-  │     Document UI updated (189.45ms)
-  └─ initializeDocument() completed in 245.67ms
-✓ Document initialized in 245.67ms
-
-...
-
-═══════════════════════════════════════════════════════════
-✅ PAGE LOAD COMPLETE
-═══════════════════════════════════════════════════════════
-⏱️  Performance Summary:
-  ...
-═══════════════════════════════════════════════════════════
-```
+**In Production:**
+- Debug logging is **OFF by default**
+- Use `?debug=true` or `?debug=verbose` to enable
 
 ## Examples
 
-### Production - No Logs
+### Production - Enable Debug Logs
 ```
-https://ukidney.brightbean.io/chat?doc=smh&debug=off
+https://www.docutrain.io/app/chat?doc=smh&debug=verbose
+https://www.docutrain.io/app/chat?doc=smh&debug=true
 ```
-Clean console, no performance overhead.
+See all debug logs in the browser console.
 
-### Quick Performance Check
+### Production - Disable Debug Logs
 ```
-https://ukidney.brightbean.io/chat?doc=smh&debug=quiet
+https://www.docutrain.io/app/chat?doc=smh&debug=off
+https://www.docutrain.io/app/chat?doc=smh&debug=false
 ```
-Just see the summary to identify bottlenecks.
+Clean console, no debug output.
 
-### Development - Normal
+### Development - Default
 ```
-http://localhost:3456/chat?doc=smh
+http://localhost:5173/app/chat?doc=smh
 ```
-Default behavior, step-by-step progress.
+Debug logs are already enabled (no parameter needed).
 
-### Debugging Issues
-```
-http://localhost:3456/chat?doc=smh&debug=verbose
-```
-See everything - API calls, cache hits, nested functions.
+## Alternative: localStorage
 
-### Testing Multiple Documents
+You can also enable debug mode via the browser console:
+
+```javascript
+// Enable debug mode
+localStorage.setItem('debug', 'true')
+// or
+localStorage.setItem('debug', 'verbose')
+
+// Disable debug mode
+localStorage.setItem('debug', 'false')
+// or
+localStorage.setItem('debug', 'off')
+
+// Then refresh the page
 ```
-http://localhost:3456/chat?doc=smh+uhn&debug=verbose
-```
-Verbose logging for multi-document queries.
 
 ## Combining with Other Parameters
 
@@ -219,76 +101,111 @@ The `?debug` parameter works with all other URL parameters:
 ?doc=smh&debug=verbose
 
 # Owner + Debug
-?owner=ukidney&debug=quiet
+?owner=ukidney&debug=true
 
 # Model + Embedding + Debug
-?doc=smh&model=grok&embedding=local&debug=verbose
-
-# Back Button + Debug
-?doc=smh&back-button=/docs&debug=quiet
+?doc=smh&model=grok&embedding=local&debug=true
 ```
+
+## How It Works
+
+1. **URL Parameter Check** (highest priority)
+   - Checks `?debug` parameter in URL
+   - Accepts: `true`, `1`, `verbose` (enable) or `false`, `0`, `off` (disable)
+
+2. **localStorage Check** (if URL parameter not present)
+   - Checks `localStorage.getItem('debug')`
+   - Accepts same values as URL parameter
+
+3. **Build-time Check** (if no runtime override)
+   - Checks `VITE_DEBUG` environment variable
+   - `VITE_DEBUG=true` enables debug in production builds
+   - `VITE_DEBUG=false` disables debug even in development
+
+4. **Default Behavior**
+   - Development mode: Debug ON
+   - Production build: Debug OFF
+
+## Server Control
+
+The server can disable runtime overrides by setting:
+
+```bash
+ALLOW_DEBUG_OVERRIDE=false
+```
+
+When disabled:
+- URL parameters (`?debug=true`) are ignored
+- localStorage overrides are ignored
+- Only build-time `VITE_DEBUG` works
+
+**Default:** `ALLOW_DEBUG_OVERRIDE=true` (allows runtime overrides)
 
 ## Performance Impact
 
-| Level | Console Output | Performance Impact |
-|-------|---------------|-------------------|
-| `off` | None | Minimal (~0.1ms) |
-| `quiet` | Summary only | Very low (~1ms) |
-| `normal` | Steps + Summary | Low (~2-5ms) |
-| `verbose` | Everything | Moderate (~5-10ms) |
+| Mode | Console Output | Performance Impact |
+|------|---------------|-------------------|
+| **Disabled** (`off`/`false`/`0`) | None | Minimal (~0.1ms) |
+| **Enabled** (`true`/`1`/`verbose`) | All debug logs | Low (~1-2ms) |
 
-**Note:** The performance impact is negligible compared to actual page load operations (API calls, image loading, etc.)
+**Note:** The performance impact is negligible compared to actual page operations (API calls, rendering, etc.)
 
-## Tips
+## Programmatic Usage
 
-1. **Use `quiet` in production** if you need to debug user issues without overwhelming the console
-2. **Use `verbose` for development** to see exactly what's happening
-3. **Use `off` for demos** to keep the console clean
-4. **Default (no parameter) is best** for normal development work
+In your code, use the debug utilities:
 
-## Programmatic Access
+```typescript
+import { debugLog, debugWarn, debugError, isDebug } from '@/utils/debug';
 
-You can also check the debug level in your own code:
+// These only output when debug is enabled
+debugLog('User clicked button:', buttonId);
+debugWarn('Rate limit approaching');
+debugError('Failed to fetch:', error);
 
-```javascript
-import { DEBUG_LEVEL, DEBUG_LEVELS, debugLog } from './main.js';
-
-// Check current level
-if (DEBUG_LEVEL >= DEBUG_LEVELS.VERBOSE) {
-    console.log('Verbose logging enabled');
+// Check if debug is enabled
+if (isDebug()) {
+  console.log('Debug mode is active');
 }
-
-// Use debugLog in your code
-debugLog.verbose('This only shows in verbose mode');
-debugLog.normal('This shows in normal and verbose modes');
-debugLog.quiet('This shows in all modes except off');
-debugLog.always('This always shows (same as console.log)');
-```
-
-## Browser Console Commands
-
-You can also check the debug level from the browser console:
-
-```javascript
-// Check current level
-window.debugLog
-
-// Manually log something
-window.debugLog.verbose('Test message')
 ```
 
 ## Troubleshooting
 
 ### Logs not appearing?
-- Check you're using the correct parameter: `?debug=verbose` (not `?verbose=true`)
-- Check browser console filter (should show "All levels")
-- Try refreshing with the parameter in the URL
 
-### Too much output?
-- Use `?debug=quiet` for just the summary
-- Use `?debug=off` to disable completely
+1. **Check the URL parameter:**
+   - Use `?debug=verbose` or `?debug=true` (not `?verbose=true`)
+   - Make sure the parameter is in the URL bar
 
-### Want to see specific details?
-- Use `?debug=verbose` to see everything
-- Look for the nested tree structure (`┌─`, `│`, `└─`)
+2. **Check server setting:**
+   - Verify `ALLOW_DEBUG_OVERRIDE=true` in server `.env`
+   - Check `/api/users/config` endpoint to confirm
 
+3. **Check browser console:**
+   - Open DevTools (F12)
+   - Check Console tab
+   - Make sure filters aren't hiding logs
+
+4. **Try localStorage:**
+   ```javascript
+   localStorage.setItem('debug', 'true');
+   // Then refresh the page
+   ```
+
+### Still not working?
+
+1. **Verify in development first:**
+   - Debug logs should appear automatically in dev mode
+   - If they don't, check your code is using `debugLog()` correctly
+
+2. **Check build:**
+   - Make sure you've rebuilt and deployed after code changes
+   - Old builds won't have the latest debug code
+
+3. **Check browser cache:**
+   - Hard refresh: `Ctrl+Shift+R` (Windows/Linux) or `Cmd+Shift+R` (Mac)
+   - Or clear browser cache
+
+## Related Documentation
+
+- [Debug Mode Configuration](../setup-config/DEBUG-MODE.md) - Server-side debug settings
+- [Logging Standards](../../.cursor/rules/logging-standards.mdc) - When to use debug logs vs console logs

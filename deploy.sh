@@ -41,7 +41,7 @@ ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111 \
   "chown -R docutrainio:docutrainio /home/docutrainio/public_html && cd /home/docutrainio/public_html && \
   $DEPS_CMD \
   (pm2 stop docutrainio-bot || true) && (pm2 delete docutrainio-bot || true) && \
-  pm2 start server.js --name docutrainio-bot && pm2 save && \
+  pm2 start ecosystem.config.js --env production && pm2 save && \
   echo 'Sleeping 5 seconds for server to start...' && sleep 5 && \
   curl -s http://localhost:3458 > /dev/null && echo 'Server ready' && \
   echo '🗑️  Clearing backend cache...' && curl -X POST http://localhost:3458/api/refresh-registry && echo '' && echo '✅ Backend cache cleared'"
