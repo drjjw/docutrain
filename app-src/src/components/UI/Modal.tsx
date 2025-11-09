@@ -60,10 +60,10 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', allowClos
         <div
           className={`relative bg-white shadow-xl w-full z-10 ${
             fullscreen
-              ? 'h-[calc(100vh-1rem)] max-h-[calc(100vh-1rem)] flex flex-col rounded-lg md:rounded-lg' 
+              ? 'h-[calc(100vh-1rem)] max-h-[calc(100vh-1rem)] flex flex-col rounded-lg md:rounded-lg'
               : flexColumn
-              ? `h-full flex flex-col md:h-auto md:max-h-[calc(100vh-2rem)] md:rounded-lg md:${sizeClasses[size]}`
-              : `h-full flex flex-col md:h-auto md:max-h-[calc(100vh-2rem)] md:rounded-lg md:${sizeClasses[size]}`
+              ? `max-h-[85vh] h-full flex flex-col md:h-auto md:max-h-[calc(100vh-2rem)] md:rounded-lg md:${sizeClasses[size]}`
+              : `max-h-[85vh] h-full flex flex-col md:h-auto md:max-h-[calc(100vh-2rem)] md:rounded-lg md:${sizeClasses[size]}`
           }`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -89,9 +89,9 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', allowClos
 
           {/* Content */}
           <div className={`${
-            fullscreen || flexColumn 
-              ? 'p-4 flex-1 overflow-y-auto min-h-0 md:p-6' 
-              : 'p-4 md:p-6'
+            fullscreen || flexColumn
+              ? 'p-4 flex-1 overflow-y-auto min-h-0 md:p-6'
+              : 'p-4 overflow-y-auto flex-1 min-h-0 md:p-6 md:overflow-y-visible md:flex-none'
           }`}>
             {children}
           </div>

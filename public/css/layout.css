@@ -863,33 +863,3 @@ body:not(.local-env) .retrieval-selector {
     color: #dc3545;
 }
 
-/* Dark mode support for downloads/keywords headers */
-@media (prefers-color-scheme: dark) {
-    .downloads-keywords-container .downloads-header,
-    .downloads-keywords-container .document-keywords-header {
-        background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        color: #f3f4f6;
-    }
-    
-    .downloads-keywords-container .downloads-header:hover,
-    .downloads-keywords-container .document-keywords-header:hover {
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-        background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
-    }
-    
-    .downloads-keywords-container .downloads-header:active,
-    .downloads-keywords-container .document-keywords-header:active {
-        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
-    }
-    
-    .downloads-keywords-container .downloads-header svg,
-    .downloads-keywords-container .document-keywords-header svg {
-        color: #d1d5db;
-    }
-    
-    .downloads-keywords-container .downloads-header span,
-    .downloads-keywords-container .document-keywords-header .keywords-title {
-        color: #f3f4f6;
-    }
-}
