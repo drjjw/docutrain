@@ -38,14 +38,14 @@ Stores individual quiz questions for each quiz.
 - `quiz_id` (UUID, FOREIGN KEY) - References `quizzes.id`
 - `question_index` (INTEGER) - Order of question (0-based)
 - `question` (TEXT) - Question text
-- `options` (JSONB) - Array of exactly 4 option strings
-- `correct_answer` (INTEGER) - Index of correct answer (0-3)
+- `options` (JSONB) - Array of exactly 5 option strings
+- `correct_answer` (INTEGER) - Index of correct answer (0-4)
 - `created_at` (TIMESTAMPTZ) - Record creation timestamp
 
 **Constraints:**
 - `UNIQUE(quiz_id, question_index)` - One question per index per quiz
-- `CHECK(jsonb_array_length(options) = 4)` - Exactly 4 options required
-- `CHECK(correct_answer >= 0 AND correct_answer <= 3)` - Valid answer index
+- `CHECK(jsonb_array_length(options) = 5)` - Exactly 5 options required
+- `CHECK(correct_answer >= 0 AND correct_answer <= 4)` - Valid answer index
 
 **Indexes:**
 - `idx_quiz_questions_quiz_id` - Fast lookup by quiz
@@ -156,7 +156,7 @@ Retrieves stored quiz questions for a document.
   "questions": [
     {
       "question": "What is...?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "options": ["Option A", "Option B", "Option C", "Option D", "Option E"],
       "correctAnswer": 1
     }
   ],

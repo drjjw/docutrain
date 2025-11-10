@@ -9,8 +9,8 @@ import { getAPIUrl } from '@/utils/apiUrl';
 export interface QuizQuestion {
   id?: string; // Question ID from database (for tracking which questions were used)
   question: string;
-  options: [string, string, string, string]; // Exactly 4 options
-  correctAnswer: number; // Index 0-3
+  options: [string, string, string, string, string]; // Exactly 5 options
+  correctAnswer: number; // Index 0-4
 }
 
 export interface QuizResponse {
