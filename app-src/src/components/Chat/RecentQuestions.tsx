@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { getAuthHeaders } from '@/lib/api/authService';
+import { usePermissions } from '@/hooks/usePermissions';
 import { debugLog } from '@/utils/debug';
 
 interface RecentQuestion {
@@ -73,7 +74,9 @@ export function RecentQuestions({
   const [questions, setQuestions] = useState<RecentQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const { isSuperAdmin } = usePermissions();
   // Initialize collapsed state - start collapsed on mobile, expanded on desktop
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -202,6 +205,40 @@ export function RecentQuestions({
     }
   };
 
+  const handleDelete = async (e: React.MouseEvent, conversationId: string) => {
+    e.stopPropagation(); // Prevent triggering the question click
+    
+    if (!window.confirm('Are you sure you want to delete this question?')) {
+      return;
+    }
+
+    try {
+      setDeletingId(conversationId);
+      
+      const response = await fetch(
+        `/api/conversations/${conversationId}`,
+        {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to delete conversation' }));
+        throw new Error(errorData.error || 'Failed to delete conversation');
+      }
+
+      // Remove from local state
+      setQuestions((prev) => prev.filter(q => q.id !== conversationId));
+      debugLog('[RecentQuestions] Deleted conversation:', conversationId);
+    } catch (err) {
+      console.error('[RecentQuestions] Error deleting conversation:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete conversation');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   if (loading && questions.length === 0) {
     return (
       <div className="recent-questions-container">
@@ -284,35 +321,60 @@ export function RecentQuestions({
       {!isCollapsed && (
         <div className="recent-questions-grid" style={{ gridTemplateColumns: getGridColumns() }}>
           {questions.map((q) => (
-            <button
+            <div
               key={q.id}
-              onClick={() => handleQuestionClick(q.question)}
-              className="recent-question-card"
-              type="button"
+              className="recent-question-card-wrapper"
             >
-              <div className="recent-question-content">
-                <svg 
-                  className="recent-question-icon" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
+              <button
+                onClick={() => handleQuestionClick(q.question)}
+                className="recent-question-card"
+                type="button"
+              >
+                <div className="recent-question-content">
+                  <svg 
+                    className="recent-question-icon" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" 
+                    />
+                  </svg>
+                  <span className="recent-question-text">{q.question}</span>
+                  {showCountryFlags && q.country && getCountryFlagClass(q.country) && (
+                    <span 
+                      className={`recent-question-country ${getCountryFlagClass(q.country)}`}
+                      title={q.country}
+                    />
+                  )}
+                </div>
+              </button>
+              {isSuperAdmin && (
+                <button
+                  onClick={(e) => handleDelete(e, q.id)}
+                  className="recent-question-delete"
+                  type="button"
+                  aria-label="Delete question"
+                  disabled={deletingId === q.id}
+                  title="Delete this question"
                 >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" 
-                  />
-                </svg>
-                <span className="recent-question-text">{q.question}</span>
-                {showCountryFlags && q.country && getCountryFlagClass(q.country) && (
-                  <span 
-                    className={`recent-question-country ${getCountryFlagClass(q.country)}`}
-                    title={q.country}
-                  />
-                )}
-              </div>
-            </button>
+                  {deletingId === q.id ? (
+                    <svg className="recent-question-delete-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg className="recent-question-delete-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  )}
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}

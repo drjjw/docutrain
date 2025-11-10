@@ -12,6 +12,8 @@
 import { RefObject, FormEvent } from 'react';
 import { DocutrainFooter } from '@/components/Chat/DocutrainFooter';
 
+const MAX_INPUT_LENGTH = 1500;
+
 interface ChatInputProps {
   // Input state
   inputRef: RefObject<HTMLInputElement | null>;
@@ -55,34 +57,64 @@ export function ChatInput({
     onSubmit();
   };
 
+  const handleInputChange = (value: string) => {
+    // Enforce character limit
+    if (value.length <= MAX_INPUT_LENGTH) {
+      onInputChange(value);
+    }
+  };
+
+  const remainingChars = MAX_INPUT_LENGTH - inputValue.length;
+  const isNearLimit = remainingChars < 100;
+  const isAtLimit = remainingChars === 0;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[100]">
       {/* Chat input form */}
       <div 
         className="border-t border-gray-200 p-3 md:p-4"
         style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.75)',
+          backgroundColor: 'rgba(255, 255, 255, 0.6)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.08), 0 -2px 8px rgba(0, 0, 0, 0.04)',
-          borderTop: '1px solid rgba(229, 231, 235, 0.8)',
-          backgroundImage: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.75) 100%)'
+          borderTop: '1px solid rgba(229, 231, 235, 0.6)',
+          backgroundImage: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%)'
         }}
       >
         <form
           onSubmit={handleSubmit}
           className="flex gap-3 max-w-4xl mx-auto"
         >
-          <input
-            ref={inputRef}
-            id="messageInput"
-            type="text"
-            value={inputValue}
-            onChange={(e) => onInputChange(e.target.value)}
-            placeholder={documentSlug ? "Ask a question..." : "Select a document to start chatting..."}
-            className="flex-1 px-3 md:px-4 py-2.5 md:py-3 text-base border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200 focus:scale-[1.01] transition-all duration-200 ease-in-out shadow-sm hover:shadow-md focus:shadow-lg"
-            disabled={isLoading || !documentSlug || !!rateLimitError || !!conversationLimitError}
-          />
+          <div className="flex-1 relative">
+            <input
+              ref={inputRef}
+              id="messageInput"
+              type="text"
+              value={inputValue}
+              onChange={(e) => handleInputChange(e.target.value)}
+              placeholder={documentSlug ? "Ask a question..." : "Select a document to start chatting..."}
+              maxLength={MAX_INPUT_LENGTH}
+              className={`w-full px-3 md:px-4 py-2.5 md:py-3 pr-12 md:pr-14 text-base border rounded-xl bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:scale-[1.01] transition-all duration-200 ease-in-out shadow-sm hover:shadow-md focus:shadow-lg ${
+                isAtLimit 
+                  ? 'border-red-300 focus:border-red-400 focus:ring-red-200' 
+                  : isNearLimit 
+                    ? 'border-yellow-300 focus:border-yellow-400 focus:ring-yellow-200' 
+                    : 'border-gray-300 focus:border-gray-400 focus:ring-gray-200'
+              }`}
+              disabled={isLoading || !documentSlug || !!rateLimitError || !!conversationLimitError}
+            />
+            {/* Character counter */}
+            <div className={`absolute right-3 md:right-4 bottom-2.5 md:bottom-3 text-xs pointer-events-none ${
+              isAtLimit 
+                ? 'text-red-600 font-semibold' 
+                : isNearLimit 
+                  ? 'text-yellow-600' 
+                  : 'text-gray-400'
+            }`}>
+              {remainingChars}
+            </div>
+          </div>
           <button
             type="submit"
             id="sendButton"

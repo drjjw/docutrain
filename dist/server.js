@@ -556,96 +556,14 @@ app.get('/', async (req, res, next) => {
 // Serve static files for main app BEFORE dynamic routes
 app.use(express.static(path.join(__dirname, 'public')));
 
-// DEPRECATED: Redirect /chat to React app (/app/chat)
-// The vanilla JS chat.html is deprecated - all functionality migrated to React
+// Redirect deprecated /chat route to React app
+// The vanilla JS chat.html has been moved to deprecated/public/chat.html
 app.get('/chat', async (req, res) => {
     // Redirect to React app, preserving query parameters
     const queryString = new URLSearchParams(req.query).toString();
     const redirectUrl = `/app/chat${queryString ? '?' + queryString : ''}`;
     console.log(`🔄 Redirecting deprecated /chat route to React app: ${redirectUrl}`);
     return res.redirect(redirectUrl);
-    
-    // OLD CODE BELOW - Kept for reference but never executed
-    // NOTE: Files have been moved to deprecated/public/chat.html
-    /*
-    const chatPath = path.join(__dirname, 'deprecated/public/chat.html');
-    
-    // If there's a doc parameter, inject dynamic meta tags
-    if (req.query.doc) {
-        try {
-            let html = require('fs').readFileSync(chatPath, 'utf8');
-            
-            // Parse multiple documents (support for + separator)
-            const docSlugs = req.query.doc.split(/[\s+]+/).map(s => s.trim()).filter(s => s);
-            
-            if (docSlugs.length > 0) {
-                // Fetch document configs
-                const docConfigs = await Promise.all(
-                    docSlugs.map(slug => documentRegistry.getDocumentBySlug(slug))
-                );
-                
-                // Filter out null results
-                const validConfigs = docConfigs.filter(c => c !== null);
-                
-                if (validConfigs.length > 0) {
-                    // Build title and description
-                    const isMultiDoc = validConfigs.length > 1;
-                    const combinedTitle = validConfigs.map(c => c.title).join(' + ');
-                    const metaDescription = isMultiDoc 
-                        ? `Multi-document search across ${validConfigs.length} documents: ${combinedTitle}`
-                        : (validConfigs[0].subtitle || validConfigs[0].welcome_message || 'AI-powered document assistant');
-                    
-                    // Escape HTML to prevent XSS
-                    const escapedTitle = escapeHtml(combinedTitle);
-                    const escapedDescription = escapeHtml(metaDescription);
-                    
-                    // Replace meta tags in HTML
-                    html = html.replace(
-                        /<title>.*?<\/title>/,
-                        `<title>${escapedTitle}</title>`
-                    );
-                    
-                    html = html.replace(
-                        /<meta name="description" content=".*?">/,
-                        `<meta name="description" content="${escapedDescription}">`
-                    );
-                    
-                    html = html.replace(
-                        /<meta property="og:title" content=".*?">/,
-                        `<meta property="og:title" content="${escapedTitle}">`
-                    );
-                    
-                    html = html.replace(
-                        /<meta property="og:description" content=".*?">/,
-                        `<meta property="og:description" content="${escapedDescription}">`
-                    );
-                    
-                    html = html.replace(
-                        /<meta name="twitter:title" content=".*?">/,
-                        `<meta name="twitter:title" content="${escapedTitle}">`
-                    );
-                    
-                    html = html.replace(
-                        /<meta name="twitter:description" content=".*?">/,
-                        `<meta name="twitter:description" content="${escapedDescription}">`
-                    );
-                    
-                    console.log(`📄 Serving chat.html with dynamic meta tags for: ${combinedTitle}`);
-                }
-            }
-            
-            // Send the modified HTML
-            res.send(html);
-        } catch (error) {
-            console.error('Error serving chat.html with dynamic meta tags:', error);
-            // Fallback to static file on error
-            res.sendFile(chatPath);
-        }
-    } else {
-        // No doc parameter, just serve the chat page
-        res.sendFile(chatPath);
-    }
-    */
 });
 
 // Document routes are mounted earlier (before error handler) - see line 193
