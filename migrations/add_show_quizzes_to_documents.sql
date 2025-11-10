@@ -15,3 +15,4 @@ WHERE show_quizzes IS NULL;
 COMMENT ON COLUMN documents.show_quizzes IS 'Show quiz button in document interface. Defaults to false.';
 
 
+

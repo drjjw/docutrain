@@ -318,8 +318,10 @@ function initChatModal() {
         allowScroll();
     }
     
-    // Open modal when button is clicked
-    tryDocutrainBtn.addEventListener('click', openModal);
+    // Open in new window when button is clicked
+    tryDocutrainBtn.addEventListener('click', () => {
+        window.open(chatUrl, '_blank', 'noopener,noreferrer');
+    });
     
     // Close modal when close button is clicked
     if (closeBtn) {

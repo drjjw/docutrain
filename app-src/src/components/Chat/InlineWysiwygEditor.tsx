@@ -38,14 +38,20 @@ function normalizeLineBreaks(html: string): string {
     div.parentNode?.replaceChild(p, div);
   });
   
-  // Convert empty <p> tags to <br> tags
+  // Convert empty <p> tags to <br> tags (but preserve structure)
   const emptyPs = tempDiv.querySelectorAll('p:empty');
   emptyPs.forEach(p => {
     const br = document.createElement('br');
     p.parentNode?.replaceChild(br, p);
   });
   
-  return tempDiv.innerHTML;
+  let result = tempDiv.innerHTML;
+  
+  // Remove leading/trailing empty paragraphs and breaks
+  result = result.replace(/^(<p><\/p>|<br\s*\/?>|\s)+/gi, '');
+  result = result.replace(/(<p><\/p>|<br\s*\/?>|\s)+$/gi, '');
+  
+  return result;
 }
 
 /**
@@ -198,7 +204,19 @@ export function InlineWysiwygEditor({
   // Initialize editor content only once when entering edit mode
   useEffect(() => {
     if (isEditing && editorRef.current && !isInitializedRef.current) {
-      editorRef.current.innerHTML = value;
+      // Clean the value before setting it to prevent browser from adding extra wrappers
+      let cleanValue = value || '';
+      
+      // Remove leading/trailing empty paragraphs and breaks
+      cleanValue = cleanValue.replace(/^(<p><\/p>|<br\s*\/?>|\s)+/gi, '');
+      cleanValue = cleanValue.replace(/(<p><\/p>|<br\s*\/?>|\s)+$/gi, '');
+      
+      // If empty, set to empty string (not empty paragraph)
+      if (!cleanValue.trim()) {
+        cleanValue = '';
+      }
+      
+      editorRef.current.innerHTML = cleanValue;
       isInitializedRef.current = true;
       
       // Set default paragraph separator
@@ -211,8 +229,14 @@ export function InlineWysiwygEditor({
       const range = document.createRange();
       const selection = window.getSelection();
       if (selection && editorRef.current) {
-        range.selectNodeContents(editorRef.current);
-        range.collapse(false); // Collapse to end
+        if (editorRef.current.childNodes.length > 0) {
+          range.selectNodeContents(editorRef.current);
+          range.collapse(false); // Collapse to end
+        } else {
+          // If empty, set cursor at the start
+          range.setStart(editorRef.current, 0);
+          range.collapse(true);
+        }
         selection.removeAllRanges();
         selection.addRange(range);
       }
@@ -231,9 +255,25 @@ export function InlineWysiwygEditor({
     // Normalize and sanitize HTML
     let newValue = editorRef.current.innerHTML;
     debugLog('📝 Before sanitization:', newValue);
+    
+    // Convert divs to paragraphs first
     newValue = newValue.replace(/<div>/gi, '<p>').replace(/<\/div>/gi, '</p>');
+    
+    // Remove leading/trailing empty paragraphs and breaks
+    // This prevents extra line breaks at top and bottom
+    newValue = newValue.replace(/^(<p><\/p>|<br\s*\/?>|\s)+/gi, '');
+    newValue = newValue.replace(/(<p><\/p>|<br\s*\/?>|\s)+$/gi, '');
+    
+    // Convert remaining empty paragraphs to breaks (but not at start/end)
     newValue = newValue.replace(/<p><\/p>/gi, '<br>');
+    
+    // Sanitize the HTML
     newValue = sanitizeHTML(newValue);
+    
+    // Final trim of leading/trailing breaks and whitespace
+    newValue = newValue.replace(/^(<br\s*\/?>|\s)+/gi, '');
+    newValue = newValue.replace(/(<br\s*\/?>|\s)+$/gi, '');
+    
     debugLog('✅ After sanitization:', newValue);
     
     // Check if links have target="_blank"
@@ -358,6 +398,55 @@ export function InlineWysiwygEditor({
           flexColumn={true}
         >
           <div className="flex flex-col h-full">
+            {/* Style to match final rendered output */}
+            <style>{`
+              #${id || 'wysiwyg-editor'}-editor {
+                line-height: 1.7;
+                color: #212529;
+              }
+              #${id || 'wysiwyg-editor'}-editor p {
+                margin: 10px 0;
+                line-height: 1.7;
+              }
+              #${id || 'wysiwyg-editor'}-editor p:first-child {
+                margin-top: 0;
+              }
+              #${id || 'wysiwyg-editor'}-editor p:last-child {
+                margin-bottom: 0;
+              }
+              #${id || 'wysiwyg-editor'}-editor ul,
+              #${id || 'wysiwyg-editor'}-editor ol {
+                margin: 8px 0;
+                padding-left: 30px;
+              }
+              #${id || 'wysiwyg-editor'}-editor ul {
+                list-style: disc;
+              }
+              #${id || 'wysiwyg-editor'}-editor ol {
+                list-style: auto;
+              }
+              #${id || 'wysiwyg-editor'}-editor li {
+                margin: 5px 0;
+                line-height: 1.7;
+              }
+              #${id || 'wysiwyg-editor'}-editor strong {
+                font-weight: 600;
+                color: #333;
+              }
+              #${id || 'wysiwyg-editor'}-editor em {
+                font-style: italic;
+                color: #666;
+                font-size: 0.95em;
+              }
+              #${id || 'wysiwyg-editor'}-editor a {
+                font-weight: bold;
+                color: #007bff;
+                text-decoration: underline;
+              }
+              #${id || 'wysiwyg-editor'}-editor a:hover {
+                color: #0056b3;
+              }
+            `}</style>
             {/* Toolbar */}
             <div ref={toolbarRef} className="inline-editor-toolbar mb-4 flex-shrink-0">
               <button
@@ -490,7 +579,7 @@ export function InlineWysiwygEditor({
         title="Click to edit"
         style={{
           position: 'absolute',
-          top: '4px',
+          top: '-8px',
           right: '4px',
           background: 'rgba(0, 0, 0, 0.7)',
           color: 'white',

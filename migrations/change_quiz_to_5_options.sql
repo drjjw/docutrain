@@ -58,3 +58,4 @@ COMMENT ON COLUMN quiz_questions.correct_answer IS 'Index of correct answer (0-4
 -- 4. Changed correct_answer constraint from 0-3 to 0-4
 -- 5. Updated column comments to reflect 5 options
 
+

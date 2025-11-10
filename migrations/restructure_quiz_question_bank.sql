@@ -84,3 +84,4 @@ DROP INDEX IF EXISTS idx_quiz_questions_quiz_id_index;
 -- 4. quiz_attempts.question_ids: JSONB array of question IDs used in attempt
 -- 5. Removed ordering requirement for questions
 
+
