@@ -15,6 +15,8 @@ import { DocumentDisclaimerCard } from './DocumentDisclaimerCard';
 import { DocumentDownloadsCard } from './DocumentDownloadsCard';
 import { DocumentMetadataCard } from './DocumentMetadataCard';
 import { DocumentEmbedCodeCard } from './DocumentEmbedCodeCard';
+import { QuizQuestionsAndStats } from './QuizQuestionsAndStats';
+import { QuizGenerationSection } from './QuizGenerationSection';
 import type { DocumentEditorModalProps } from './types';
 import { debugLog } from '@/utils/debug';
 
@@ -22,6 +24,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   const [editingValues, setEditingValues] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [retraining, setRetraining] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [yearError, setYearError] = useState<string | null>(null);
@@ -128,6 +131,11 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   const handleFieldChange = (field: string, value: any) => {
     debugLog('DocumentEditorModal: Field change:', field, value);
     
+    // Clear success message when user starts editing
+    if (successMessage) {
+      setSuccessMessage(null);
+    }
+    
     // Validate year field
     if (field === 'year') {
       if (value === null || value === '') {
@@ -166,6 +174,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
     try {
       setSaving(true);
       setError(null);
+      setSuccessMessage(null);
 
       // Validate year before saving
       const yearValue = editingValues.year;
@@ -227,7 +236,16 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         }));
       }, 200);
       
-      onSave();
+      // Show success message
+      setSuccessMessage('Changes saved');
+      
+      // Auto-dismiss success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+      
+      // Don't call onSave() to keep modal open - user can continue editing
+      // The document-updated event will refresh the data in the background
     } catch (error) {
       console.error('Failed to save document:', error);
       setError(error instanceof Error ? error.message : 'Failed to save changes. Please try again.');
@@ -362,10 +380,15 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                 <Tab index={2}>Training History</Tab>
                 <Tab index={3}>Settings & Access</Tab>
                 <Tab index={4}>Options</Tab>
-                <Tab index={5}>Disclaimer</Tab>
-                <Tab index={6}>Attachments</Tab>
-                <Tab index={7}>Embed Code</Tab>
-                {isSuperAdmin && <Tab index={8}>Metadata</Tab>}
+                {editingValues.show_quizzes === true && (
+                  <Tab index={5}>Quiz</Tab>
+                )}
+                <Tab index={editingValues.show_quizzes === true ? 6 : 5}>Disclaimer</Tab>
+                <Tab index={editingValues.show_quizzes === true ? 7 : 6}>Attachments</Tab>
+                <Tab index={editingValues.show_quizzes === true ? 8 : 7}>Embed Code</Tab>
+                {isSuperAdmin && (
+                  <Tab index={editingValues.show_quizzes === true ? 9 : 8}>Metadata</Tab>
+                )}
               </TabList>
 
               <TabPanels>
@@ -493,40 +516,113 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                   </div>
                 </TabPanel>
 
-                {/* Tab 5: Disclaimer */}
+                {/* Tab 5: Quiz (when enabled) or Disclaimer (when disabled) */}
                 <TabPanel>
-                  <div className="space-y-8">
-                    <DocumentDisclaimerCard
-                      showDisclaimer={editingValues.show_disclaimer || false}
-                      disclaimerText={editingValues.disclaimer_text || null}
-                      onFieldChange={handleFieldChange}
-                    />
-                  </div>
+                  {editingValues.show_quizzes === true ? (
+                    <div className="space-y-8">
+                      {editingValues.quizzes_generated === true ? (
+                        <QuizQuestionsAndStats documentSlug={editingValues.slug || document.slug || ''} />
+                      ) : (
+                        <>
+                          <QuizGenerationSection
+                            documentSlug={editingValues.slug || document.slug || ''}
+                            quizzesGenerated={editingValues.quizzes_generated === true}
+                            isSuperAdmin={isSuperAdmin}
+                            onGenerationSuccess={() => {
+                              handleFieldChange('quizzes_generated', true);
+                            }}
+                          />
+                          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                            <div className="flex items-start gap-3">
+                              <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <div>
+                                <p className="text-sm font-medium text-amber-900 mb-1">
+                                  Quiz questions need to be generated
+                                </p>
+                                <p className="text-sm text-amber-800">
+                                  Generate quiz questions using the button above. Once questions are generated, they will appear here and quizzes will be available to users.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-8">
+                      <DocumentDisclaimerCard
+                        showDisclaimer={editingValues.show_disclaimer || false}
+                        disclaimerText={editingValues.disclaimer_text || null}
+                        onFieldChange={handleFieldChange}
+                      />
+                    </div>
+                  )}
                 </TabPanel>
 
-                {/* Tab 6: Attachments */}
+                {/* Tab 6: Disclaimer (when quiz enabled) or Attachments (when quiz disabled) */}
                 <TabPanel>
-                  <div className="space-y-8">
-                    <DocumentDownloadsCard
-                      downloads={editingValues.downloads || []}
-                      onDownloadsChange={(downloads) => handleFieldChange('downloads', downloads)}
-                      documentId={document.id}
-                    />
-                  </div>
+                  {editingValues.show_quizzes === true ? (
+                    <div className="space-y-8">
+                      <DocumentDisclaimerCard
+                        showDisclaimer={editingValues.show_disclaimer || false}
+                        disclaimerText={editingValues.disclaimer_text || null}
+                        onFieldChange={handleFieldChange}
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-8">
+                      <DocumentDownloadsCard
+                        downloads={editingValues.downloads || []}
+                        onDownloadsChange={(downloads) => handleFieldChange('downloads', downloads)}
+                        documentId={document.id}
+                      />
+                    </div>
+                  )}
                 </TabPanel>
 
-                {/* Tab 7: Embed Code */}
+                {/* Tab 7: Attachments (when quiz enabled) or Embed Code (when quiz disabled) */}
                 <TabPanel>
-                  <div className="space-y-8">
-                    <DocumentEmbedCodeCard
-                      documentSlug={editingValues.slug || document.slug || ''}
-                      documentTitle={editingValues.title || document.title || ''}
-                    />
-                  </div>
+                  {editingValues.show_quizzes === true ? (
+                    <div className="space-y-8">
+                      <DocumentDownloadsCard
+                        downloads={editingValues.downloads || []}
+                        onDownloadsChange={(downloads) => handleFieldChange('downloads', downloads)}
+                        documentId={document.id}
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-8">
+                      <DocumentEmbedCodeCard
+                        documentSlug={editingValues.slug || document.slug || ''}
+                        documentTitle={editingValues.title || document.title || ''}
+                      />
+                    </div>
+                  )}
                 </TabPanel>
 
-                {/* Tab 8: Metadata (Super Admin Only) */}
-                {isSuperAdmin && (
+                {/* Tab 8: Embed Code (when quiz enabled) or Metadata (when quiz disabled and super admin) */}
+                <TabPanel>
+                  {editingValues.show_quizzes === true ? (
+                    <div className="space-y-8">
+                      <DocumentEmbedCodeCard
+                        documentSlug={editingValues.slug || document.slug || ''}
+                        documentTitle={editingValues.title || document.title || ''}
+                      />
+                    </div>
+                  ) : isSuperAdmin ? (
+                    <div className="space-y-8">
+                      <DocumentMetadataCard
+                        document={document}
+                        isSuperAdmin={isSuperAdmin}
+                      />
+                    </div>
+                  ) : null}
+                </TabPanel>
+
+                {/* Tab 9: Metadata (Super Admin Only, only when quiz enabled) */}
+                {isSuperAdmin && editingValues.show_quizzes === true && (
                   <TabPanel>
                     <div className="space-y-8">
                       <DocumentMetadataCard
@@ -541,7 +637,16 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 px-4 py-3 md:px-6 md:py-4 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0">
+          <div className="bg-gray-50 px-4 py-3 md:px-6 md:py-4 border-t border-gray-200 flex items-center justify-end gap-3 flex-shrink-0">
+            {/* Success message */}
+            {successMessage && (
+              <div className="flex items-center gap-2 text-sm text-green-600">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>{successMessage}</span>
+              </div>
+            )}
             <Button
               variant="outline"
               onClick={handleClose}
@@ -556,7 +661,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
               loading={saving}
               className="flex-1 md:flex-none"
             >
-              {retraining ? 'Retraining in progress...' : 'Save Changes'}
+              {retraining ? 'Retraining in progress...' : 'Apply'}
             </Button>
           </div>
         </div>

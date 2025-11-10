@@ -14,6 +14,8 @@
  * Server control: Set ALLOW_DEBUG_OVERRIDE=false in server .env to disable runtime overrides
  */
 
+import { getAPIUrl } from './apiUrl';
+
 // Cache for server's debug override setting
 let allowDebugOverride: boolean | null = null;
 let overrideCheckPromise: Promise<boolean> | null = null;
@@ -43,7 +45,7 @@ async function checkAllowDebugOverride(): Promise<boolean> {
   // Start async check
   overrideCheckPromise = (async () => {
     try {
-      const response = await fetch('/api/debug-config');
+      const response = await fetch(`${getAPIUrl()}/api/debug-config`);
       if (response.ok) {
         const data = await response.json();
         allowDebugOverride = data.allowDebugOverride !== false;

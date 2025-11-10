@@ -90,7 +90,8 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
 
       // Make API call with retry logic for 401 errors
       const makeRequest = async (token: string) => {
-        return await fetch('/api/user-documents', {
+        const { getAPIUrl } = await import('@/utils/apiUrl');
+        return await fetch(`${getAPIUrl()}/api/user-documents`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

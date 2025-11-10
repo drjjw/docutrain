@@ -47,6 +47,7 @@ interface DownloadsAndKeywordsProps {
   onKeywordClick?: (term: string) => void; // Callback for keyword clicks
   onQuizClick?: () => void; // Callback for quiz button click
   documentSlug?: string | null; // Document slug for quiz button visibility
+  showQuizzes?: boolean; // Whether quizzes are enabled for this document
 }
 
 // Height equalization no longer needed with unified container
@@ -60,6 +61,7 @@ export function DownloadsAndKeywords({
   onKeywordClick,
   onQuizClick,
   documentSlug,
+  showQuizzes = false,
 }: DownloadsAndKeywordsProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -145,8 +147,8 @@ export function DownloadsAndKeywords({
     return Array.isArray(downloads) && downloads.length > 0;
   }, [downloads]);
 
-  // Don't render if neither keywords nor downloads are present
-  if (!hasKeywords && !hasDownloads) {
+  // Don't render if neither keywords, downloads, nor quizzes are present
+  if (!hasKeywords && !hasDownloads && showQuizzes !== true) {
     return null;
   }
 
@@ -182,28 +184,33 @@ export function DownloadsAndKeywords({
     <>
       {/* Trigger Button */}
       <div className="downloads-keywords-drawer-trigger" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-        <button
-          onClick={handleOpenDrawer}
-          className="drawer-trigger-button"
-          aria-label={`Open ${buttonText}`}
-          type="button"
-        >
-          <div className="drawer-trigger-content">
-            <span>{buttonText}</span>
-            <div className="drawer-plus-icon">
-              <Plus size={16} />
+        {/* Only show Downloads/Keywords button if there are keywords or downloads */}
+        {(hasKeywords || hasDownloads) && (
+          <button
+            onClick={handleOpenDrawer}
+            className="drawer-trigger-button"
+            aria-label={`Open ${buttonText}`}
+            type="button"
+          >
+            <div className="drawer-trigger-content">
+              <span>{buttonText}</span>
+              <div className="drawer-plus-icon">
+                <Plus size={16} />
+              </div>
             </div>
-          </div>
-        </button>
+          </button>
+        )}
         
-        {/* Quiz Button - shown if quizzes are enabled, keywords are shown, and documentSlug is available */}
-        {hasKeywords && onQuizClick && documentSlug && (
+        {/* Quiz Button - shown if quizzes are enabled and documentSlug is available */}
+        {showQuizzes === true && onQuizClick && documentSlug && (
           <>
-            <span style={{ color: '#9ca3af', fontSize: '14px' }}>|</span>
+            {(hasKeywords || hasDownloads) && (
+              <span style={{ color: '#9ca3af', fontSize: '14px' }}>|</span>
+            )}
             <button
               onClick={onQuizClick}
               className="drawer-trigger-button"
-              aria-label="Generate quiz"
+              aria-label="Take quiz"
               type="button"
             >
               <div className="drawer-trigger-content">

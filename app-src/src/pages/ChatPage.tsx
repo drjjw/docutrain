@@ -378,10 +378,11 @@ function ChatPageContent({
         isLoading={quiz.isLoading}
         error={quiz.error}
         questions={quiz.questions}
+        questionIds={quiz.questionIds}
         selectedAnswers={quiz.selectedAnswers}
         documentTitle={quiz.documentTitle}
         currentQuestionIndex={quiz.currentQuestionIndex}
-        quizId={quiz.quizId}
+        documentSlug={quiz.documentSlug}
         onSelectAnswer={quiz.selectAnswer}
         onNextQuestion={quiz.goToNextQuestion}
         onPreviousQuestion={quiz.goToPreviousQuestion}

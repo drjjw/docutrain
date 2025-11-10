@@ -3,24 +3,29 @@
  * Handles quiz generation API calls
  */
 
+import { debugLog } from '@/utils/debug';
+import { getAPIUrl } from '@/utils/apiUrl';
+
 export interface QuizQuestion {
+  id?: string; // Question ID from database (for tracking which questions were used)
   question: string;
   options: [string, string, string, string]; // Exactly 4 options
   correctAnswer: number; // Index 0-3
 }
 
 export interface QuizResponse {
-  quizId?: string;
   questions: QuizQuestion[];
+  questionIds?: string[]; // Array of question IDs used in this attempt
   documentSlug: string;
   documentTitle: string;
-  generatedAt: string;
+  generatedAt: string | null;
   numQuestions: number;
+  quizSize?: number; // Number of questions per attempt (default: 5)
+  bankSize?: number; // Total questions in the question bank
 }
 
 export interface GenerateAndStoreResponse {
   success: boolean;
-  quizId: string;
   documentSlug: string;
   numQuestions: number;
   generatedAt: string;
@@ -39,34 +44,24 @@ export interface QuizAttemptResponse {
   attemptId: string;
   score: number;
   totalQuestions: number;
+  questionIds?: string[] | null; // Question IDs used in this attempt
   completedAt: string;
 }
 
-/**
- * Get API URL from environment or use default
- */
-function getAPIUrl(): string {
-  // In development (Vite dev server), API is on different port
-  const isDev = import.meta.env.DEV;
-  
-  if (isDev) {
-    // Direct to backend server in development
-    return 'http://localhost:3458';
-  }
-  
-  // In production, API routes are at the root, not under /app
-  // If we're at /app/chat, we need to go to root for /api routes
-  const pathname = window.location.pathname;
-  
-  // If we're in /app/*, remove /app to get the root
-  if (pathname.startsWith('/app/')) {
-    return window.location.origin;
-  }
-  
-  // Otherwise, use current directory
-  const baseDir = pathname.substring(0, pathname.lastIndexOf('/') + 1);
-  return (window.location.origin + baseDir).replace(/\/$/, '');
+export interface QuizStatisticsResponse {
+  documentSlug: string;
+  numQuestions: number;
+  generatedAt: string | null;
+  totalAttempts: number;
+  authenticatedAttempts: number;
+  anonymousAttempts: number;
+  averageScore: number;
+  averagePercentage: number;
+  highestScore: number;
+  lowestScore: number;
+  totalQuestions: number;
 }
+
 
 /**
  * Get authentication token from localStorage
@@ -156,6 +151,18 @@ export async function generateAndStoreQuiz(
     throw new Error('Authentication required to generate quizzes');
   }
   
+  const apiUrl = getAPIUrl();
+  const fullUrl = `${apiUrl}/api/quiz/generate-and-store`;
+  
+  debugLog('[QuizAPI] Generating quiz questions:', {
+    documentSlug,
+    apiUrl,
+    fullUrl,
+    hostname: window.location.hostname,
+    port: window.location.port,
+    isDev: import.meta.env.DEV
+  });
+  
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${authToken}`,
@@ -166,14 +173,53 @@ export async function generateAndStoreQuiz(
     body.numQuestions = numQuestions;
   }
   
-  const response = await fetch(`${getAPIUrl()}/api/quiz/generate-and-store`, {
+  const response = await fetch(fullUrl, {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
   });
   
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+    let errorData: any;
+    let errorText: string | null = null;
+    
+    // Check if this might be a backend connection issue
+    if (response.status === 500 || response.status === 502 || response.status === 503) {
+      debugLog('[QuizAPI] Backend server error - checking if backend is running...');
+      // Try to provide helpful error message
+      const isDev = import.meta.env.DEV || window.location.hostname === 'localhost';
+      if (isDev) {
+        console.error('[QuizAPI] ⚠️  Backend server may not be running on port 3458');
+        console.error('[QuizAPI] 💡 Try running: npm run dev (in a separate terminal)');
+        console.error('[QuizAPI] 💡 Or run both together: npm run dev:all');
+      }
+    }
+    
+    // Try to get error details from response
+    try {
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        errorData = await response.json();
+      } else {
+        errorText = await response.text();
+        debugLog('[QuizAPI] Non-JSON error response:', errorText);
+        errorData = { message: errorText || `HTTP ${response.status}` };
+      }
+    } catch (parseError) {
+      debugLog('[QuizAPI] Failed to parse error response:', parseError);
+      errorText = await response.text().catch(() => null);
+      errorData = { 
+        message: errorText || `HTTP ${response.status}: ${response.statusText}`,
+        error: 'Failed to parse error response'
+      };
+    }
+    
+    debugLog('[QuizAPI] Error response:', {
+      status: response.status,
+      statusText: response.statusText,
+      errorData,
+      errorText
+    });
     
     // Check if it's a regeneration limit error
     if (response.status === 429 && errorData.nextAllowedDate) {
@@ -186,7 +232,14 @@ export async function generateAndStoreQuiz(
       throw limitError;
     }
     
-    throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`);
+    // Provide helpful error message
+    let errorMessage = errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+    const isDevMode = import.meta.env.DEV || window.location.hostname === 'localhost';
+    if (response.status === 500 && isDevMode) {
+      errorMessage += ' (Backend server may not be running - check terminal)';
+    }
+    
+    throw new Error(errorMessage);
   }
   
   const data: GenerateAndStoreResponse = await response.json();
@@ -236,16 +289,18 @@ export async function getQuiz(documentSlug: string): Promise<QuizResponse> {
 /**
  * Submit a quiz attempt with score
  * 
- * @param quizId - Quiz ID
+ * @param documentSlug - Document slug
  * @param score - Number of correct answers
+ * @param questionIds - Array of question IDs used in this attempt (optional but recommended)
  * @returns Promise with attempt response
  */
 export async function submitQuizAttempt(
-  quizId: string,
-  score: number
+  documentSlug: string,
+  score: number,
+  questionIds?: string[]
 ): Promise<QuizAttemptResponse> {
-  if (!quizId) {
-    throw new Error('quizId is required');
+  if (!documentSlug) {
+    throw new Error('documentSlug is required');
   }
   
   if (typeof score !== 'number' || score < 0) {
@@ -261,13 +316,20 @@ export async function submitQuizAttempt(
     headers['Authorization'] = `Bearer ${authToken}`;
   }
   
+  const body: { documentSlug: string; score: number; questionIds?: string[] } = {
+    documentSlug,
+    score,
+  };
+  
+  // Include questionIds if provided
+  if (questionIds && Array.isArray(questionIds) && questionIds.length > 0) {
+    body.questionIds = questionIds;
+  }
+  
   const response = await fetch(`${getAPIUrl()}/api/quiz/attempt`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({
-      quizId,
-      score,
-    }),
+    body: JSON.stringify(body),
   });
   
   if (!response.ok) {
@@ -276,6 +338,41 @@ export async function submitQuizAttempt(
   }
   
   const data: QuizAttemptResponse = await response.json();
+  return data;
+}
+
+/**
+ * Get quiz statistics for a document
+ * 
+ * @param documentSlug - Document slug to get statistics for
+ * @returns Promise with statistics response
+ */
+export async function getQuizStatistics(documentSlug: string): Promise<QuizStatisticsResponse> {
+  if (!documentSlug) {
+    throw new Error('documentSlug is required');
+  }
+  
+  const authToken = getAuthToken();
+  if (!authToken) {
+    throw new Error('Authentication required to view quiz statistics');
+  }
+  
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${authToken}`,
+  };
+  
+  const response = await fetch(`${getAPIUrl()}/api/quiz/${encodeURIComponent(documentSlug)}/statistics`, {
+    method: 'GET',
+    headers,
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+    throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`);
+  }
+  
+  const data: QuizStatisticsResponse = await response.json();
   return data;
 }
 

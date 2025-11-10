@@ -149,7 +149,8 @@ export function WelcomeMessage({
             )
           )}
           {/* Downloads and Keywords - rendered inside intro message */}
-          {(showKeywords !== false || showDownloads !== false) && (
+          {/* Also render if only quizzes are enabled (no keywords/downloads) */}
+          {(showKeywords !== false || showDownloads !== false || showQuizzes === true) && (
             <DownloadsAndKeywords
               keywords={showKeywords !== false ? keywords : undefined}
               downloads={showDownloads !== false ? downloads : undefined}
@@ -158,6 +159,7 @@ export function WelcomeMessage({
               onKeywordClick={onKeywordClick}
               onQuizClick={showQuizzes === true ? onQuizClick : undefined}
               documentSlug={documentSlug}
+              showQuizzes={showQuizzes}
             />
           )}
         </div>

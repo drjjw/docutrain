@@ -4,10 +4,11 @@ import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 import { debugLog } from './utils/debug';
+import { getAPIUrl } from './utils/apiUrl';
 
 // Pre-fetch debug override setting from server
 if (typeof window !== 'undefined') {
-  fetch('/api/debug-config')
+  fetch(`${getAPIUrl()}/api/debug-config`)
     .then(res => res.ok ? res.json() : null)
     .then(data => {
       if (data) {

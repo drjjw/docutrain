@@ -15,10 +15,11 @@ interface QuizModalProps {
   isLoading: boolean;
   error: string | null;
   questions: QuizQuestion[];
+  questionIds?: string[]; // Question IDs used in this attempt
   selectedAnswers: Record<number, number>;
   documentTitle: string | null;
   currentQuestionIndex: number;
-  quizId: string | null;
+  documentSlug: string | null;
   onSelectAnswer: (questionIndex: number, optionIndex: number) => void;
   onNextQuestion: () => void;
   onPreviousQuestion: () => void;
@@ -33,10 +34,11 @@ export function QuizModal({
   isLoading,
   error,
   questions,
+  questionIds = [],
   selectedAnswers,
   documentTitle,
   currentQuestionIndex,
-  quizId,
+  documentSlug,
   onSelectAnswer,
   onNextQuestion,
   onPreviousQuestion,
@@ -58,14 +60,14 @@ export function QuizModal({
 
   // Calculate score when all questions are answered
   useEffect(() => {
-    if (allQuestionsAnswered && questions.length > 0 && !score && !isSubmitting && quizId) {
+    if (allQuestionsAnswered && questions.length > 0 && !score && !isSubmitting && documentSlug) {
       calculateAndSubmitScore();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allQuestionsAnswered, questions.length, score, isSubmitting, quizId]);
+  }, [allQuestionsAnswered, questions.length, score, isSubmitting, documentSlug]);
 
   const calculateAndSubmitScore = async () => {
-    if (!quizId || questions.length === 0) {
+    if (!documentSlug || questions.length === 0) {
       return;
     }
 
@@ -79,14 +81,35 @@ export function QuizModal({
     setSubmitError(null);
 
     try {
-      debugLog('Submitting quiz attempt:', { quizId, score: calculatedScore, total: questions.length });
-      await submitQuizAttempt(quizId, calculatedScore);
+      debugLog('Submitting quiz attempt:', { documentSlug, score: calculatedScore, total: questions.length, questionIds });
+      await submitQuizAttempt(documentSlug, calculatedScore, questionIds.length > 0 ? questionIds : undefined);
       setScore({ score: calculatedScore, total: questions.length });
       debugLog('Quiz attempt submitted successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to submit quiz attempt';
-      setSubmitError(errorMessage);
       debugLog('Quiz attempt submission error:', errorMessage);
+      
+      // Check if error is "not found" - quiz may have been regenerated
+      const isNotFoundError = errorMessage.toLowerCase().includes('not found') || 
+                             errorMessage.toLowerCase().includes('quiz') && errorMessage.toLowerCase().includes('not found');
+      
+      if (isNotFoundError && onRetry) {
+        // Quiz may have been regenerated - reload and retry
+        debugLog('Quiz not found, attempting to reload quiz and retry submission');
+        try {
+          // Reload quiz to get new questions
+          await onRetry();
+          // Wait a moment for state to update, then retry submission
+          // Note: Since onRetry reloads, the parent component should update documentSlug.
+          // For now, show error and let user retry.
+          setSubmitError('Quiz was updated. Please close and reopen the quiz to try again.');
+        } catch (reloadError) {
+          setSubmitError('Quiz not found. Please reload the quiz and try again.');
+        }
+      } else {
+        setSubmitError(errorMessage);
+      }
+      
       // Still show score even if submission fails
       setScore({ score: calculatedScore, total: questions.length });
     } finally {
@@ -95,16 +118,25 @@ export function QuizModal({
   };
 
   const handleFinish = () => {
-    if (allQuestionsAnswered && !score && quizId) {
+    if (allQuestionsAnswered && !score && documentSlug) {
       calculateAndSubmitScore();
     }
   };
 
-  const handleRetake = () => {
+  const handleRetake = async () => {
     setScore(null);
     setSubmitError(null);
     if (onReset) {
       onReset();
+    }
+    // Reload questions for retake
+    if (onRetry) {
+      try {
+        await onRetry();
+      } catch (err) {
+        // If reload fails, error will be handled by the hook
+        console.error('Failed to reload quiz:', err);
+      }
     }
   };
 
@@ -194,9 +226,28 @@ export function QuizModal({
                   : 'Keep practicing! 📚'}
               </p>
               {submitError && (
-                <p className="text-xs text-red-600 mb-2">
-                  Note: Score could not be saved, but you can retake the quiz.
-                </p>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-yellow-800 mb-2">
+                    {submitError}
+                  </p>
+                  {onRetry && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await onRetry();
+                          // Reset and allow user to retake with fresh quiz
+                          setScore(null);
+                          setSubmitError(null);
+                        } catch (err) {
+                          setSubmitError('Failed to reload quiz. Please close and reopen the quiz.');
+                        }
+                      }}
+                      className="text-sm text-yellow-700 hover:text-yellow-900 underline"
+                    >
+                      Reload quiz and retry
+                    </button>
+                  )}
+                </div>
               )}
               <button
                 onClick={handleRetake}

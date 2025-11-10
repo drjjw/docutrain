@@ -15,10 +15,11 @@ interface UseQuizReturn {
   isLoading: boolean;
   error: string | null;
   questions: QuizQuestion[];
+  questionIds: string[]; // Question IDs from the current quiz attempt
   selectedAnswers: Record<number, number>; // questionIndex -> optionIndex
   documentTitle: string | null;
   currentQuestionIndex: number;
-  quizId: string | null;
+  documentSlug: string | null;
   openQuiz: () => void;
   closeQuiz: () => void;
   loadQuiz: () => Promise<void>;
@@ -34,10 +35,10 @@ export function useQuiz({ documentSlug }: UseQuizOptions): UseQuizReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [questionIds, setQuestionIds] = useState<string[]>([]);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [documentTitle, setDocumentTitle] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [quizId, setQuizId] = useState<string | null>(null);
 
   const loadQuizQuestions = useCallback(async () => {
     if (!documentSlug) {
@@ -49,20 +50,28 @@ export function useQuiz({ documentSlug }: UseQuizOptions): UseQuizReturn {
     setError(null);
     setSelectedAnswers({});
     setCurrentQuestionIndex(0);
+    setQuestionIds([]);
 
     try {
       const response: QuizResponse = await getQuiz(documentSlug);
       setQuestions(response.questions);
       setDocumentTitle(response.documentTitle);
-      if (response.quizId) {
-        setQuizId(response.quizId);
+      // Store question IDs for tracking which questions were used in this attempt
+      if (response.questionIds && Array.isArray(response.questionIds)) {
+        setQuestionIds(response.questionIds);
+      } else if (response.questions && response.questions.length > 0) {
+        // Fallback: extract IDs from questions if questionIds not provided
+        const ids = response.questions
+          .map(q => q.id)
+          .filter((id): id is string => id !== undefined);
+        setQuestionIds(ids);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load quiz';
       setError(errorMessage);
       setQuestions([]);
+      setQuestionIds([]);
       setDocumentTitle(null);
-      setQuizId(null);
     } finally {
       setIsLoading(false);
     }
@@ -91,11 +100,11 @@ export function useQuiz({ documentSlug }: UseQuizOptions): UseQuizReturn {
 
   const resetQuiz = useCallback(() => {
     setQuestions([]);
+    setQuestionIds([]);
     setSelectedAnswers({});
     setError(null);
     setDocumentTitle(null);
     setCurrentQuestionIndex(0);
-    setQuizId(null);
   }, []);
 
   const goToNextQuestion = useCallback(() => {
@@ -117,10 +126,11 @@ export function useQuiz({ documentSlug }: UseQuizOptions): UseQuizReturn {
     isLoading,
     error,
     questions,
+    questionIds,
     selectedAnswers,
     documentTitle,
     currentQuestionIndex,
-    quizId,
+    documentSlug,
     openQuiz,
     closeQuiz,
     loadQuiz: loadQuizQuestions,

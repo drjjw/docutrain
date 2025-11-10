@@ -621,13 +621,14 @@ function SharedConversationContent({
         isOpen={quiz.isOpen}
         onClose={quiz.closeQuiz}
         questions={quiz.questions}
+        questionIds={quiz.questionIds}
         selectedAnswers={quiz.selectedAnswers}
         onSelectAnswer={quiz.selectAnswer}
         isLoading={quiz.isLoading}
         error={quiz.error}
         documentTitle={quiz.documentTitle}
         currentQuestionIndex={quiz.currentQuestionIndex}
-        quizId={quiz.quizId}
+        documentSlug={quiz.documentSlug}
         onNextQuestion={quiz.goToNextQuestion}
         onPreviousQuestion={quiz.goToPreviousQuestion}
         onGoToQuestion={quiz.goToQuestion}
