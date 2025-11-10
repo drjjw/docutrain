@@ -15,7 +15,7 @@
 Every day, professionals across industries face the same frustrating challenge: **critical knowledge is locked away in lengthy documents**.
 
 - **Medical residents** flip through 500+ page manuals at 2 AM to find a single protocol
-- **Compliance officers** spend hours cross-referencing regulations across multiple documents
+- **Compliance officers** spend hours searching through regulations to answer questions
 - **Support teams** struggle to find answers in 10+ technical documentation PDFs
 - **New employees** waste weeks learning to navigate complex document libraries
 - **Researchers** spend days manually comparing methodologies across dozens of papers
@@ -60,17 +60,11 @@ Unlike general AI chatbots that blend information from the entire internet, Docu
 
 **Critical for**: Healthcare, finance, legal, and other regulated industries where following documented procedures isn't optional—it's mandatory.
 
-### 3. **Multi-Document Intelligence**
-
-Query across up to 5 documents simultaneously with intelligent balancing. Compare protocols, identify conflicts, and synthesize information from multiple sources—something impossible with traditional search.
-
-**Example**: Compare transplant protocols between two hospital systems and receive answers that highlight differences, similarities, and conflicts automatically.
-
-### 4. **Accurate Citations You Can Trust**
+### 3. **Accurate Citations You Can Trust**
 
 Every answer includes footnoted citations with exact page numbers. Verify information, dive deeper, and cite sources in reports and audits with confidence.
 
-### 5. **Knowledge Verification Through Quizzes**
+### 4. **Knowledge Verification Through Quizzes**
 
 Automatically generate comprehensive quizzes from your documents to verify team understanding. Track scores, identify knowledge gaps, and ensure compliance training effectiveness.
 
@@ -89,7 +83,7 @@ Different documents require different security levels. DocuTrain supports:
 - **Registered Users**: Requires account creation (organization-wide resources)
 - **Owner-Restricted**: Limited to specific teams (proprietary protocols)
 
-### 8. **Complete Brand Customization**
+### 6. **Complete Brand Customization**
 
 Make DocuTrain your own with custom branding, cover images, welcome messages, and HTML-formatted introductions. Create a seamless experience that matches your organization's identity.
 
@@ -113,13 +107,6 @@ Make DocuTrain your own with custom branding, cover images, welcome messages, an
 - Feels 5-10x faster than traditional systems
 - Engaging loading experience with educational facts
 
-#### **Multi-Document Search**
-- Query up to 5 documents simultaneously
-- Intelligent chunk balancing ensures all sources are represented
-- Automatic conflict detection between documents
-- Compare protocols, guidelines, and procedures across sources
-- Synthesize information from multiple perspectives
-
 #### **Accurate Page Citations**
 - Every answer includes exact page numbers
 - Based on actual page markers, not estimates
@@ -142,13 +129,12 @@ Make DocuTrain your own with custom branding, cover images, welcome messages, an
 - Automatic page detection and tagging
 - Smart content chunking for optimal AI processing
 - Instant AI-generated summaries
-- Batch processing for multiple documents
+- Batch processing capabilities
 
 #### **Document Downloads**
 - Provide downloadable files (PDFs, EPUBs, etc.) alongside chat interface
 - Multiple download options per document
 - Upload files directly to secure storage
-- Offline access to source materials
 - Alternative formats for different use cases
 - Direct links to external resources
 
@@ -351,7 +337,7 @@ Make DocuTrain your own with custom branding, cover images, welcome messages, an
 #### **Embedding Options**
 - **OpenAI Embeddings**: High-quality 1536-dimensional vectors
 - **Local Embeddings**: Privacy-focused 384-dimensional vectors
-- Automatic selection for multi-document searches
+- Configurable per document
 - Per-document configuration
 - Cost-effective options
 
@@ -416,8 +402,7 @@ Make DocuTrain your own with custom branding, cover images, welcome messages, an
 **Solution**: All manuals uploaded to DocuTrain with owner-restricted access for the transplant team. Quizzes generated for each manual to verify knowledge retention.
 
 **Results**:
-- ✅ Fellows can query multiple manuals simultaneously during rounds
-- ✅ Conflicting protocols between institutions automatically flagged
+- ✅ Fellows can access information quickly during rounds
 - ✅ New fellows onboard 60% faster
 - ✅ Protocol compliance improves due to easier access
 - ✅ Attending physicians use it to verify rare procedures
@@ -443,7 +428,7 @@ Make DocuTrain your own with custom branding, cover images, welcome messages, an
 
 **Challenge**: A software company's support team struggles to find answers in 10+ technical documentation PDFs, leading to slow response times and inconsistent answers.
 
-**Solution**: All technical documentation uploaded with team access for support staff. Multi-document search enables comprehensive answers.
+**Solution**: All technical documentation uploaded with team access for support staff.
 
 **Results**:
 - ✅ Average support ticket resolution time drops by 45%
@@ -455,14 +440,14 @@ Make DocuTrain your own with custom branding, cover images, welcome messages, an
 
 ### **Scenario 4: Research Institution**
 
-**Challenge**: A research lab needs to compare methodologies across 20+ published papers for a literature review.
+**Challenge**: A research lab needs to analyze methodologies across 20+ published papers for a literature review.
 
-**Solution**: Papers uploaded to DocuTrain for multi-document analysis. Researchers can query across all papers simultaneously.
+**Solution**: Papers uploaded to DocuTrain for intelligent analysis and search.
 
 **Results**:
 - ✅ Literature review time reduced from weeks to days
-- ✅ Identifies contradictions and gaps more systematically
-- ✅ Easier to synthesize findings across studies
+- ✅ Identifies key information more systematically
+- ✅ Easier to extract findings from studies
 - ✅ More comprehensive analysis with less effort
 - ✅ Better foundation for new research directions
 - ✅ Citations automatically tracked
@@ -495,7 +480,6 @@ The result is a workforce that's better trained, more confident, and more consis
 - ✅ Staff access latest protocols instantly from any device
 - ✅ Protocol updates immediately searchable
 - ✅ Compliance verified through quiz scores
-- ✅ Multi-document search compares protocols across departments
 - ✅ Audit trail through citation tracking
 - ✅ Training effectiveness measurable
 - ✅ Reduced protocol violations by 40%
@@ -660,7 +644,7 @@ The result is a workforce that's better trained, more confident, and more consis
 | Extensive training required | Minimal training (just ask questions) |
 | Knowledge loss when staff leave | Knowledge preserved in the system |
 | Difficult to keep updated | Automatic notifications of updates |
-| No cross-document comparison | Built-in multi-document comparison |
+| No intelligent synthesis | Provides concise, actionable answers |
 | No verification system | Quiz-based knowledge verification |
 
 ### **vs. Learning Management Systems**
@@ -744,8 +728,6 @@ DocuTrain is designed around natural conversation. Users don't need to learn spe
 
 Every answer includes:
 - ✅ Source citations with page numbers
-- ✅ Indication of which documents were consulted
-- ✅ Flags for conflicting information
 - ✅ Clear boundaries ("I don't have that information" when appropriate)
 - ✅ Verifiable quiz answers
 
@@ -756,13 +738,12 @@ Critical information needs are often mobile:
 - ✅ Fast loading even on cellular connections
 - ✅ Touch-optimized interface
 - ✅ Streaming responses show progress immediately
-- ✅ Works offline with downloaded documents
 
 ### **Progressive Disclosure**
 
 The interface reveals complexity only when needed:
 - ✅ Simple questions get simple answers
-- ✅ Complex queries automatically access multiple documents
+- ✅ Complex queries receive comprehensive answers
 - ✅ Citations are available but don't clutter the main response
 - ✅ Advanced features are discoverable but not overwhelming
 - ✅ Quizzes appear when enabled, don't interrupt workflow
@@ -825,39 +806,35 @@ Unlike general AI tools that pull from the entire internet, DocuTrain creates a 
 - Consistent information across all staff
 - Compliance with documented procedures
 
-### **2. Multi-Document Intelligence**
-
-Most real-world questions require information from multiple sources. DocuTrain's unique multi-document search allows querying across up to 5 documents simultaneously, with intelligent balancing and automatic conflict detection.
-
-### **3. Accurate Citations**
+### **2. Accurate Citations**
 
 Every answer includes footnoted citations with exact page numbers. Verify information, dive deeper, and cite sources in reports and audits with confidence.
 
-### **4. Knowledge Verification**
+### **3. Knowledge Verification**
 
 Built-in quiz system automatically generates questions from your documents, allowing you to verify team understanding and track knowledge retention over time.
 
-### **5. Instant Updates**
+### **4. Instant Updates**
 
 When documents are updated, changes are immediately searchable. No waiting for cache expiration or manual refresh—webhook auto-refresh ensures zero-delay updates.
 
-### **6. Flexible Access Control**
+### **5. Flexible Access Control**
 
 Different documents require different security levels. DocuTrain supports public, passcode-protected, registered user, and owner-restricted access—all configurable per document.
 
-### **7. Complete Customization**
+### **6. Complete Customization**
 
 Customize every aspect of the experience: branding, cover images, welcome messages, intro text, and more. Make DocuTrain feel like a native part of your organization.
 
-### **8. Beautiful User Experience**
+### **7. Beautiful User Experience**
 
 Streaming responses, mobile-responsive design, and intuitive interface make DocuTrain a joy to use. No training required—users can start asking questions immediately.
 
-### **9. Enterprise-Ready**
+### **8. Enterprise-Ready**
 
 Scalable architecture supports hundreds of documents, thousands of users, and high query volumes. Built for growth from day one.
 
-### **10. Comprehensive Admin Tools**
+### **9. Comprehensive Admin Tools**
 
 Powerful admin dashboard for managing documents, users, quizzes, and settings. Inline editing, bulk operations, and comprehensive analytics.
 
@@ -913,7 +890,6 @@ Use this checklist to understand all that DocuTrain offers:
 
 ### **Core Features**
 - [ ] Natural language Q&A interface
-- [ ] Multi-document search (up to 5 documents)
 - [ ] Accurate page citations
 - [ ] Streaming responses
 - [ ] Automatic document processing
