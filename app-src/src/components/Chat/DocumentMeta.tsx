@@ -42,11 +42,11 @@ export function DocumentMeta({ documentSlug }: DocumentMetaProps) {
     if (!documentSlug || !docConfig) {
       title = 'AI Document Assistant - Intelligent Knowledge Base';
       description = 'AI-powered document assistant with RAG technology for medical guidelines, research papers, and knowledge bases';
-      ogImage = '/chat-cover-place.jpeg';
+      ogImage = '/Docutrain-Intro-Image.webp';
     } else {
       title = docConfig.title;
       description = docConfig.subtitle || docConfig.welcomeMessage || 'AI-powered document assistant';
-      ogImage = docConfig.cover || '/chat-cover-place.jpeg';
+      ogImage = docConfig.cover || '/Docutrain-Intro-Image.webp';
     }
 
     // Ensure image URL is absolute for OG tags
@@ -101,7 +101,7 @@ export function DocumentMeta({ documentSlug }: DocumentMetaProps) {
     if (absoluteOgImage) {
       updateMetaTag('property', 'og:image', absoluteOgImage);
       updateMetaTag('property', 'og:image:secure_url', absoluteOgImage);
-      updateMetaTag('property', 'og:image:type', 'image/jpeg');
+      updateMetaTag('property', 'og:image:type', 'image/webp');
       updateMetaTag('property', 'og:image:width', '1200');
       updateMetaTag('property', 'og:image:height', '630');
       updateMetaTag('property', 'og:image:alt', title);

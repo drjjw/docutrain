@@ -28,7 +28,8 @@ function landingPagePlugin() {
             urlPath === '/docutrain-icon.png' ||
             urlPath === '/chat-cover-place.jpeg' ||
             urlPath === '/chat-cover-place.png' ||
-            urlPath === '/robot-favicon.png') {
+            urlPath === '/robot-favicon.png' ||
+            urlPath === '/Docutrain-Intro-Image.webp') {
           next();
           return;
         }
@@ -123,6 +124,10 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/docutrain-icon.png': {
+        target: 'http://localhost:3458',
+        changeOrigin: true,
+      },
+      '/Docutrain-Intro-Image.webp': {
         target: 'http://localhost:3458',
         changeOrigin: true,
       },

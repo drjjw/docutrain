@@ -158,7 +158,7 @@
   color: #212529;
   font-size: 1.25em;
   line-height: 1.4;
-  margin: 0 0 16px 0;
+  margin: 0;
   letter-spacing: -0.01em;
   /* Prevent text from breaking out of container */
   word-wrap: break-word;
@@ -171,7 +171,7 @@
 @media (max-width: 768px) {
   .message.assistant .message-content #welcomeTitle {
     font-size: 1.15em;
-    margin-bottom: 12px;
+    margin-bottom: 0;
     /* Ensure proper wrapping on mobile */
     word-wrap: break-word;
     overflow-wrap: break-word;

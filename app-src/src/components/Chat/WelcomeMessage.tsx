@@ -124,7 +124,7 @@ export function WelcomeMessage({
               documentSlug={documentSlug}
               onSave={(value) => handleSave('welcome_message', value)}
               className="loading-text"
-              style={{ fontWeight: 'bold', display: 'block', marginBottom: introMessage ? '12px' : '0' }}
+              style={{ fontWeight: 'bold', display: 'block' }}
             />
           ) : (
             <h2 id="welcomeTitle" className="loading-text">

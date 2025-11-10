@@ -338,7 +338,7 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
         </h1>
       )}
       {showSubtitle && subtitleContent && (
-        <div className="w-full min-w-0 overflow-hidden mt-0.5">
+        <div className="w-full min-w-0 overflow-hidden mt-0.5 flex justify-center">
           {subtitleContent}
         </div>
       )}

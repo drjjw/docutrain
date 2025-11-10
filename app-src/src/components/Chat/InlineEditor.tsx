@@ -361,7 +361,9 @@ export function InlineEditor({
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
-          marginBottom: isWelcomeTitle ? '12px' : '0',
+          marginBottom: '0',
+          overflow: 'visible',
+          paddingBottom: '6px',
         }}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
@@ -373,13 +375,15 @@ export function InlineEditor({
             justifyContent: 'center',
             gap: '8px',
             position: 'relative',
+            overflow: 'visible',
+            paddingBottom: '6px',
           }}
         >
           <Element
             ref={elementRef as any}
             id={id}
-            className={className}
-            style={{ cursor: 'pointer', margin: 0, ...style }}
+            className={className.replace(/w-full/g, '').replace(/\s+/g, ' ').trim()}
+            style={{ cursor: 'pointer', margin: 0, alignSelf: 'center', ...style }}
             onClick={handleStartEditing}
           >
             {displayValue}
@@ -406,8 +410,7 @@ export function InlineEditor({
               transition: 'opacity 0.2s',
               pointerEvents: isHovering ? 'auto' : 'none',
               flexShrink: 0,
-              alignSelf: 'flex-start',
-              marginTop: '0.1em',
+              alignSelf: 'center',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -430,51 +433,63 @@ export function InlineEditor({
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
+          overflow: 'visible',
+          paddingBottom: '6px',
         }}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        <Element
-          ref={elementRef as any}
-          id={id}
-          className={className}
-          style={{ cursor: 'pointer', margin: 0, ...style }}
-          onClick={handleStartEditing}
-        >
-          {displayValue}
-        </Element>
-        <button
-          type="button"
-          className="inline-edit-icon"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleStartEditing();
-          }}
-          title="Click to edit"
+        <div
           style={{
-            position: 'absolute',
-            right: '0',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            background: 'rgba(0, 0, 0, 0.7)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '4px 8px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            zIndex: 100,
-            opacity: isHovering ? 1 : 0,
-            transition: 'opacity 0.2s',
-            pointerEvents: isHovering ? 'auto' : 'none',
-            flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            gap: '8px',
+            position: 'relative',
+            overflow: 'visible',
+            paddingBottom: '6px',
           }}
         >
-          <Pencil size={12} />
-        </button>
+          <Element
+            ref={elementRef as any}
+            id={id}
+            className={className.replace(/w-full/g, '').replace(/\s+/g, ' ').trim()}
+            style={{ cursor: 'pointer', margin: 0, alignSelf: 'center', ...style }}
+            onClick={handleStartEditing}
+          >
+            {displayValue}
+          </Element>
+          <button
+            type="button"
+            className="inline-edit-icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStartEditing();
+            }}
+            title="Click to edit"
+            style={{
+              position: 'relative',
+              background: 'rgba(0, 0, 0, 0.7)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '4px 8px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              zIndex: 100,
+              opacity: isHovering ? 1 : 0,
+              transition: 'opacity 0.2s',
+              pointerEvents: isHovering ? 'auto' : 'none',
+              flexShrink: 0,
+              alignSelf: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Pencil size={12} />
+          </button>
+        </div>
       </div>
     );
   }

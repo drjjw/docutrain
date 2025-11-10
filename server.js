@@ -332,7 +332,7 @@ async function serveReactAppWithMetaTags(req, res) {
         const escapedCurrentUrl = escapeHtml(currentUrl);
         
         // Convert default image to absolute URL
-        const defaultOgImage = ensureAbsoluteUrl('/chat-cover-place.jpeg', 'https', 'www.docutrain.io');
+        const defaultOgImage = ensureAbsoluteUrl('/Docutrain-Intro-Image.webp', 'https', 'www.docutrain.io');
         const escapedDefaultOgImage = defaultOgImage ? escapeHtml(defaultOgImage) : '';
         
         // Update og:url and canonical for base page
@@ -396,7 +396,7 @@ async function serveReactAppWithMetaTags(req, res) {
                     // Get cover image if available (for og:image)
                     // Convert to absolute URL if needed
                     const coverImage = validConfigs[0].cover || null;
-                    const ogImage = coverImage ? ensureAbsoluteUrl(coverImage, 'https', 'www.docutrain.io') : ensureAbsoluteUrl('/chat-cover-place.jpeg', 'https', 'www.docutrain.io');
+                    const ogImage = coverImage ? ensureAbsoluteUrl(coverImage, 'https', 'www.docutrain.io') : ensureAbsoluteUrl('/Docutrain-Intro-Image.webp', 'https', 'www.docutrain.io');
                     const escapedOgImage = ogImage ? escapeHtml(ogImage) : '';
                     
                     // Replace title

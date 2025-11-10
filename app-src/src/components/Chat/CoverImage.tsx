@@ -22,11 +22,9 @@ export function CoverImage({ cover, title, category, year, onImageLoad, document
   const imageRef = useRef<HTMLImageElement>(null);
 
   // Determine image source - use cover if available, otherwise placeholder
-  // Use BASE_URL for Vite (empty in production, '/app/' in dev with base path)
-  // In production, Express serves public assets from root, so we use absolute path
   const hasValidCover = cover && typeof cover === 'string' && cover.trim().length > 0;
-  // For placeholder, use root path - works in both dev (Vite serves public at root) and prod (Express serves /public/ at root)
-  const placeholderPath = '/chat-cover-place.jpeg';
+  // Use WebP placeholder - works via proxy in dev, Express serves in prod
+  const placeholderPath = '/Docutrain-Intro-Image.webp';
   const imageSrc = hasValidCover ? cover.trim() : placeholderPath;
   const imageAlt = hasValidCover ? `${title} - Title Slide` : `${title} - Cover Placeholder`;
 

@@ -256,7 +256,8 @@ const logoFiles = [
     { from: 'public/logos/ukidney-logo.svg', to: 'public/logos/ukidney-logo.svg' },
     { from: 'public/robot-favicon.png', to: 'public/robot-favicon.png' },
     { from: 'public/chat-cover-place.png', to: 'public/chat-cover-place.png' },
-    { from: 'app-src/public/chat-cover-place.jpeg', to: 'public/chat-cover-place.jpeg' }
+    { from: 'app-src/public/chat-cover-place.jpeg', to: 'public/chat-cover-place.jpeg' },
+    { from: 'public/Docutrain-Intro-Image.webp', to: 'public/Docutrain-Intro-Image.webp' }
 ];
 
 // Copy monitoring dashboard
