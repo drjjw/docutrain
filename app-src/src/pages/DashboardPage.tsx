@@ -435,15 +435,12 @@ export function DashboardPage() {
             {/* Upload Section */}
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                   Upload New Document
                 </h2>
-                <p className="text-sm text-gray-600 mt-1.5">
-                  Upload PDF documents or paste text content to make them available in the system
-                </p>
               </div>
               <div className="p-5 sm:p-7">
                 <CombinedUploadZone 
@@ -472,15 +469,12 @@ export function DashboardPage() {
             {/* Always render the table (hidden) so ref is available for checking status */}
             <div className={hasActiveDocuments ? 'bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300' : 'hidden'}>
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                   Processing Status
                 </h2>
-                <p className="text-sm text-gray-600 mt-1.5">
-                  Documents currently being processed will appear here and will move to the documents list below once complete
-                </p>
               </div>
               <div className="p-5 sm:p-7">
                 <UserDocumentsTable 
@@ -493,15 +487,12 @@ export function DashboardPage() {
             {/* Documents Table */}
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   Manage Documents
                 </h2>
-                <p className="text-sm text-gray-600 mt-1.5">
-                  View, edit, and manage all documents in the system
-                </p>
               </div>
               <div className="p-5 sm:p-7">
                 <DocumentsTable 
@@ -534,15 +525,12 @@ export function DashboardPage() {
             {/* Users Table */}
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                   User Management
                 </h2>
-                <p className="text-sm text-gray-600 mt-1.5">
-                  Manage user accounts, roles, and permissions
-                </p>
               </div>
               <div className="p-5 sm:p-7">
                 <UsersTable />
@@ -560,7 +548,7 @@ export function DashboardPage() {
                 {isSuperAdmin ? 'Super Admin Access' : 'Owner Admin Access'}
               </h3>
               <p className="text-sm text-docutrain-dark leading-relaxed">
-                <strong className="font-semibold text-docutrain-dark">Owner Settings</strong> - {isSuperAdmin 
+                {isSuperAdmin 
                   ? "Manage any owner group's branding and configuration settings, including logo, intro message, default cover image, accent color, and document categories."
                   : "You can manage your owner group's branding and configuration settings, including logo, intro message, default cover image, and accent color."}
               </p>
@@ -570,13 +558,7 @@ export function DashboardPage() {
             {isSuperAdmin && allOwners.length > 0 && (
               <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    Select Owner Group
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray-600">
                     Choose which owner group's settings you want to manage
                   </p>
                 </div>
@@ -611,15 +593,12 @@ export function DashboardPage() {
           <div className="space-y-6">
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                   Mission Control
                 </h2>
-                <p className="text-sm text-gray-600 mt-1.5">
-                  System configuration verification and monitoring
-                </p>
               </div>
               <div className="p-5 sm:p-7">
                 <MissionControl />
@@ -630,17 +609,12 @@ export function DashboardPage() {
           <div className="space-y-6">
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                   </svg>
                   {isSuperAdmin ? 'Category Management' : 'Categories'}
                 </h2>
-                <p className="text-sm text-gray-600 mt-1.5">
-                  {isSuperAdmin 
-                    ? 'Configure default category options for documents'
-                    : 'Manage category options for documents in your owner group'}
-                </p>
               </div>
               <div className="p-5 sm:p-7">
                 <CategoryManagement ownerId={isSuperAdmin ? null : (selectedOwnerId || ownerGroups[0]?.owner_id || null)} />
@@ -652,15 +626,12 @@ export function DashboardPage() {
             {/* Owners Table */}
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
               <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                   Owner Management
                 </h2>
-                <p className="text-sm text-gray-600 mt-1.5">
-                  Manage document owners and their configurations
-                </p>
               </div>
               <div className="p-5 sm:p-7">
                 <OwnersTable />

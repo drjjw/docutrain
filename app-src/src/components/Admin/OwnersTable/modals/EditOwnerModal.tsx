@@ -125,7 +125,7 @@ export function EditOwnerModal({
   const handleRemoveCategory = async (categoryName: string) => {
     if (!owner?.id) return;
     
-    if (!window.confirm('Are you sure you want to remove this category? Documents using this category will have their category_id set to NULL.')) {
+    if (!window.confirm('Are you sure you want to remove this category? Documents using this category will have their category set to None.')) {
       return;
     }
 

@@ -152,7 +152,6 @@ export function MissionControl() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">🚀 Mission Control</h2>
         <p className="text-gray-600">
           System configuration verification. All values are loaded from environment variables at runtime.
         </p>

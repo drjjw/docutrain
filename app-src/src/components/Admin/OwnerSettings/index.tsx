@@ -183,7 +183,6 @@ export function OwnerSettings({ ownerId }: OwnerSettingsProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Owner Settings</h2>
         <p className="text-sm text-gray-600">
           Manage your owner group's branding and configuration settings.
         </p>

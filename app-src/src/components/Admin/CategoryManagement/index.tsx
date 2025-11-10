@@ -5,6 +5,7 @@ import { Spinner } from '@/components/UI/Spinner';
 import { getCategoriesForOwner, createCategory, deleteCategory } from '@/lib/supabase/admin';
 import { DEFAULT_CATEGORY_OPTIONS } from '@/constants/categories';
 import { invalidateCategoryCache } from '@/utils/categories';
+import { DeleteCategoryModal } from './modals/DeleteCategoryModal';
 import type { Category } from '@/types/admin';
 
 interface CategoryManagementProps {
@@ -19,6 +20,7 @@ export function CategoryManagement({ ownerId = null }: CategoryManagementProps) 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [deleteCategoryModal, setDeleteCategoryModal] = useState<Category | null>(null);
 
   const isOwnerSpecific = ownerId !== null;
 
@@ -40,11 +42,29 @@ export function CategoryManagement({ ownerId = null }: CategoryManagementProps) 
         // Get most recent updated_at
         if (filteredCategories.length > 0) {
           const mostRecent = filteredCategories.reduce((latest, cat) => {
+            if (!cat.updated_at) return latest;
             const catDate = new Date(cat.updated_at).getTime();
-            const latestDate = new Date(latest.updated_at).getTime();
-            return catDate > latestDate ? cat : latest;
+            const latestDate = latest.updated_at ? new Date(latest.updated_at).getTime() : 0;
+            // Only compare if both dates are valid
+            if (!isNaN(catDate) && !isNaN(latestDate)) {
+              return catDate > latestDate ? cat : latest;
+            }
+            // If latest is invalid but cat is valid, use cat
+            if (!isNaN(catDate) && isNaN(latestDate)) {
+              return cat;
+            }
+            // Otherwise keep latest
+            return latest;
           });
-          setLastUpdated(new Date(mostRecent.updated_at).toLocaleString());
+          const date = new Date(mostRecent.updated_at);
+          // Only set lastUpdated if the date is valid
+          if (mostRecent.updated_at && !isNaN(date.getTime())) {
+            setLastUpdated(date.toLocaleString());
+          } else {
+            setLastUpdated(null);
+          }
+        } else {
+          setLastUpdated(null);
         }
       } catch (err) {
         console.error('Failed to load categories:', err);
@@ -62,8 +82,11 @@ export function CategoryManagement({ ownerId = null }: CategoryManagementProps) 
             updated_at: new Date().toISOString(),
           }));
           setCategories(fallbackCategories);
+          // Don't set lastUpdated for fallback categories since they're not real database records
+          setLastUpdated(null);
         } else {
           setCategories([]);
+          setLastUpdated(null);
         }
       } finally {
         setLoading(false);
@@ -116,6 +139,14 @@ export function CategoryManagement({ ownerId = null }: CategoryManagementProps) 
       setCategories([...categories, newCat]);
       setNewCategory('');
       invalidateCategoryCache();
+      
+      // Update lastUpdated with the new category's updated_at
+      if (newCat.updated_at) {
+        const date = new Date(newCat.updated_at);
+        if (!isNaN(date.getTime())) {
+          setLastUpdated(date.toLocaleString());
+        }
+      }
     } catch (err) {
       console.error('Failed to add category:', err);
       setError(err instanceof Error ? err.message : 'Failed to add category');
@@ -125,20 +156,62 @@ export function CategoryManagement({ ownerId = null }: CategoryManagementProps) 
   };
 
   const handleRemoveCategory = async (categoryId: number) => {
-    if (!window.confirm('Are you sure you want to remove this category? Documents using this category will have their category_id set to NULL.')) {
-      return;
+    // Find the category to show in modal
+    const categoryToDelete = categories.find(cat => cat.id === categoryId);
+    if (categoryToDelete) {
+      setDeleteCategoryModal(categoryToDelete);
     }
+  };
+
+  const confirmDeleteCategory = async () => {
+    if (!deleteCategoryModal) return;
+
+    const categoryId = deleteCategoryModal.id;
 
     try {
       setSaving(true);
       setError(null);
       
       await deleteCategory(categoryId);
-      setCategories(categories.filter(cat => cat.id !== categoryId));
+      const updatedCategories = categories.filter(cat => cat.id !== categoryId);
+      setCategories(updatedCategories);
       invalidateCategoryCache();
+      
+      // Update lastUpdated if there are remaining categories
+      if (updatedCategories.length > 0) {
+        const mostRecent = updatedCategories.reduce((latest, cat) => {
+          if (!cat.updated_at) return latest;
+          const catDate = new Date(cat.updated_at).getTime();
+          const latestDate = latest.updated_at ? new Date(latest.updated_at).getTime() : 0;
+          // Only compare if both dates are valid
+          if (!isNaN(catDate) && !isNaN(latestDate)) {
+            return catDate > latestDate ? cat : latest;
+          }
+          // If latest is invalid but cat is valid, use cat
+          if (!isNaN(catDate) && isNaN(latestDate)) {
+            return cat;
+          }
+          // Otherwise keep latest
+          return latest;
+        });
+        const date = new Date(mostRecent.updated_at);
+        if (mostRecent.updated_at && !isNaN(date.getTime())) {
+          setLastUpdated(date.toLocaleString());
+        } else {
+          setLastUpdated(null);
+        }
+      } else {
+        setLastUpdated(null);
+      }
+      
+      setDeleteCategoryModal(null);
+      setSuccess('Category deleted successfully');
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       console.error('Failed to remove category:', err);
-      setError(err instanceof Error ? err.message : 'Failed to remove category');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to remove category';
+      setError(errorMessage);
+      // Keep modal open on error so user can see the error message
     } finally {
       setSaving(false);
     }
@@ -191,6 +264,33 @@ export function CategoryManagement({ ownerId = null }: CategoryManagementProps) 
         invalidateCategoryCache();
         setSuccess('Default categories reset to constants successfully!');
         
+        // Update lastUpdated with the most recent category
+        if (newCategories.length > 0) {
+          const mostRecent = newCategories.reduce((latest, cat) => {
+            if (!cat.updated_at) return latest;
+            const catDate = new Date(cat.updated_at).getTime();
+            const latestDate = latest.updated_at ? new Date(latest.updated_at).getTime() : 0;
+            // Only compare if both dates are valid
+            if (!isNaN(catDate) && !isNaN(latestDate)) {
+              return catDate > latestDate ? cat : latest;
+            }
+            // If latest is invalid but cat is valid, use cat
+            if (!isNaN(catDate) && isNaN(latestDate)) {
+              return cat;
+            }
+            // Otherwise keep latest
+            return latest;
+          });
+          const date = new Date(mostRecent.updated_at);
+          if (mostRecent.updated_at && !isNaN(date.getTime())) {
+            setLastUpdated(date.toLocaleString());
+          } else {
+            setLastUpdated(null);
+          }
+        } else {
+          setLastUpdated(null);
+        }
+        
         // Clear success message after 5 seconds
         setTimeout(() => setSuccess(null), 5000);
       } catch (err) {
@@ -214,13 +314,7 @@ export function CategoryManagement({ ownerId = null }: CategoryManagementProps) 
     <div className="space-y-6">
       <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-            </svg>
-            {isOwnerSpecific ? 'Owner Category Management' : 'Default Category Management'}
-          </h3>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-600">
             {isOwnerSpecific 
               ? 'Configure category options for documents in this owner group. These categories will be available when assigning categories to documents.'
               : 'Configure the default category options available for all documents. These categories are used when owner-specific categories are not set.'}
@@ -325,6 +419,15 @@ export function CategoryManagement({ ownerId = null }: CategoryManagementProps) 
           </div>
         </div>
       </div>
+
+      {/* Delete Category Modal */}
+      <DeleteCategoryModal
+        category={deleteCategoryModal}
+        isOpen={!!deleteCategoryModal}
+        saving={saving}
+        onClose={() => setDeleteCategoryModal(null)}
+        onConfirm={confirmDeleteCategory}
+      />
     </div>
   );
 }
