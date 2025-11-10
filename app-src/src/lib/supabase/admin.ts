@@ -1,6 +1,6 @@
 import { supabase } from './client';
 import { getUserPermissions } from './permissions';
-import type { Document, DocumentWithOwner, Owner, UserWithRoles, UserRole, DocumentAttachment, PendingInvitation } from '@/types/admin';
+import type { Document, DocumentWithOwner, Owner, UserWithRoles, UserRole, DocumentAttachment, PendingInvitation, Category } from '@/types/admin';
 import { debugLog } from '@/utils/debug';
 
 /**
@@ -105,7 +105,8 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
       metadata,
       created_at,
       updated_at,
-      category,
+      category_id,
+      categories!documents_category_id_fkey(id, name, is_custom, owner_id),
       owner,
       owner_id,
       cover,
@@ -159,9 +160,11 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
     // Transform owners array to single owner object for type compatibility
     // Remove document_chunks from response (it was only used for filtering)
     return filtered.map(doc => {
-      const { document_chunks, ...docWithoutChunks } = doc;
+      const { document_chunks, categories, ...docWithoutChunks } = doc;
+      const categoryObj = Array.isArray(categories) ? categories[0] : categories;
       return {
         ...docWithoutChunks,
+        category_obj: categoryObj || undefined,
         owners: Array.isArray(doc.owners) ? doc.owners[0] : doc.owners
       };
     }) as DocumentWithOwner[];
@@ -177,9 +180,11 @@ export async function getDocuments(userId: string): Promise<DocumentWithOwner[]>
   // Transform owners array to single owner object for type compatibility
   // Remove document_chunks from response (it was only used for filtering)
   return (data || []).map(doc => {
-    const { document_chunks, ...docWithoutChunks } = doc;
+    const { document_chunks, categories, ...docWithoutChunks } = doc;
+    const categoryObj = Array.isArray(categories) ? categories[0] : categories;
     return {
       ...docWithoutChunks,
+      category_obj: categoryObj || undefined,
       owners: Array.isArray(doc.owners) ? doc.owners[0] : doc.owners
     };
   }) as DocumentWithOwner[];
@@ -430,18 +435,15 @@ export async function updateOwnerSettings(id: string, updates: Partial<Owner>): 
   }
 
   // Filter updates to only allowed fields for owner admins
+  // Note: Super admins can update more fields via direct API calls
   const allowedFields: Partial<Owner> = {};
   if (updates.logo_url !== undefined) allowedFields.logo_url = updates.logo_url;
   if (updates.intro_message !== undefined) allowedFields.intro_message = updates.intro_message;
   if (updates.default_cover !== undefined) allowedFields.default_cover = updates.default_cover;
   
-  // Handle metadata.accent_color
+  // Handle metadata (accent_color for owner admins, full metadata for super admins)
   if (updates.metadata !== undefined) {
-    allowedFields.metadata = {
-      ...(updates.metadata as any),
-      // Only allow accent_color in metadata
-      accent_color: (updates.metadata as any)?.accent_color,
-    };
+    allowedFields.metadata = updates.metadata as any;
   }
 
   const response = await fetch(`/api/owners/${id}`, {
@@ -483,6 +485,280 @@ export async function deleteOwner(id: string): Promise<void> {
     const error = await response.json();
     throw new Error(error.error || error.details || 'Failed to delete owner');
   }
+}
+
+/**
+ * Get all categories available for an owner
+ * Returns system defaults + owner-specific categories
+ */
+export async function getCategoriesForOwner(ownerId?: string | null): Promise<Category[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  // Use the database function if available, otherwise query directly
+  const { data, error } = await supabase.rpc('get_categories_for_owner', {
+    p_owner_id: ownerId || null
+  });
+
+  if (error) {
+    // Fallback to direct query if function doesn't exist
+    const query = supabase
+      .from('categories')
+      .select('*')
+      .or(`owner_id.is.null,owner_id.eq.${ownerId || ''}`)
+      .order('owner_id', { ascending: true, nullsFirst: true })
+      .order('name', { ascending: true });
+
+    const { data: fallbackData, error: fallbackError } = await query;
+
+    if (fallbackError) {
+      throw new Error(`Failed to fetch categories: ${fallbackError.message}`);
+    }
+
+    return fallbackData || [];
+  }
+
+  return data || [];
+}
+
+/**
+ * Create a new category
+ */
+export async function createCategory(category: {
+  name: string;
+  is_custom?: boolean;
+  owner_id?: string | null;
+}): Promise<Category> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const { data, error } = await supabase
+    .from('categories')
+    .insert({
+      ...category,
+      created_by: session.user.id,
+      updated_by: session.user.id,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create category: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Update a category
+ */
+export async function updateCategory(id: number, updates: Partial<Category>): Promise<Category> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const { data, error } = await supabase
+    .from('categories')
+    .update({
+      ...updates,
+      updated_by: session.user.id,
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update category: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * Delete a category
+ */
+export async function deleteCategory(id: number): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const { error } = await supabase
+    .from('categories')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(`Failed to delete category: ${error.message}`);
+  }
+}
+
+/**
+ * Find or create a category by name
+ * Returns the category ID
+ */
+export async function findOrCreateCategory(name: string, ownerId?: string | null): Promise<number> {
+  if (!name.trim()) {
+    throw new Error('Category name cannot be empty');
+  }
+
+  // First, try to find existing category
+  // Use proper null handling for owner_id
+  let query = supabase
+    .from('categories')
+    .select('id')
+    .eq('name', name.trim());
+  
+  if (ownerId) {
+    query = query.eq('owner_id', ownerId);
+  } else {
+    query = query.is('owner_id', null);
+  }
+  
+  const { data: existing, error: findError } = await query.maybeSingle();
+
+  // If category exists, return its ID
+  if (existing && !findError) {
+    return existing.id;
+  }
+
+  // If error is not "not found", throw it
+  if (findError && findError.code !== 'PGRST116') {
+    throw new Error(`Failed to find category: ${findError.message}`);
+  }
+
+  // Category doesn't exist, create it
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const { data: newCategory, error: createError } = await supabase
+    .from('categories')
+    .insert({
+      name: name.trim(),
+      is_custom: true,
+      owner_id: ownerId || null,
+      created_by: session.user.id,
+      updated_by: session.user.id,
+    })
+    .select('id')
+    .single();
+
+  if (createError) {
+    throw new Error(`Failed to create category: ${createError.message}`);
+  }
+
+  return newCategory.id;
+}
+
+export interface SystemConfig {
+  key: string;
+  value: any;
+  description?: string;
+  version: number;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+  updated_by?: string;
+}
+
+/**
+ * Get a system configuration value by key
+ * @param key - Configuration key (e.g., 'default_categories')
+ * @returns SystemConfig object or null if not found
+ */
+export async function getSystemConfig(key: string): Promise<SystemConfig | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/system-config/${key}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || error.details || 'Failed to fetch system config');
+  }
+
+  return response.json();
+}
+
+/**
+ * Get all system configurations (super admin only)
+ * @returns Array of SystemConfig objects
+ */
+export async function getAllSystemConfigs(): Promise<SystemConfig[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch('/api/system-config', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || error.details || 'Failed to fetch system configs');
+  }
+
+  return response.json();
+}
+
+/**
+ * Update a system configuration value (super admin only)
+ * @param key - Configuration key (e.g., 'default_categories')
+ * @param value - New value (will be stored as JSONB)
+ * @returns Updated SystemConfig object
+ */
+export async function updateSystemConfig(key: string, value: any): Promise<SystemConfig> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/system-config/${key}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ value }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || error.details || 'Failed to update system config');
+  }
+
+  return response.json();
 }
 
 /**
@@ -659,7 +935,7 @@ export async function updateUserRole(userId: string, role: string, ownerId?: str
 /**
  * Invite a user to join an owner group
  */
-export async function inviteUser(email: string, ownerId: string): Promise<{ success: boolean; message: string; action: string }> {
+export async function inviteUser(email: string, ownerId: string | null, role: string = 'registered'): Promise<{ success: boolean; message: string; action: string }> {
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session?.access_token) {
@@ -672,7 +948,7 @@ export async function inviteUser(email: string, ownerId: string): Promise<{ succ
       'Authorization': `Bearer ${session.access_token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ email, owner_id: ownerId }),
+    body: JSON.stringify({ email, owner_id: ownerId, role }),
   });
 
   if (!response.ok) {

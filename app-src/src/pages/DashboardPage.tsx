@@ -8,6 +8,9 @@ import { UsersTable } from '@/components/Admin/UsersTable';
 import { OwnersTable } from '@/components/Admin/OwnersTable';
 import { OwnerSettings } from '@/components/Admin/OwnerSettings';
 import { MissionControl } from '@/components/Admin/MissionControl';
+import { CategoryManagement } from '@/components/Admin/CategoryManagement';
+import { getAllOwners } from '@/lib/supabase/admin';
+import type { Owner } from '@/types/admin';
 import { PermissionsBadge } from '@/components/Dashboard/PermissionsBadge';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -23,13 +26,15 @@ export function DashboardPage() {
   const { user } = useAuth();
   const { loading, isSuperAdmin, isOwnerAdmin, ownerGroups, needsApproval } = usePermissions();
   const [userProfile, setUserProfile] = useState<{ first_name?: string; last_name?: string } | null>(null);
+  const [allOwners, setAllOwners] = useState<Owner[]>([]);
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(null);
   
   // Debug logging
   debugLog('DashboardPage - ownerGroups:', ownerGroups);
   
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'documents' | 'users' | 'owners' | 'owner-settings' | 'mission-control'>('documents');
+  const [activeTab, setActiveTab] = useState<'documents' | 'users' | 'owners' | 'owner-settings' | 'mission-control' | 'category-management'>('documents');
   const userDocumentsTableRef = useRef<UserDocumentsTableRef>(null);
   const documentsTableRef = useRef<DocumentsTableRef>(null);
   const uploadZoneRef = useRef<CombinedUploadZoneRef>(null);
@@ -58,6 +63,33 @@ export function DashboardPage() {
 
     return () => clearTimeout(timeoutId);
   }, []); // Only run on mount
+
+  // Fetch all owners for super admin owner settings
+  React.useEffect(() => {
+    const fetchOwners = async () => {
+      if (isSuperAdmin && activeTab === 'owner-settings') {
+        try {
+          const owners = await getAllOwners();
+          setAllOwners(owners);
+          // Auto-select first owner if none selected
+          if (!selectedOwnerId && owners.length > 0) {
+            setSelectedOwnerId(owners[0].id);
+          }
+        } catch (err) {
+          console.error('Failed to fetch owners:', err);
+        }
+      }
+    };
+    fetchOwners();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSuperAdmin, activeTab]);
+
+  // Set selected owner when ownerGroups change (for owner admins)
+  React.useEffect(() => {
+    if (!isSuperAdmin && ownerGroups.length > 0 && ownerGroups[0].owner_id) {
+      setSelectedOwnerId(ownerGroups[0].owner_id);
+    }
+  }, [isSuperAdmin, ownerGroups]);
 
   // Handler for status changes from UserDocumentsTable
   const handleStatusChange = React.useCallback(async (completedDocumentId?: string) => {
@@ -137,12 +169,14 @@ export function DashboardPage() {
       setActiveTab('owner-settings');
     } else if (location.pathname.includes('/mission-control')) {
       setActiveTab('mission-control');
+    } else if (location.pathname.includes('/category-management')) {
+      setActiveTab('category-management');
     } else {
       setActiveTab('documents');
     }
   }, [location.pathname]);
 
-  const handleTabChange = (tab: 'documents' | 'users' | 'owners' | 'owner-settings' | 'mission-control') => {
+  const handleTabChange = (tab: 'documents' | 'users' | 'owners' | 'owner-settings' | 'mission-control' | 'category-management') => {
     setActiveTab(tab);
     if (tab === 'users') {
       navigate('/users');
@@ -152,6 +186,8 @@ export function DashboardPage() {
       navigate('/owner-settings');
     } else if (tab === 'mission-control') {
       navigate('/mission-control');
+    } else if (tab === 'category-management') {
+      navigate('/category-management');
     } else {
       navigate('/dashboard');
     }
@@ -254,19 +290,21 @@ export function DashboardPage() {
                   <PermissionsBadge role="super_admin" />
                 ) : hasAdminAccess ? (
                   <>
-                    {ownerGroups.map((og) => (
-                      <div key={og.owner_id} className="flex items-center gap-2.5">
-                        <PermissionsBadge role={og.role as UserRole} />
-                        {og.owner_name && (
-                          <>
-                            <span className="text-gray-300">|</span>
-                            <span className="text-sm text-gray-700 font-medium">
-                              {og.owner_name}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    ))}
+                    {ownerGroups
+                      .filter((og) => og.role !== 'registered') // Filter out registered role - only show admin roles
+                      .map((og) => (
+                        <div key={og.owner_id} className="flex items-center gap-2.5">
+                          <PermissionsBadge role={og.role as UserRole} />
+                          {og.owner_name && (
+                            <>
+                              <span className="text-gray-300">|</span>
+                              <span className="text-sm text-gray-700 font-medium">
+                                {og.owner_name}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      ))}
                   </>
                 ) : null}
               </div>
@@ -329,6 +367,17 @@ export function DashboardPage() {
                     Owner Management
                   </button>
                   <button
+                    onClick={() => handleTabChange('category-management')}
+                    className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
+                      activeTab === 'category-management'
+                        ? 'border border-blue-100'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 sm:ml-1'
+                    }`}
+                    style={activeTab === 'category-management' ? { backgroundColor: 'rgb(219 234 254 / var(--tw-border-opacity))', color: 'rgb(18 136 254)', '--tw-text-opacity': '1' } as React.CSSProperties : undefined}
+                  >
+                    Category Management
+                  </button>
+                  <button
                     onClick={() => handleTabChange('mission-control')}
                     className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
                       activeTab === 'mission-control'
@@ -340,6 +389,20 @@ export function DashboardPage() {
                     🚀 Mission Control
                   </button>
                 </>
+              )}
+              {/* Category Management tab for owner-admins (when not super admin) */}
+              {isOwnerAdmin && !isSuperAdmin && (
+                <button
+                  onClick={() => handleTabChange('category-management')}
+                  className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
+                    activeTab === 'category-management'
+                      ? 'border border-blue-100'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 sm:ml-1'
+                  }`}
+                  style={activeTab === 'category-management' ? { backgroundColor: 'rgb(219 234 254 / var(--tw-border-opacity))', color: 'rgb(18 136 254)', '--tw-text-opacity': '1' } as React.CSSProperties : undefined}
+                >
+                  Categories
+                </button>
               )}
             </nav>
           </div>
@@ -494,16 +557,54 @@ export function DashboardPage() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                Owner Admin Access
+                {isSuperAdmin ? 'Super Admin Access' : 'Owner Admin Access'}
               </h3>
               <p className="text-sm text-docutrain-dark leading-relaxed">
-                <strong className="font-semibold text-docutrain-dark">Owner Settings</strong> - You can manage your owner group's branding and configuration settings, including logo, intro message, default cover image, and accent color.
+                <strong className="font-semibold text-docutrain-dark">Owner Settings</strong> - {isSuperAdmin 
+                  ? "Manage any owner group's branding and configuration settings, including logo, intro message, default cover image, accent color, and document categories."
+                  : "You can manage your owner group's branding and configuration settings, including logo, intro message, default cover image, and accent color."}
               </p>
             </div>
 
+            {/* Owner Selector for Super Admins */}
+            {isSuperAdmin && allOwners.length > 0 && (
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Select Owner Group
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Choose which owner group's settings you want to manage
+                  </p>
+                </div>
+                <div className="p-6">
+                  <select
+                    value={selectedOwnerId || ''}
+                    onChange={(e) => setSelectedOwnerId(e.target.value || null)}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-docutrain-light focus:border-docutrain-light text-sm font-medium text-gray-700 bg-white"
+                  >
+                    <option value="">Select an owner group...</option>
+                    {allOwners.map(owner => (
+                      <option key={owner.id} value={owner.id}>
+                        {owner.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
             {/* Owner Settings Component */}
-            {ownerGroups.length > 0 && ownerGroups[0].owner_id && (
-              <OwnerSettings ownerId={ownerGroups[0].owner_id} />
+            {selectedOwnerId && (
+              <OwnerSettings ownerId={selectedOwnerId} />
+            )}
+            {!selectedOwnerId && !isSuperAdmin && ownerGroups.length === 0 && (
+              <Alert variant="error">
+                You don't have access to any owner groups. Please contact an administrator.
+              </Alert>
             )}
           </div>
         ) : activeTab === 'mission-control' ? (
@@ -522,6 +623,27 @@ export function DashboardPage() {
               </div>
               <div className="p-5 sm:p-7">
                 <MissionControl />
+              </div>
+            </div>
+          </div>
+        ) : activeTab === 'category-management' ? (
+          <div className="space-y-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+              <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                  {isSuperAdmin ? 'Category Management' : 'Categories'}
+                </h2>
+                <p className="text-sm text-gray-600 mt-1.5">
+                  {isSuperAdmin 
+                    ? 'Configure default category options for documents'
+                    : 'Manage category options for documents in your owner group'}
+                </p>
+              </div>
+              <div className="p-5 sm:p-7">
+                <CategoryManagement ownerId={isSuperAdmin ? null : (selectedOwnerId || ownerGroups[0]?.owner_id || null)} />
               </div>
             </div>
           </div>

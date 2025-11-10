@@ -34,6 +34,7 @@ interface UseUsersHandlersParams {
   bulkOwnerId: string | null;
   inviteEmail: string;
   inviteOwnerId: string | null;
+  inviteRole: 'registered' | 'owner_admin';
   isSuperAdmin: boolean;
   isOwnerAdmin: boolean;
   ownerGroups: Array<{ role: string; owner_id: string | null }>;
@@ -63,6 +64,7 @@ interface UseUsersHandlersParams {
   setShowInviteModal: (show: boolean) => void;
   setInviteEmail: (email: string) => void;
   setInviteOwnerId: (id: string | null) => void;
+  setInviteRole: (role: 'registered' | 'owner_admin') => void;
   setInviting: (inviting: boolean) => void;
   setResendingInvitationId: (id: string | null) => void;
   setDeletingInvitationId: (id: string | null) => void;
@@ -89,6 +91,7 @@ export function useUsersHandlers(params: UseUsersHandlersParams) {
     bulkOwnerId,
     inviteEmail,
     inviteOwnerId,
+    inviteRole,
     isSuperAdmin,
     isOwnerAdmin,
     ownerGroups,
@@ -118,6 +121,7 @@ export function useUsersHandlers(params: UseUsersHandlersParams) {
     setShowInviteModal,
     setInviteEmail,
     setInviteOwnerId,
+    setInviteRole,
     setInviting,
     setResendingInvitationId,
     setDeletingInvitationId,
@@ -433,8 +437,8 @@ export function useUsersHandlers(params: UseUsersHandlersParams) {
   };
 
   const handleInviteUser = async () => {
-    if (!inviteEmail || (!isSuperAdmin && !inviteOwnerId)) {
-      setError('Please fill in all fields');
+    if (!inviteEmail) {
+      setError('Please enter an email address');
       return;
     }
 
@@ -442,6 +446,12 @@ export function useUsersHandlers(params: UseUsersHandlersParams) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(inviteEmail)) {
       setError('Please enter a valid email address');
+      return;
+    }
+
+    // Validate role/owner_id combinations
+    if (inviteRole === 'owner_admin' && !inviteOwnerId) {
+      setError('Owner group is required for owner admin role');
       return;
     }
 
@@ -454,8 +464,15 @@ export function useUsersHandlers(params: UseUsersHandlersParams) {
       }
     }
 
-    if (!ownerIdToUse) {
+    // Owner admins must have an owner group
+    if (!isSuperAdmin && isOwnerAdmin && !ownerIdToUse) {
       setError('Please select an owner group');
+      return;
+    }
+
+    // Super admins can have "none" (null) for registered users, but owner_admin requires owner_id
+    if (isSuperAdmin && inviteRole === 'owner_admin' && !ownerIdToUse) {
+      setError('Owner group is required for owner admin role');
       return;
     }
 
@@ -463,13 +480,14 @@ export function useUsersHandlers(params: UseUsersHandlersParams) {
       setInviting(true);
       setError(null);
       
-      debugLog('Inviting user:', { email: inviteEmail, owner_id: ownerIdToUse, isSuperAdmin, isOwnerAdmin });
+      debugLog('Inviting user:', { email: inviteEmail, owner_id: ownerIdToUse, role: inviteRole, isSuperAdmin, isOwnerAdmin });
       
-      const result = await inviteUser(inviteEmail, ownerIdToUse);
+      const result = await inviteUser(inviteEmail, ownerIdToUse, inviteRole);
       
       setShowInviteModal(false);
       setInviteEmail('');
       setInviteOwnerId(null);
+      setInviteRole('registered');
       
       setError(result.message || 'Invitation sent successfully');
       setTimeout(() => setError(null), 5000);

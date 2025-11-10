@@ -43,18 +43,20 @@ export function OwnerGroups() {
       )}
 
       <div className="space-y-3">
-        {ownerGroups.map((group) => (
-          <div
-            key={`${group.owner_id}-${group.role}`}
-            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-          >
-            <div>
-              <p className="font-medium text-gray-900">{group.owner_name}</p>
-              <p className="text-sm text-gray-500">{group.owner_slug}</p>
+        {ownerGroups
+          .filter((group) => group.role !== 'registered') // Filter out registered role - only show admin roles
+          .map((group) => (
+            <div
+              key={`${group.owner_id}-${group.role}`}
+              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+            >
+              <div>
+                <p className="font-medium text-gray-900">{group.owner_name}</p>
+                <p className="text-sm text-gray-500">{group.owner_slug}</p>
+              </div>
+              <PermissionsBadge role={group.role} ownerName={group.owner_name} />
             </div>
-            <PermissionsBadge role={group.role} ownerName={group.owner_name} />
-          </div>
-        ))}
+          ))}
       </div>
     </Card>
   );

@@ -1,13 +1,15 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useUsersData } from './hooks/useUsersData';
+import { useUsersFiltering } from './hooks/useUsersFiltering';
 import { useUsersSelection } from './hooks/useUsersSelection';
 import { useUsersHandlers } from './hooks/useUsersHandlers';
 import { BulkActionsBar } from './components/BulkActionsBar';
+import { UserFilters } from './components/UserFilters';
 import { UsersTableRow } from './components/UsersTableRow';
 import { UsersTableCard } from './components/UsersTableCard';
 import { InvitationRow } from './components/InvitationRow';
@@ -40,7 +42,29 @@ export function UsersTable() {
     loadData,
   } = useUsersData();
 
-  // Selection management
+  // Filtering
+  const {
+    filteredUsers,
+    filteredInvitations,
+    filteredMergedItems,
+    searchQuery,
+    roleFilter,
+    statusFilter,
+    typeFilter,
+    ownerFilter,
+    setSearchQuery,
+    setRoleFilter,
+    setStatusFilter,
+    setTypeFilter,
+    setOwnerFilter,
+    clearAllFilters,
+  } = useUsersFiltering({
+    users,
+    pendingInvitations,
+    isSuperAdmin,
+  });
+
+  // Selection management (use filtered items)
   const {
     selectedUserIds,
     selectedInvitationIds,
@@ -53,31 +77,7 @@ export function UsersTable() {
     selectedCount,
     allSelected,
     someSelected,
-  } = useUsersSelection(users, pendingInvitations);
-
-  // Merge and sort users and invitations by email
-  const mergedItems = useMemo(() => {
-    const userItems = users.map(user => ({
-      type: 'user' as const,
-      id: user.id,
-      email: user.email,
-      created_at: user.created_at,
-      data: user,
-    }));
-    
-    const invitationItems = pendingInvitations.map(invitation => ({
-      type: 'invitation' as const,
-      id: invitation.id,
-      email: invitation.email,
-      created_at: invitation.created_at,
-      data: invitation,
-    }));
-    
-    return [...userItems, ...invitationItems].sort((a, b) => {
-      // Sort by email alphabetically
-      return a.email.localeCompare(b.email);
-    });
-  }, [users, pendingInvitations]);
+  } = useUsersSelection(filteredUsers, filteredInvitations);
 
   // Modal state
   const [saving, setSaving] = useState(false);
@@ -102,6 +102,7 @@ export function UsersTable() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteOwnerId, setInviteOwnerId] = useState<string | null>(null);
+  const [inviteRole, setInviteRole] = useState<'registered' | 'owner_admin'>('registered');
   const [inviting, setInviting] = useState(false);
   const [resendingInvitationId, setResendingInvitationId] = useState<string | null>(null);
   const [deletingInvitationId, setDeletingInvitationId] = useState<string | null>(null);
@@ -113,6 +114,11 @@ export function UsersTable() {
       if (adminOwnerGroups.length > 0 && inviteOwnerId !== adminOwnerGroups[0].owner_id) {
         setInviteOwnerId(adminOwnerGroups[0].owner_id || null);
       }
+      // Owner admins can only create registered users
+      setInviteRole('registered');
+    } else if (showInviteModal && isSuperAdmin) {
+      // Reset role when super admin opens modal
+      setInviteRole('registered');
     }
   }, [showInviteModal, isSuperAdmin, isOwnerAdmin, ownerGroups, inviteOwnerId]);
 
@@ -135,6 +141,7 @@ export function UsersTable() {
     bulkOwnerId,
     inviteEmail,
     inviteOwnerId,
+    inviteRole,
     isSuperAdmin,
     isOwnerAdmin,
     ownerGroups,
@@ -164,6 +171,7 @@ export function UsersTable() {
     setShowInviteModal,
     setInviteEmail,
     setInviteOwnerId,
+    setInviteRole,
     setInviting,
     setResendingInvitationId,
     setDeletingInvitationId,
@@ -203,6 +211,7 @@ export function UsersTable() {
             onClick={() => {
               setShowInviteModal(true);
               setInviteEmail('');
+              setInviteRole('registered');
               // For owner admins, automatically set their owner group
               if (!isSuperAdmin && isOwnerAdmin && ownerGroups.length > 0) {
                 const adminOwnerGroups = ownerGroups.filter(og => og.role === 'owner_admin' && og.owner_id);
@@ -224,6 +233,27 @@ export function UsersTable() {
           </Button>
         )}
       </div>
+
+      {/* Search and Filters */}
+      <UserFilters
+        searchQuery={searchQuery}
+        roleFilter={roleFilter}
+        statusFilter={statusFilter}
+        typeFilter={typeFilter}
+        ownerFilter={ownerFilter}
+        owners={owners}
+        isSuperAdmin={isSuperAdmin}
+        totalUsers={users.length}
+        totalInvitations={pendingInvitations.length}
+        filteredUsers={filteredUsers.length}
+        filteredInvitations={filteredInvitations.length}
+        onSearchChange={setSearchQuery}
+        onRoleFilterChange={setRoleFilter}
+        onStatusFilterChange={setStatusFilter}
+        onTypeFilterChange={setTypeFilter}
+        onOwnerFilterChange={setOwnerFilter}
+        onClearFilters={clearAllFilters}
+      />
 
       {/* Bulk Actions Bar */}
       <BulkActionsBar
@@ -282,7 +312,7 @@ export function UsersTable() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {mergedItems.map((item) => {
+              {filteredMergedItems.map((item) => {
                 if (item.type === 'user') {
                   return (
                     <UsersTableRow
@@ -328,7 +358,7 @@ export function UsersTable() {
 
       {/* Mobile/Tablet Card View */}
       <div className="lg:hidden space-y-4">
-        {mergedItems.map((item) => {
+        {filteredMergedItems.map((item) => {
           if (item.type === 'user') {
             return (
               <UsersTableCard
@@ -367,13 +397,17 @@ export function UsersTable() {
         })}
       </div>
 
-      {users.length === 0 && pendingInvitations.length === 0 && (
+      {filteredMergedItems.length === 0 && (
         <div className="text-center py-12">
           <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
           <h3 className="mt-2 text-sm font-medium text-gray-900">No users found</h3>
-          <p className="mt-1 text-sm text-gray-500">Get started by creating a new user.</p>
+          <p className="mt-1 text-sm text-gray-500">
+            {users.length === 0 && pendingInvitations.length === 0
+              ? 'Get started by creating a new user.'
+              : 'Try adjusting your filters to see more results.'}
+          </p>
         </div>
       )}
 
@@ -478,9 +512,11 @@ export function UsersTable() {
           setShowInviteModal(false);
           setInviteEmail('');
           setInviteOwnerId(null);
+          setInviteRole('registered');
         }}
         inviteEmail={inviteEmail}
         inviteOwnerId={inviteOwnerId}
+        inviteRole={inviteRole}
         isSuperAdmin={isSuperAdmin}
         isOwnerAdmin={isOwnerAdmin}
         ownerGroups={ownerGroups}
@@ -488,6 +524,7 @@ export function UsersTable() {
         inviting={inviting}
         onEmailChange={setInviteEmail}
         onOwnerIdChange={setInviteOwnerId}
+        onRoleChange={setInviteRole}
         onConfirm={handlers.handleInviteUser}
       />
 

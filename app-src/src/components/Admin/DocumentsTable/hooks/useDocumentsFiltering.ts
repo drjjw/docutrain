@@ -101,7 +101,7 @@ export function useDocumentsFiltering({
         doc.title?.toLowerCase().includes(query) ||
         doc.subtitle?.toLowerCase().includes(query) ||
         doc.slug?.toLowerCase().includes(query) ||
-        doc.category?.toLowerCase().includes(query) ||
+        doc.category_obj?.name?.toLowerCase().includes(query) ||
         doc.owners?.name?.toLowerCase().includes(query)
       ));
     }
@@ -124,7 +124,7 @@ export function useDocumentsFiltering({
 
     // Apply category filter
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(doc => doc.category === categoryFilter);
+      filtered = filtered.filter(doc => doc.category_obj?.name === categoryFilter);
     }
 
     // Apply owner filter (super admin only)

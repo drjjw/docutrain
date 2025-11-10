@@ -37,9 +37,9 @@ export function DocumentActionButtons({
   if (isMobile) {
     // Mobile: horizontal layout with icons and text
     return (
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap w-full gap-x-2 gap-y-2">
         {/* Enable/Disable Toggle */}
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex flex-col items-center gap-1 flex-[1_1_calc(20%-0.4rem)] min-w-0 max-w-[calc(20%-0.4rem)]">
           <div className="flex items-center gap-2 p-2">
             <StatusToggle doc={doc} isUpdating={isUpdating} onToggle={onToggleActive} />
           </div>
@@ -51,7 +51,7 @@ export function DocumentActionButtons({
         {/* View Button */}
         <button
           onClick={() => onView(doc.slug)}
-          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-docutrain-light hover:bg-docutrain-light/10 rounded-lg transition-colors"
+          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-docutrain-light hover:bg-docutrain-light/10 rounded-lg transition-colors flex-[1_1_calc(20%-0.4rem)] min-w-0 max-w-[calc(20%-0.4rem)]"
           title="View document"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,7 +64,7 @@ export function DocumentActionButtons({
         {/* Copy Link Button */}
         <button
           onClick={() => onCopyLink(doc)}
-          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors flex-[1_1_calc(20%-0.4rem)] min-w-0 max-w-[calc(20%-0.4rem)]"
           title="Copy link"
         >
           {copiedDocId === doc.id ? (
@@ -83,7 +83,7 @@ export function DocumentActionButtons({
         {hasDownload && (
           <button
             onClick={() => onDownload(doc)}
-            className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+            className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors flex-[1_1_calc(20%-0.4rem)] min-w-0 max-w-[calc(20%-0.4rem)]"
             title={doc.downloads!.length > 1 ? `${doc.downloads!.length} downloads available` : 'Download PDF'}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +98,7 @@ export function DocumentActionButtons({
         {/* Analytics Button */}
         <button
           onClick={() => onViewAnalytics(doc)}
-          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors flex-[1_1_calc(20%-0.4rem)] min-w-0 max-w-[calc(20%-0.4rem)]"
           title="View analytics"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +110,7 @@ export function DocumentActionButtons({
         {/* Edit All Button */}
         <button
           onClick={() => onEdit(doc)}
-          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-docutrain-light hover:bg-docutrain-light/10 rounded-lg transition-colors"
+          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-docutrain-light hover:bg-docutrain-light/10 rounded-lg transition-colors flex-[1_1_calc(20%-0.4rem)] min-w-0 max-w-[calc(20%-0.4rem)]"
           title="Edit all fields"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -122,7 +122,7 @@ export function DocumentActionButtons({
         {/* Delete Button */}
         <button
           onClick={() => onDelete(doc)}
-          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          className="flex flex-col items-center gap-1 p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-[1_1_calc(20%-0.4rem)] min-w-0 max-w-[calc(20%-0.4rem)]"
           title="Delete document"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

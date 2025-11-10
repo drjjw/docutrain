@@ -1,8 +1,12 @@
 import React from 'react';
-import type { DocumentWithOwner } from '@/types/admin';
+import type { DocumentWithOwner, Owner } from '@/types/admin';
 import { VisibilityBadge } from './VisibilityBadge';
 import { DocumentActionButtons } from './DocumentActionButtons';
 import { DocumentMetadata } from './DocumentMetadata';
+import { InlineEditableVisibility } from './InlineEditableVisibility';
+import { InlineEditableCategory } from './InlineEditableCategory';
+import { InlineEditableOwner } from './InlineEditableOwner';
+import { InlineEditableTitle } from './InlineEditableTitle';
 
 interface DocumentRowProps {
   doc: DocumentWithOwner;
@@ -12,6 +16,7 @@ interface DocumentRowProps {
   copiedDocId: string | null;
   copiedSlugId: string | null;
   hasDownload: boolean;
+  owners: Owner[];
   onToggleSelection: (docId: string) => void;
   onCopySlug: (doc: DocumentWithOwner) => void;
   onToggleActive: (doc: DocumentWithOwner, newActive: boolean) => void;
@@ -21,6 +26,10 @@ interface DocumentRowProps {
   onViewAnalytics: (doc: DocumentWithOwner) => void;
   onEdit: (doc: DocumentWithOwner) => void;
   onDelete: (doc: DocumentWithOwner) => void;
+  onUpdateVisibility: (doc: DocumentWithOwner, newAccessLevel: string) => Promise<void>;
+  onUpdateCategory: (doc: DocumentWithOwner, newCategory: string | null) => Promise<void>;
+  onUpdateOwner: (doc: DocumentWithOwner, newOwnerId: string | null) => Promise<void>;
+  onUpdateTitle: (doc: DocumentWithOwner, newTitle: string) => Promise<void>;
 }
 
 export function DocumentRow({
@@ -31,6 +40,7 @@ export function DocumentRow({
   copiedDocId,
   copiedSlugId,
   hasDownload,
+  owners,
   onToggleSelection,
   onCopySlug,
   onToggleActive,
@@ -40,6 +50,10 @@ export function DocumentRow({
   onViewAnalytics,
   onEdit,
   onDelete,
+  onUpdateVisibility,
+  onUpdateCategory,
+  onUpdateOwner,
+  onUpdateTitle,
 }: DocumentRowProps) {
   return (
     <div className="hidden lg:block bg-white/90 backdrop-blur-sm border border-gray-200/60 rounded-xl hover:shadow-lg hover:border-gray-300 transition-all duration-300 hover:-translate-y-0.5">
@@ -63,9 +77,11 @@ export function DocumentRow({
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-gray-900 text-base break-words" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-                {doc.title || 'Untitled Document'}
-              </div>
+              <InlineEditableTitle
+                title={doc.title || 'Untitled Document'}
+                isUpdating={isUpdating}
+                onUpdate={(newTitle) => onUpdateTitle(doc, newTitle)}
+              />
               <div className="text-sm text-gray-600 font-medium mt-0.5 flex items-center gap-1.5 min-w-0 flex-wrap">
                 <DocumentMetadata doc={doc} />
               </div>
@@ -74,36 +90,39 @@ export function DocumentRow({
         </div>
 
         {/* Visibility */}
-        <div className="w-24 flex items-center justify-center mr-4">
-          <VisibilityBadge accessLevel={doc.access_level || 'public'} />
+        <div className="w-28 flex items-center justify-center mr-6 min-w-0">
+          <div className="w-full max-w-full">
+            <InlineEditableVisibility
+              accessLevel={doc.access_level || 'public'}
+              isUpdating={isUpdating}
+              onUpdate={(newAccessLevel) => onUpdateVisibility(doc, newAccessLevel)}
+            />
+          </div>
         </div>
 
         {/* Category */}
-        <div className="w-24 flex items-center justify-center mr-4">
-          {doc.category ? (
-            <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200/50 shadow-sm">
-              {doc.category}
-            </span>
-          ) : null}
+        <div className="w-28 flex items-center justify-center mr-6 min-w-0">
+          <div className="w-full max-w-full" style={{ textAlign: 'center' }}>
+            <InlineEditableCategory
+              categoryObj={doc.category_obj}
+              isUpdating={isUpdating}
+              onUpdate={(newCategory) => onUpdateCategory(doc, newCategory)}
+              owner={doc.owners || null}
+            />
+          </div>
         </div>
 
         {/* Owner (Super Admin only) */}
         {isSuperAdmin && (
-          <div className="w-24 flex items-center justify-center mr-4">
-            {doc.owners?.name ? (
-              <div className="relative group w-full min-w-0">
-                <span
-                  className="inline-block px-3 py-1.5 rounded-lg text-xs font-semibold bg-docutrain-light/10 text-docutrain-dark border border-docutrain-light/30 shadow-sm overflow-hidden text-ellipsis whitespace-nowrap w-full text-center"
-                >
-                  {doc.owners.name}
-                </span>
-                {/* Tooltip */}
-                <div className="absolute left-0 bottom-full mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 whitespace-nowrap max-w-xs">
-                  {doc.owners.name}
-                  <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                </div>
-              </div>
-            ) : null}
+          <div className="w-28 flex items-center justify-center mr-6 min-w-0">
+            <div className="w-full max-w-full" style={{ textAlign: 'center' }}>
+              <InlineEditableOwner
+                owner={doc.owners || null}
+                owners={owners}
+                isUpdating={isUpdating}
+                onUpdate={(newOwnerId) => onUpdateOwner(doc, newOwnerId)}
+              />
+            </div>
           </div>
         )}
 

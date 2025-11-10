@@ -548,7 +548,11 @@ export function ProfilePage() {
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Owner Assignment</p>
                   <p className="text-sm text-gray-900 font-medium mt-1 break-words">
                     {ownerGroups.length > 0 
-                      ? ownerGroups.map(og => og.owner_name).join(', ')
+                      ? [...new Set(ownerGroups
+                          .filter(og => og.role !== 'registered') // Filter out registered role
+                          .map(og => og.owner_name)
+                          .filter(Boolean) // Remove any null/undefined values
+                        )].join(', ') // Deduplicate owner names
                       : isSuperAdmin 
                         ? 'Super Admin' 
                         : 'No assignment'}

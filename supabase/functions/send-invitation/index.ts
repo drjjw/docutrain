@@ -231,12 +231,35 @@ Deno.serve(async (req) => {
     }
     const resend = new Resend(resendApiKey);
 
-    const { email, owner_id, invited_by_user_id } = await req.json();
+    const { email, owner_id, role, invited_by_user_id } = await req.json();
+    const userRole = role || 'registered'; // Default to registered
 
     // Validate required fields
-    if (!email || !owner_id || !invited_by_user_id) {
+    if (!email || !invited_by_user_id) {
       return new Response(
-        JSON.stringify({ success: false, error: 'email, owner_id, and invited_by_user_id are required' }),
+        JSON.stringify({ success: false, error: 'email and invited_by_user_id are required' }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        }
+      );
+    }
+
+    // Validate role
+    if (!['registered', 'owner_admin'].includes(userRole)) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid role. Must be "registered" or "owner_admin"' }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+        }
+      );
+    }
+
+    // Validate role/owner_id combinations
+    if (userRole === 'owner_admin' && !owner_id) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'owner_id is required for owner_admin role' }),
         { 
           status: 400,
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
@@ -269,7 +292,8 @@ Deno.serve(async (req) => {
       .insert({
         email: email.toLowerCase().trim(),
         invite_token: inviteToken,
-        owner_id: owner_id,
+        owner_id: owner_id || null,
+        role: userRole,
         invited_by: invited_by_user_id,
         expires_at: expiresAt.toISOString(),
       })
@@ -287,22 +311,26 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get owner information
-    const { data: owner, error: ownerError } = await supabase
-      .from('owners')
-      .select('name, slug')
-      .eq('id', owner_id)
-      .single();
+    // Get owner information (only if owner_id is provided)
+    let owner = null;
+    if (owner_id) {
+      const { data: ownerData, error: ownerError } = await supabase
+        .from('owners')
+        .select('name, slug')
+        .eq('id', owner_id)
+        .single();
 
-    if (ownerError || !owner) {
-      console.error('Owner lookup error:', ownerError);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to find owner information' }),
-        { 
-          status: 500,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-        }
-      );
+      if (ownerError || !ownerData) {
+        console.error('Owner lookup error:', ownerError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Failed to find owner information' }),
+          { 
+            status: 500,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          }
+        );
+      }
+      owner = ownerData;
     }
 
     // Get sender email from environment
@@ -315,16 +343,19 @@ Deno.serve(async (req) => {
     const baseUrl = getBaseUrl();
     const signupUrl = `${baseUrl}/app/signup?invite_token=${inviteToken}`;
 
-    // Generate email HTML
-    const emailHtml = getInvitationEmailTemplate(owner.name, signupUrl);
+    // Generate email HTML (use owner name or generic message)
+    const ownerName = owner?.name || 'DocuTrain';
+    const emailHtml = getInvitationEmailTemplate(ownerName, signupUrl);
 
     // Send email via Resend
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: `${senderName} <${senderEmail}>`,
       to: [email.toLowerCase().trim()],
-      subject: `You're Invited to Join ${owner.name} on DocuTrain`,
+      subject: owner ? `You're Invited to Join ${owner.name} on DocuTrain` : 'You\'re Invited to Join DocuTrain',
       html: emailHtml,
-      text: `You've been invited to join ${owner.name} on DocuTrain. Click the link below to create your account:\n\n${signupUrl}\n\nThis invitation will expire in 30 days.`,
+      text: owner 
+        ? `You've been invited to join ${owner.name} on DocuTrain. Click the link below to create your account:\n\n${signupUrl}\n\nThis invitation will expire in 30 days.`
+        : `You've been invited to join DocuTrain. Click the link below to create your account:\n\n${signupUrl}\n\nThis invitation will expire in 30 days.`,
     });
 
     if (emailError) {
@@ -343,7 +374,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Invitation sent successfully: ${email} -> ${owner.name} (${emailData?.id})`);
+    console.log(`Invitation sent successfully: ${email} -> ${owner ? owner.name : 'DocuTrain (no owner group)'} (${emailData?.id})`);
 
     return new Response(
       JSON.stringify({ 

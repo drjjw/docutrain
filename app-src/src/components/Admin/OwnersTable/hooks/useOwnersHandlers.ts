@@ -1,5 +1,7 @@
 import { updateOwner, createOwner, deleteOwner } from '@/lib/supabase/admin';
-import type { Owner } from '@/types/admin';
+import { getCategoriesForOwner, createCategory, deleteCategory } from '@/lib/supabase/admin';
+import { invalidateCategoryCache } from '@/utils/categories';
+import type { Owner, Category } from '@/types/admin';
 import { clearOwnerLogoCache } from '@/hooks/useOwnerLogo';
 
 interface UseOwnersHandlersProps {
@@ -15,6 +17,7 @@ interface UseOwnersHandlersProps {
   editCustomDomain: string;
   editForcedGrokModel: string | null;
   editAccentColor: string;
+  editCategories: Category[]; // Changed from string[] to Category[]
   createName: string;
   createSlug: string;
   createDescription: string;
@@ -67,6 +70,7 @@ export function useOwnersHandlers({
   editCustomDomain,
   editForcedGrokModel,
   editAccentColor,
+  editCategories,
   createName,
   createSlug,
   createDescription,
@@ -142,6 +146,46 @@ export function useOwnersHandlers({
           accent_color: editAccentColor.trim() || undefined,
         },
       });
+
+      // Sync categories to categories table
+      // Get current categories from database
+      const currentCategories = await getCategoriesForOwner(editingOwner.id);
+      const currentOwnerCategories = currentCategories.filter(cat => cat.owner_id === editingOwner.id);
+      
+      // Find categories to delete (in DB but not in editCategories)
+      const categoriesToDelete = currentOwnerCategories.filter(
+        dbCat => !editCategories.some(editCat => editCat.id === dbCat.id)
+      );
+      
+      // Find categories to create (in editCategories but not in DB)
+      const categoryNamesInDb = new Set(currentOwnerCategories.map(cat => cat.name.toLowerCase()));
+      const categoriesToCreate = editCategories.filter(
+        editCat => !categoryNamesInDb.has(editCat.name.toLowerCase())
+      );
+      
+      // Delete removed categories
+      for (const catToDelete of categoriesToDelete) {
+        try {
+          await deleteCategory(catToDelete.id);
+        } catch (err) {
+          console.warn(`Failed to delete category ${catToDelete.id}:`, err);
+        }
+      }
+      
+      // Create new categories
+      for (const catToCreate of categoriesToCreate) {
+        try {
+          await createCategory({
+            name: catToCreate.name,
+            is_custom: true,
+            owner_id: editingOwner.id,
+          });
+        } catch (err) {
+          console.warn(`Failed to create category ${catToCreate.name}:`, err);
+        }
+      }
+      
+      invalidateCategoryCache();
 
       // Clear owner logo cache to ensure changes are reflected immediately
       clearOwnerLogoCache();

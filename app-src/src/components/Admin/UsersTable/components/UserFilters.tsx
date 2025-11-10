@@ -1,66 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import type { Owner } from '@/types/admin';
-import type { StatusFilter, VisibilityFilter } from '../types';
-import { getDefaultCategories } from '@/utils/categories';
-import { DEFAULT_CATEGORY_OPTIONS } from '@/constants/categories';
+import type { RoleFilter, StatusFilter, TypeFilter } from '../hooks/useUsersFiltering';
 
-interface DocumentFiltersProps {
+interface UserFiltersProps {
   searchQuery: string;
+  roleFilter: RoleFilter;
   statusFilter: StatusFilter;
-  visibilityFilter: VisibilityFilter;
-  categoryFilter: string;
+  typeFilter: TypeFilter;
   ownerFilter: string;
   owners: Owner[];
   isSuperAdmin: boolean;
-  totalDocuments: number;
-  filteredDocuments: number;
+  totalUsers: number;
+  totalInvitations: number;
+  filteredUsers: number;
+  filteredInvitations: number;
   onSearchChange: (query: string) => void;
+  onRoleFilterChange: (filter: RoleFilter) => void;
   onStatusFilterChange: (filter: StatusFilter) => void;
-  onVisibilityFilterChange: (filter: VisibilityFilter) => void;
-  onCategoryFilterChange: (filter: string) => void;
+  onTypeFilterChange: (filter: TypeFilter) => void;
   onOwnerFilterChange: (filter: string) => void;
   onClearFilters: () => void;
 }
 
-export function DocumentFilters({
+export function UserFilters({
   searchQuery,
+  roleFilter,
   statusFilter,
-  visibilityFilter,
-  categoryFilter,
+  typeFilter,
   ownerFilter,
   owners,
   isSuperAdmin,
-  totalDocuments,
-  filteredDocuments,
+  totalUsers,
+  totalInvitations,
+  filteredUsers,
+  filteredInvitations,
   onSearchChange,
+  onRoleFilterChange,
   onStatusFilterChange,
-  onVisibilityFilterChange,
-  onCategoryFilterChange,
+  onTypeFilterChange,
   onOwnerFilterChange,
   onClearFilters,
-}: DocumentFiltersProps) {
-  const [categoryOptions, setCategoryOptions] = useState<string[]>(DEFAULT_CATEGORY_OPTIONS);
-  const [loadingCategories, setLoadingCategories] = useState(true);
-
-  // Fetch default categories on mount (filters use default categories, not owner-specific)
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setLoadingCategories(true);
-        const options = await getDefaultCategories();
-        setCategoryOptions(options);
-      } catch (error) {
-        console.error('Failed to load category options:', error);
-        // Fallback to constants already set
-      } finally {
-        setLoadingCategories(false);
-      }
-    };
-    
-    fetchCategories();
-  }, []);
-
-  const hasActiveFilters = searchQuery || statusFilter !== 'all' || visibilityFilter !== 'all' || categoryFilter !== 'all' || ownerFilter !== 'all';
+}: UserFiltersProps) {
+  const hasActiveFilters = searchQuery || roleFilter !== 'all' || statusFilter !== 'all' || typeFilter !== 'all' || ownerFilter !== 'all';
+  const totalItems = totalUsers + totalInvitations;
+  const filteredItems = filteredUsers + filteredInvitations;
 
   return (
     <div className="space-y-4">
@@ -73,7 +56,7 @@ export function DocumentFilters({
         </div>
         <input
           type="text"
-          placeholder="Search documents ..."
+          placeholder="Search users by email or name ..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className="block w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl leading-5 bg-white/80 backdrop-blur-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-docutrain-light/20 focus:border-docutrain-light shadow-sm hover:shadow-md transition-all duration-200 sm:text-sm"
@@ -81,7 +64,44 @@ export function DocumentFilters({
       </div>
 
       {/* Filters Grid - Stack on mobile, row on desktop */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${isSuperAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3`}>
+        {/* Type Filter */}
+        <div className="relative">
+          <select
+            value={typeFilter}
+            onChange={(e) => onTypeFilterChange(e.target.value as TypeFilter)}
+            className="appearance-none bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-docutrain-light/20 focus:border-docutrain-light shadow-sm hover:shadow-md transition-all duration-200 w-full font-medium text-gray-700"
+          >
+            <option value="all">All Types</option>
+            <option value="users">Users</option>
+            <option value="invitations">Invitations</option>
+          </select>
+          <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Role Filter */}
+        <div className="relative">
+          <select
+            value={roleFilter}
+            onChange={(e) => onRoleFilterChange(e.target.value as RoleFilter)}
+            className="appearance-none bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-docutrain-light/20 focus:border-docutrain-light shadow-sm hover:shadow-md transition-all duration-200 w-full font-medium text-gray-700"
+          >
+            <option value="all">All Roles</option>
+            <option value="registered">Registered</option>
+            <option value="owner_admin">Owner Admin</option>
+            <option value="super_admin">Super Admin</option>
+          </select>
+          <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+
         {/* Status Filter */}
         <div className="relative">
           <select
@@ -90,49 +110,10 @@ export function DocumentFilters({
             className="appearance-none bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-docutrain-light/20 focus:border-docutrain-light shadow-sm hover:shadow-md transition-all duration-200 w-full font-medium text-gray-700"
           >
             <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-          <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-
-        {/* Visibility Filter */}
-        <div className="relative">
-          <select
-            value={visibilityFilter}
-            onChange={(e) => onVisibilityFilterChange(e.target.value as VisibilityFilter)}
-            className="appearance-none bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-docutrain-light/20 focus:border-docutrain-light shadow-sm hover:shadow-md transition-all duration-200 w-full font-medium text-gray-700"
-          >
-            <option value="all">All Access Levels</option>
-            <option value="public">Public</option>
-            <option value="passcode">Passcode</option>
-            <option value="registered">Registered</option>
-            <option value="owner_restricted">Owner</option>
-            <option value="owner_admin_only">Owner Admins Only</option>
-          </select>
-          <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-
-        {/* Category Filter */}
-        <div className="relative">
-          <select
-            value={categoryFilter}
-            onChange={(e) => onCategoryFilterChange(e.target.value)}
-            disabled={loadingCategories}
-            className="appearance-none bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-docutrain-light/20 focus:border-docutrain-light shadow-sm hover:shadow-md transition-all duration-200 w-full font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <option value="all">All Categories</option>
-            {categoryOptions.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
+            <option value="verified">Verified</option>
+            <option value="unverified">Unverified</option>
+            <option value="banned">Banned</option>
+            <option value="pending">Pending</option>
           </select>
           <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
             <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,7 +152,7 @@ export function DocumentFilters({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <span className="text-sm font-medium text-amber-800">
-              Filters Active, not all documents visible ({filteredDocuments} of {totalDocuments} shown)
+              Filters Active, not all items visible ({filteredItems} of {totalItems} shown)
             </span>
           </div>
           <button

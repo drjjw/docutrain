@@ -339,6 +339,139 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
     }
   };
 
+  const handleUpdateVisibility = async (doc: DocumentWithOwner, newAccessLevel: string) => {
+    setUpdatingDocIds(prev => new Set(prev).add(doc.id));
+    
+    // Optimistically update the UI immediately
+    updateDocumentInState(doc.id, { access_level: newAccessLevel as any });
+    
+    try {
+      await updateDocument(doc.id, { access_level: newAccessLevel as any, slug: doc.slug });
+      
+      // Dispatch event to trigger refresh in other tabs/components
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('document-updated', {
+          detail: { documentSlug: doc.slug }
+        }));
+      }, 200);
+    } catch (err) {
+      // On error, revert the optimistic update and reload to get correct state
+      updateDocumentInState(doc.id, { access_level: doc.access_level });
+      await loadData(false);
+    } finally {
+      setUpdatingDocIds(prev => {
+        const next = new Set(prev);
+        next.delete(doc.id);
+        return next;
+      });
+    }
+  };
+
+  const handleUpdateCategory = async (doc: DocumentWithOwner, newCategory: string | null) => {
+    setUpdatingDocIds(prev => new Set(prev).add(doc.id));
+    
+    try {
+      // Find or create category and get its ID
+      let categoryId: number | null = null;
+      if (newCategory) {
+        const { findOrCreateCategory } = await import('@/lib/supabase/admin');
+        categoryId = await findOrCreateCategory(newCategory, doc.owner_id || null);
+      }
+      
+      // Update document with category_id only
+      await updateDocument(doc.id, { 
+        category_id: categoryId,
+        slug: doc.slug 
+      });
+      
+      // Optimistically update the UI - update category_obj
+      if (categoryId && newCategory) {
+        updateDocumentInState(doc.id, { 
+          category_id: categoryId,
+          category_obj: { id: categoryId, name: newCategory }
+        });
+      } else {
+        updateDocumentInState(doc.id, { 
+          category_id: null,
+          category_obj: undefined
+        });
+      }
+      
+      // Dispatch event to trigger refresh in other tabs/components
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('document-updated', {
+          detail: { documentSlug: doc.slug }
+        }));
+      }, 200);
+    } catch (err) {
+      // On error, reload to get correct state
+      await loadData(false);
+    } finally {
+      setUpdatingDocIds(prev => {
+        const next = new Set(prev);
+        next.delete(doc.id);
+        return next;
+      });
+    }
+  };
+
+  const handleUpdateOwner = async (doc: DocumentWithOwner, newOwnerId: string | null) => {
+    setUpdatingDocIds(prev => new Set(prev).add(doc.id));
+    
+    // Optimistically update the UI immediately
+    const newOwner = newOwnerId ? owners.find(o => o.id === newOwnerId) : undefined;
+    updateDocumentInState(doc.id, { owner_id: newOwnerId, owners: newOwner });
+    
+    try {
+      await updateDocument(doc.id, { owner_id: newOwnerId, slug: doc.slug });
+      
+      // Dispatch event to trigger refresh in other tabs/components
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('document-updated', {
+          detail: { documentSlug: doc.slug }
+        }));
+      }, 200);
+    } catch (err) {
+      // On error, revert the optimistic update and reload to get correct state
+      updateDocumentInState(doc.id, { owner_id: doc.owner_id, owners: doc.owners });
+      await loadData(false);
+    } finally {
+      setUpdatingDocIds(prev => {
+        const next = new Set(prev);
+        next.delete(doc.id);
+        return next;
+      });
+    }
+  };
+
+  const handleUpdateTitle = async (doc: DocumentWithOwner, newTitle: string) => {
+    setUpdatingDocIds(prev => new Set(prev).add(doc.id));
+    
+    // Optimistically update the UI immediately
+    updateDocumentInState(doc.id, { title: newTitle });
+    
+    try {
+      await updateDocument(doc.id, { title: newTitle, slug: doc.slug });
+      
+      // Dispatch event to trigger refresh in other tabs/components
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('document-updated', {
+          detail: { documentSlug: doc.slug }
+        }));
+      }, 200);
+    } catch (err) {
+      // On error, revert the optimistic update and reload to get correct state
+      updateDocumentInState(doc.id, { title: doc.title });
+      await loadData(false);
+    } finally {
+      setUpdatingDocIds(prev => {
+        const next = new Set(prev);
+        next.delete(doc.id);
+        return next;
+      });
+    }
+  };
+
   const handleDownload = async (doc: DocumentWithOwner) => {
     try {
       const response = await fetch(`/api/document-download-url/${doc.id}`);
@@ -404,14 +537,6 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
           <h3 className="text-lg sm:text-xl font-bold text-gray-900">
             Documents ({paginatedDocuments.length} of {filteredDocuments.length}{filteredDocuments.length !== documents.length ? ` total` : ''})
           </h3>
-          <div className="flex gap-2">
-            <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-100 text-green-800 border border-green-200/50 shadow-sm text-center">
-              {filteredDocuments.filter(doc => doc.active ?? false).length} Active
-            </span>
-            <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-docutrain-light/10 text-docutrain-dark border border-docutrain-light/30 shadow-sm text-center">
-              {filteredDocuments.filter(doc => (doc.access_level || 'public') === 'public').length} Public
-            </span>
-          </div>
         </div>
         {/* Items per page selector */}
         <div className="flex items-center gap-2">
@@ -480,10 +605,10 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
               />
             </div>
             <div className={`${isSuperAdmin ? 'flex-1 min-w-[400px] mr-4' : 'flex-1 min-w-[400px] mr-4'} text-xs font-bold text-gray-600 uppercase tracking-wider`}>Document</div>
-            <div className="w-24 text-xs font-bold text-gray-600 uppercase tracking-wider text-center mr-4">Visibility</div>
-            <div className="w-24 text-xs font-bold text-gray-600 uppercase tracking-wider text-center mr-4">Category</div>
+            <div className="w-28 text-xs font-bold text-gray-600 uppercase tracking-wider text-center mr-6">Visibility</div>
+            <div className="w-28 text-xs font-bold text-gray-600 uppercase tracking-wider text-center mr-6">Category</div>
             {isSuperAdmin && (
-              <div className="w-24 text-xs font-bold text-gray-600 uppercase tracking-wider text-center mr-4">Owner</div>
+              <div className="w-28 text-xs font-bold text-gray-600 uppercase tracking-wider text-center mr-6">Owner</div>
             )}
             <div className="flex-1 text-xs font-bold text-gray-600 uppercase tracking-wider flex justify-center">Actions</div>
           </div>
@@ -512,12 +637,16 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
                 setEditorModalDoc(doc);
               },
               onDelete: setDeleteConfirmDoc,
+              onUpdateVisibility: (doc: DocumentWithOwner, newAccessLevel: string) => handleUpdateVisibility(doc, newAccessLevel),
+              onUpdateCategory: (doc: DocumentWithOwner, newCategory: string | null) => handleUpdateCategory(doc, newCategory),
+              onUpdateOwner: (doc: DocumentWithOwner, newOwnerId: string | null) => handleUpdateOwner(doc, newOwnerId),
+              onUpdateTitle: (doc: DocumentWithOwner, newTitle: string) => handleUpdateTitle(doc, newTitle),
             };
             
             return (
               <div key={doc.id}>
-                <DocumentCard {...commonProps} />
-                <DocumentRow {...commonProps} isSuperAdmin={isSuperAdmin} />
+                <DocumentCard {...commonProps} isSuperAdmin={isSuperAdmin} owners={owners} />
+                <DocumentRow {...commonProps} isSuperAdmin={isSuperAdmin} owners={owners} />
               </div>
             );
           })}

@@ -1,27 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { TextInput, SelectInput, NumberInput, type SelectOption } from './fields';
 import type { DocumentBasicInfoCardProps } from './types';
+import { getCategoryOptions } from '@/utils/categories';
+import { DEFAULT_CATEGORY_OPTIONS } from '@/constants/categories';
 
 export function DocumentBasicInfoCard({
   title,
   subtitle,
-  category,
+  categoryObj,
   year,
   backLink,
   onFieldChange,
   isSuperAdmin,
-  yearError
+  yearError,
+  owner,
 }: DocumentBasicInfoCardProps) {
-  const categoryOptions: SelectOption[] = [
-    { value: 'Guidelines', label: 'Guidelines' },
-    { value: 'Maker', label: 'Maker' },
-    { value: 'Manuals', label: 'Manuals' },
-    { value: 'Presentation', label: 'Presentation' },
-    { value: 'Recipes', label: 'Recipes' },
-    { value: 'Reviews', label: 'Reviews' },
-    { value: 'Slides', label: 'Slides' },
-    { value: 'Training', label: 'Training' }
-  ];
+  const [categoryOptions, setCategoryOptions] = useState<SelectOption[]>(
+    DEFAULT_CATEGORY_OPTIONS.map(cat => ({ value: cat, label: cat }))
+  );
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
+  // Fetch category options on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const options = await getCategoryOptions(owner);
+        setCategoryOptions(options.map(cat => ({ value: cat, label: cat })));
+      } catch (error) {
+        console.error('Failed to load category options:', error);
+        // Fallback to constants already set
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    
+    fetchCategories();
+  }, [owner]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -56,10 +71,11 @@ export function DocumentBasicInfoCard({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
             <SelectInput
-              value={category || ''}
+              value={categoryObj?.name || ''}
               onChange={(value) => onFieldChange('category', value === '' ? null : value)}
               options={categoryOptions}
-              placeholder="None"
+              placeholder={loadingCategories ? "Loading..." : "None"}
+              disabled={loadingCategories}
             />
           </div>
           <div>

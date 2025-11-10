@@ -69,12 +69,25 @@ export function InvitationCard({
         {/* Role Section */}
         <div>
           <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-            Will Join Owner Group
+            {invitation.owner_id ? 'Will Join Owner Group' : 'Access Type'}
           </div>
           <div className="flex items-center gap-3">
             <div className="flex-1">
-              <div className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border bg-gray-100 text-gray-800 border-gray-200">
-                {invitation.owner_name}
+              <div className="flex items-center gap-2 flex-wrap">
+                {invitation.owner_id ? (
+                  <div className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border bg-gray-100 text-gray-800 border-gray-200">
+                    {invitation.owner_name}
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border bg-gray-100 text-gray-800 border-gray-200">
+                    General Access (No Owner Group)
+                  </div>
+                )}
+                {invitation.role === 'owner_admin' && (
+                  <div className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-docutrain-light/20 text-docutrain-dark border border-docutrain-light/40">
+                    Admin
+                  </div>
+                )}
               </div>
               {invitation.invited_by_email && (
                 <div className="text-xs text-gray-500 mt-1">

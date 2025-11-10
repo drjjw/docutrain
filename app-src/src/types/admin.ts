@@ -48,6 +48,17 @@ export type DocumentCategory =
   | 'Slides'
   | 'Training';
 
+export interface Category {
+  id: number;
+  name: string;
+  is_custom: boolean;
+  owner_id: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by?: string | null;
+  updated_by?: string | null;
+}
+
 export type DocumentAccessLevel =
   | 'public'
   | 'passcode'
@@ -70,7 +81,8 @@ export interface Document {
   metadata?: Record<string, any>;
   created_at: string;
   updated_at: string;
-  category?: DocumentCategory;
+  category_id?: number | null;
+  category_obj?: Category; // Joined category object
   owner?: string;
   owner_id?: string;
   cover?: string;
@@ -153,9 +165,10 @@ export interface UserWithRoles extends User {
 export interface PendingInvitation {
   id: string;
   email: string;
-  owner_id: string;
+  owner_id: string | null;
+  role: 'registered' | 'owner_admin';
   owner_name: string;
-  owner_slug: string;
+  owner_slug: string | null;
   invited_by: string;
   invited_by_email?: string;
   expires_at: string;

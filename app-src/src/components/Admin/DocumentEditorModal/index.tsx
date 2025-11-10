@@ -93,7 +93,6 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
       setEditingValues({
         title: document.title || '',
         subtitle: document.subtitle || '',
-        category: document.category,
         year: document.year,
         back_link: document.back_link || '',
         slug: document.slug || '',
@@ -202,6 +201,29 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
 
       // Exclude downloads from document update - attachments are managed separately via FileUploadManager
       const { downloads, ...documentUpdates } = editingValues;
+
+      // Handle category_id: find or create category and set category_id
+      if ('category_id' in documentUpdates && documentUpdates.category_id !== undefined) {
+        // category_id is already set, no conversion needed
+      } else if ('category' in documentUpdates && documentUpdates.category !== undefined) {
+        // Legacy support: if category name is provided, convert to category_id
+        const categoryName = documentUpdates.category;
+        if (categoryName) {
+          try {
+            const { findOrCreateCategory } = await import('@/lib/supabase/admin');
+            const categoryId = await findOrCreateCategory(categoryName, document.owner_id || null);
+            documentUpdates.category_id = categoryId;
+            delete documentUpdates.category; // Remove category field
+          } catch (error) {
+            console.error('Failed to find/create category:', error);
+            // Continue without category_id if it fails
+            delete documentUpdates.category; // Remove category field even on error
+          }
+        } else {
+          documentUpdates.category_id = null;
+          delete documentUpdates.category; // Remove category field
+        }
+      }
 
       // Ensure boolean fields are explicitly set (including false values)
       // This ensures they are properly saved to the database
@@ -409,12 +431,13 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                       <DocumentBasicInfoCard
                         title={editingValues.title || ''}
                         subtitle={editingValues.subtitle || ''}
-                        category={editingValues.category}
+                        categoryObj={document.category_obj}
                         year={editingValues.year}
                         backLink={editingValues.back_link || ''}
                         onFieldChange={handleFieldChange}
                         isSuperAdmin={isSuperAdmin}
                         yearError={yearError}
+                        owner={document.owners || null}
                       />
 
                       <DocumentFileDetailsCard

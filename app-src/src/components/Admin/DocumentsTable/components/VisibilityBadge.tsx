@@ -8,53 +8,53 @@ export function VisibilityBadge({ accessLevel = 'public' }: VisibilityBadgeProps
   switch (accessLevel) {
     case 'public':
       return (
-        <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-docutrain-light/10 text-docutrain-dark border border-docutrain-light/30 shadow-sm text-center gap-1.5">
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span className="inline-flex items-center justify-center max-w-full px-2 py-1.5 rounded-lg text-xs font-semibold bg-docutrain-light/10 text-docutrain-dark border border-docutrain-light/30 shadow-sm text-center gap-1.5">
+          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 002 2h2.945M11 3.055V5a2 2 0 002 2h1M13 13v2.945M20.945 13H19a2 2 0 00-2-2v-1a2 2 0 00-2-2 2 2 0 00-2-2H9.055M11 20.945V19a2 2 0 002-2v-1a2 2 0 002 2h2.945M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Public
+          <span className="truncate">Public</span>
         </span>
       );
     case 'passcode':
       return (
-        <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-docutrain-lighter/30 text-docutrain-light border border-docutrain-lighter/50 shadow-sm text-center">
-          <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span className="inline-flex items-center justify-center max-w-full px-2 py-1.5 rounded-lg text-xs font-semibold bg-docutrain-lighter/30 text-docutrain-light border border-docutrain-lighter/50 shadow-sm text-center">
+          <svg className="w-3.5 h-3.5 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
           </svg>
-          Passcode
+          <span className="truncate">Passcode</span>
         </span>
       );
     case 'registered':
       return (
-        <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-100 text-green-800 border border-green-200/50 shadow-sm text-center">
-          <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span className="inline-flex items-center justify-center max-w-full px-2 py-1.5 rounded-lg text-xs font-semibold bg-green-100 text-green-800 border border-green-200/50 shadow-sm text-center">
+          <svg className="w-3.5 h-3.5 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
-          Registered
+          <span className="truncate">Registered</span>
         </span>
       );
     case 'owner_restricted':
       return (
-        <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200/50 shadow-sm text-center gap-1.5">
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span className="inline-flex items-center justify-center max-w-full px-2 py-1.5 rounded-lg text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200/50 shadow-sm text-center gap-1.5">
+          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
-          Owner
+          <span className="truncate">Owner</span>
         </span>
       );
     case 'owner_admin_only':
       return (
-        <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-100 text-red-800 border border-red-200/50 shadow-sm text-center">
-          <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span className="inline-flex items-center justify-center max-w-full px-2 py-1.5 rounded-lg text-xs font-semibold bg-red-100 text-red-800 border border-red-200/50 shadow-sm text-center">
+          <svg className="w-3.5 h-3.5 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
-          Owner Admins Only
+          <span className="truncate">Owner Admins Only</span>
         </span>
       );
     default:
       return (
-        <span className="inline-flex items-center justify-center w-32 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200/50 shadow-sm text-center">
-          Unknown
+        <span className="inline-flex items-center justify-center max-w-full px-2 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200/50 shadow-sm text-center">
+          <span className="truncate">Unknown</span>
         </span>
       );
   }

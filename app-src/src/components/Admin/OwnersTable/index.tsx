@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
@@ -10,7 +10,8 @@ import { OwnersTableCard } from './components/OwnersTableCard';
 import { EditOwnerModal } from './modals/EditOwnerModal';
 import { CreateOwnerModal } from './modals/CreateOwnerModal';
 import { DeleteOwnerModal } from './modals/DeleteOwnerModal';
-import type { Owner } from '@/types/admin';
+import { getCategoriesForOwner } from '@/lib/supabase/admin';
+import type { Owner, Category } from '@/types/admin';
 
 export function OwnersTable() {
   const { isSuperAdmin, loading: permissionsLoading } = usePermissions();
@@ -42,6 +43,8 @@ export function OwnersTable() {
   const [editCustomDomain, setEditCustomDomain] = useState('');
   const [editForcedGrokModel, setEditForcedGrokModel] = useState<string | null>(null);
   const [editAccentColor, setEditAccentColor] = useState('');
+  const [editCategories, setEditCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
 
   // Form state for creating
   const [createName, setCreateName] = useState('');
@@ -69,6 +72,7 @@ export function OwnersTable() {
     editCustomDomain,
     editForcedGrokModel,
     editAccentColor,
+    editCategories,
     createName,
     createSlug,
     createDescription,
@@ -93,6 +97,7 @@ export function OwnersTable() {
     setEditCustomDomain,
     setEditForcedGrokModel,
     setEditAccentColor,
+    setEditCategories,
     setCreatingOwner,
     setCreateName,
     setCreateSlug,
@@ -202,7 +207,7 @@ export function OwnersTable() {
                   key={owner.id}
                   owner={owner}
                   saving={saving}
-                  onEdit={() => {
+                  onEdit={async () => {
                     setEditingOwner(owner);
                     setEditName(owner.name);
                     setEditSlug(owner.slug);
@@ -214,6 +219,19 @@ export function OwnersTable() {
                     setEditCustomDomain(owner.custom_domain || '');
                     setEditForcedGrokModel(owner.forced_grok_model || null);
                     setEditAccentColor((owner.metadata as any)?.accent_color || '');
+                    // Load categories from database
+                    try {
+                      setLoadingCategories(true);
+                      const ownerCategories = await getCategoriesForOwner(owner.id);
+                      // Filter to only owner-specific categories (exclude system defaults)
+                      const customCategories = ownerCategories.filter(cat => cat.owner_id === owner.id);
+                      setEditCategories(customCategories);
+                    } catch (error) {
+                      console.error('Failed to load owner categories:', error);
+                      setEditCategories([]);
+                    } finally {
+                      setLoadingCategories(false);
+                    }
                   }}
                   onDelete={() => setDeleteConfirmId(owner.id)}
                 />
@@ -230,7 +248,7 @@ export function OwnersTable() {
             key={owner.id}
             owner={owner}
             saving={saving}
-            onEdit={() => {
+            onEdit={async () => {
               setEditingOwner(owner);
               setEditName(owner.name);
               setEditSlug(owner.slug);
@@ -242,6 +260,19 @@ export function OwnersTable() {
               setEditCustomDomain(owner.custom_domain || '');
               setEditForcedGrokModel(owner.forced_grok_model || null);
               setEditAccentColor((owner.metadata as any)?.accent_color || '');
+              // Load categories from database
+              try {
+                setLoadingCategories(true);
+                const ownerCategories = await getCategoriesForOwner(owner.id);
+                // Filter to only owner-specific categories (exclude system defaults)
+                const customCategories = ownerCategories.filter(cat => cat.owner_id === owner.id);
+                setEditCategories(customCategories);
+              } catch (error) {
+                console.error('Failed to load owner categories:', error);
+                setEditCategories([]);
+              } finally {
+                setLoadingCategories(false);
+              }
             }}
             onDelete={() => setDeleteConfirmId(owner.id)}
           />
@@ -273,6 +304,8 @@ export function OwnersTable() {
           setEditCustomDomain('');
           setEditForcedGrokModel(null);
           setEditAccentColor('');
+          setEditCategories([]);
+          setLoadingCategories(false);
         }}
         owner={editingOwner}
         name={editName}
@@ -285,6 +318,8 @@ export function OwnersTable() {
         customDomain={editCustomDomain}
         forcedGrokModel={editForcedGrokModel}
         accentColor={editAccentColor}
+        categories={editCategories.map(cat => cat.name)}
+        loadingCategories={loadingCategories}
         saving={saving}
         onNameChange={setEditName}
         onSlugChange={setEditSlug}
@@ -296,6 +331,32 @@ export function OwnersTable() {
         onCustomDomainChange={setEditCustomDomain}
         onForcedGrokModelChange={setEditForcedGrokModel}
         onAccentColorChange={setEditAccentColor}
+        onCategoriesChange={async (categoryNames: string[]) => {
+          // Reload full Category objects from database when categories change
+          if (editingOwner?.id) {
+            try {
+              const ownerCategories = await getCategoriesForOwner(editingOwner.id);
+              const customCategories = ownerCategories.filter(cat => cat.owner_id === editingOwner.id);
+              // Match by name to preserve order from modal
+              const matchedCategories = categoryNames
+                .map(name => customCategories.find(cat => cat.name === name))
+                .filter((cat): cat is Category => cat !== undefined);
+              setEditCategories(matchedCategories);
+            } catch (error) {
+              console.error('Failed to reload categories:', error);
+              // Fallback: create temporary Category objects from names
+              const tempCategories: Category[] = categoryNames.map((name, idx) => ({
+                id: -idx - 1, // Temporary negative ID
+                name,
+                is_custom: true,
+                owner_id: editingOwner.id!,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }));
+              setEditCategories(tempCategories);
+            }
+          }
+        }}
         onSave={handlers.handleSaveOwner}
       />
 

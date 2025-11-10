@@ -34,12 +34,13 @@ export interface DocumentRetrainSectionProps {
 export interface DocumentBasicInfoCardProps {
   title: string;
   subtitle: string;
-  category: string | null;
+  categoryObj?: { id: number; name: string } | null;
   year: number | null;
   backLink: string;
   onFieldChange: FieldChangeHandler;
   isSuperAdmin: boolean;
   yearError: string | null;
+  owner?: Owner | null;
 }
 
 export interface DocumentFileDetailsCardProps {
