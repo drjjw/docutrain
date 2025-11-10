@@ -549,6 +549,9 @@ html {
     font-size: 1rem;
     text-decoration: none;
     transition: var(--transition);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
 }
 
 .hero-btn-primary {
@@ -561,6 +564,26 @@ html {
     background: var(--primary-dark);
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
+}
+
+/* Try Docutrain button - Distinct green color */
+#tryDocutrainBtn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+#tryDocutrainBtn:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+#tryDocutrainBtn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 .hero-btn-secondary {

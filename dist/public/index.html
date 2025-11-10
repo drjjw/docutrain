@@ -79,7 +79,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.3.2/css/flag-icons.min.css" />
     
     <!-- Application Styles -->
-    <link rel="stylesheet" href="css/landing.2ec9ed68.css">
+    <link rel="stylesheet" href="css/landing.1cf673aa.css">
+    <!-- Embed Modal Styles -->
+    <link rel="stylesheet" href="css/docutrain-embed.css">
 </head>
 <body>
     <!-- Navigation -->
@@ -159,11 +161,14 @@
                     Brand it with your identity and share it with the world. Create a custom AI assistant that knows only your documents—no internet noise, no distractions. Perfect for training, knowledge bases, and specialized content.
                 </p>
                 <div class="hero-cta">
-                    <a href="/chat" class="hero-btn hero-btn-primary">
-                        Get Started
+                    <button id="tryDocutrainBtn" class="hero-btn hero-btn-primary" type="button">
+                        DocuTrain Demo
                         <svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M5 12h14M12 5l7 7-7 7"/>
                         </svg>
+                    </button>
+                    <a href="/chat" class="hero-btn hero-btn-secondary">
+                        Get Started
                     </a>
                     <a href="/app/dashboard" class="hero-btn hero-btn-secondary">
                         Create Your Assistant
@@ -692,6 +697,30 @@
             </div>
         </div>
     </footer>
+
+    <!-- Chat Modal - Using embed code structure -->
+    <div id="docutrain-chat-modal" class="docutrain-modal-overlay" style="display: none;">
+        <div class="docutrain-modal-container">
+            <button 
+                class="docutrain-close-button" 
+                type="button" 
+                id="closeDocutrainChatBtn"
+                aria-label="Close chat"
+            >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <iframe 
+                id="docutrain-chat-iframe"
+                src=""
+                class="docutrain-chat-iframe"
+                allow="clipboard-write"
+                title="Docutrain Chat Interface">
+            </iframe>
+        </div>
+    </div>
 
     <!-- JavaScript -->
     <script src="js/landing.js"></script>

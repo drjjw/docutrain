@@ -260,3 +260,90 @@ if (document.readyState === 'loading') {
 } else {
     initConversationRotation();
 }
+
+// Chat Modal Functionality - Using embed code pattern
+function initChatModal() {
+    const tryDocutrainBtn = document.getElementById('tryDocutrainBtn');
+    const modal = document.getElementById('docutrain-chat-modal');
+    const iframe = document.getElementById('docutrain-chat-iframe');
+    const closeBtn = document.getElementById('closeDocutrainChatBtn');
+    
+    if (!tryDocutrainBtn || !modal || !iframe) return;
+    
+    const chatUrl = '/app/chat?doc=docutrain-today&footer=false';
+    let iframeLoaded = false;
+    let scrollPosition = 0;
+    
+    function preventScroll() {
+        scrollPosition = window.pageYOffset;
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = '-' + scrollPosition + 'px';
+        document.body.style.width = '100%';
+    }
+    
+    function allowScroll() {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        window.scrollTo(0, scrollPosition);
+    }
+    
+    function openModal() {
+        // Set iframe src IMMEDIATELY to prevent flash of parent domain
+        if (!iframeLoaded) {
+            iframe.src = chatUrl;
+            iframeLoaded = true;
+        }
+        
+        // Show modal
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            modal.classList.add('active');
+        }, 10);
+        
+        document.body.classList.add('docutrain-modal-open');
+        preventScroll();
+    }
+    
+    function closeModal() {
+        modal.classList.remove('active');
+        document.body.classList.remove('docutrain-modal-open');
+        
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+        
+        allowScroll();
+    }
+    
+    // Open modal when button is clicked
+    tryDocutrainBtn.addEventListener('click', openModal);
+    
+    // Close modal when close button is clicked
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+    
+    // Close modal when clicking backdrop
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+}
+
+// Initialize chat modal when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initChatModal);
+} else {
+    initChatModal();
+}
