@@ -1,18 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import { getQuiz, getQuizStatistics, type QuizQuestion, type QuizStatisticsResponse } from '@/services/quizApi';
+import { getQuiz, getQuizStatistics, generateAndStoreQuiz, type QuizQuestion, type QuizStatisticsResponse, type RegenerationLimitError, type GenerateAndStoreResponse } from '@/services/quizApi';
 import { Spinner } from '@/components/UI/Spinner';
+import { useQuizGenerationStatus } from '@/hooks/useQuizGenerationStatus';
 import { debugLog } from '@/utils/debug';
 
 interface QuizQuestionsAndStatsProps {
   documentSlug: string;
+  isSuperAdmin?: boolean;
+  onRegenerationSuccess?: () => void;
 }
 
-export function QuizQuestionsAndStats({ documentSlug }: QuizQuestionsAndStatsProps) {
+export function QuizQuestionsAndStats({ documentSlug, isSuperAdmin = false, onRegenerationSuccess }: QuizQuestionsAndStatsProps) {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [statistics, setStatistics] = useState<QuizStatisticsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [regenerationError, setRegenerationError] = useState<string | null>(null);
+  const [regenerationSuccess, setRegenerationSuccess] = useState(false);
+  const [regenerationData, setRegenerationData] = useState<GenerateAndStoreResponse | null>(null);
+  const [regenerationInfo, setRegenerationInfo] = useState<{
+    lastGenerated: Date | null;
+    nextAllowed: Date | null;
+  } | null>(null);
+
+  // Subscribe to realtime quiz generation status (works across browser sessions)
+  const realtimeStatus = useQuizGenerationStatus(documentSlug);
+
+  // Sync realtime status with local regeneration state
+  useEffect(() => {
+    if (realtimeStatus.isGenerating) {
+      setIsRegenerating(true);
+      setRegenerationError(null);
+      setRegenerationSuccess(false);
+    } else if (realtimeStatus.completed) {
+      setIsRegenerating(false);
+      // Refresh quiz data when generation completes
+      const refreshData = async () => {
+        try {
+          const [quizData, statsData] = await Promise.all([
+            getQuiz(documentSlug),
+            getQuizStatistics(documentSlug).catch(() => null)
+          ]);
+          setQuestions(quizData.questions || []);
+          setStatistics(statsData);
+          if (onRegenerationSuccess) {
+            onRegenerationSuccess();
+          }
+        } catch (err) {
+          debugLog('Error refreshing quiz data after completion:', err);
+        }
+      };
+      refreshData();
+    } else if (realtimeStatus.failed) {
+      setIsRegenerating(false);
+      setRegenerationError(realtimeStatus.message || 'Quiz regeneration failed');
+    }
+  }, [realtimeStatus, documentSlug, onRegenerationSuccess]);
 
   useEffect(() => {
     if (!documentSlug) {
@@ -48,14 +93,85 @@ export function QuizQuestionsAndStats({ documentSlug }: QuizQuestionsAndStatsPro
     fetchQuizData();
   }, [documentSlug]);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date) => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
-    }).format(new Date(dateString));
+    }).format(date);
+  };
+
+  // Calculate time until next allowed generation
+  const getTimeUntilNextAllowed = (nextAllowed: Date) => {
+    const now = new Date();
+    const diff = nextAllowed.getTime() - now.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (days > 0) {
+      return `${days} day${days > 1 ? 's' : ''}`;
+    } else if (hours > 0) {
+      return `${hours} hour${hours > 1 ? 's' : ''}`;
+    } else {
+      return 'soon';
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (!documentSlug) {
+      setRegenerationError('Document slug is required');
+      return;
+    }
+
+    setIsRegenerating(true);
+    setRegenerationError(null);
+    setRegenerationSuccess(false);
+    setRegenerationData(null);
+
+    try {
+      debugLog('Regenerating quiz questions for document:', documentSlug);
+      const result = await generateAndStoreQuiz(documentSlug);
+      debugLog('Quiz regeneration successful:', result);
+      
+      setRegenerationData(result);
+      setRegenerationSuccess(true);
+      
+      // Refresh the quiz data
+      const [quizData, statsData] = await Promise.all([
+        getQuiz(documentSlug),
+        getQuizStatistics(documentSlug).catch(err => {
+          debugLog('Failed to fetch quiz statistics:', err);
+          return null;
+        })
+      ]);
+
+      setQuestions(quizData.questions || []);
+      setStatistics(statsData);
+      
+      if (onRegenerationSuccess) {
+        onRegenerationSuccess();
+      }
+    } catch (error) {
+      debugLog('Quiz regeneration error:', error);
+      
+      // Check if it's a regeneration limit error
+      if (error && typeof error === 'object' && 'nextAllowedDate' in error) {
+        const limitError = error as RegenerationLimitError;
+        setRegenerationInfo({
+          lastGenerated: new Date(limitError.lastGenerated),
+          nextAllowed: new Date(limitError.nextAllowedDate),
+        });
+        setRegenerationError(limitError.message);
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to regenerate quiz questions';
+        setRegenerationError(errorMessage);
+      }
+    } finally {
+      setIsRegenerating(false);
+    }
   };
 
   if (loading) {
@@ -85,6 +201,115 @@ export function QuizQuestionsAndStats({ documentSlug }: QuizQuestionsAndStatsPro
 
   return (
     <div className="space-y-8">
+      {/* Regeneration Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900">Quiz Questions</h4>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  Regenerate questions based on document size (1 per 2 chunks, min 10, max 100)
+                </p>
+              </div>
+            </div>
+            {/* Regenerate Button */}
+            <button
+              onClick={handleRegenerate}
+              disabled={isRegenerating || !documentSlug}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                isRegenerating || !documentSlug
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              {isRegenerating ? (
+                <>
+                  <Spinner size="sm" />
+                  <span>Regenerating...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Regenerate</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+        <div className="px-6 py-4">
+
+          {/* Regeneration Status - During Generation */}
+          {isRegenerating && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Spinner size="sm" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-blue-900 mb-1">
+                    {realtimeStatus.message || 'Regenerating quiz questions...'}
+                  </p>
+                  <p className="text-xs text-blue-700">
+                    This may take a few moments. Questions are being regenerated from document chunks using AI.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Regeneration Success - Show Generated Data */}
+          {regenerationSuccess && regenerationData && (
+            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-900 mb-2">
+                    ✓ Questions regenerated successfully!
+                  </p>
+                  <div className="space-y-1 text-xs text-green-800">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Number of questions:</span>
+                      <span>{regenerationData.numQuestions}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Generated at:</span>
+                      <span>{formatDate(new Date(regenerationData.generatedAt))}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Document:</span>
+                      <span>{regenerationData.documentSlug}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-green-700 mt-2 italic">
+                    Questions have been updated below.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {regenerationError && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800 font-medium mb-1">{regenerationError}</p>
+              {regenerationInfo && regenerationInfo.nextAllowed && !isSuperAdmin && (
+                <p className="text-xs text-red-700">
+                  Last generated: {formatDate(regenerationInfo.lastGenerated!)}. 
+                  Next allowed: {formatDate(regenerationInfo.nextAllowed)} ({getTimeUntilNextAllowed(regenerationInfo.nextAllowed)})
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Statistics Section */}
       {statistics && (
         <div className="bg-white border border-gray-200 rounded-lg p-6">

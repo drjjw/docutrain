@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus } from 'lucide-react';
+import { Plus, FileQuestion } from 'lucide-react';
 import { KeywordsCloud } from './KeywordsCloud';
 import { DownloadsSection } from './DownloadsSection';
 import { Keyword, Download } from '@/hooks/useDocumentConfig';
@@ -182,45 +182,37 @@ export function DownloadsAndKeywords({
 
   return (
     <>
-      {/* Trigger Button */}
-      <div className="downloads-keywords-drawer-trigger" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+      {/* Trigger Buttons - Modern badge/pill style */}
+      <div className="downloads-keywords-drawer-trigger" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
         {/* Only show Downloads/Keywords button if there are keywords or downloads */}
         {(hasKeywords || hasDownloads) && (
-          <button
-            onClick={handleOpenDrawer}
-            className="drawer-trigger-button"
-            aria-label={`Open ${buttonText}`}
-            type="button"
-          >
-            <div className="drawer-trigger-content">
+          <>
+            <button
+              onClick={handleOpenDrawer}
+              className="feature-badge feature-badge-topics"
+              aria-label={`Open ${buttonText}`}
+              type="button"
+            >
+              <Plus size={14} />
               <span>{buttonText}</span>
-              <div className="drawer-plus-icon">
-                <Plus size={16} />
-              </div>
-            </div>
-          </button>
+            </button>
+            {showQuizzes === true && onQuizClick && documentSlug && (
+              <span className="feature-badge-separator">|</span>
+            )}
+          </>
         )}
         
         {/* Quiz Button - shown if quizzes are enabled and documentSlug is available */}
         {showQuizzes === true && onQuizClick && documentSlug && (
-          <>
-            {(hasKeywords || hasDownloads) && (
-              <span style={{ color: '#9ca3af', fontSize: '14px' }}>|</span>
-            )}
-            <button
-              onClick={onQuizClick}
-              className="drawer-trigger-button"
-              aria-label="Take quiz"
-              type="button"
-            >
-              <div className="drawer-trigger-content">
-                <span>Quiz</span>
-                <div className="drawer-plus-icon">
-                  <Plus size={16} />
-                </div>
-              </div>
-            </button>
-          </>
+          <button
+            onClick={onQuizClick}
+            className="feature-badge feature-badge-quiz"
+            aria-label="Take quiz"
+            type="button"
+          >
+            <FileQuestion size={14} />
+            <span>Quiz</span>
+          </button>
         )}
       </div>
 

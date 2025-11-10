@@ -521,7 +521,14 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                   {editingValues.show_quizzes === true ? (
                     <div className="space-y-8">
                       {editingValues.quizzes_generated === true ? (
-                        <QuizQuestionsAndStats documentSlug={editingValues.slug || document.slug || ''} />
+                        <QuizQuestionsAndStats 
+                          documentSlug={editingValues.slug || document.slug || ''} 
+                          isSuperAdmin={isSuperAdmin}
+                          onRegenerationSuccess={() => {
+                            // Refresh the document data if needed
+                            debugLog('Quiz regeneration successful');
+                          }}
+                        />
                       ) : (
                         <>
                           <QuizGenerationSection
