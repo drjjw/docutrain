@@ -218,8 +218,8 @@ import { addMessage, addLoading, removeLoading, buildResponseWithMetadata } from
 
 ### Restore Command (if needed)
 ```bash
-cp /Users/jordanweinstein/GitHub/chat/public/js/ui.js.backup \
-   /Users/jordanweinstein/GitHub/chat/public/js/ui.js
+cp /Users/jordanweinstein/GitHub/docutrain/public/js/ui.js.backup \
+   /Users/jordanweinstein/GitHub/docutrain/public/js/ui.js
 ```
 
 ---

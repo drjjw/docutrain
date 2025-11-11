@@ -21,7 +21,7 @@ node scripts/chunk-and-embed-with-abstract-test.js "/path/to/document.pdf"
 
 **Example:**
 ```bash
-node scripts/chunk-and-embed-with-abstract-test.js "/Users/jordanweinstein/GitHub/chat/PDFs/guidelines/KPD - Protocol for Participating Donors 2019_61 012 v4.pdf"
+node scripts/chunk-and-embed-with-abstract-test.js "/Users/jordanweinstein/GitHub/docutrain/PDFs/guidelines/KPD - Protocol for Participating Donors 2019_61 012 v4.pdf"
 ```
 
 ### 2. Production Integration (`lib/document-processor.js`)

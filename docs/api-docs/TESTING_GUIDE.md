@@ -198,7 +198,7 @@ The redesign is successful if:
 If critical issues are found:
 1. Restore backup files:
    ```bash
-   cd /Users/jordanweinstein/GitHub/chat/app-src/src/pages
+   cd /Users/jordanweinstein/GitHub/docutrain/app-src/src/pages
    mv AdminPage.tsx.backup AdminPage.tsx
    mv UsersAdminPage.tsx.backup UsersAdminPage.tsx
    ```

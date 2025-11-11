@@ -14,7 +14,7 @@ The server automatically detects which mode it's running in and logs this inform
 
 ### Source Mode (Development)
 
-**Location**: Project root directory (`/Users/jordanweinstein/GitHub/chat/`)
+**Location**: Project root directory (`/Users/jordanweinstein/GitHub/docutrain/`)
 
 **Characteristics**:
 - Uses original source files from `lib/`, `public/`, `server.js`
@@ -47,7 +47,7 @@ npm run dev:all  # Starts both backend + Vite dev server
 ```
 ============================================================
 🚀 RUNNING MODE: DEVELOPMENT (root)
-📁 Working directory: /Users/jordanweinstein/GitHub/chat
+📁 Working directory: /Users/jordanweinstein/GitHub/docutrain
 📦 Running from: source (original files)
 ============================================================
 
@@ -56,7 +56,7 @@ npm run dev:all  # Starts both backend + Vite dev server
 
 ### Dist Mode (Production)
 
-**Location**: `dist/` directory (`/Users/jordanweinstein/GitHub/chat/dist/`)
+**Location**: `dist/` directory (`/Users/jordanweinstein/GitHub/docutrain/dist/`)
 
 **Characteristics**:
 - Uses built/processed files copied to `dist/`
@@ -80,7 +80,7 @@ node server.js
 **Console Output**:
 ```
 🔄 Starting RAG-only server from PRODUCTION (dist/)...
-📁 Working directory: /Users/jordanweinstein/GitHub/chat/dist
+📁 Working directory: /Users/jordanweinstein/GitHub/docutrain/dist
 ```
 
 ## PM2 Process Manager Modes

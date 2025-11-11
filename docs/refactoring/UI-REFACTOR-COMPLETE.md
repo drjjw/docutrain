@@ -165,8 +165,8 @@ If issues arise, restore the original file:
 
 ```bash
 # Restore original ui.js
-cp /Users/jordanweinstein/GitHub/chat/public/js/ui.js.backup \
-   /Users/jordanweinstein/GitHub/chat/public/js/ui.js
+cp /Users/jordanweinstein/GitHub/docutrain/public/js/ui.js.backup \
+   /Users/jordanweinstein/GitHub/docutrain/public/js/ui.js
 
 # Revert version parameters in main.js and chat.js
 # Change v=20251022-01 back to v=20251019-02

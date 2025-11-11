@@ -135,7 +135,7 @@ pg_restore --no-owner --no-privileges -d "$DB_URL" backup.dump
 ### 1. Regular Backups
 ```bash
 # Add to crontab for daily backups
-0 2 * * * cd /Users/jordanweinstein/GitHub/chat && ./scripts/dump-database-quick.sh
+0 2 * * * cd /Users/jordanweinstein/GitHub/docutrain && ./scripts/dump-database-quick.sh
 ```
 
 ### 2. Before Major Changes

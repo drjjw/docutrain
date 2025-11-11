@@ -2,7 +2,7 @@
 
 **Date:** October 18, 2025  
 **Document:** KDIGO 2024 ANCA Vasculitis Clinical Practice Guideline Update  
-**PDF Location:** `/Users/jordanweinstein/GitHub/chat/PDFs/guidelines/KDIGO-2024-ANCA-Vasculitis-Guideline-Update.pdf`
+**PDF Location:** `/Users/jordanweinstein/GitHub/docutrain/PDFs/guidelines/KDIGO-2024-ANCA-Vasculitis-Guideline-Update.pdf`
 
 ## Summary
 

@@ -12,7 +12,7 @@
 
 ```bash
 # Make sure you're in the project root
-cd /Users/jordanweinstein/GitHub/chat
+cd /Users/jordanweinstein/GitHub/docutrain
 
 # Build the project (includes React app and server)
 npm run build

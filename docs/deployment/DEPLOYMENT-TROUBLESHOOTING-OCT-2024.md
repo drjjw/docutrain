@@ -93,7 +93,7 @@ pm2 start start.sh --name brightbean-bot && pm2 save
 The `.env` file must be manually uploaded via FTP to the production server:
 
 ```
-Local:  /Users/jordanweinstein/GitHub/chat/.env
+Local:  /Users/jordanweinstein/GitHub/docutrain/.env
 Server: /home/brightbeanio/public_html/.env
 ```
 
@@ -123,7 +123,7 @@ ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111
 
 ### Local Development
 ```
-/Users/jordanweinstein/GitHub/chat/
+/Users/jordanweinstein/GitHub/docutrain/
 ├── .env                    # Root .env for Node.js server (NOT in git)
 ├── app-src/
 │   └── .env               # Vite .env for React build (NOT in git)

@@ -481,8 +481,8 @@ ssh -i ~/.ssh/drjjw.pub -p 7022 root@162.246.254.111 \
 
 | Item | Location |
 |------|----------|
-| Local source | `/Users/jordanweinstein/GitHub/chat/` |
-| Local build output | `/Users/jordanweinstein/GitHub/chat/dist/` |
+| Local source | `/Users/jordanweinstein/GitHub/docutrain/` |
+| Local build output | `/Users/jordanweinstein/GitHub/docutrain/dist/` |
 | Server files | `/home/docutrainio/public_html/` |
 | PM2 logs | `/root/.pm2/logs/docutrainio-bot-*.log` |
 | Environment file | `/home/docutrainio/public_html/.env` |

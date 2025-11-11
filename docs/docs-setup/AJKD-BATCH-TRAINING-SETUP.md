@@ -13,7 +13,7 @@ Prepared for training 100 AJKD Core Curriculum documents in 20 batches of 5 docu
 - **Batch size:** 5 documents per batch
 - **Total batches:** 20
 - **Embedding types:** Both OpenAI and local
-- **PDF location:** `/Users/jordanweinstein/GitHub/chat/PDFs/ajkd-core-curriculum/`
+- **PDF location:** `/Users/jordanweinstein/GitHub/docutrain/PDFs/ajkd-core-curriculum/`
 - **Slug format:** `ajkd-cc-{topic}-{year}`
 
 ## Batch Files Created
@@ -78,7 +78,7 @@ Created `scripts/run-ajkd-batches.sh` to:
 To start the batch training:
 
 ```bash
-cd /Users/jordanweinstein/GitHub/chat
+cd /Users/jordanweinstein/GitHub/docutrain
 ./scripts/run-ajkd-batches.sh
 ```
 
@@ -97,7 +97,7 @@ After all batches complete:
 1. **Restart Server:**
    ```bash
    ps aux | grep "node server.js" | grep -v grep | awk '{print $2}' | xargs kill
-   cd /Users/jordanweinstein/GitHub/chat && node server.js > server.log 2>&1 &
+   cd /Users/jordanweinstein/GitHub/docutrain && node server.js > server.log 2>&1 &
    ```
 
 2. **Verify Documents Loaded:**

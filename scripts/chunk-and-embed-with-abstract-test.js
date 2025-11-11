@@ -336,7 +336,7 @@ async function main() {
         console.log('\nUsage:');
         console.log('  node chunk-and-embed-with-abstract-test.js <path-to-pdf>');
         console.log('\nExample:');
-        console.log('  node chunk-and-embed-with-abstract-test.js "/Users/jordanweinstein/GitHub/chat/PDFs/guidelines/KPD - Protocol for Participating Donors 2019_61 012 v4.pdf"');
+        console.log('  node chunk-and-embed-with-abstract-test.js "/Users/jordanweinstein/GitHub/docutrain/PDFs/guidelines/KPD - Protocol for Participating Donors 2019_61 012 v4.pdf"');
         process.exit(1);
     }
     

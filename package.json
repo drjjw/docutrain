@@ -1,5 +1,5 @@
 {
-  "name": "pdf-chatbot",
+  "name": "docutrain",
   "version": "1.0.0",
   "description": "PDF-based chatbot using Gemini 2.5",
   "main": "server.js",

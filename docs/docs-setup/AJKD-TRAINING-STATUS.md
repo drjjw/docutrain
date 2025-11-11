@@ -45,7 +45,7 @@ This properly generates: 01, 02, 03, ..., 20
 To check progress:
 ```bash
 # View live log
-tail -f /Users/jordanweinstein/GitHub/chat/ajkd-batch-training.log
+tail -f /Users/jordanweinstein/GitHub/docutrain/ajkd-batch-training.log
 
 # Check how many documents added
 psql -c "SELECT COUNT(*) FROM documents WHERE slug LIKE 'ajkd-cc-%';"

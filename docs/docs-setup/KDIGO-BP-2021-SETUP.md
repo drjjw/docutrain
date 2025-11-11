@@ -2,7 +2,7 @@
 
 **Date:** October 18, 2025  
 **Document:** KDIGO 2021 Blood Pressure Clinical Practice Guideline  
-**PDF Location:** `/Users/jordanweinstein/GitHub/chat/PDFs/guidelines/KDIGO-2021-BP-GL.pdf`
+**PDF Location:** `/Users/jordanweinstein/GitHub/docutrain/PDFs/guidelines/KDIGO-2021-BP-GL.pdf`
 
 ## Summary
 

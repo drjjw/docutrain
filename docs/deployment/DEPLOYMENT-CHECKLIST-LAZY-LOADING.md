@@ -45,7 +45,7 @@ cp -r dist dist-backup-$(date +%Y%m%d-%H%M%S)
 ### Step 2: Deploy New Build
 ```bash
 # From local machine
-cd /Users/jordanweinstein/GitHub/chat
+cd /Users/jordanweinstein/GitHub/docutrain
 npm run build
 
 # Copy dist/ to server

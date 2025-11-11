@@ -2,7 +2,7 @@
 
 **Date:** October 18, 2025  
 **Document:** KDIGO 2025 ADPKD Clinical Practice Guideline  
-**PDF Location:** `/Users/jordanweinstein/GitHub/chat/PDFs/guidelines/KDIGO-2025-ADPKD-Guideline.pdf`
+**PDF Location:** `/Users/jordanweinstein/GitHub/docutrain/PDFs/guidelines/KDIGO-2025-ADPKD-Guideline.pdf`
 
 ## Summary
 

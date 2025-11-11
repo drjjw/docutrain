@@ -20,7 +20,7 @@ We updated the server code to:
 pkill -f "node.*server.js"
 
 # Start the server from the root directory
-cd /Users/jordanweinstein/GitHub/chat
+cd /Users/jordanweinstein/GitHub/docutrain
 node server.js
 ```
 

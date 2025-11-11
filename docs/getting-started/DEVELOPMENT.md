@@ -93,7 +93,7 @@ Visit `http://localhost:3458/app` to test the production version.
 ## Project Structure
 
 ```
-/Users/jordanweinstein/GitHub/chat/
+/Users/jordanweinstein/GitHub/docutrain/
 ├── app-src/              # React app source (Vite)
 │   ├── src/              # React components, pages, hooks
 │   ├── index.html        # Entry HTML
