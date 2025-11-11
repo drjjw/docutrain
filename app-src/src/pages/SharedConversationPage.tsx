@@ -572,7 +572,7 @@ function SharedConversationContent({
         </div>
 
         {/* Continue conversation messages */}
-        {chatMessages.messages.map(msg => {
+        {chatMessages.messages.map((msg, index) => {
           // Render loading message with fun facts if isLoading flag is set
           if (msg.isLoading && msg.role === 'assistant') {
             // Get current document owner (may have changed since message was created)
@@ -582,6 +582,18 @@ function SharedConversationContent({
           
           const isLastMessage = msg.id === chatMessages.messages[chatMessages.messages.length - 1]?.id;
           const isStreaming = chatMessages.isStreamingRef.current && msg.role === 'assistant' && isLastMessage;
+          
+          // Find the question for assistant messages (look for the preceding user message)
+          let question: string | undefined;
+          if (msg.role === 'assistant') {
+            // Find the most recent user message before this assistant message
+            for (let i = index - 1; i >= 0; i--) {
+              if (chatMessages.messages[i].role === 'user') {
+                question = chatMessages.messages[i].content;
+                break;
+              }
+            }
+          }
           
           return (
             <div
@@ -595,6 +607,17 @@ function SharedConversationContent({
                 showReferences={docConfig?.showReferences !== false}
                 conversationId={msg.conversationId}
                 shareToken={msg.shareToken}
+                question={question}
+                messageId={msg.id}
+                onTryAgain={(q) => {
+                  // Directly send the message without waiting for state updates
+                  chatMessages.handleSendMessage(q);
+                  // Clear input after sending since question has been asked
+                  chatMessages.setInputValue('');
+                  if (inputRef.current) {
+                    inputRef.current.value = '';
+                  }
+                }}
               />
             </div>
           );

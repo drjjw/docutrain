@@ -61,3 +61,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 COMMENT ON FUNCTION cleanup_redundant_user_owner_access() IS 
 'Automatically removes redundant user_owner_access entries and redundant registered roles when users are assigned admin roles. Admin roles (owner_admin, super_admin) inherit all registered user permissions, making explicit registered roles and user_owner_access entries unnecessary.';
 
+

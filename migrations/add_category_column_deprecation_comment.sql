@@ -4,3 +4,4 @@
 
 COMMENT ON COLUMN documents.category IS 'DEPRECATED: Use category_id instead. This column is kept for backward compatibility and will be removed in a future migration.';
 
+

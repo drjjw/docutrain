@@ -174,3 +174,4 @@ COMMENT ON TABLE quizzes IS 'Minimal metadata table for tracking question genera
 -- 6. RLS policies: Updated to work with new structure
 
 
+

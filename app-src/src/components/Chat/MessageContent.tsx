@@ -5,9 +5,10 @@
 
 import { useEffect, useLayoutEffect, useRef, memo, useState } from 'react';
 import { marked } from 'marked';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, RotateCcw } from 'lucide-react';
 import { styleReferences, wrapDrugConversionContent } from '@/utils/messageStyling';
 import { ShareButton } from './ShareButton';
+import { Tooltip } from '@/components/UI/Tooltip';
 
 interface MessageContentProps {
   content: string;
@@ -16,6 +17,9 @@ interface MessageContentProps {
   showReferences?: boolean; // Controls visibility of references section (default true)
   conversationId?: string; // Database conversation ID for sharing
   shareToken?: string; // Share token for this conversation
+  question?: string; // Original question text for assistant messages (for "Try Again" button)
+  onTryAgain?: (question: string) => void; // Callback to handle "Try Again" action
+  messageId?: string; // Unique message ID for state persistence
 }
 
 // Configure marked (same as vanilla JS)
@@ -49,7 +53,7 @@ function preprocessMarkdown(markdown: string): string {
 }
 
 // Global state map to persist collapsed state across re-renders
-// Key: content hash, Value: Map of container index -> expanded state
+// Key: message ID, Value: Map of container index -> expanded state
 const globalCollapsedState = new Map<string, Map<number, boolean>>();
 
 /**
@@ -119,13 +123,18 @@ function removeReferencesFromMarkdown(markdown: string): string {
   return result;
 }
 
-function MessageContentComponent({ content, role, isStreaming = false, showReferences = true, conversationId, shareToken }: MessageContentProps) {
+function MessageContentComponent({ content, role, isStreaming = false, showReferences = true, conversationId, shareToken, question, onTryAgain, messageId }: MessageContentProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const previousContentRef = useRef<string>('');
+  const htmlSetRef = useRef<boolean>(false); // Track if we've set innerHTML manually
   const [isCopied, setIsCopied] = useState(false);
   
-  // Compute content hash synchronously
-  const getContentHash = () => {
+  // Get state key - use messageId if available, otherwise fall back to content hash
+  const getStateKey = () => {
+    if (messageId) {
+      return messageId;
+    }
+    // Fallback to content hash if no messageId provided
     let hash = 0;
     for (let i = 0; i < content.length; i++) {
       const char = content.charCodeAt(i);
@@ -137,8 +146,9 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
 
   // Helper to restore collapsed state
   const restoreCollapsedState = (containers: NodeListOf<Element> | Element[]) => {
-    const contentHash = getContentHash();
-    const stateMap = globalCollapsedState.get(contentHash);
+    const stateKey = getStateKey();
+    const stateMap = globalCollapsedState.get(stateKey);
+    
     if (!stateMap) {
       return;
     }
@@ -199,36 +209,30 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
     });
   };
 
-  // Preserve collapsed state before React replaces HTML
+  // Save state immediately whenever the DOM might change
+  // This effect runs after every render and saves the current state
   useLayoutEffect(() => {
     if (!contentRef.current || role !== 'assistant' || !content || isStreaming) return;
     
-    // Cleanup: preserve state before React replaces HTML (runs before next render)
-    // Only run if we're NOT streaming (containers won't exist during streaming anyway)
-    return () => {
-      if (!contentRef.current || role !== 'assistant') return;
-      
-      // Preserve collapsed state before React replaces HTML in next render
-      const containers = contentRef.current.querySelectorAll('.references-container');
-      if (containers.length > 0) {
-        const contentHash = getContentHash();
-        let stateMap = globalCollapsedState.get(contentHash);
-        if (!stateMap) {
-          stateMap = new Map();
-          globalCollapsedState.set(contentHash, stateMap);
-        }
-        
-        containers.forEach((container, index) => {
-          const contentWrapper = container.querySelector('.references-content');
-          const toggle = container.querySelector('.references-toggle');
-          if (contentWrapper && toggle) {
-            const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
-            stateMap.set(index, isExpanded);
-          }
-        });
+    const containers = contentRef.current.querySelectorAll('.references-container');
+    if (containers.length === 0) return;
+    
+    const stateKey = getStateKey();
+    let stateMap = globalCollapsedState.get(stateKey);
+    if (!stateMap) {
+      stateMap = new Map();
+      globalCollapsedState.set(stateKey, stateMap);
+    }
+    
+    containers.forEach((container, index) => {
+      const contentWrapper = container.querySelector('.references-content');
+      const toggle = container.querySelector('.references-toggle');
+      if (contentWrapper && toggle) {
+        const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+        stateMap.set(index, isExpanded);
       }
-    };
-  }, [content, role, isStreaming]);
+    });
+  }); // NO dependencies - runs after EVERY render to keep state fresh
 
   // Restore state after any render that might have replaced HTML (e.g., when isCopied changes)
   useLayoutEffect(() => {
@@ -497,11 +501,11 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
     }
     
     const containers = contentRef.current.querySelectorAll('.references-container');
-    const contentHash = getContentHash();
-    let stateMap = globalCollapsedState.get(contentHash);
+    const stateKey = getStateKey();
+    let stateMap = globalCollapsedState.get(stateKey);
     if (!stateMap) {
       stateMap = new Map();
-      globalCollapsedState.set(contentHash, stateMap);
+      globalCollapsedState.set(stateKey, stateMap);
     }
     
     containers.forEach((container, index) => {
@@ -594,13 +598,31 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
     let contentToRender = showReferences ? content : removeReferencesFromMarkdown(content);
     // Preprocess to prevent false blockquote detection
     contentToRender = preprocessMarkdown(contentToRender);
-    const html = marked.parse(contentToRender);
+    const html = marked.parse(contentToRender) as string; // marked.parse returns string in sync mode
+    
+    // Ref callback to set innerHTML only when content changes
+    // This prevents React from destroying our styled references containers
+    const setContentRef = (node: HTMLDivElement | null) => {
+      if (node) {
+        contentRef.current = node;
+        // Only set innerHTML if content has changed
+        if (content !== previousContentRef.current) {
+          node.innerHTML = html as string;
+          htmlSetRef.current = true;
+        } else if (!htmlSetRef.current) {
+          // First render - set innerHTML
+          node.innerHTML = html as string;
+          htmlSetRef.current = true;
+        }
+        // Otherwise skip - content unchanged, preserve DOM
+      }
+    };
+    
     return (
       <div className="message-content-wrapper">
         <div
-          ref={contentRef}
+          ref={setContentRef}
           className="message-content"
-          dangerouslySetInnerHTML={{ __html: html }}
         />
         <div className="message-actions">
           <button
@@ -622,6 +644,23 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
               </>
             )}
           </button>
+          {question && onTryAgain && (
+            <Tooltip 
+              content="Sometimes asking the assistant again can refine the response"
+              position="top"
+              delay={0}
+            >
+              <button
+                type="button"
+                className="message-try-again-button"
+                onClick={() => onTryAgain(question)}
+                aria-label="Try asking this question again"
+              >
+                <span className="try-again-button-text">Try Again</span>
+                <RotateCcw size={16} />
+              </button>
+            </Tooltip>
+          )}
           <ShareButton conversationId={conversationId} shareToken={shareToken} />
         </div>
       </div>

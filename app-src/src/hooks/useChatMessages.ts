@@ -119,9 +119,101 @@ export function useChatMessages({
     return { allowed: true, retryAfter: 0 };
   };
   
+  // Re-ask a previous question by streaming the cached response
+  const handleReaskQuestion = async (question: string, conversationId: string, response: string) => {
+    if (!response || isLoading) return;
+    
+    debugLog('[useChatMessages] Re-asking question:', { question, conversationId, responseLength: response.length });
+    
+    // Add user message to UI
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: question,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMsg]);
+    
+    // Set loading state
+    setIsLoading(true);
+    isStreamingRef.current = false;
+    
+    // Add loading message with fun facts IMMEDIATELY
+    const loadingMsgId = `loading-${Date.now()}`;
+    setMessages(prev => [...prev, {
+      id: loadingMsgId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isLoading: true,
+    }]);
+    
+    // Simulate streaming by chunking the response
+    // Use a small delay between chunks to simulate real streaming
+    const CHUNK_SIZE = 10; // Characters per chunk
+    const CHUNK_DELAY = 20; // Milliseconds between chunks
+    
+    try {
+      let accumulatedContent = '';
+      
+      // Stream the response character by character
+      for (let i = 0; i < response.length; i += CHUNK_SIZE) {
+        await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
+        
+        const chunk = response.slice(i, i + CHUNK_SIZE);
+        accumulatedContent += chunk;
+        isStreamingRef.current = true;
+        
+        // Update the message with accumulated content
+        setMessages(prev => prev.map(msg => 
+          msg.id === loadingMsgId
+            ? { ...msg, content: accumulatedContent, isLoading: false }
+            : msg
+        ));
+      }
+      
+      // Mark streaming as complete
+      isStreamingRef.current = false;
+      setIsLoading(false);
+      
+      // Convert loading message to final message with conversation ID
+      setMessages(prev => prev.map(msg => 
+        msg.id === loadingMsgId
+          ? { 
+              ...msg, 
+              content: accumulatedContent, 
+              id: `msg-${Date.now()}`, 
+              isLoading: false,
+              conversationId: conversationId,
+            }
+          : msg
+      ));
+      
+      debugLog('[useChatMessages] Finished re-streaming response');
+    } catch (error) {
+      console.error('[useChatMessages] Error re-streaming response:', error);
+      setIsLoading(false);
+      isStreamingRef.current = false;
+      // Remove loading message if it exists
+      setMessages(prev => prev.filter(msg => msg.id !== loadingMsgId));
+      
+      // Add error message
+      setMessages(prev => [...prev, {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        content: `Error: ${error instanceof Error ? error.message : 'Failed to re-stream response'}`,
+        timestamp: new Date(),
+      }]);
+    }
+  };
+  
   // Send message (ported from vanilla JS chat.js)
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading || !sessionId) return;
+  // Accepts optional message parameter for direct submission (e.g., from "Try Again" button)
+  const handleSendMessage = async (messageOverride?: string) => {
+    // Use override message if provided, otherwise use inputValue state
+    const messageToSend = messageOverride?.trim() || inputValue.trim();
+    
+    if (!messageToSend || isLoading || !sessionId) return;
     
     // Check conversation length limit (count user messages only)
     // Note: This is a client-side check. The backend also enforces this limit.
@@ -187,8 +279,11 @@ export function useChatMessages({
       return;
     }
     
-    const userMessage = inputValue.trim();
-    setInputValue('');
+    const userMessage = messageToSend;
+    // Only clear input if we're using the inputValue (not an override)
+    if (!messageOverride) {
+      setInputValue('');
+    }
     
     // Add user message to UI
     const userMsg: Message = {
@@ -472,6 +567,7 @@ export function useChatMessages({
     isLoading,
     isStreamingRef,
     handleSendMessage,
+    handleReaskQuestion,
     rateLimitError,
     retryAfter,
     conversationLimitError,

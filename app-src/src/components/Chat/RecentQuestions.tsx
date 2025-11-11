@@ -12,6 +12,7 @@ import { debugLog } from '@/utils/debug';
 interface RecentQuestion {
   id: string;
   question: string;
+  response?: string | null;
   created_at: string;
   country?: string | null;
 }
@@ -20,31 +21,8 @@ interface RecentQuestionsProps {
   documentSlug: string;
   documentId: string;
   inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement>;
-  onQuestionClick?: (question: string) => void;
+  onQuestionClick?: (question: string, conversationId?: string, response?: string | null) => void;
   showCountryFlags?: boolean; // Whether to show country flags
-}
-
-// Hook to detect mobile screen size
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(() => {
-    // Initialize based on current window width (SSR-safe)
-    if (typeof window !== 'undefined') {
-      return window.innerWidth <= 768;
-    }
-    return false;
-  });
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  return isMobile;
 }
 
 /**
@@ -75,7 +53,6 @@ export function RecentQuestions({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const isMobile = useIsMobile();
   const { isSuperAdmin } = usePermissions();
   // Initialize collapsed state - start collapsed on mobile, expanded on desktop
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -105,12 +82,30 @@ export function RecentQuestions({
       }
 
       const data = await response.json();
-      debugLog('[RecentQuestions] Fetched questions:', data.questions?.map(q => ({ 
+      debugLog('[RecentQuestions] Fetched questions:', data.questions?.map((q: RecentQuestion) => ({ 
         id: q.id, 
         question: q.question?.substring(0, 30), 
         country: q.country 
       })));
-      setQuestions(data.questions || []);
+      
+      // Deduplicate by ID and also by question text (normalized) to prevent duplicates
+      const questionsArray: RecentQuestion[] = (data.questions || []) as RecentQuestion[];
+      const uniqueQuestions = Array.from(
+        new Map(
+          questionsArray.map((q: RecentQuestion) => [
+            q.id, // Use ID as primary key
+            q
+          ])
+        ).values()
+      ).filter((q: RecentQuestion, index: number, self: RecentQuestion[]) => 
+        // Also filter by normalized question text to prevent duplicates with different IDs
+        index === self.findIndex((q2: RecentQuestion) => 
+          q2.id === q.id || 
+          (q2.question?.trim().toLowerCase() === q.question?.trim().toLowerCase())
+        )
+      );
+      
+      setQuestions(uniqueQuestions);
     } catch (err) {
       console.error('[RecentQuestions] Error fetching questions:', err);
       setError(err instanceof Error ? err.message : 'Failed to load questions');
@@ -162,6 +157,7 @@ export function RecentQuestions({
             const newQuestion: RecentQuestion = {
               id: payload.new.id,
               question: payload.new.question,
+              response: payload.new.response || null,
               created_at: payload.new.created_at,
               country: payload.new.country || null,
             };
@@ -187,13 +183,13 @@ export function RecentQuestions({
     };
   }, [documentId, documentSlug]);
 
-  const handleQuestionClick = (question: string) => {
+  const handleQuestionClick = (question: RecentQuestion) => {
     if (onQuestionClick) {
-      onQuestionClick(question);
+      onQuestionClick(question.question, question.id, question.response);
     } else if (inputRef.current) {
       // Set the input value
       if ('value' in inputRef.current) {
-        inputRef.current.value = question;
+        inputRef.current.value = question.question;
         // Trigger input event for React state updates
         const event = new Event('input', { bubbles: true });
         inputRef.current.dispatchEvent(event);
@@ -326,7 +322,7 @@ export function RecentQuestions({
               className="recent-question-card-wrapper"
             >
               <button
-                onClick={() => handleQuestionClick(q.question)}
+                onClick={() => handleQuestionClick(q)}
                 className="recent-question-card"
                 type="button"
               >

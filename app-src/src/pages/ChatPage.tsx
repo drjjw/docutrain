@@ -47,6 +47,7 @@ import '@/styles/downloads.css';
 import '@/styles/recent-questions.css';
 import '@/styles/inline-editor.css';
 import '@/styles/send-button.css';
+import '@/styles/tooltip.css';
 
 export function ChatPage() {
   // ============================================================================
@@ -247,6 +248,7 @@ function ChatPageContent({
     isLoading,
     isStreamingRef,
     handleSendMessage,
+    handleReaskQuestion,
     rateLimitError,
     retryAfter,
     conversationLimitError,
@@ -459,11 +461,17 @@ function ChatPageContent({
                 documentId={docConfig.id!}
                 inputRef={inputRef}
                 showCountryFlags={docConfig.showCountryFlags === true}
-                onQuestionClick={(question) => {
-                  setInputValue(question);
-                  setTimeout(() => {
-                    inputRef.current?.focus();
-                  }, 0);
+                onQuestionClick={(question, conversationId, response) => {
+                  // If we have a conversation ID and response, re-stream the previous response
+                  if (conversationId && response) {
+                    handleReaskQuestion(question, conversationId, response);
+                  } else {
+                    // Otherwise, just set the input value for a new question
+                    setInputValue(question);
+                    setTimeout(() => {
+                      inputRef.current?.focus();
+                    }, 0);
+                  }
                 }}
               />
             )}
@@ -471,7 +479,7 @@ function ChatPageContent({
         )}
 
         {/* Chat Messages */}
-        {messages.map(msg => {
+        {messages.map((msg, index) => {
           // Render loading message with fun facts if isLoading flag is set
           if (msg.isLoading && msg.role === 'assistant') {
             // Get current document owner (may have changed since message was created)
@@ -481,6 +489,18 @@ function ChatPageContent({
           
           const isLastMessage = msg.id === messages[messages.length - 1]?.id;
           const isStreaming = isStreamingRef.current && msg.role === 'assistant' && isLastMessage;
+          
+          // Find the question for assistant messages (look for the preceding user message)
+          let question: string | undefined;
+          if (msg.role === 'assistant') {
+            // Find the most recent user message before this assistant message
+            for (let i = index - 1; i >= 0; i--) {
+              if (messages[i].role === 'user') {
+                question = messages[i].content;
+                break;
+              }
+            }
+          }
           
           return (
             <div
@@ -494,6 +514,17 @@ function ChatPageContent({
                 showReferences={docConfig?.showReferences !== false}
                 conversationId={msg.conversationId}
                 shareToken={msg.shareToken}
+                question={question}
+                messageId={msg.id}
+                onTryAgain={(q) => {
+                  // Directly send the message without waiting for state updates
+                  handleSendMessage(q);
+                  // Clear input after sending since question has been asked
+                  setInputValue('');
+                  if (inputRef.current) {
+                    inputRef.current.value = '';
+                  }
+                }}
               />
             </div>
           );

@@ -196,8 +196,9 @@
   }
   
   /* Ensure touch targets meet minimum size */
-  .message-copy-button,
-  .message-share-button {
+.message-copy-button,
+.message-share-button,
+.message-try-again-button {
     min-height: 44px;
     min-width: 44px;
     padding: 10px 14px;
@@ -599,6 +600,41 @@ hr.references-separator {
 .message-copy-button[aria-label*="Copied"] .copy-button-text,
 .message-copy-button[aria-label*="Copied"] svg {
   color: #22c55e;
+}
+
+.message-try-again-button {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #6c757d;
+  transition: all 0.2s ease-in-out;
+  font-size: 0.85em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-height: 36px;
+  min-width: 44px;
+}
+
+.message-try-again-button .try-again-button-text {
+  font-weight: 500;
+}
+
+.message-try-again-button:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: var(--accent-color, #34a2ff);
+  color: var(--accent-color, #34a2ff);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px) scale(1.02);
+}
+
+.message-try-again-button:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Streaming messages - no animation to prevent jittering */

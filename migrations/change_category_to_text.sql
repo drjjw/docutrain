@@ -13,3 +13,4 @@ USING category::text;
 -- Update comment to reflect that custom categories are now allowed
 COMMENT ON COLUMN documents.category IS 'Document category for organization and filtering purposes. Can be any text value, including custom categories.';
 
+

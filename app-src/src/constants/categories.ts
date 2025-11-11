@@ -27,3 +27,4 @@ export const DEFAULT_CATEGORY_OPTIONS = [
  */
 export const CATEGORY_CONSTANTS_VERSION = 1;
 
+
