@@ -26,6 +26,10 @@
   justify-content: flex-start;
 }
 
+.message-content a {
+  font-weight: bold;
+}
+
 /* Message Content */
 .message-content {
   max-width: 70%;
