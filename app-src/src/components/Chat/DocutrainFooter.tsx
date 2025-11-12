@@ -67,7 +67,7 @@ export function DocutrainFooter() {
           >
             DocuTrain
           </a>
-          {' '}article chatbot.
+          {' '}article assistant.
         </span>
        
       </div>

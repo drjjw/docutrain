@@ -22,6 +22,7 @@ import { debugLog } from '@/utils/debug';
 
 export function DocumentEditorModal({ document, owners, isSuperAdmin = false, onSave, onCancel, onRetrainingStart, onRetrainSuccess }: DocumentEditorModalProps) {
   const [editingValues, setEditingValues] = useState<Record<string, any>>({});
+  const [baselineValues, setBaselineValues] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -84,47 +85,109 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
     };
   }, [isClosing, handleClose]);
 
-  // Initialize editing values when document changes
-  React.useEffect(() => {
-    if (document) {
-      debugLog('DocumentEditorModal: Initializing editing values for document:', document.slug);
-      debugLog('DocumentEditorModal: show_disclaimer =', document.show_disclaimer);
-      debugLog('DocumentEditorModal: disclaimer_text =', document.disclaimer_text);
-      setEditingValues({
-        title: document.title || '',
-        subtitle: document.subtitle || '',
-        year: document.year,
-        back_link: document.back_link || '',
-        slug: document.slug || '',
-        owner_id: document.owner_id || '',
-        pdf_filename: document.pdf_filename || '',
-        pdf_subdirectory: document.pdf_subdirectory || '',
-        embedding_type: document.embedding_type || 'openai',
-        cover: document.cover || '',
-        chunk_limit_override: document.chunk_limit_override,
-        show_document_selector: document.show_document_selector || false,
-        show_keywords: document.show_keywords !== false,
-        show_downloads: document.show_downloads !== false,
-        show_references: document.show_references !== false,
-        show_recent_questions: document.show_recent_questions === true,
-        show_country_flags: document.show_country_flags === true,
-        show_quizzes: document.show_quizzes === true, // Explicitly check for true (defaults to false)
-        quizzes_generated: document.quizzes_generated === true, // Explicitly check for true (defaults to false)
-        active: document.active ?? true,
-        access_level: document.access_level || 'public',
-        passcode: document.passcode || '',
-        welcome_message: document.welcome_message || '',
-        intro_message: document.intro_message || '',
-        downloads: document.downloads || [],
-        show_disclaimer: document.show_disclaimer === true, // Explicitly check for true
-        disclaimer_text: document.disclaimer_text || null,
-        include_in_sitemap: document.include_in_sitemap !== false, // Default to true
-      });
-      debugLog('DocumentEditorModal: Set show_disclaimer to', document.show_disclaimer === true);
-      debugLog('DocumentEditorModal: Set disclaimer_text to', document.disclaimer_text || null);
-      debugLog('DocumentEditorModal: Full document object keys:', Object.keys(document));
-      setYearError(null); // Clear year error when document changes
+  // Helper function to normalize values for comparison
+  const normalizeValue = (value: any): any => {
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') return value.trim();
+    if (typeof value === 'number') return value;
+    if (Array.isArray(value)) return JSON.stringify(value);
+    return value;
+  };
+
+  // Helper function to check if there are changes
+  const hasChanges = React.useCallback((): boolean => {
+    if (!document || Object.keys(editingValues).length === 0) return false;
+    
+    const fieldsToCompare = [
+      'title', 'subtitle', 'year', 'back_link', 'slug', 'owner_id',
+      'pdf_filename', 'pdf_subdirectory', 'embedding_type', 'cover',
+      'chunk_limit_override', 'show_document_selector', 'show_keywords',
+      'show_downloads', 'show_references', 'show_recent_questions',
+      'show_country_flags', 'show_quizzes', 'quizzes_generated',
+      'active', 'access_level', 'passcode', 'welcome_message',
+      'intro_message', 'show_disclaimer', 'disclaimer_text',
+      'include_in_sitemap'
+    ];
+
+    for (const field of fieldsToCompare) {
+      const currentValue = normalizeValue(editingValues[field]);
+      const baselineValue = normalizeValue(baselineValues[field]);
+      
+      if (currentValue !== baselineValue) {
+        return true;
+      }
     }
+
+    // Compare downloads array separately
+    const currentDownloads = JSON.stringify(editingValues.downloads || []);
+    const baselineDownloads = JSON.stringify(baselineValues.downloads || []);
+    if (currentDownloads !== baselineDownloads) {
+      return true;
+    }
+
+    return false;
+  }, [editingValues, baselineValues, document]);
+
+  // Track document ID to prevent unnecessary re-initialization
+  const documentIdRef = React.useRef<string | null>(null);
+  const documentSlugRef = React.useRef<string | null>(null);
+
+  // Initialize editing values and baseline when document changes
+  React.useEffect(() => {
+    if (!document) return;
+    
+    // Only re-initialize if document ID or slug actually changed
+    const docId = document.id;
+    const docSlug = document.slug;
+    
+    if (documentIdRef.current === docId && documentSlugRef.current === docSlug) {
+      debugLog('DocumentEditorModal: Document ID and slug unchanged, skipping re-initialization');
+      return;
+    }
+    
+    documentIdRef.current = docId;
+    documentSlugRef.current = docSlug;
+    
+    debugLog('DocumentEditorModal: Initializing editing values for document:', document.slug);
+    debugLog('DocumentEditorModal: show_disclaimer =', document.show_disclaimer);
+    debugLog('DocumentEditorModal: disclaimer_text =', document.disclaimer_text);
+    const initialValues = {
+      title: document.title || '',
+      subtitle: document.subtitle || '',
+      year: document.year,
+      back_link: document.back_link || '',
+      slug: document.slug || '',
+      owner_id: document.owner_id || '',
+      pdf_filename: document.pdf_filename || '',
+      pdf_subdirectory: document.pdf_subdirectory || '',
+      embedding_type: document.embedding_type || 'openai',
+      cover: document.cover || '',
+      chunk_limit_override: document.chunk_limit_override,
+      show_document_selector: document.show_document_selector || false,
+      show_keywords: document.show_keywords !== false,
+      show_downloads: document.show_downloads !== false,
+      show_references: document.show_references !== false,
+      show_recent_questions: document.show_recent_questions === true,
+      show_country_flags: document.show_country_flags === true,
+      show_quizzes: document.show_quizzes === true, // Explicitly check for true (defaults to false)
+      quizzes_generated: document.quizzes_generated === true, // Explicitly check for true (defaults to false)
+      active: document.active ?? true,
+      access_level: document.access_level || 'public',
+      passcode: document.passcode || '',
+      welcome_message: document.welcome_message || '',
+      intro_message: document.intro_message || '',
+      downloads: document.downloads || [],
+      show_disclaimer: document.show_disclaimer === true, // Explicitly check for true
+      disclaimer_text: document.disclaimer_text || null,
+      include_in_sitemap: document.include_in_sitemap !== false, // Default to true
+    };
+    setEditingValues(initialValues);
+    setBaselineValues(initialValues); // Set baseline to same values initially
+    debugLog('DocumentEditorModal: Set show_disclaimer to', document.show_disclaimer === true);
+    debugLog('DocumentEditorModal: Set disclaimer_text to', document.disclaimer_text || null);
+    debugLog('DocumentEditorModal: Full document object keys:', Object.keys(document));
+    setYearError(null); // Clear year error when document changes
   }, [document]);
 
   const handleFieldChange = (field: string, value: any) => {
@@ -247,10 +310,18 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         documentUpdates.show_references = false; // Force false for text uploads
       }
 
+      const saveStartTime = performance.now();
       debugLog('DocumentEditorModal: Saving document updates:', documentUpdates);
       await updateDocument(document.id, documentUpdates);
+      const saveEndTime = performance.now();
+      debugLog(`DocumentEditorModal: Save completed in ${(saveEndTime - saveStartTime).toFixed(2)}ms`);
+      
+      // Update baseline values to current editing values after successful save
+      // This resets the change detection
+      setBaselineValues({ ...editingValues });
       
       // Dispatch document-updated event with slug so listeners can clear the right cache
+      // Note: Realtime subscription will also trigger a refresh, so this is mainly for other components
       // Use a small delay to ensure backend cache refresh completes
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('document-updated', {
@@ -407,7 +478,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                 )}
                 <Tab index={editingValues.show_quizzes === true ? 6 : 5}>Disclaimer</Tab>
                 <Tab index={editingValues.show_quizzes === true ? 7 : 6}>Attachments</Tab>
-                <Tab index={editingValues.show_quizzes === true ? 8 : 7}>Embed Code</Tab>
+                <Tab index={editingValues.show_quizzes === true ? 8 : 7}>Share</Tab>
                 {isSuperAdmin && (
                   <Tab index={editingValues.show_quizzes === true ? 9 : 8}>Metadata</Tab>
                 )}
@@ -687,7 +758,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
             </Button>
             <Button
               onClick={handleSave}
-              disabled={saving || retraining}
+              disabled={saving || retraining || !hasChanges()}
               loading={saving}
               className="flex-1 md:flex-none"
             >

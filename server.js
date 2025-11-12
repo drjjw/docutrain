@@ -63,6 +63,28 @@ const gracefulShutdown = (signal) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
+// Handle unhandled promise rejections (prevent crashes)
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('⚠️  Unhandled Promise Rejection:', reason);
+    // Don't exit - log and continue
+    // The error is likely already logged by the code that created the promise
+});
+
+// Handle uncaught exceptions (log but don't crash for non-critical errors)
+process.on('uncaughtException', (error) => {
+    console.error('⚠️  Uncaught Exception:', error);
+    // Only exit for critical errors
+    if (error.code === 'EADDRINUSE' || (error.message && error.message.includes('EADDRINUSE'))) {
+        console.error(`❌ Port ${PORT} is already in use`);
+        console.error('💡 To fix this:');
+        console.error(`   1. Check if PM2 is running: pm2 list`);
+        console.error(`   2. Stop PM2: pm2 stop docutrainio-bot`);
+        console.error(`   3. Or kill the process: lsof -ti:${PORT} | xargs kill -9`);
+        process.exit(1);
+    }
+    // For other errors, log but continue
+});
+
 // Trust proxy (so Express can properly detect HTTPS from X-Forwarded headers)
 app.set('trust proxy', true);
 
@@ -603,14 +625,25 @@ async function start() {
         const phase1Start = Date.now();
         console.log('📋 Phase 1: Loading document registry...');
 
-        await documentRegistry.loadDocuments();
-        activeDocumentSlugs = await documentRegistry.getActiveSlugs();
-        documentRegistryLoaded = true;
-        registryState.documentRegistryLoaded = true;
-        registryState.activeDocumentSlugs = activeDocumentSlugs;
+        try {
+            await documentRegistry.loadDocuments();
+            activeDocumentSlugs = await documentRegistry.getActiveSlugs();
+            documentRegistryLoaded = true;
+            registryState.documentRegistryLoaded = true;
+            registryState.activeDocumentSlugs = activeDocumentSlugs;
 
-        const phase1Time = Date.now() - phase1Start;
-        console.log(`✓ Document registry loaded (${phase1Time}ms): ${activeDocumentSlugs.length} active documents available`);
+            const phase1Time = Date.now() - phase1Start;
+            console.log(`✓ Document registry loaded (${phase1Time}ms): ${activeDocumentSlugs.length} active documents available`);
+        } catch (registryError) {
+            const phase1Time = Date.now() - phase1Start;
+            console.warn(`⚠️  Document registry failed to load (${phase1Time}ms):`, registryError.message);
+            console.warn(`⚠️  Server will start without documents. Auto-refresh will retry...`);
+            // Set empty state but allow server to start
+            activeDocumentSlugs = [];
+            documentRegistryLoaded = false;
+            registryState.documentRegistryLoaded = false;
+            registryState.activeDocumentSlugs = [];
+        }
 
         // Phase 2: Initialize services
         const phase2Start = Date.now();
@@ -649,10 +682,29 @@ async function start() {
                 process.send('ready');
                 console.log('✓ Sent ready signal to PM2');
             }
+        }).on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.error(`❌ Port ${PORT} is already in use`);
+                console.error('💡 To fix this:');
+                console.error(`   1. Check if PM2 is running: pm2 list`);
+                console.error(`   2. Stop PM2: pm2 stop docutrainio-bot`);
+                console.error(`   3. Or kill the process: lsof -ti:${PORT} | xargs kill -9`);
+                process.exit(1);
+            } else {
+                throw err; // Re-throw other errors
+            }
         });
     } catch (error) {
         const totalStartupTime = Date.now() - startupStart;
-        console.error(`❌ Failed to start server after ${totalStartupTime}ms:`, error);
+        if (error.code === 'EADDRINUSE') {
+            console.error(`❌ Port ${PORT} is already in use`);
+            console.error('💡 To fix this:');
+            console.error(`   1. Check if PM2 is running: pm2 list`);
+            console.error(`   2. Stop PM2: pm2 stop docutrainio-bot`);
+            console.error(`   3. Or kill the process: lsof -ti:${PORT} | xargs kill -9`);
+        } else {
+            console.error(`❌ Failed to start server after ${totalStartupTime}ms:`, error);
+        }
         process.exit(1);
     }
 }

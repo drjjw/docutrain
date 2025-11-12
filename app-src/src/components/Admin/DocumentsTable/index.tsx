@@ -86,10 +86,45 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
   const [bulkDeleteDocs, setBulkDeleteDocs] = useState<DocumentWithOwner[]>([]);
   const [bulkDeleteProgress, setBulkDeleteProgress] = useState<BulkDeleteProgress | null>(null);
 
-  // Debug editorModalDoc changes
+  // Debug editorModalDoc changes and prevent unnecessary updates
+  const prevEditorModalDocIdRef = React.useRef<string | null>(null);
   React.useEffect(() => {
-    debugLog('DocumentsTable: editorModalDoc changed:', editorModalDoc?.id || 'null');
+    const currentId = editorModalDoc?.id || null;
+    if (currentId !== prevEditorModalDocIdRef.current) {
+      debugLog('DocumentsTable: editorModalDoc changed:', currentId || 'null');
+      prevEditorModalDocIdRef.current = currentId;
+    }
   }, [editorModalDoc]);
+
+  // Sync editorModalDoc with refreshed document data to prevent stale references
+  // Only update if the document's updated_at timestamp changed (meaning it was actually updated)
+  const editorModalDocUpdatedAtRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!editorModalDoc) {
+      editorModalDocUpdatedAtRef.current = null;
+      return;
+    }
+    
+    // Initialize the ref on first set
+    if (!editorModalDocUpdatedAtRef.current) {
+      editorModalDocUpdatedAtRef.current = editorModalDoc.updated_at || null;
+      return;
+    }
+    
+    if (documents.length === 0) return;
+    
+    // Find the updated document in the refreshed list
+    const updatedDoc = documents.find(d => d.id === editorModalDoc.id);
+    if (updatedDoc) {
+      const newUpdatedAt = updatedDoc.updated_at || null;
+      // Only sync if updated_at actually changed (document was modified)
+      if (newUpdatedAt !== editorModalDocUpdatedAtRef.current) {
+        debugLog('DocumentsTable: Syncing editorModalDoc with refreshed document data (updated_at changed)');
+        editorModalDocUpdatedAtRef.current = newUpdatedAt;
+        setEditorModalDoc(updatedDoc);
+      }
+    }
+  }, [documents, editorModalDoc]);
 
   // Prevent body scroll when delete modal is open
   useEffect(() => {
@@ -689,19 +724,11 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
 
       {/* Editor Modal */}
       {editorModalDoc && (
-        <>
-          {debugLog('DocumentsTable: Passing document to editor:', {
-            id: editorModalDoc.id,
-            slug: editorModalDoc.slug,
-            show_disclaimer: editorModalDoc.show_disclaimer,
-            disclaimer_text: editorModalDoc.disclaimer_text,
-            hasShowDisclaimer: 'show_disclaimer' in editorModalDoc,
-            hasDisclaimerText: 'disclaimer_text' in editorModalDoc
-          })}
-          <DocumentEditorModal
-            document={editorModalDoc}
-            owners={owners}
-            isSuperAdmin={isSuperAdmin}
+        <DocumentEditorModal
+          key={editorModalDoc.id}
+          document={editorModalDoc}
+          owners={owners}
+          isSuperAdmin={isSuperAdmin}
           onSave={() => {
             setEditorModalDoc(null);
             setShowConfigPrompt(false);
@@ -716,7 +743,6 @@ export const DocumentsTable = forwardRef<DocumentsTableRef, DocumentsTableProps>
           onRetrainingStart={onRetrainingStart}
           onRetrainSuccess={onRetrainSuccess}
         />
-        </>
       )}
 
       {/* Configuration Prompt Modal */}

@@ -13,6 +13,8 @@ export function useDocumentsData(): UseDocumentsDataReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const documentsRef = useRef<DocumentWithOwner[]>([]);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastRefreshTimeRef = useRef<number>(0);
 
   const loadData = useCallback(async (showLoading = true) => {
     debugLog('DocumentsTable: loadData called');
@@ -51,19 +53,48 @@ export function useDocumentsData(): UseDocumentsDataReturn {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  // Debounced refresh function to prevent duplicate refreshes
+  const debouncedRefresh = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastRefresh = now - lastRefreshTimeRef.current;
+    
+    // If refresh was called within last 500ms, debounce it
+    if (timeSinceLastRefresh < 500) {
+      debugLog('DocumentsTable: Debouncing refresh (last refresh was', timeSinceLastRefresh, 'ms ago)');
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      refreshTimeoutRef.current = setTimeout(() => {
+        lastRefreshTimeRef.current = Date.now();
+        loadData(false);
+      }, 500 - timeSinceLastRefresh);
+    } else {
+      // Clear any pending timeout
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
+      lastRefreshTimeRef.current = Date.now();
+      loadData(false);
+    }
+  }, [loadData]);
+
   // Listen for document-updated events from inline edits in same browser window
   useEffect(() => {
     const handleDocumentUpdate = () => {
       debugLog('DocumentsTable: document-updated event received, refreshing...');
-      loadData(false);
+      debouncedRefresh();
     };
 
     window.addEventListener('document-updated', handleDocumentUpdate);
     
     return () => {
       window.removeEventListener('document-updated', handleDocumentUpdate);
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
     };
-  }, [loadData]);
+  }, [debouncedRefresh]);
 
   // Subscribe to Supabase Realtime for cross-tab/window updates
   useEffect(() => {
@@ -82,7 +113,7 @@ export function useDocumentsData(): UseDocumentsDataReturn {
         },
         (payload) => {
           debugLog('📡 DocumentsTable: Realtime update received:', payload.eventType, payload);
-          loadData(false);
+          debouncedRefresh();
         }
       )
       .subscribe((status) => {
@@ -92,8 +123,11 @@ export function useDocumentsData(): UseDocumentsDataReturn {
     return () => {
       debugLog('DocumentsTable: Cleaning up Realtime subscription');
       supabase.removeChannel(channel);
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
     };
-  }, [user?.id, loadData]);
+  }, [user?.id, debouncedRefresh]);
 
   const updateDocumentInState = useCallback((docId: string, updates: Partial<DocumentWithOwner>) => {
     setDocuments(prev => {
