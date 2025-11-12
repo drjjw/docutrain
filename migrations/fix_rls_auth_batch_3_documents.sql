@@ -277,3 +277,4 @@ ORDER BY policyname;
 -- - Function user_has_document_access() may also need optimization
 -- - Document access level logic must remain unchanged
 
+

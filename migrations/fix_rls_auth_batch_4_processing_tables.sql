@@ -254,3 +254,4 @@ ORDER BY tablename, policyname;
 -- - Function user_has_document_access_by_slug() may also need optimization
 -- - Complex nested EXISTS subqueries require careful testing
 
+

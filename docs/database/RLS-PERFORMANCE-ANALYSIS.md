@@ -241,3 +241,4 @@ DROP INDEX IF EXISTS documents_slug_idx;
 - [Supabase RLS Performance Guide](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select)
 - [Supabase Database Linter](https://supabase.com/docs/guides/database/database-linter)
 
+

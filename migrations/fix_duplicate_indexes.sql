@@ -116,3 +116,4 @@ CREATE INDEX documents_slug_idx ON public.documents USING btree (slug);
 -- Expected storage savings: ~3-5MB depending on table size
 -- Expected write performance improvement: ~5-10% on documents table operations
 
+

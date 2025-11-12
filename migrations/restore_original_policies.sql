@@ -383,3 +383,4 @@ CREATE POLICY "document_attachments_update_policy" ON "public"."document_attachm
      LEFT JOIN "public"."user_roles" "ur" ON ((("ur"."user_id" = "auth"."uid"()) AND ("ur"."owner_id" = "d"."owner_id"))))
   WHERE (("d"."id" = "document_attachments"."document_id") AND (("ur"."role" = ANY (ARRAY['owner_admin'::"text", 'super_admin'::"text"])) OR (EXISTS ( SELECT 1
 
+
