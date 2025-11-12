@@ -4,6 +4,7 @@ module.exports = {
     script: 'server.js',
     instances: 1,
     exec_mode: 'fork',
+    env_file: '.env', // Load environment variables from .env file
     env: {
       NODE_ENV: 'production'
     },

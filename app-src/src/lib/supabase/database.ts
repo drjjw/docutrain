@@ -71,8 +71,37 @@ export async function updateDocumentStatus(
 
 /**
  * Delete a document record
+ * Marks document as cancelled before deletion to stop processing
  */
 export async function deleteDocument(id: string) {
+  // First, mark as cancelled to stop any ongoing processing
+  try {
+    const { data: existingDoc } = await supabase
+      .from('user_documents')
+      .select('metadata')
+      .eq('id', id)
+      .single();
+    
+    const updatedMetadata = {
+      ...(existingDoc?.metadata || {}),
+      cancelled: true,
+      cancelled_at: new Date().toISOString()
+    };
+    
+    // Update metadata to mark as cancelled (this will stop processing)
+    await supabase
+      .from('user_documents')
+      .update({ metadata: updatedMetadata })
+      .eq('id', id);
+    
+    // Small delay to allow cancellation check to run
+    await new Promise(resolve => setTimeout(resolve, 100));
+  } catch (markError) {
+    // If marking as cancelled fails, still proceed with deletion
+    console.warn('Failed to mark document as cancelled before deletion:', markError);
+  }
+  
+  // Now delete the document
   const { error } = await supabase
     .from('user_documents')
     .delete()

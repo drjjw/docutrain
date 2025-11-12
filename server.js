@@ -88,6 +88,18 @@ if (process.env.OPENAI_API_KEY) {
     console.warn('⚠️  OPENAI_API_KEY not found - OpenAI RAG mode will not work');
 }
 
+// Initialize Groq client for audio transcription (cheaper alternative to OpenAI Whisper)
+let groqClient = null;
+if (process.env.GROQ_API_KEY) {
+    groqClient = new OpenAI({
+        apiKey: process.env.GROQ_API_KEY,
+        baseURL: 'https://api.groq.com/openai/v1'
+    });
+    console.log('✓ Groq client initialized for audio transcription');
+} else {
+    console.warn('⚠️  GROQ_API_KEY not found - will use OpenAI Whisper for audio transcription');
+}
+
 // Initialize local embeddings
 const { generateLocalEmbedding, initializeModel: initLocalModel, getModelInfo } = require('./lib/local-embeddings');
 
@@ -170,7 +182,8 @@ const routeDependencies = {
     clients: {
         genAI,
         xai,
-        openai: openaiClient
+        openai: openaiClient,
+        groq: groqClient
     }
 };
 
@@ -183,7 +196,7 @@ app.use('/api/system-config', createSystemConfigRouter());
 
 // Apply extended timeout for processing routes (large file uploads)
 // Note: Server timeout is set globally below in server.listen()
-const processingRouter = createProcessingRouter(supabase, openaiClient);
+const processingRouter = createProcessingRouter(supabase, openaiClient, groqClient);
 app.use('/api', processingRouter);
 
 app.use('/api', createChatRouter(routeDependencies));

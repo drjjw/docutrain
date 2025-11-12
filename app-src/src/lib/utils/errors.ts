@@ -40,7 +40,7 @@ export function getUploadErrorMessage(error: Error | string): string {
     return 'File is too large. Maximum size is 50MB.';
   }
   if (message.includes('type') || message.includes('format')) {
-    return 'Invalid file type. Only PDF files are allowed.';
+    return 'Invalid file type. Only PDF and audio files (MP3, WAV, M4A, OGG, FLAC, AAC) are allowed.';
   }
   if (message.includes('permission') || message.includes('authorized')) {
     return 'You do not have permission to upload files.';

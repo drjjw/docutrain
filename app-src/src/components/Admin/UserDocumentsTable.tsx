@@ -378,6 +378,32 @@ export const UserDocumentsTable = forwardRef<UserDocumentsTableRef, UserDocument
 
     try {
       setDeletingDocId(documentId);
+      
+      // Log the deletion before deleting the document
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          await fetch('/api/log-operation-deletion', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              user_document_id: documentId,
+              operation_type: 'document_deletion',
+              reason: doc.status === 'processing' ? 'Deleted while processing' : 'User requested deletion'
+            }),
+          }).catch(err => {
+            // Don't fail deletion if logging fails
+            console.warn('Failed to log deletion:', err);
+          });
+        }
+      } catch (logError) {
+        // Don't fail deletion if logging fails
+        console.warn('Error logging deletion:', logError);
+      }
+      
       await deleteDocument(documentId);
       
       // Reload documents to reflect the deletion

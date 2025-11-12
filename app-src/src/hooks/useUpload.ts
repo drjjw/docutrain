@@ -212,12 +212,22 @@ export function useUpload() {
       setUploadedDocument(null);
       setProgress(0);
 
-      const documentTitle = title || file.name.replace('.pdf', '');
+      // Extract title from filename, removing common extensions
+      const documentTitle = title || file.name.replace(/\.(pdf|mp3|wav|m4a|ogg|flac|aac)$/i, '');
       const FIFTY_MB = 50 * 1024 * 1024;
+      
+      // Check if this is an audio file (Supabase Storage bucket restricts MIME types, so audio must go through backend)
+      const isAudioFile = file.type.startsWith('audio/') || 
+                         /\.(mp3|wav|m4a|ogg|flac|aac)$/i.test(file.name);
 
-      // For files > 50MB, use backend upload endpoint (bypasses Supabase client limit)
-      if (file.size > FIFTY_MB) {
-        debugLog(`📤 Large file detected (${(file.size / 1024 / 1024).toFixed(2)}MB), using backend upload...`);
+      // For files > 50MB OR audio files, use backend upload endpoint
+      // Audio files must use backend because Supabase Storage bucket has MIME type restrictions
+      if (file.size > FIFTY_MB || isAudioFile) {
+        if (isAudioFile) {
+          debugLog(`📤 Audio file detected (${(file.size / 1024 / 1024).toFixed(2)}MB), using backend upload (bypasses Storage MIME restrictions)...`);
+        } else {
+          debugLog(`📤 Large file detected (${(file.size / 1024 / 1024).toFixed(2)}MB), using backend upload...`);
+        }
         
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
@@ -338,6 +348,7 @@ export function useUpload() {
           }
         }
       } catch (processingError) {
+        console.error('[useUpload] Processing error:', processingError);
         console.error('❌ Error triggering processing:', processingError);
         console.warn('⚠️ Document uploaded but processing failed to start. User can retry manually.');
       }
@@ -351,7 +362,14 @@ export function useUpload() {
       
       return document;
     } catch (err) {
+      console.error('[useUpload] Upload error caught:', err);
+      console.error('[useUpload] Error details:', {
+        message: err instanceof Error ? err.message : String(err),
+        name: err instanceof Error ? err.name : typeof err,
+        stack: err instanceof Error ? err.stack : undefined
+      });
       const errorMessage = getUploadErrorMessage(err instanceof Error ? err : String(err));
+      console.error('[useUpload] Transformed error message:', errorMessage);
       setError(errorMessage);
       return null;
     } finally {
@@ -361,6 +379,35 @@ export function useUpload() {
   };
 
   const reset = () => {
+    // Log operation cancellation if there was an active upload
+    if (uploadedDocument?.id) {
+      (async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            await fetch('/api/log-operation-deletion', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                user_document_id: uploadedDocument.id,
+                operation_type: 'upload_reset',
+                reason: 'Upload operation cancelled/reset by user'
+              }),
+            }).catch(err => {
+              // Don't fail reset if logging fails
+              console.warn('Failed to log upload reset:', err);
+            });
+          }
+        } catch (logError) {
+          // Don't fail reset if logging fails
+          console.warn('Error logging upload reset:', logError);
+        }
+      })();
+    }
+    
     setError(null);
     setProgress(0);
     setSuccess(false);

@@ -1,6 +1,7 @@
 import React, { useState, useImperativeHandle, forwardRef, useRef } from 'react';
 import { UploadZone } from './UploadZone';
 import { TextUploadZone, TextUploadZoneRef } from './TextUploadZone';
+import { AudioUploadZone } from './AudioUploadZone';
 import { Modal } from '@/components/UI/Modal';
 import { Button } from '@/components/UI/Button';
 import { Alert } from '@/components/UI/Alert';
@@ -16,7 +17,7 @@ export interface CombinedUploadZoneRef {
 export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUploadZoneProps>(
   ({ onUploadSuccess }, ref) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'pdf' | 'text'>('pdf');
+  const [activeTab, setActiveTab] = useState<'pdf' | 'text' | 'audio'>('pdf');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const textUploadZoneRef = useRef<TextUploadZoneRef>(null);
   const [textUploadButtonState, setTextUploadButtonState] = useState({ uploading: false, canUpload: false });
@@ -44,7 +45,7 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
   return (
     <>
       {/* Upload Options with Explanations */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         {/* PDF Upload Option */}
         <div className="flex flex-col lg:flex-row items-stretch gap-2 w-full">
           <button
@@ -98,6 +99,33 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
             </p>
           </div>
         </div>
+
+        {/* Audio Upload Option */}
+        <div className="flex flex-col lg:flex-row items-stretch gap-2 w-full">
+          <button
+            onClick={() => {
+              setActiveTab('audio');
+              setShowSuccessMessage(false);
+              setIsModalOpen(true);
+            }}
+            className="group relative bg-gradient-to-br from-docutrain-dark to-docutrain-dark/90 hover:from-docutrain-dark/90 hover:to-docutrain-dark/80 text-white rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-docutrain-dark focus:ring-offset-2 flex flex-row items-center gap-2 px-4 py-3 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-100 flex-shrink-0 lg:h-full"
+          >
+            <div className="w-8 h-8 bg-white/20 rounded flex items-center justify-center group-hover:bg-white/30 transition-colors flex-shrink-0">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+              </svg>
+            </div>
+            <div className="text-left whitespace-nowrap">
+              <div className="text-sm font-semibold leading-tight">Train with Audio</div>
+              <div className="text-xs text-white/80 leading-tight">Upload audio</div>
+            </div>
+          </button>
+          <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 flex-1 flex items-center min-w-0 w-full lg:h-full">
+            <p className="text-sm text-gray-700 leading-relaxed">
+              <strong className="text-gray-900 font-semibold">Perfect for:</strong> Audio recordings, podcasts, lectures, interviews, or any spoken content. The system automatically transcribes audio using OpenAI Whisper, processes it into searchable chunks with time metadata, and generates AI embeddings. Supports MP3, WAV, M4A, OGG, FLAC, and AAC formats.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Upload Modal */}
@@ -114,10 +142,10 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
             <Alert variant="success">
               <div className="space-y-3">
                 <p className="font-semibold text-lg">
-                  {activeTab === 'pdf' ? 'PDF Upload Successful!' : 'Text Upload Successful!'}
+                  {activeTab === 'pdf' ? 'PDF Upload Successful!' : activeTab === 'text' ? 'Text Upload Successful!' : 'Audio Upload Successful!'}
                 </p>
                 <p className="text-sm">
-                  Your {activeTab === 'pdf' ? 'document' : 'text'} is now being processed. You can watch the progress in the <strong>"Your Uploaded Documents"</strong> section below.
+                  Your {activeTab === 'pdf' ? 'document' : activeTab === 'text' ? 'text' : 'audio'} is now being processed. You can watch the progress in the <strong>"Your Uploaded Documents"</strong> section below.
                 </p>
                 <div className="pt-2">
                   <Button onClick={handleModalClose} className="w-full">
@@ -160,6 +188,20 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
               >
                 Paste Text Content
               </button>
+              <button
+                onClick={() => {
+                  setActiveTab('audio');
+                  setShowSuccessMessage(false);
+                  setTextUploadButtonState({ uploading: false, canUpload: false });
+                }}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'audio'
+                    ? 'border-docutrain-light text-docutrain-light'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Upload Audio File
+              </button>
             </div>
 
             {/* Scrollable Tab Content */}
@@ -179,7 +221,7 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
                   </div>
                   <UploadZone onUploadSuccess={handleUploadSuccess} suppressSuccessMessage />
                 </div>
-              ) : (
+              ) : activeTab === 'text' ? (
                 <div className="space-y-4 p-1">
                   <div className="text-sm text-gray-600">
                     <p className="mb-2">
@@ -200,6 +242,22 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
                     hideButton
                     onButtonStateChange={setTextUploadButtonState}
                   />
+                </div>
+              ) : (
+                <div className="space-y-4 p-1">
+                  <div className="text-sm text-gray-600">
+                    <p className="mb-2">
+                      <strong>Audio Upload:</strong> Upload audio files that will be automatically transcribed and made searchable.
+                    </p>
+                    <ul className="ml-4 space-y-1 text-xs">
+                      <li>• Supports MP3, WAV, M4A, OGG, FLAC, and AAC formats</li>
+                      <li>• Files up to 75MB (superadmin) or 50MB (regular users)</li>
+                      <li>• Audio is automatically transcribed using OpenAI Whisper</li>
+                      <li>• Processing includes transcription, text chunking with time metadata, and AI embedding generation</li>
+                      <li>• Takes 2-15 minutes depending on audio length</li>
+                    </ul>
+                  </div>
+                  <AudioUploadZone onUploadSuccess={handleUploadSuccess} suppressSuccessMessage />
                 </div>
               )}
             </div>
