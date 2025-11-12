@@ -11,6 +11,12 @@ dist/
 # Database dumps
 database-dumps/
 
+# Backup files - exclude all backups
+backups/supabase_backup_*/
+backups/*.backup
+backups/supabase_backup_latest
+db_cluster-*.backup
+
 # PDFs (used only for training/embedding, not needed in git)
 PDFs/
 

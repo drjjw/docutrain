@@ -88,3 +88,6 @@ COMMENT ON TABLE user_owner_access IS
 'Grants registered users access to owner groups. This table is ONLY for users with the registered role. Users with owner_admin or super_admin roles automatically have access and do not need entries here. When a user is upgraded to owner_admin, their user_owner_access entry is automatically removed.';
 
 
+
+
+

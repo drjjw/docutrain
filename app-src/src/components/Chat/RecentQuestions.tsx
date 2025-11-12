@@ -42,6 +42,21 @@ function getCountryFlagClass(countryCode: string | null | undefined): string | n
   return `fi fi-${normalizedCode}`;
 }
 
+/**
+ * Check if a question should be filtered out based on its response
+ * Filters out responses that contain "I don't have" (case-insensitive)
+ * @param response - The response text to check
+ * @returns true if the question should be filtered out, false otherwise
+ */
+function shouldFilterQuestion(response: string | null | undefined): boolean {
+  if (!response) {
+    return false; // Keep questions without responses
+  }
+  
+  // Case-insensitive check for "I don't have"
+  return response.toLowerCase().includes("i don't have");
+}
+
 export function RecentQuestions({ 
   documentSlug, 
   documentId,
@@ -103,7 +118,9 @@ export function RecentQuestions({
           q2.id === q.id || 
           (q2.question?.trim().toLowerCase() === q.question?.trim().toLowerCase())
         )
-      );
+      )
+      // Filter out questions where the response contains "I don't have"
+      .filter((q: RecentQuestion) => !shouldFilterQuestion(q.response));
       
       setQuestions(uniqueQuestions);
     } catch (err) {
@@ -161,6 +178,12 @@ export function RecentQuestions({
               created_at: payload.new.created_at,
               country: payload.new.country || null,
             };
+            
+            // Filter out questions where the response contains "I don't have"
+            if (shouldFilterQuestion(newQuestion.response)) {
+              debugLog('[RecentQuestions] Filtered out question with "I don\'t have" response:', newQuestion.id);
+              return;
+            }
             
             setQuestions((prev) => {
               // Check if question already exists (avoid duplicates)

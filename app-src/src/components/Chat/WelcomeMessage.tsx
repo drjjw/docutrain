@@ -7,7 +7,7 @@ import { useCanEditDocument } from '@/hooks/useCanEditDocument';
 import { InlineEditor } from './InlineEditor';
 import { InlineWysiwygEditor } from './InlineWysiwygEditor';
 import { DownloadsAndKeywords } from './DownloadsAndKeywords';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Keyword, Download } from '@/hooks/useDocumentConfig';
 import { debugLog } from '@/utils/debug';
 
@@ -76,6 +76,33 @@ async function saveDocumentField(
   return true;
 }
 
+/**
+ * Hook to detect mobile/stacked view (portrait mobile or stacked layout)
+ */
+function useIsMobileOrStacked(): boolean {
+  const [isMobileOrStacked, setIsMobileOrStacked] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 768;
+  });
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const handleChange = (e: MediaQueryListEvent) => setIsMobileOrStacked(e.matches);
+    
+    // Modern browsers
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } else {
+      // Fallback for older browsers
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
+  }, []);
+
+  return isMobileOrStacked;
+}
+
 export function WelcomeMessage({ 
   welcomeMessage, 
   introMessage, 
@@ -91,6 +118,10 @@ export function WelcomeMessage({
 }: WelcomeMessageProps) {
   const { canEdit } = useCanEditDocument(documentSlug);
   const [refreshKey, setRefreshKey] = useState(0);
+  const isMobileOrStacked = useIsMobileOrStacked();
+  
+  // Initialize collapsed state - default to expanded (open)
+  const [isIntroCollapsed, setIsIntroCollapsed] = useState(false);
 
   // Force refresh of document config after save
   const handleSave = useCallback(async (field: string, value: string) => {
@@ -112,10 +143,38 @@ export function WelcomeMessage({
     return success;
   }, [documentSlug]);
 
+  const toggleIntroCollapsed = () => {
+    setIsIntroCollapsed(!isIntroCollapsed);
+  };
+
+  // Only show collapsible functionality on mobile/stacked view
+  const showCollapsible = isMobileOrStacked && introMessage !== null && introMessage !== undefined;
+
   return (
     <div className="welcome-message-section">
       <div className="message assistant" id="welcomeMessage">
         <div className="message-content">
+          {/* Collapsible toggle button - positioned in top right of container */}
+          {showCollapsible && (
+            <button
+              onClick={toggleIntroCollapsed}
+              className="intro-message-toggle"
+              type="button"
+              aria-label={isIntroCollapsed ? 'Expand intro message' : 'Collapse intro message'}
+              aria-expanded={!isIntroCollapsed}
+            >
+              <svg
+                className={`intro-message-toggle-icon ${isIntroCollapsed ? '' : 'expanded'}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          )}
+          
           {canEdit ? (
             <InlineEditor
               id="welcomeTitle"
@@ -131,36 +190,48 @@ export function WelcomeMessage({
               {welcomeMessage}
             </h2>
           )}
+
+          {/* Intro message content - collapsible on mobile/stacked */}
           {introMessage !== null && introMessage !== undefined && (
-            canEdit ? (
-              <InlineWysiwygEditor
-                id="welcomeIntroContent"
-                value={introMessage}
-                field="intro_message"
-                documentSlug={documentSlug}
-                onSave={(value) => handleSave('intro_message', value)}
-                className=""
-              />
-            ) : (
-              <div 
-                id="welcomeIntroContent"
-                dangerouslySetInnerHTML={{ __html: convertH1ToH2(introMessage) }}
-              />
-            )
+            <div className={`intro-message-content ${showCollapsible ? 'collapsible' : ''}`}>
+              {/* Intro content - hidden when collapsed */}
+              {!isIntroCollapsed && (
+                <>
+                  {canEdit ? (
+                    <InlineWysiwygEditor
+                      id="welcomeIntroContent"
+                      value={introMessage}
+                      field="intro_message"
+                      documentSlug={documentSlug}
+                      onSave={(value) => handleSave('intro_message', value)}
+                      className=""
+                    />
+                  ) : (
+                    <div 
+                      id="welcomeIntroContent"
+                      dangerouslySetInnerHTML={{ __html: convertH1ToH2(introMessage) }}
+                    />
+                  )}
+                </>
+              )}
+            </div>
           )}
+          
           {/* Downloads and Keywords - rendered inside intro message */}
           {/* Also render if only quizzes are enabled (no keywords/downloads) */}
           {(showKeywords !== false || showDownloads !== false || showQuizzes === true) && (
-            <DownloadsAndKeywords
-              keywords={showKeywords !== false ? keywords : undefined}
-              downloads={showDownloads !== false ? downloads : undefined}
-              isMultiDoc={false}
-              inputRef={inputRef}
-              onKeywordClick={onKeywordClick}
-              onQuizClick={showQuizzes === true ? onQuizClick : undefined}
-              documentSlug={documentSlug}
-              showQuizzes={showQuizzes}
-            />
+            (!showCollapsible || !isIntroCollapsed) && (
+              <DownloadsAndKeywords
+                keywords={showKeywords !== false ? keywords : undefined}
+                downloads={showDownloads !== false ? downloads : undefined}
+                isMultiDoc={false}
+                inputRef={inputRef}
+                onKeywordClick={onKeywordClick}
+                onQuizClick={showQuizzes === true ? onQuizClick : undefined}
+                documentSlug={documentSlug}
+                showQuizzes={showQuizzes}
+              />
+            )
           )}
         </div>
       </div>

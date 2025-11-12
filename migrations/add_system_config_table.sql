@@ -62,3 +62,6 @@ INSERT INTO system_config (key, value, description, version) VALUES (
 ) ON CONFLICT (key) DO NOTHING;
 
 
+
+
+

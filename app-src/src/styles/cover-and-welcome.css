@@ -118,7 +118,7 @@
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   /* Prevent WYSIWYG editor from breaking out of container */
   overflow: visible;
-  position: relative;
+  position: relative; /* For absolute positioning of toggle button */
 }
 
 /* Prevent WYSIWYG editor from causing layout issues */
@@ -160,8 +160,95 @@
   margin-top: 12px; /* Add spacing after welcomeTitle since margin-bottom was removed */
 }
 
+/* When wrapped in collapsible container, remove margin-top from inner element */
+.intro-message-content #welcomeIntroContent {
+  margin-top: 0; /* Parent container handles spacing */
+}
+
 #welcomeIntroContent ul {
   list-style: disc;
+}
+
+/* Collapsible Intro Message Styles - Mobile/Stacked View */
+.intro-message-content {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 12px;
+}
+
+.intro-message-toggle {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: none; /* Hidden by default, shown only on mobile/stacked */
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 10; /* Ensure it's above content */
+}
+
+@media (max-width: 768px) {
+  .intro-message-toggle {
+    display: flex; /* Show on mobile/stacked view */
+  }
+}
+
+.intro-message-toggle:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #374151;
+}
+
+.intro-message-toggle:active {
+  transform: scale(0.95);
+}
+
+.intro-message-toggle-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  transition: transform 0.3s ease;
+}
+
+.intro-message-toggle-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.intro-message-content.collapsible {
+  animation: fadeInContent 0.3s ease-out;
+}
+
+.intro-message-content.collapsible #welcomeIntroContent {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes fadeInContent {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+  }
+  to {
+    opacity: 1;
+    max-height: 2000px;
+  }
 }
 
 /* Ensure WYSIWYG editor stays within message container bounds */
@@ -228,6 +315,7 @@
     width: 100%;
     max-width: 100%;
     padding: 20px 24px;
+    position: relative; /* For absolute positioning of toggle button */
   }
 
   /* Ensure welcome title wraps properly on mobile */
@@ -241,6 +329,18 @@
 
   .welcome-message-section .welcome-title-wrapper {
     padding-right: 32px; /* Space for edit icon */
+  }
+
+  /* Collapsible intro message toggle on mobile - positioned top right of container */
+  .intro-message-toggle {
+    padding: 0.375rem;
+    top: 0.75rem;
+    right: 0.75rem;
+  }
+
+  .intro-message-toggle-icon {
+    width: 1.125rem;
+    height: 1.125rem;
   }
 
   .document-cover-image {
@@ -305,6 +405,7 @@
     width: 100%; /* Override max-width to ensure full width */
     max-width: 100%; /* Ensure it takes full container width */
     padding: 16px 20px; /* Reduced padding on very small screens */
+    position: relative; /* For absolute positioning of toggle button */
   }
 
   /* Ensure welcome title wraps properly on very small screens */
@@ -318,6 +419,18 @@
 
   .welcome-message-section .welcome-title-wrapper {
     padding-right: 28px; /* Space for edit icon */
+  }
+
+  /* Collapsible intro message toggle on very small screens */
+  .intro-message-toggle {
+    padding: 0.375rem;
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+
+  .intro-message-toggle-icon {
+    width: 1.125rem;
+    height: 1.125rem;
   }
 
   .document-cover-image {

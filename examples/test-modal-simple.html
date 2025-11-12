@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background: #f5f5f5;
+        }
+        
+        .test-button {
+            background: #cc0000;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .test-button:hover {
+            background: #aa0000;
+        }
+        
+        /* Modern Modal Styles */
+        .modern-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 99999 !important;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            display: none;
+            transition: none;
+        }
+
+        .modern-modal-overlay.active {
+            display: block;
+            opacity: 1;
+            visibility: visible;
+            pointer-events: all;
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s;
+        }
+
+        .modern-modal-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            opacity: 0;
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modern-modal-overlay.active .modern-modal-backdrop {
+            opacity: 1;
+        }
+
+        .modern-modal-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            box-shadow: -8px 0 32px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .modern-modal-overlay.active .modern-modal-panel {
+            transform: translateX(0);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modern-close-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #333;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 0;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 10000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .modern-close-button:hover {
+            background: rgba(255, 255, 255, 1);
+            border-color: rgba(0, 0, 0, 0.2);
+            transform: scale(1.05) rotate(90deg);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .modern-close-button:active {
+            transform: scale(0.95) rotate(90deg);
+        }
+
+        .modern-modal-body {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            background: #ffffff;
+        }
+
+        .modern-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease 0.2s, visibility 0s 0.5s;
+        }
+
+        .modern-modal-overlay.active .modern-iframe {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.3s ease 0.2s, visibility 0s 0s;
+        }
+
+        body.modern-modal-open {
+            overflow: hidden;
+        }
+
+        /* Responsive Modal */
+        @media (max-width: 768px) {
+            .modern-close-button {
+                top: 16px;
+                right: 16px;
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Modal Test Page</h1>
+    <p>Click the button below to test the modal functionality:</p>
+    <button class="test-button" id="open-chat-button">Open Modal</button>
+
+    <!-- Chat Modal -->
+    <div id="manual-assistant-modal" class="modern-modal-overlay">
+        <div class="modern-modal-backdrop" onclick="closeChatModal()"></div>
+        <div class="modern-modal-panel">
+            <button class="modern-close-button" type="button" onclick="closeChatModal()" aria-label="Close chat">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="modern-modal-body">
+                <iframe 
+                    id="chat-iframe"
+                    src="about:blank"
+                    class="modern-iframe"
+                    allow="clipboard-write"
+                    title="Test Content">
+                </iframe>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        // Chat Modal Functions
+        let chatModalOpen = false;
+        let isOpeningModal = false;
+        // DocuTrain chat URL
+        const testUrl = 'https://www.docutrain.io/app/chat?doc=uhn&footer=false';
+
+        window.addEventListener('message', function(event) {
+            // Verify origin for security
+            if (event.origin !== 'https://www.docutrain.io') return;
+            
+            if (event.data.type === 'headerCollapsed') {
+                console.log('Header collapsed state:', event.data.collapsed);
+            }
+        });
+
+        // Initialize modal handlers
+        (function initModalHandlers() {
+            function attachHandlers() {
+                // Prevent closing when clicking inside the panel
+                const modalPanel = document.querySelector('.modern-modal-panel');
+                if (modalPanel) {
+                    modalPanel.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                    });
+                }
+                
+                // Add event listener to the chat button
+                const chatButton = document.getElementById('open-chat-button');
+                if (chatButton) {
+                    // Remove any existing handlers first by cloning
+                    const newButton = chatButton.cloneNode(false);
+                    newButton.innerHTML = chatButton.innerHTML;
+                    newButton.id = chatButton.id;
+                    newButton.className = chatButton.className;
+                    newButton.type = chatButton.type;
+                    chatButton.parentNode.replaceChild(newButton, chatButton);
+                    
+                    // Single unified handler for all pointer events
+                    function handleButtonInteraction(e) {
+                        console.log('Button interaction:', e.type);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        openChatModal(e);
+                        return false;
+                    }
+                    
+                    // Handle all pointer event types the same way
+                    newButton.addEventListener('click', handleButtonInteraction, { capture: true, passive: false });
+                    newButton.addEventListener('touchstart', handleButtonInteraction, { capture: true, passive: false });
+                    newButton.addEventListener('touchend', handleButtonInteraction, { capture: true, passive: false });
+                    newButton.addEventListener('pointerdown', handleButtonInteraction, { capture: true, passive: false });
+                    newButton.addEventListener('pointerup', handleButtonInteraction, { capture: true, passive: false });
+                }
+            }
+            
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', attachHandlers);
+            } else {
+                attachHandlers();
+            }
+        })();
+
+        function openChatModal(event) {
+            console.log('openChatModal called', event);
+            
+            // Prevent multiple simultaneous calls
+            if (isOpeningModal || chatModalOpen) {
+                console.log('Modal already opening or open, ignoring duplicate call');
+                return false;
+            }
+            
+            // Prevent any default behavior
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+            }
+            
+            if (window.event) {
+                window.event.preventDefault();
+                window.event.stopPropagation();
+            }
+            
+            isOpeningModal = true;
+            
+            const modal = document.getElementById('manual-assistant-modal');
+            const iframe = document.getElementById('chat-iframe');
+            const body = document.body;
+            
+            if (!modal || !iframe) {
+                console.error('Modal elements not found');
+                isOpeningModal = false;
+                return false;
+            }
+            
+            console.log('Opening modal');
+            
+            // Show modal IMMEDIATELY
+            modal.style.display = 'block';
+            modal.style.visibility = 'visible';
+            modal.style.opacity = '1';
+            modal.style.zIndex = '99999';
+            body.classList.add('modern-modal-open');
+            chatModalOpen = true;
+            preventScroll();
+            
+            // Force modal to be visible immediately
+            requestAnimationFrame(() => {
+                modal.classList.add('active');
+                if (modal.style.display !== 'block') {
+                    modal.style.display = 'block';
+                }
+                if (!modal.classList.contains('active')) {
+                    modal.classList.add('active');
+                }
+            });
+            
+            // Set iframe src AFTER modal is visible
+            iframe.src = 'about:blank';
+            
+            setTimeout(() => {
+                iframe.src = testUrl;
+                isOpeningModal = false;
+                
+                // Verify modal is actually visible
+                setTimeout(() => {
+                    const computedStyle = window.getComputedStyle(modal);
+                    console.log('Modal visibility check:', {
+                        display: computedStyle.display,
+                        visibility: computedStyle.visibility,
+                        opacity: computedStyle.opacity,
+                        zIndex: computedStyle.zIndex,
+                        hasActiveClass: modal.classList.contains('active')
+                    });
+                    
+                    if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
+                        console.warn('Modal not visible! Forcing visibility...');
+                        modal.style.display = 'block';
+                        modal.style.visibility = 'visible';
+                        modal.style.opacity = '1';
+                        modal.classList.add('active');
+                    }
+                }, 100);
+            }, 10);
+            
+            return false;
+        }
+
+        function closeChatModal() {
+            const modal = document.getElementById('manual-assistant-modal');
+            const iframe = document.getElementById('chat-iframe');
+            const body = document.body;
+            
+            modal.classList.remove('active');
+            body.classList.remove('modern-modal-open');
+            chatModalOpen = false;
+            
+            setTimeout(() => {
+                iframe.src = 'about:blank';
+                modal.style.display = 'none';
+            }, 400);
+            
+            allowScroll();
+        }
+
+        let scrollPosition = 0;
+        
+        function preventScroll() {
+            scrollPosition = window.pageYOffset;
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollPosition}px`;
+            document.body.style.width = '100%';
+        }
+        
+        function allowScroll() {
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            window.scrollTo(0, scrollPosition);
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && chatModalOpen) {
+                closeChatModal();
+            }
+        });
+    </script>
+</body>
+</html>
+

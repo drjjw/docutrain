@@ -1,5 +1,3 @@
-<!-- DocuTrain Embed Stylesheet -->
-<link rel="stylesheet" href="https://www.docutrain.io/css/docutrain-embed.css">
 
 <script src="/content/pdf/core/lib/webviewer.min.js" type="text/javascript"></script>
 
@@ -20,7 +18,7 @@
 		<div class="option-icon"><i class="fa-solid fa-message"></i></div>
 		<h3>Chat with Manual (Powered by AI)</h3>
 		<p>Ask questions with AI assistant</p>
-		<button class="uk-button uk-button-primary" onclick="openDocutrainChat()">
+		<button class="uk-button uk-button-primary" type="button" id="open-chat-button">
 			<i class="fa-solid fa-message"></i> Open Chat
 		</button>
 	</div>
@@ -34,27 +32,25 @@
 	</div>
 </div>
 
-<!-- DocuTrain Chat Modal - Standard Embed Implementation -->
-<div id="docutrain-chat-modal" class="docutrain-modal-overlay" style="display: none;">
-	<div class="docutrain-modal-container">
-		<button 
-			class="docutrain-close-button" 
-			type="button" 
-			onclick="closeDocutrainChat()" 
-			aria-label="Close chat"
-		>
-			<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<!-- Chat Modal -->
+<div id="manual-assistant-modal" class="modern-modal-overlay">
+	<div class="modern-modal-backdrop" onclick="closeChatModal()"></div>
+	<div class="modern-modal-panel">
+		<button class="modern-close-button" type="button" onclick="closeChatModal()" aria-label="Close chat">
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
 				<line x1="18" y1="6" x2="6" y2="18"></line>
 				<line x1="6" y1="6" x2="18" y2="18"></line>
 			</svg>
 		</button>
+		<div class="modern-modal-body">
 		<iframe 
-			id="docutrain-chat-iframe"
-			src=""
-			class="docutrain-chat-iframe"
+			id="chat-iframe"
+				src="about:blank"
+				class="modern-iframe"
 			allow="clipboard-write"
 			title="Chat Assistant">
 		</iframe>
+		</div>
 	</div>
 </div>
 
@@ -65,9 +61,6 @@
 	<div>For Questions about this manual, please email <a href="mailto:jeffrey.zaltzman@utoronto.ca" target="_self">Dr. Jeffrey Zaltzman</a> (St. Michael's Hospital)</div>
 	<div>See also: <a href="nephrology-publications/nephrology-manuals/university-health-network-nephrology-manual">University Health Network Nephrology Manual</a></div>
 </div>
-
-<!-- DocuTrain Embed Container -->
-<div class="docutrain-embed-container" data-chat-url="https://www.docutrain.io/app/chat?doc=smh&footer=false"></div>
 
 <script type="text/javascript">
 	// Initialize PDF Viewer
@@ -81,7 +74,11 @@
 		instance.UI.setTheme('light');
 	});
 
-	// Listen for header collapse messages from iframe
+	// Chat Modal Functions
+	let chatModalOpen = false;
+	let isOpeningModal = false; // Guard to prevent multiple simultaneous calls
+	const docUrl = 'https://www.docutrain.io/app/chat?doc=smh&footer=false';
+
 	window.addEventListener('message', function(event) {
 		// Verify origin for security
 		if (event.origin !== 'https://www.docutrain.io') return;
@@ -91,10 +88,188 @@
 			console.log('Header collapsed state:', event.data.collapsed);
 		}
 	});
-</script>
 
-<!-- DocuTrain Embed JavaScript -->
-<script src="https://www.docutrain.io/js/docutrain-embed.js"></script>
+	// Initialize modal handlers - run immediately
+	(function initModalHandlers() {
+		function attachHandlers() {
+			// Prevent closing when clicking inside the panel
+			const modalPanel = document.querySelector('.modern-modal-panel');
+			if (modalPanel) {
+				modalPanel.addEventListener('click', function(e) {
+					e.stopPropagation();
+				});
+			}
+			
+			// Add event listener to the chat button - use capture phase to catch early
+			const chatButton = document.getElementById('open-chat-button');
+			if (chatButton) {
+				// Remove any existing handlers first by cloning
+				const newButton = chatButton.cloneNode(false); // false = don't clone children/attributes
+				// Copy the innerHTML
+				newButton.innerHTML = chatButton.innerHTML;
+				// Copy important attributes
+				newButton.id = chatButton.id;
+				newButton.className = chatButton.className;
+				newButton.type = chatButton.type;
+				chatButton.parentNode.replaceChild(newButton, chatButton);
+				
+				// Single unified handler for all pointer events (mouse, touch, pen)
+				function handleButtonInteraction(e) {
+					console.log('Button interaction:', e.type);
+					e.preventDefault();
+					e.stopPropagation();
+					e.stopImmediatePropagation();
+					openChatModal(e);
+					return false;
+				}
+				
+				// Handle all pointer event types the same way
+				newButton.addEventListener('click', handleButtonInteraction, { capture: true, passive: false });
+				newButton.addEventListener('touchstart', handleButtonInteraction, { capture: true, passive: false });
+				newButton.addEventListener('touchend', handleButtonInteraction, { capture: true, passive: false });
+				newButton.addEventListener('pointerdown', handleButtonInteraction, { capture: true, passive: false });
+				newButton.addEventListener('pointerup', handleButtonInteraction, { capture: true, passive: false });
+			}
+		}
+		
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', attachHandlers);
+		} else {
+			attachHandlers();
+		}
+	})();
+
+	function openChatModal(event) {
+		console.log('openChatModal called', event);
+		
+		// Prevent multiple simultaneous calls
+		if (isOpeningModal || chatModalOpen) {
+			console.log('Modal already opening or open, ignoring duplicate call');
+			return false;
+		}
+		
+		// Prevent any default behavior FIRST - be very aggressive
+		if (event) {
+			event.preventDefault();
+			event.stopPropagation();
+			event.stopImmediatePropagation();
+		}
+		
+		// Also prevent window navigation
+		if (window.event) {
+			window.event.preventDefault();
+			window.event.stopPropagation();
+		}
+		
+		isOpeningModal = true;
+		
+		const modal = document.getElementById('manual-assistant-modal');
+		const iframe = document.getElementById('chat-iframe');
+		const body = document.body;
+		
+		if (!modal || !iframe) {
+			console.error('Modal elements not found');
+			isOpeningModal = false;
+			return false;
+		}
+		
+		console.log('Opening modal');
+		
+		// Show modal IMMEDIATELY - don't wait for iframe
+		modal.style.display = 'block';
+		modal.style.visibility = 'visible';
+		modal.style.opacity = '1';
+		modal.style.zIndex = '99999'; // Ensure it's on top
+		body.classList.add('modern-modal-open');
+		chatModalOpen = true;
+		preventScroll();
+		
+		// Force modal to be visible immediately
+		requestAnimationFrame(() => {
+			modal.classList.add('active');
+			// Double-check modal is visible
+			if (modal.style.display !== 'block') {
+				modal.style.display = 'block';
+			}
+			if (!modal.classList.contains('active')) {
+				modal.classList.add('active');
+			}
+		});
+		
+		// Set iframe src AFTER modal is visible
+		iframe.src = 'about:blank';
+		
+		// Use a tiny delay to ensure about:blank is set, then set the actual URL
+		setTimeout(() => {
+			iframe.src = docUrl;
+			isOpeningModal = false; // Reset guard after modal is shown
+			
+			// Verify modal is actually visible
+			setTimeout(() => {
+				const computedStyle = window.getComputedStyle(modal);
+				console.log('Modal visibility check:', {
+					display: computedStyle.display,
+					visibility: computedStyle.visibility,
+					opacity: computedStyle.opacity,
+					zIndex: computedStyle.zIndex,
+					hasActiveClass: modal.classList.contains('active')
+				});
+				
+				if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
+					console.warn('Modal not visible! Forcing visibility...');
+					modal.style.display = 'block';
+					modal.style.visibility = 'visible';
+					modal.style.opacity = '1';
+					modal.classList.add('active');
+				}
+			}, 100);
+		}, 10);
+		
+		return false;
+	}
+
+	function closeChatModal() {
+		const modal = document.getElementById('manual-assistant-modal');
+		const iframe = document.getElementById('chat-iframe');
+		const body = document.body;
+		
+		modal.classList.remove('active');
+		body.classList.remove('modern-modal-open');
+		chatModalOpen = false;
+		
+		// Reset iframe and hide modal after transition completes
+		setTimeout(() => {
+			iframe.src = 'about:blank';
+			modal.style.display = 'none'; // Hide after transition
+		}, 400);
+		
+		allowScroll();
+	}
+
+	let scrollPosition = 0;
+	
+	function preventScroll() {
+		scrollPosition = window.pageYOffset;
+		document.body.style.overflow = 'hidden';
+		document.body.style.position = 'fixed';
+		document.body.style.top = `-${scrollPosition}px`;
+		document.body.style.width = '100%';
+	}
+	
+	function allowScroll() {
+		document.body.style.overflow = '';
+		document.body.style.position = '';
+		document.body.style.top = '';
+		document.body.style.width = '';
+		window.scrollTo(0, scrollPosition);
+	}
+
+	document.addEventListener('keydown', function(e) {
+		if (e.key === 'Escape' && chatModalOpen) {
+			closeChatModal();
+		}
+	});
+</script>
 
 <style>
 	/* Two Options Side by Side */
@@ -148,6 +323,21 @@
 	.option-card .uk-button {
 		padding: 8px 20px;
 		font-size: 14px;
+		text-decoration: none !important;
+		cursor: pointer;
+	}
+	
+	#open-chat-button {
+		text-decoration: none !important;
+		cursor: pointer;
+		pointer-events: auto;
+	}
+	
+	#open-chat-button:hover,
+	#open-chat-button:active,
+	#open-chat-button:focus {
+		text-decoration: none !important;
+		outline: none;
 	}
 	
 	
@@ -181,5 +371,143 @@
 	/* Prevent body scroll when UIKit modal is open */
 	body.uk-modal-page {
 		overflow: hidden;
+	}
+
+	/* Modern Modal Styles */
+	.modern-modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		width: 100%;
+		height: 100%;
+		z-index: 99999 !important; /* Ensure highest z-index */
+		opacity: 0;
+		visibility: hidden;
+		pointer-events: none;
+		display: none; /* Completely hidden on page load */
+		/* No transition on initial load - only when opening */
+		transition: none;
+	}
+
+	.modern-modal-overlay.active {
+		display: block; /* Show when active */
+		opacity: 1;
+		visibility: visible;
+		pointer-events: all;
+		/* Enable transition only when active */
+		transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s;
+	}
+
+	.modern-modal-backdrop {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.6);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		opacity: 0;
+		/* Transition enabled for closing animation */
+		transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.modern-modal-overlay.active .modern-modal-backdrop {
+		opacity: 1;
+	}
+
+	.modern-modal-panel {
+		position: absolute;
+		top: 0;
+		right: 0;
+		width: 100%;
+		height: 100%;
+		background: #ffffff;
+		box-shadow: -8px 0 32px rgba(0, 0, 0, 0.15);
+		display: flex;
+		flex-direction: column;
+		transform: translateX(100%);
+		/* Transition enabled for closing animation */
+		transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+		overflow: hidden;
+		position: relative;
+	}
+
+	.modern-modal-overlay.active .modern-modal-panel {
+		transform: translateX(0);
+		/* Enable transition only when active */
+		transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.modern-close-button {
+		position: absolute;
+		top: 20px;
+		right: 20px;
+		width: 44px;
+		height: 44px;
+		background: rgba(255, 255, 255, 0.95);
+		border: 1px solid rgba(0, 0, 0, 0.1);
+		border-radius: 12px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		color: #333;
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+		padding: 0;
+		backdrop-filter: blur(10px);
+		-webkit-backdrop-filter: blur(10px);
+		z-index: 10000;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	}
+
+	.modern-close-button:hover {
+		background: rgba(255, 255, 255, 1);
+		border-color: rgba(0, 0, 0, 0.2);
+		transform: scale(1.05) rotate(90deg);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	}
+
+	.modern-close-button:active {
+		transform: scale(0.95) rotate(90deg);
+	}
+
+	.modern-modal-body {
+		flex: 1;
+		overflow: hidden;
+		position: relative;
+		background: #ffffff;
+	}
+
+	.modern-iframe {
+		width: 100%;
+		height: 100%;
+		border: none;
+		display: block;
+		opacity: 0;
+		visibility: hidden;
+		transition: opacity 0.3s ease 0.2s, visibility 0s 0.5s;
+	}
+
+	.modern-modal-overlay.active .modern-iframe {
+		opacity: 1;
+		visibility: visible;
+		transition: opacity 0.3s ease 0.2s, visibility 0s 0s;
+	}
+
+	body.modern-modal-open {
+		overflow: hidden;
+	}
+
+	/* Responsive Modal */
+	@media (max-width: 768px) {
+		.modern-close-button {
+			top: 16px;
+			right: 16px;
+			width: 40px;
+			height: 40px;
+		}
 	}
 </style>

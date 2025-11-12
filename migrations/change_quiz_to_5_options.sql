@@ -60,3 +60,6 @@ COMMENT ON COLUMN quiz_questions.correct_answer IS 'Index of correct answer (0-4
 
 
 
+
+
+

@@ -43,3 +43,6 @@ COMMENT ON TABLE user_invitations IS
 'Tracks invitations sent to users for signup. Invited users skip email verification and are automatically assigned the specified role and owner group.';
 
 
+
+
+

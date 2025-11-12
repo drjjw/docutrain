@@ -1,35 +1,35 @@
 import { supabase } from './client';
 import type { UserPermissions } from '@/types/permissions';
 import { debugLog } from '@/utils/debug';
+import { getAuthHeaders } from '@/lib/api/authService';
 
 /**
- * Get current user's permissions
+ * Get current user's permissions via API endpoint
+ * Uses API endpoint instead of direct Supabase query for better performance (bypasses RLS)
  */
 export async function getUserPermissions(userId: string): Promise<UserPermissions> {
-  const { data, error } = await supabase
-    .from('user_permissions_summary')
-    .select('*')
-    .eq('user_id', userId);
+  try {
+    const response = await fetch('/api/permissions', {
+      headers: getAuthHeaders(),
+    });
 
-  if (error) {
-    throw new Error(`Failed to fetch permissions: ${error.message}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch permissions: HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    debugLog('getUserPermissions - data from API:', data);
+
+    return {
+      permissions: data.permissions || [],
+      is_super_admin: data.is_super_admin || false,
+      owner_groups: data.owner_groups || [],
+    };
+  } catch (error) {
+    debugLog('getUserPermissions - error:', error);
+    throw error;
   }
-
-  debugLog('getUserPermissions - raw data from DB:', data);
-
-  const isSuperAdmin = data?.some(p => p.role === 'super_admin') || false;
-
-  return {
-    permissions: data || [],
-    is_super_admin: isSuperAdmin,
-    owner_groups: (data || []).map(p => ({
-      owner_id: p.owner_id,
-      owner_slug: p.owner_slug,
-      owner_name: p.owner_name,
-      owner_logo_url: p.owner_logo_url,
-      role: p.role,
-    })),
-  };
 }
 
 /**
