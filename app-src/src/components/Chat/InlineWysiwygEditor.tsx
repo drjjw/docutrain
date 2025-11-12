@@ -8,6 +8,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Modal } from '@/components/UI/Modal';
 import { Pencil } from 'lucide-react';
 import { debugLog } from '@/utils/debug';
+import { sanitizeHTML, sanitizePastedContent } from '@/utils/htmlSanitizer';
 
 interface InlineWysiwygEditorProps {
   value: string;
@@ -18,164 +19,7 @@ interface InlineWysiwygEditorProps {
   id?: string;
 }
 
-/**
- * Normalize line breaks in HTML
- * Converts <div> tags to <p> tags and handles empty paragraphs
- */
-function normalizeLineBreaks(html: string): string {
-  if (!html) return '';
-  
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = html;
-  
-  // Convert all <div> tags to <p> tags
-  const divs = tempDiv.querySelectorAll('div');
-  divs.forEach(div => {
-    const p = document.createElement('p');
-    while (div.firstChild) {
-      p.appendChild(div.firstChild);
-    }
-    div.parentNode?.replaceChild(p, div);
-  });
-  
-  // Convert empty <p> tags to <br> tags (but preserve structure)
-  const emptyPs = tempDiv.querySelectorAll('p:empty');
-  emptyPs.forEach(p => {
-    const br = document.createElement('br');
-    p.parentNode?.replaceChild(br, p);
-  });
-  
-  let result = tempDiv.innerHTML;
-  
-  // Remove leading/trailing empty paragraphs and breaks
-  result = result.replace(/^(<p><\/p>|<br\s*\/?>|\s)+/gi, '');
-  result = result.replace(/(<p><\/p>|<br\s*\/?>|\s)+$/gi, '');
-  
-  return result;
-}
-
-/**
- * Sanitize HTML to prevent XSS attacks
- * Allows only safe HTML tags and attributes
- */
-function sanitizeHTML(html: string): string {
-  if (!html) return '';
-  
-  html = normalizeLineBreaks(html);
-  
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = html;
-  
-  const allowedTags = {
-    'p': [],
-    'b': [],      // Allow <b> tags (created by execCommand('bold'))
-    'strong': [],
-    'i': [],      // Allow <i> tags (created by execCommand('italic'))
-    'em': [],
-    'u': [],
-    'br': [],
-    'ul': [],
-    'ol': [],
-    'li': [],
-    'a': ['href', 'title', 'target', 'rel']
-  };
-  
-  function cleanNode(node: Node): Node | DocumentFragment | null {
-    if (node.nodeType === Node.TEXT_NODE) {
-      return node.cloneNode(true);
-    }
-    
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      const element = node as Element;
-      const tagName = element.tagName.toLowerCase();
-      
-      if (!allowedTags[tagName as keyof typeof allowedTags]) {
-        if (element.childNodes.length > 0) {
-          const fragment = document.createDocumentFragment();
-          Array.from(element.childNodes).forEach((child, index) => {
-            const cleaned = cleanNode(child);
-            if (cleaned) {
-              if (cleaned.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-                Array.from((cleaned as DocumentFragment).childNodes).forEach(c => {
-                  fragment.appendChild(c.cloneNode(true));
-                });
-              } else {
-                fragment.appendChild(cleaned.cloneNode(true));
-              }
-              if (index < element.childNodes.length - 1 && 
-                  (element.tagName === 'DIV' || element.tagName === 'P')) {
-                fragment.appendChild(document.createElement('br'));
-              }
-            }
-          });
-          return fragment;
-        }
-        return document.createTextNode(element.textContent || '');
-      }
-      
-      const cleanElement = document.createElement(tagName);
-      const allowedAttrs = allowedTags[tagName as keyof typeof allowedTags];
-      
-      Array.from(element.attributes).forEach(attr => {
-        if (allowedAttrs.includes(attr.name)) {
-          if (attr.name === 'href') {
-            const href = attr.value.trim();
-            if (href && !href.startsWith('javascript:') && !href.startsWith('data:')) {
-              cleanElement.setAttribute(attr.name, href);
-            }
-          } else {
-            cleanElement.setAttribute(attr.name, attr.value);
-          }
-        }
-      });
-      
-      // For anchor tags, ensure target="_blank" and rel="noopener noreferrer" are set
-      if (tagName === 'a' && cleanElement.hasAttribute('href')) {
-        if (!cleanElement.hasAttribute('target')) {
-          cleanElement.setAttribute('target', '_blank');
-        }
-        if (!cleanElement.hasAttribute('rel')) {
-          cleanElement.setAttribute('rel', 'noopener noreferrer');
-        }
-      }
-      
-      Array.from(element.childNodes).forEach(child => {
-        const cleanedChild = cleanNode(child);
-        if (cleanedChild) {
-          if (cleanedChild.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-            Array.from((cleanedChild as DocumentFragment).childNodes).forEach(c => {
-              cleanElement.appendChild(c.cloneNode(true));
-            });
-          } else {
-            cleanElement.appendChild(cleanedChild);
-          }
-        }
-      });
-      
-      return cleanElement;
-    }
-    
-    return null;
-  }
-  
-  const fragment = document.createDocumentFragment();
-  Array.from(tempDiv.childNodes).forEach(node => {
-    const cleaned = cleanNode(node);
-    if (cleaned) {
-      if (cleaned.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-        Array.from((cleaned as DocumentFragment).childNodes).forEach(child => {
-          fragment.appendChild(child.cloneNode(true));
-        });
-      } else {
-        fragment.appendChild(cleaned);
-      }
-    }
-  });
-  
-  const resultDiv = document.createElement('div');
-  resultDiv.appendChild(fragment);
-  return resultDiv.innerHTML;
-}
+// HTML sanitization functions are now imported from @/utils/htmlSanitizer
 
 export function InlineWysiwygEditor({
   value,
@@ -519,6 +363,76 @@ export function InlineWysiwygEditor({
                 style={{ minHeight: '300px', maxHeight: '500px' }}
                 onInput={(e) => {
                   setEditValue(e.currentTarget.innerHTML);
+                }}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const clipboardData = e.clipboardData || (window as any).clipboardData;
+                  
+                  // Sanitize pasted content (handles both HTML and plain text)
+                  const sanitizedHtml = sanitizePastedContent(clipboardData, false);
+                  
+                  if (!sanitizedHtml) return;
+                  
+                  // Insert the sanitized HTML at the cursor position
+                  const selection = window.getSelection();
+                  if (selection && selection.rangeCount > 0 && editorRef.current) {
+                    const range = selection.getRangeAt(0);
+                    
+                    // Ensure the range is within our contentEditable element
+                    if (!editorRef.current.contains(range.commonAncestorContainer)) {
+                      range.selectNodeContents(editorRef.current);
+                      range.collapse(false);
+                    }
+                    
+                    range.deleteContents();
+                    
+                    // Create a temporary container to parse the sanitized HTML
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = sanitizedHtml;
+                    
+                    // Track the last node before moving to fragment
+                    let lastNode: Node | null = null;
+                    
+                    // Create a document fragment and move all nodes to it
+                    const fragment = document.createDocumentFragment();
+                    while (tempDiv.firstChild) {
+                      lastNode = tempDiv.firstChild;
+                      fragment.appendChild(lastNode);
+                    }
+                    
+                    // Insert the fragment (all nodes at once)
+                    range.insertNode(fragment);
+                    
+                    // Move cursor to end of inserted content
+                    if (lastNode) {
+                      range.setStartAfter(lastNode);
+                      range.collapse(true);
+                    } else {
+                      range.collapse(true);
+                    }
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                    
+                    // Update the edit value
+                    setEditValue(editorRef.current.innerHTML);
+                  } else if (editorRef.current) {
+                    // Fallback: if no selection, append to the end
+                    const currentHtml = editorRef.current.innerHTML;
+                    editorRef.current.innerHTML = currentHtml + sanitizedHtml;
+                    setEditValue(editorRef.current.innerHTML);
+                    
+                    // Set cursor to end
+                    setTimeout(() => {
+                      const range = document.createRange();
+                      const sel = window.getSelection();
+                      if (editorRef.current && sel) {
+                        range.selectNodeContents(editorRef.current);
+                        range.collapse(false);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                      }
+                    }, 0);
+                  }
                 }}
               />
             </div>

@@ -1,5 +1,6 @@
 import React, { useRef, useCallback } from 'react';
 import ContentEditable from 'react-contenteditable';
+import { sanitizePastedContent } from '@/utils/htmlSanitizer';
 
 interface WysiwygEditorProps {
   value: string;
@@ -27,27 +28,13 @@ export function WysiwygEditor({ value, onChange, placeholder, className = '' }: 
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault();
     const clipboardData = e.clipboardData || (window as any).clipboardData;
-    const pastedText = clipboardData.getData('text/plain');
+    
+    // Sanitize pasted content (handles both HTML and plain text)
+    const sanitizedHtml = sanitizePastedContent(clipboardData, false);
 
-    if (!pastedText) return;
+    if (!sanitizedHtml) return;
 
-    // Convert line breaks to <br> tags, preserving structure
-    const textWithBreaks = pastedText
-      .replace(/\r\n/g, '\n') // Normalize Windows line breaks
-      .replace(/\r/g, '\n')    // Normalize Mac line breaks
-      .split('\n')
-      .map((line, index, array) => {
-        // Escape HTML entities in the text
-        const escapedLine = line
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;');
-        // Add <br> after each line except the last (or if last is empty)
-        return index < array.length - 1 ? `${escapedLine}<br>` : escapedLine;
-      })
-      .join('');
-
-    // Insert the cleaned text at the cursor position
+    // Insert the sanitized HTML at the cursor position
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0 && contentEditableRef.current) {
       const range = selection.getRangeAt(0);
@@ -60,9 +47,9 @@ export function WysiwygEditor({ value, onChange, placeholder, className = '' }: 
       
       range.deleteContents();
       
-      // Create a temporary container to parse the HTML
+      // Create a temporary container to parse the sanitized HTML
       const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = textWithBreaks;
+      tempDiv.innerHTML = sanitizedHtml;
       
       // Track the last node before moving to fragment
       let lastNode: Node | null = null;
@@ -94,7 +81,7 @@ export function WysiwygEditor({ value, onChange, placeholder, className = '' }: 
     } else if (contentEditableRef.current) {
       // Fallback: if no selection, append to the end
       const currentHtml = contentEditableRef.current.innerHTML;
-      const newHtml = currentHtml + textWithBreaks;
+      const newHtml = currentHtml + sanitizedHtml;
       onChange(newHtml);
       
       // Set cursor to end
