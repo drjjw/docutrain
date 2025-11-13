@@ -627,12 +627,13 @@ async function processEmbeddingsBatch(chunks: Array<{ content: string }>, startI
 /**
  * Store chunks with embeddings in Supabase
  */
-async function storeChunks(documentSlug: string, documentName: string, chunksWithEmbeddings: Array<{ chunk: any; embedding: number[] | null }>) {
+async function storeChunks(documentId: string, documentSlug: string, documentName: string, chunksWithEmbeddings: Array<{ chunk: any; embedding: number[] | null }>) {
   const records = chunksWithEmbeddings
     .filter(item => item.embedding !== null)
     .map(({ chunk, embedding }) => ({
-      document_type: documentSlug,
-      document_slug: documentSlug,
+      document_id: documentId, // Immutable reference to parent document
+      document_type: documentSlug, // Kept for legacy compatibility
+      document_slug: documentSlug, // Kept for display purposes
       document_name: documentName,
       chunk_index: chunk.index,
       content: chunk.content,
@@ -970,7 +971,11 @@ async function processUserDocument(userDocId: string) {
     // 7. Store chunks in database
     await logToDatabase(userDocId, documentSlug, STAGES.STORE, STATUSES.STARTED, 'Storing chunks in database');
 
-    const inserted = await storeChunks(documentSlug, userDoc.title, allEmbeddings);
+    if (!createdDoc?.id) {
+      throw new Error('Document ID not available for chunk storage');
+    }
+
+    const inserted = await storeChunks(createdDoc.id, documentSlug, userDoc.title, allEmbeddings);
 
     await logToDatabase(userDocId, documentSlug, STAGES.STORE, STATUSES.COMPLETED, 'Chunks stored successfully', {
       chunks_stored: inserted
