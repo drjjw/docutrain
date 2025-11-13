@@ -76,6 +76,57 @@ async function logToDatabase(
 }
 
 /**
+ * Log training history (Edge Function version)
+ */
+async function logTrainingHistory(
+  documentId: string,
+  documentSlug: string,
+  userId: string,
+  userDocumentId: string,
+  actionType: 'train' | 'retrain_replace' | 'retrain_add',
+  status: 'started' | 'completed' | 'failed',
+  details: {
+    uploadType?: string;
+    fileName?: string | null;
+    fileSize?: number | null;
+    chunkCount?: number | null;
+    existingChunkCount?: number | null;
+    processingTimeMs?: number | null;
+    errorMessage?: string | null;
+  } = {}
+) {
+  try {
+    const { error } = await supabase
+      .from('document_training_history')
+      .insert({
+        document_id: documentId,
+        document_slug: documentSlug,
+        user_id: userId,
+        user_document_id: userDocumentId,
+        action_type: actionType,
+        status: status,
+        upload_type: details.uploadType || null,
+        retrain_mode: null,
+        file_name: details.fileName || null,
+        file_size: details.fileSize || null,
+        chunk_count: details.chunkCount || null,
+        existing_chunk_count: details.existingChunkCount || null,
+        processing_time_ms: details.processingTimeMs || null,
+        error_message: details.errorMessage || null,
+        metadata: {}
+      });
+
+    if (error) {
+      console.error(`[Training History] Failed to log ${actionType}:${status}:`, error);
+    } else {
+      console.log(`[Training History] ✅ Logged ${actionType}:${status} for ${documentSlug}`);
+    }
+  } catch (error) {
+    console.error(`[Training History] Exception logging ${actionType}:${status}:`, error);
+  }
+}
+
+/**
  * Clean PDF text to reduce noise (matches lib/document-processor.js)
  */
 function cleanPDFText(text: string): string {
@@ -841,10 +892,48 @@ async function processUserDocument(userDocId: string) {
       throw new Error(`Failed to create document record: ${docInsertError.message}`);
     }
     
+    // Get the created document ID for training history logging
+    const { data: createdDoc, error: docFetchError } = await supabase
+      .from('documents')
+      .select('id')
+      .eq('slug', documentSlug)
+      .single();
+    
+    if (docFetchError || !createdDoc?.id) {
+      console.error(`[Training History] Failed to fetch document ID for ${documentSlug}:`, docFetchError);
+    }
+    
     await logToDatabase(userDocId, documentSlug, STAGES.COMPLETE, STATUSES.PROGRESS, 'Document record created in documents table', {
       slug: documentSlug,
       has_abstract: abstract ? true : false
     });
+    
+    // Log training start NOW (after document creation, when documentId is available)
+    if (createdDoc?.id) {
+      // Determine upload type for logging
+      let uploadTypeForLog = 'pdf'; // default
+      if (isTextUpload) {
+        uploadTypeForLog = 'text';
+      } else if (userDoc.metadata?.upload_type) {
+        uploadTypeForLog = userDoc.metadata.upload_type;
+      } else if (userDoc.mime_type && userDoc.mime_type.startsWith('audio/')) {
+        uploadTypeForLog = 'audio';
+      }
+      
+      await logTrainingHistory(
+        createdDoc.id,
+        documentSlug,
+        userDoc.user_id,
+        userDocId,
+        'train',
+        'started',
+        {
+          uploadType: uploadTypeForLog,
+          fileName: userDoc.file_path !== 'text-upload' && userDoc.file_path !== 'text-retrain' ? userDoc.file_path : null,
+          fileSize: userDoc.file_size || null
+        }
+      );
+    }
     
     // 6. Generate embeddings
     await logToDatabase(userDocId, documentSlug, STAGES.EMBED, STATUSES.STARTED, 'Generating embeddings');
@@ -904,6 +993,35 @@ async function processUserDocument(userDocId: string) {
       pages,
       chunks: inserted
     });
+    
+    // Log training completion
+    if (createdDoc?.id) {
+      // Determine upload type for completion logging (same logic as start)
+      let uploadTypeForComplete = 'pdf'; // default
+      if (isTextUpload) {
+        uploadTypeForComplete = 'text';
+      } else if (userDoc.metadata?.upload_type) {
+        uploadTypeForComplete = userDoc.metadata.upload_type;
+      } else if (userDoc.mime_type && userDoc.mime_type.startsWith('audio/')) {
+        uploadTypeForComplete = 'audio';
+      }
+      
+      await logTrainingHistory(
+        createdDoc.id,
+        documentSlug,
+        userDoc.user_id,
+        userDocId,
+        'train',
+        'completed',
+        {
+          uploadType: uploadTypeForComplete,
+          fileName: userDoc.file_path !== 'text-upload' && userDoc.file_path !== 'text-retrain' ? userDoc.file_path : null,
+          fileSize: userDoc.file_size || null,
+          chunkCount: inserted,
+          processingTimeMs: processingTime
+        }
+      );
+    }
     
     // Send success notification email
     try {
@@ -978,6 +1096,59 @@ async function processUserDocument(userDocId: string) {
         updated_at: new Date().toISOString()
       })
       .eq('id', userDocId);
+    
+    // Log training failure if document was created
+    try {
+      if (documentSlug) {
+        const { data: docRecord } = await supabase
+          .from('documents')
+          .select('id')
+          .eq('slug', documentSlug)
+          .single();
+        
+        if (docRecord?.id) {
+          // Get user document for upload type
+          const { data: userDocForError } = await supabase
+            .from('user_documents')
+            .select('user_id, file_path, mime_type, metadata, file_size')
+            .eq('id', userDocId)
+            .single();
+          
+          if (userDocForError) {
+            // Determine upload type for failure logging
+            let uploadTypeForFail = 'pdf'; // default
+            const isTextUploadFail = (userDocForError.file_path === 'text-upload' || userDocForError.file_path === 'text-retrain') &&
+                                    userDocForError.metadata?.text_content &&
+                                    (userDocForError.metadata?.upload_type === 'text' || userDocForError.metadata?.upload_type === 'text_retrain');
+            
+            if (isTextUploadFail) {
+              uploadTypeForFail = 'text';
+            } else if (userDocForError.metadata?.upload_type) {
+              uploadTypeForFail = userDocForError.metadata.upload_type;
+            } else if (userDocForError.mime_type && userDocForError.mime_type.startsWith('audio/')) {
+              uploadTypeForFail = 'audio';
+            }
+            
+            await logTrainingHistory(
+              docRecord.id,
+              documentSlug,
+              userDocForError.user_id,
+              userDocId,
+              'train',
+              'failed',
+              {
+                uploadType: uploadTypeForFail,
+                fileName: userDocForError.file_path !== 'text-upload' && userDocForError.file_path !== 'text-retrain' ? userDocForError.file_path : null,
+                fileSize: userDocForError.file_size || null,
+                errorMessage: errorMessage
+              }
+            );
+          }
+        }
+      }
+    } catch (logError) {
+      console.error('⚠️ Failed to log training failure:', logError);
+    }
     
     // Send failure notification email
     try {
