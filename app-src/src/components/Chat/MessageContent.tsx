@@ -59,24 +59,71 @@ const globalCollapsedState = new Map<string, Map<number, boolean>>();
 /**
  * Remove references from markdown content before parsing
  * This prevents references from appearing in the DOM at all when showReferences is false
+ * 
+ * This function detects reference sections regardless of language by:
+ * 1. Looking for common translations of "References" heading
+ * 2. Detecting reference sections by pattern: consecutive lines starting with [number]
  */
 function removeReferencesFromMarkdown(markdown: string): string {
   const lines = markdown.split('\n');
   const cleanedLines: string[] = [];
   let inReferencesSection = false;
   
+  // Common translations of "References" in various languages
+  // These are normalized to lowercase for case-insensitive matching
+  const referenceHeadings = new Set([
+    'references', 'referencias', 'références', 'referenzen', 'riferimenti',
+    'referências', 'справочники', '参考文献', '참고문헌', 'संदर्भ',
+    'المراجع', 'referenser', 'referenser', 'viitteet', 'referanslar'
+  ]);
+  
+  // Pattern to detect reference headings with markdown formatting
+  // Matches: "References", "# References", "## References", "**References**", etc.
+  const isReferenceHeading = (line: string): boolean => {
+    const trimmed = line.trim().toLowerCase();
+    
+    // Remove markdown formatting for comparison
+    const withoutMarkdown = trimmed
+      .replace(/^\*\*/g, '')  // Remove **bold**
+      .replace(/\*\*$/g, '')
+      .replace(/^#+\s*/g, '')  // Remove # headings
+      .trim();
+    
+    // Check if it matches any reference heading translation
+    if (referenceHeadings.has(withoutMarkdown)) {
+      return true;
+    }
+    
+    // Also check if it contains "reference" (English) as fallback
+    if (withoutMarkdown === 'reference' || withoutMarkdown === 'reference' + 's') {
+      return true;
+    }
+    
+    return false;
+  };
+  
   for (let i = 0; i < lines.length; i++) {
     const originalLine = lines[i];
     const trimmed = originalLine.trim();
     
-    // Check if this line starts a references section
-    // Match: "References", "**References**", "# References", "## References", etc.
-    if (trimmed.toLowerCase() === 'references' || 
-        trimmed.toLowerCase() === '**references**' ||
-        /^#+\s*references$/i.test(trimmed) ||
-        /^\*\*references\*\*$/i.test(trimmed)) {
+    // Check if this line starts a references section (any language)
+    if (isReferenceHeading(trimmed)) {
       inReferencesSection = true;
       continue; // Skip the references heading
+    }
+    
+    // Detect reference section by pattern: if we see a line starting with [number]
+    // after an empty line or heading-like line, we're likely entering references
+    // This catches cases where the heading might be in an unexpected language
+    if (!inReferencesSection && i > 0) {
+      const prevLine = lines[i - 1].trim();
+      const isAfterEmptyOrHeading = !prevLine || /^#+\s/.test(prevLine) || /^\*\*/.test(prevLine);
+      
+      // If we see a [number] pattern after empty/heading line, likely entering references
+      if (isAfterEmptyOrHeading && /^\[\d+\]/.test(trimmed)) {
+        inReferencesSection = true;
+        continue; // Skip this reference item
+      }
     }
     
     // If we're in references section
@@ -101,7 +148,16 @@ function removeReferencesFromMarkdown(markdown: string): string {
       
       // If we get here and the line has substantial content, we've likely left the references section
       // Reset the flag and include this line (it's probably new content)
-      if (trimmed.length > 20 && !trimmed.toLowerCase().includes('reference')) {
+      // Check for reference-related words in multiple languages
+      const lowerTrimmed = trimmed.toLowerCase();
+      const hasReferenceWord = lowerTrimmed.includes('reference') ||
+                               lowerTrimmed.includes('referencia') ||
+                               lowerTrimmed.includes('référence') ||
+                               lowerTrimmed.includes('referenz') ||
+                               lowerTrimmed.includes('riferimento') ||
+                               lowerTrimmed.includes('referência');
+      
+      if (trimmed.length > 20 && !hasReferenceWord) {
         inReferencesSection = false;
         // Include this line after removing inline citations
         cleanedLines.push(originalLine.replace(/\[\d+\]/g, ''));
@@ -363,18 +419,56 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
     // 5. Remove any paragraphs/list items that look like references (but weren't styled yet)
     // Use Array.from to get a snapshot before iterating (since we're removing elements)
     const allElements = Array.from(element.querySelectorAll('p, li'));
+    
+    // Common translations of "References" in various languages (normalized to lowercase)
+    const referenceHeadings = new Set([
+      'references', 'referencias', 'références', 'referenzen', 'riferimenti',
+      'referências', 'справочники', '参考文献', '참고문헌', 'संदर्भ',
+      'المراجع', 'referenser', 'referenser', 'viitteet', 'referanslar'
+    ]);
+    
+    // Helper to check if text is a reference heading in any language
+    const isReferenceHeading = (text: string, html: string, strongText: string): boolean => {
+      const normalizedText = text.toLowerCase().trim();
+      const normalizedHtml = html.toLowerCase();
+      const normalizedStrong = strongText.toLowerCase();
+      
+      // Check exact matches
+      if (referenceHeadings.has(normalizedText) || referenceHeadings.has(normalizedStrong)) {
+        return true;
+      }
+      
+      // Check if HTML contains reference heading (with markdown formatting removed)
+      const htmlWithoutMarkdown = normalizedHtml
+        .replace(/<strong>/g, '')
+        .replace(/<\/strong>/g, '')
+        .replace(/\*\*/g, '')
+        .replace(/#+\s*/g, '')
+        .trim();
+      
+      if (referenceHeadings.has(htmlWithoutMarkdown)) {
+        return true;
+      }
+      
+      // Check for English "References" (fallback)
+      if (normalizedText === 'references' || 
+          normalizedStrong === 'references' ||
+          normalizedHtml.includes('<strong>references</strong>') ||
+          normalizedHtml.includes('**references**')) {
+        return true;
+      }
+      
+      return false;
+    };
+    
     allElements.forEach(el => {
       const text = el.textContent?.trim() || '';
       const html = el.innerHTML.toLowerCase();
       const hasStrong = el.querySelector('strong');
       const strongText = hasStrong?.textContent?.trim().toLowerCase() || '';
       
-      // Check if element contains "References" heading (various formats)
-      const isReferencesHeading = text === 'References' || 
-                                  text === '**References**' ||
-                                  strongText === 'references' ||
-                                  html.includes('<strong>references</strong>') ||
-                                  html.includes('**references**');
+      // Check if element contains "References" heading (any language, various formats)
+      const isRefHeading = isReferenceHeading(text, html, strongText);
       
       // Check if element starts with [number] pattern (reference item)
       // Also check if it's mostly just a reference (contains [number] and is short)
@@ -382,7 +476,7 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
       const isReferenceLike = /^\[\d+\]/.test(text) && text.length < 200; // Reference items are usually short
       
       // Remove if it's a references heading or looks like a reference item
-      if (isReferencesHeading || startsWithReference || isReferenceLike) {
+      if (isRefHeading || startsWithReference || isReferenceLike) {
         el.remove();
       }
     });

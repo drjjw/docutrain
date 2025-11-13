@@ -392,106 +392,144 @@ async function serveReactAppWithMetaTags(req, res) {
             html = updateOrInsertMetaTag(html, 'name', 'twitter:image', escapedDefaultOgImage);
         }
         
-        // Check if doc parameter is provided
+        // Check if this is a shared chat route (/app/shared/:shareToken)
+        const sharedMatch = req.path.match(/^\/app\/shared\/([^\/]+)$/);
+        let docSlugs = [];
+        
+        if (sharedMatch) {
+            const shareToken = sharedMatch[1];
+            console.log(`🔗 Serving shared chat - URL: ${req.originalUrl}, shareToken: ${shareToken.substring(0, Math.min(10, shareToken.length))}...`);
+            
+            try {
+                // Fetch conversation by share_token (without access checks for meta tags)
+                const { data: conversation, error } = await supabase
+                    .from('chat_conversations')
+                    .select('metadata, banned')
+                    .eq('share_token', shareToken)
+                    .single();
+                
+                if (!error && conversation && !conversation.banned) {
+                    // Extract document slugs from metadata
+                    const metadata = conversation.metadata || {};
+                    if (metadata.document_slugs) {
+                        docSlugs = Array.isArray(metadata.document_slugs) 
+                            ? metadata.document_slugs 
+                            : [metadata.document_slugs];
+                    } else if (metadata.document_type) {
+                        docSlugs = Array.isArray(metadata.document_type)
+                            ? metadata.document_type
+                            : [metadata.document_type];
+                    }
+                    
+                    console.log(`📋 Found document slugs in shared conversation: ${docSlugs.join(', ') || 'none'}`);
+                } else {
+                    console.log(`⚠️  Could not fetch shared conversation for meta tags: ${error?.message || 'conversation not found or banned'}`);
+                }
+            } catch (error) {
+                console.error(`❌ Error fetching shared conversation for meta tags:`, error.message);
+            }
+        }
+        
+        // Check if doc parameter is provided (fallback if not a shared chat)
         const docParam = req.query.doc;
         
-        console.log(`📄 Serving React app - URL: ${req.originalUrl}, doc param: ${docParam || 'none'}`);
-        
-        if (docParam) {
+        if (!docSlugs.length && docParam) {
             // Parse multiple documents (support for + separator)
-            const docSlugs = docParam.split(/[\s+]+/).map(s => s.trim()).filter(s => s);
+            docSlugs = docParam.split(/[\s+]+/).map(s => s.trim()).filter(s => s);
+        }
+        
+        console.log(`📄 Serving React app - URL: ${req.originalUrl}, doc slugs: ${docSlugs.join(', ') || 'none'}`);
+        
+        if (docSlugs.length > 0) {
+            // Fetch document configs
+            const docConfigs = await Promise.all(
+                docSlugs.map(slug => documentRegistry.getDocumentBySlug(slug))
+            );
             
-            if (docSlugs.length > 0) {
-                // Fetch document configs
-                const docConfigs = await Promise.all(
-                    docSlugs.map(slug => documentRegistry.getDocumentBySlug(slug))
+            // Filter out null results
+            const validConfigs = docConfigs.filter(c => c !== null);
+            
+            console.log(`📄 Found ${validConfigs.length} valid config(s) for ${docSlugs.length} slug(s)`);
+            
+            if (validConfigs.length > 0) {
+                // Build title and description
+                const isMultiDoc = validConfigs.length > 1;
+                const combinedTitle = validConfigs.map(c => c.title).join(' + ');
+                const metaDescription = isMultiDoc 
+                    ? `Multi-document search across ${validConfigs.length} documents: ${combinedTitle}`
+                    : (validConfigs[0].subtitle || validConfigs[0].welcome_message || 'AI-powered document assistant');
+                
+                // Escape HTML to prevent XSS
+                const escapedTitle = escapeHtml(combinedTitle);
+                const escapedDescription = escapeHtml(metaDescription);
+                
+                // Get the current URL for og:url and canonical
+                const url = `${canonicalBaseUrl}${req.originalUrl}`;
+                const escapedUrl = escapeHtml(url);
+                
+                // Get cover image if available (for og:image)
+                // Convert to absolute URL if needed
+                const coverImage = validConfigs[0].cover || null;
+                const ogImage = coverImage ? ensureAbsoluteUrl(coverImage, 'https', 'www.docutrain.io') : ensureAbsoluteUrl('/Docutrain-Intro-Image.webp', 'https', 'www.docutrain.io');
+                const escapedOgImage = ogImage ? escapeHtml(ogImage) : '';
+                
+                // Replace title
+                html = html.replace(
+                    /<title>.*?<\/title>/,
+                    `<title>${escapedTitle}</title>`
                 );
                 
-                // Filter out null results
-                const validConfigs = docConfigs.filter(c => c !== null);
+                // Update description
+                html = updateOrInsertMetaTag(html, 'name', 'description', escapedDescription);
                 
-                console.log(`📄 Found ${validConfigs.length} valid config(s) for ${docSlugs.length} slug(s)`);
+                // Update Open Graph tags
+                html = updateOrInsertMetaTag(html, 'property', 'og:type', 'website');
+                html = updateOrInsertMetaTag(html, 'property', 'og:title', escapedTitle);
+                html = updateOrInsertMetaTag(html, 'property', 'og:description', escapedDescription);
+                html = updateOrInsertMetaTag(html, 'property', 'og:url', escapedUrl, '<meta property="og:description"');
+                html = updateOrInsertMetaTag(html, 'property', 'og:site_name', 'DocuTrain', '<meta property="og:url"');
+                html = updateOrInsertMetaTag(html, 'property', 'og:locale', 'en_US', '<meta property="og:site_name"');
                 
-                if (validConfigs.length > 0) {
-                    // Build title and description
-                    const isMultiDoc = validConfigs.length > 1;
-                    const combinedTitle = validConfigs.map(c => c.title).join(' + ');
-                    const metaDescription = isMultiDoc 
-                        ? `Multi-document search across ${validConfigs.length} documents: ${combinedTitle}`
-                        : (validConfigs[0].subtitle || validConfigs[0].welcome_message || 'AI-powered document assistant');
-                    
-                    // Escape HTML to prevent XSS
-                    const escapedTitle = escapeHtml(combinedTitle);
-                    const escapedDescription = escapeHtml(metaDescription);
-                    
-                    // Get the current URL for og:url and canonical
-                    const url = `${canonicalBaseUrl}${req.originalUrl}`;
-                    const escapedUrl = escapeHtml(url);
-                    
-                    // Get cover image if available (for og:image)
-                    // Convert to absolute URL if needed
-                    const coverImage = validConfigs[0].cover || null;
-                    const ogImage = coverImage ? ensureAbsoluteUrl(coverImage, 'https', 'www.docutrain.io') : ensureAbsoluteUrl('/Docutrain-Intro-Image.webp', 'https', 'www.docutrain.io');
-                    const escapedOgImage = ogImage ? escapeHtml(ogImage) : '';
-                    
-                    // Replace title
-                    html = html.replace(
-                        /<title>.*?<\/title>/,
-                        `<title>${escapedTitle}</title>`
-                    );
-                    
-                    // Update description
-                    html = updateOrInsertMetaTag(html, 'name', 'description', escapedDescription);
-                    
-                    // Update Open Graph tags
-                    html = updateOrInsertMetaTag(html, 'property', 'og:type', 'website');
-                    html = updateOrInsertMetaTag(html, 'property', 'og:title', escapedTitle);
-                    html = updateOrInsertMetaTag(html, 'property', 'og:description', escapedDescription);
-                    html = updateOrInsertMetaTag(html, 'property', 'og:url', escapedUrl, '<meta property="og:description"');
-                    html = updateOrInsertMetaTag(html, 'property', 'og:site_name', 'DocuTrain', '<meta property="og:url"');
-                    html = updateOrInsertMetaTag(html, 'property', 'og:locale', 'en_US', '<meta property="og:site_name"');
-                    
-                    // Update og:image with all related tags
-                    if (escapedOgImage) {
-                        html = updateOrInsertMetaTag(html, 'property', 'og:image', escapedOgImage, '<meta property="og:locale"');
-                        html = updateOrInsertMetaTag(html, 'property', 'og:image:secure_url', escapedOgImage, '<meta property="og:image"');
-                        html = updateOrInsertMetaTag(html, 'property', 'og:image:type', 'image/jpeg', '<meta property="og:image:secure_url"');
-                        html = updateOrInsertMetaTag(html, 'property', 'og:image:width', '1200', '<meta property="og:image:type"');
-                        html = updateOrInsertMetaTag(html, 'property', 'og:image:height', '630', '<meta property="og:image:width"');
-                        html = updateOrInsertMetaTag(html, 'property', 'og:image:alt', escapedTitle, '<meta property="og:image:height"');
-                    }
-                    
-                    // Update Twitter Card tags
-                    html = updateOrInsertMetaTag(html, 'name', 'twitter:card', 'summary_large_image');
-                    html = updateOrInsertMetaTag(html, 'name', 'twitter:title', escapedTitle, '<meta name="twitter:card"');
-                    html = updateOrInsertMetaTag(html, 'name', 'twitter:description', escapedDescription, '<meta name="twitter:title"');
-                    html = updateOrInsertMetaTag(html, 'name', 'twitter:site', '@DocuTrain', '<meta name="twitter:description"');
-                    if (escapedOgImage) {
-                        html = updateOrInsertMetaTag(html, 'name', 'twitter:image', escapedOgImage, '<meta name="twitter:site"');
-                        html = updateOrInsertMetaTag(html, 'name', 'twitter:image:alt', escapedTitle, '<meta name="twitter:image"');
-                    }
-                    
-                    // Always replace canonical URL - handle both empty href="" and any existing href
-                    html = html.replace(
-                        /<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i,
-                        `<link rel="canonical" href="${escapedUrl}">`
-                    );
-                    // If no canonical tag exists at all, insert it
-                    if (!html.includes('<link rel="canonical"')) {
-                        html = html.replace(
-                            /<\/head>/i,
-                            `    <link rel="canonical" href="${escapedUrl}">\n</head>`
-                        );
-                    }
-                    
-                    // Add document-specific structured data
-                    const structuredData = generateDocumentStructuredData(validConfigs, escapedUrl, canonicalBaseUrl);
-                    html = updateOrInsertStructuredData(html, structuredData);
-                    
-                    console.log(`✅ Serving React app with dynamic meta tags for: ${combinedTitle}`);
-                } else {
-                    console.warn(`⚠️  No valid configs found for slugs: ${docSlugs.join(', ')}`);
+                // Update og:image with all related tags
+                if (escapedOgImage) {
+                    html = updateOrInsertMetaTag(html, 'property', 'og:image', escapedOgImage, '<meta property="og:locale"');
+                    html = updateOrInsertMetaTag(html, 'property', 'og:image:secure_url', escapedOgImage, '<meta property="og:image"');
+                    html = updateOrInsertMetaTag(html, 'property', 'og:image:type', 'image/jpeg', '<meta property="og:image:secure_url"');
+                    html = updateOrInsertMetaTag(html, 'property', 'og:image:width', '1200', '<meta property="og:image:type"');
+                    html = updateOrInsertMetaTag(html, 'property', 'og:image:height', '630', '<meta property="og:image:width"');
+                    html = updateOrInsertMetaTag(html, 'property', 'og:image:alt', escapedTitle, '<meta property="og:image:height"');
                 }
+                
+                // Update Twitter Card tags
+                html = updateOrInsertMetaTag(html, 'name', 'twitter:card', 'summary_large_image');
+                html = updateOrInsertMetaTag(html, 'name', 'twitter:title', escapedTitle, '<meta name="twitter:card"');
+                html = updateOrInsertMetaTag(html, 'name', 'twitter:description', escapedDescription, '<meta name="twitter:title"');
+                html = updateOrInsertMetaTag(html, 'name', 'twitter:site', '@DocuTrain', '<meta name="twitter:description"');
+                if (escapedOgImage) {
+                    html = updateOrInsertMetaTag(html, 'name', 'twitter:image', escapedOgImage, '<meta name="twitter:site"');
+                    html = updateOrInsertMetaTag(html, 'name', 'twitter:image:alt', escapedTitle, '<meta name="twitter:image"');
+                }
+                
+                // Always replace canonical URL - handle both empty href="" and any existing href
+                html = html.replace(
+                    /<link\s+rel=["']canonical["']\s+href=["'][^"']*["']\s*\/?>/i,
+                    `<link rel="canonical" href="${escapedUrl}">`
+                );
+                // If no canonical tag exists at all, insert it
+                if (!html.includes('<link rel="canonical"')) {
+                    html = html.replace(
+                        /<\/head>/i,
+                        `    <link rel="canonical" href="${escapedUrl}">\n</head>`
+                    );
+                }
+                
+                // Add document-specific structured data
+                const structuredData = generateDocumentStructuredData(validConfigs, escapedUrl, canonicalBaseUrl);
+                html = updateOrInsertStructuredData(html, structuredData);
+                
+                console.log(`✅ Serving React app with dynamic meta tags for: ${combinedTitle}`);
+            } else {
+                console.warn(`⚠️  No valid configs found for slugs: ${docSlugs.join(', ')}`);
             }
         }
         
