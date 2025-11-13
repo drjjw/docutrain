@@ -56,8 +56,11 @@ export function DocumentUIConfigCard({
             checked={showQuizzes === true}
             onChange={(checked) => onFieldChange('show_quizzes', checked)}
             label="Show Quiz Button"
-            description="Display the quiz button next to keywords in the chat interface"
+            description={quizzesGenerated 
+              ? "Display the quiz button next to keywords in the chat interface"
+              : "Generate questions in the Quiz tab first to enable this option"}
             size="md"
+            disabled={!quizzesGenerated}
           />
         )}
         {isSuperAdmin && showQuizzes && !quizzesGenerated && (

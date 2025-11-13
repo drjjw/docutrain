@@ -95,7 +95,10 @@ export function DocumentTitle({ documentSlug, ownerSlug, pubmedButton, showSubti
       // The PUT endpoint refreshes cache, and DB trigger also fires async, so we wait a bit
       setTimeout(() => {
         // Trigger a manual cache clear and refetch
-        window.dispatchEvent(new Event('document-updated'));
+        // Use CustomEvent with documentSlug so DocumentAccessContext can properly filter
+        window.dispatchEvent(new CustomEvent('document-updated', {
+          detail: { documentSlug }
+        }));
       }, 200); // 200ms delay to ensure backend cache refresh completes
     }
     return success;

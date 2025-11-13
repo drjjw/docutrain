@@ -74,6 +74,14 @@ export function AppRouter() {
           }
         />
         <Route
+          path="/conversations"
+          element={
+            <AdminRoute>
+              <DashboardPage />
+            </AdminRoute>
+          }
+        />
+        <Route
           path="/profile"
           element={
             <ProtectedRoute>

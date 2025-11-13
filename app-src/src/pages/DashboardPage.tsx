@@ -9,6 +9,7 @@ import { OwnersTable } from '@/components/Admin/OwnersTable';
 import { OwnerSettings } from '@/components/Admin/OwnerSettings';
 import { MissionControl } from '@/components/Admin/MissionControl';
 import { CategoryManagement } from '@/components/Admin/CategoryManagement';
+import { ConversationsLive } from '@/components/Admin/ConversationsLive';
 import { getAllOwners } from '@/lib/supabase/admin';
 import type { Owner } from '@/types/admin';
 import { PermissionsBadge } from '@/components/Dashboard/PermissionsBadge';
@@ -34,7 +35,7 @@ export function DashboardPage() {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'documents' | 'users' | 'owners' | 'owner-settings' | 'mission-control' | 'category-management'>('documents');
+  const [activeTab, setActiveTab] = useState<'documents' | 'users' | 'owners' | 'owner-settings' | 'mission-control' | 'category-management' | 'conversations'>('documents');
   const userDocumentsTableRef = useRef<UserDocumentsTableRef>(null);
   const documentsTableRef = useRef<DocumentsTableRef>(null);
   const uploadZoneRef = useRef<CombinedUploadZoneRef>(null);
@@ -171,12 +172,14 @@ export function DashboardPage() {
       setActiveTab('mission-control');
     } else if (location.pathname.includes('/category-management')) {
       setActiveTab('category-management');
+    } else if (location.pathname.includes('/conversations')) {
+      setActiveTab('conversations');
     } else {
       setActiveTab('documents');
     }
   }, [location.pathname]);
 
-  const handleTabChange = (tab: 'documents' | 'users' | 'owners' | 'owner-settings' | 'mission-control' | 'category-management') => {
+  const handleTabChange = (tab: 'documents' | 'users' | 'owners' | 'owner-settings' | 'mission-control' | 'category-management' | 'conversations') => {
     setActiveTab(tab);
     if (tab === 'users') {
       navigate('/users');
@@ -188,6 +191,8 @@ export function DashboardPage() {
       navigate('/mission-control');
     } else if (tab === 'category-management') {
       navigate('/category-management');
+    } else if (tab === 'conversations') {
+      navigate('/conversations');
     } else {
       navigate('/dashboard');
     }
@@ -377,17 +382,6 @@ export function DashboardPage() {
                   >
                     Category Management
                   </button>
-                  <button
-                    onClick={() => handleTabChange('mission-control')}
-                    className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
-                      activeTab === 'mission-control'
-                        ? 'border border-blue-100'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 sm:ml-1'
-                    }`}
-                    style={activeTab === 'mission-control' ? { backgroundColor: 'rgb(219 234 254 / var(--tw-border-opacity))', color: 'rgb(18 136 254)', '--tw-text-opacity': '1' } as React.CSSProperties : undefined}
-                  >
-                    🚀 Mission Control
-                  </button>
                 </>
               )}
               {/* Category Management tab for owner-admins (when not super admin) */}
@@ -402,6 +396,34 @@ export function DashboardPage() {
                   style={activeTab === 'category-management' ? { backgroundColor: 'rgb(219 234 254 / var(--tw-border-opacity))', color: 'rgb(18 136 254)', '--tw-text-opacity': '1' } as React.CSSProperties : undefined}
                 >
                   Categories
+                </button>
+              )}
+              {/* Conversations tab for all admins */}
+              {(isSuperAdmin || isOwnerAdmin) && (
+                <button
+                  onClick={() => handleTabChange('conversations')}
+                  className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
+                    activeTab === 'conversations'
+                      ? 'border border-blue-100'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 sm:ml-1'
+                  }`}
+                  style={activeTab === 'conversations' ? { backgroundColor: 'rgb(219 234 254 / var(--tw-border-opacity))', color: 'rgb(18 136 254)', '--tw-text-opacity': '1' } as React.CSSProperties : undefined}
+                >
+                  💬 Live Conversations
+                </button>
+              )}
+              {/* Mission Control tab - last for super admins */}
+              {isSuperAdmin && (
+                <button
+                  onClick={() => handleTabChange('mission-control')}
+                  className={`px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm text-center sm:text-left whitespace-nowrap transition-all duration-200 relative ${
+                    activeTab === 'mission-control'
+                      ? 'border border-blue-100'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 sm:ml-1'
+                  }`}
+                  style={activeTab === 'mission-control' ? { backgroundColor: 'rgb(219 234 254 / var(--tw-border-opacity))', color: 'rgb(18 136 254)', '--tw-text-opacity': '1' } as React.CSSProperties : undefined}
+                >
+                  🚀 Mission Control
                 </button>
               )}
             </nav>
@@ -618,6 +640,25 @@ export function DashboardPage() {
               </div>
               <div className="p-5 sm:p-7">
                 <CategoryManagement ownerId={isSuperAdmin ? null : (selectedOwnerId || ownerGroups[0]?.owner_id || null)} />
+              </div>
+            </div>
+          </div>
+        ) : activeTab === 'conversations' ? (
+          <div className="space-y-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+              <div className="px-5 sm:px-7 py-4 sm:py-5 border-b border-gray-200/60 bg-gray-50">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-docutrain-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  Live Conversations
+                </h2>
+              </div>
+              <div className="p-5 sm:p-7">
+                <ConversationsLive 
+                  isSuperAdmin={isSuperAdmin}
+                  ownerIds={ownerGroups.map(og => og.owner_id).filter(Boolean) as string[]}
+                />
               </div>
             </div>
           </div>

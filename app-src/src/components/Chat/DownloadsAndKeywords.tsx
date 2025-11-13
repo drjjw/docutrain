@@ -9,6 +9,7 @@ import { Plus, FileQuestion } from 'lucide-react';
 import { KeywordsCloud } from './KeywordsCloud';
 import { DownloadsSection } from './DownloadsSection';
 import { Keyword, Download } from '@/hooks/useDocumentConfig';
+import { useQuizStatus } from '@/hooks/useQuizStatus';
 import { debugLog } from '@/utils/debug';
 
 /**
@@ -68,6 +69,10 @@ export function DownloadsAndKeywords({
   const portalRootRef = useRef<HTMLDivElement | null>(null);
   const [portalReady, setPortalReady] = useState(false);
   const isMobile = useIsMobile();
+  
+  // Check quiz status - only show button if quiz is completed
+  const { status: quizStatus } = useQuizStatus(documentSlug);
+  const isQuizReady = showQuizzes === true && quizStatus === 'completed';
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   
   // Setup portal for drawer overlay
@@ -196,14 +201,14 @@ export function DownloadsAndKeywords({
               <Plus size={14} />
               <span>{buttonText}</span>
             </button>
-            {showQuizzes === true && onQuizClick && documentSlug && (
+            {isQuizReady && onQuizClick && documentSlug && (
               <span className="feature-badge-separator">|</span>
             )}
           </>
         )}
         
-        {/* Quiz Button - shown if quizzes are enabled and documentSlug is available */}
-        {showQuizzes === true && onQuizClick && documentSlug && (
+        {/* Quiz Button - shown only if quizzes are enabled, quiz is completed, and documentSlug is available */}
+        {isQuizReady && onQuizClick && documentSlug && (
           <button
             onClick={onQuizClick}
             className="feature-badge feature-badge-quiz"

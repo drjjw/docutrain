@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getQuiz, getQuizStatistics, generateAndStoreQuiz, type QuizQuestion, type QuizStatisticsResponse, type RegenerationLimitError, type GenerateAndStoreResponse } from '@/services/quizApi';
 import { Spinner } from '@/components/UI/Spinner';
 import { useQuizGenerationStatus } from '@/hooks/useQuizGenerationStatus';
@@ -24,27 +24,46 @@ export function QuizQuestionsAndStats({ documentSlug, isSuperAdmin = false, onRe
     lastGenerated: Date | null;
     nextAllowed: Date | null;
   } | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Subscribe to realtime quiz generation status (works across browser sessions)
   const realtimeStatus = useQuizGenerationStatus(documentSlug);
 
+  // Track if we've already handled completion to prevent infinite loops
+  const hasHandledCompletionRef = useRef(false);
+  const lastStatusRef = useRef<string | null>(null);
+
   // Sync realtime status with local regeneration state
   useEffect(() => {
+    const statusKey = `${realtimeStatus.isGenerating}-${realtimeStatus.completed}-${realtimeStatus.failed}`;
+    
+    // Skip if status hasn't changed
+    if (statusKey === lastStatusRef.current) {
+      return;
+    }
+    lastStatusRef.current = statusKey;
+
     if (realtimeStatus.isGenerating) {
       setIsRegenerating(true);
       setRegenerationError(null);
       setRegenerationSuccess(false);
-    } else if (realtimeStatus.completed) {
+      hasHandledCompletionRef.current = false; // Reset when generation starts
+    } else if (realtimeStatus.completed && !hasHandledCompletionRef.current) {
       setIsRegenerating(false);
+      hasHandledCompletionRef.current = true; // Mark as handled to prevent re-running
       // Refresh quiz data when generation completes
       const refreshData = async () => {
         try {
           const [quizData, statsData] = await Promise.all([
-            getQuiz(documentSlug),
+            getQuiz(documentSlug, true), // Fetch all questions for admin view
             getQuizStatistics(documentSlug).catch(() => null)
           ]);
           setQuestions(quizData.questions || []);
           setStatistics(statsData);
+          setCurrentPage(1); // Reset to first page when data refreshes
           if (onRegenerationSuccess) {
             onRegenerationSuccess();
           }
@@ -56,6 +75,7 @@ export function QuizQuestionsAndStats({ documentSlug, isSuperAdmin = false, onRe
     } else if (realtimeStatus.failed) {
       setIsRegenerating(false);
       setRegenerationError(realtimeStatus.message || 'Quiz regeneration failed');
+      hasHandledCompletionRef.current = false; // Reset on failure
     }
   }, [realtimeStatus, documentSlug, onRegenerationSuccess]);
 
@@ -72,8 +92,9 @@ export function QuizQuestionsAndStats({ documentSlug, isSuperAdmin = false, onRe
         setError(null);
 
         // Fetch questions and statistics in parallel
+        // Use all=true to get all questions for admin view (not just random sample)
         const [quizData, statsData] = await Promise.all([
-          getQuiz(documentSlug),
+          getQuiz(documentSlug, true), // Fetch all questions for admin view
           getQuizStatistics(documentSlug).catch(err => {
             debugLog('Failed to fetch quiz statistics:', err);
             return null; // Statistics are optional, don't fail if they're not available
@@ -82,6 +103,7 @@ export function QuizQuestionsAndStats({ documentSlug, isSuperAdmin = false, onRe
 
         setQuestions(quizData.questions || []);
         setStatistics(statsData);
+        setCurrentPage(1); // Reset to first page when data loads
       } catch (err) {
         debugLog('Error fetching quiz data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load quiz data');
@@ -141,7 +163,7 @@ export function QuizQuestionsAndStats({ documentSlug, isSuperAdmin = false, onRe
       
       // Refresh the quiz data
       const [quizData, statsData] = await Promise.all([
-        getQuiz(documentSlug),
+        getQuiz(documentSlug, true), // Fetch all questions for admin view
         getQuizStatistics(documentSlug).catch(err => {
           debugLog('Failed to fetch quiz statistics:', err);
           return null;
@@ -150,6 +172,7 @@ export function QuizQuestionsAndStats({ documentSlug, isSuperAdmin = false, onRe
 
       setQuestions(quizData.questions || []);
       setStatistics(statsData);
+      setCurrentPage(1); // Reset to first page when data refreshes
       
       if (onRegenerationSuccess) {
         onRegenerationSuccess();
@@ -198,6 +221,28 @@ export function QuizQuestionsAndStats({ documentSlug, isSuperAdmin = false, onRe
       </div>
     );
   }
+
+  // Pagination calculations
+  const totalPages = Math.ceil(questions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedQuestions = questions.slice(startIndex, endIndex);
+  const startQuestionNumber = startIndex + 1;
+  const endQuestionNumber = Math.min(endIndex, questions.length);
+
+  // Handle page changes
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    setExpandedQuestion(null); // Close any expanded questions when changing pages
+    // Scroll to top of questions section
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page
+    setExpandedQuestion(null); // Close any expanded questions
+  };
 
   return (
     <div className="space-y-8">
@@ -255,9 +300,98 @@ export function QuizQuestionsAndStats({ documentSlug, isSuperAdmin = false, onRe
                   <p className="text-sm font-medium text-blue-900 mb-1">
                     {realtimeStatus.message || 'Regenerating quiz questions...'}
                   </p>
-                  <p className="text-xs text-blue-700">
-                    This may take a few moments. Questions are being regenerated from document chunks using AI.
-                  </p>
+                  
+                  {/* Detailed Progress */}
+                  {realtimeStatus.progressDetails && (
+                    <div className="mt-2 space-y-2">
+                      {/* Batch Progress Bar */}
+                      {realtimeStatus.progressDetails.totalBatches && (
+                        <div className="mt-2">
+                          <div className="flex items-center justify-between text-xs text-blue-700 mb-1">
+                            <span>Batch Progress</span>
+                            <span>
+                              {realtimeStatus.progressDetails.batchesCompleted || 0} / {realtimeStatus.progressDetails.totalBatches} batches completed
+                            </span>
+                          </div>
+                          <div className="w-full bg-blue-200 rounded-full h-2.5">
+                            <div 
+                              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                              style={{ 
+                                width: `${((realtimeStatus.progressDetails.batchesCompleted || 0) / realtimeStatus.progressDetails.totalBatches) * 100}%` 
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Batch-by-Batch Status */}
+                      {realtimeStatus.progressDetails.totalBatches && realtimeStatus.progressDetails.batchStatus && (
+                        <div className="mt-3">
+                          <p className="text-xs font-medium text-blue-800 mb-2">Batch Status:</p>
+                          <div className="grid grid-cols-5 gap-1">
+                            {Array.from({ length: realtimeStatus.progressDetails.totalBatches }, (_, i) => {
+                              const batchNum = i + 1;
+                              const batchStatus = realtimeStatus.progressDetails.batchStatus?.[batchNum];
+                              const isInProgress = realtimeStatus.progressDetails.batchesInProgress?.includes(batchNum);
+                              
+                              let bgColor = 'bg-gray-200';
+                              let textColor = 'text-gray-600';
+                              let label = batchNum.toString();
+                              
+                              if (batchStatus === 'completed') {
+                                bgColor = 'bg-green-500';
+                                textColor = 'text-white';
+                                label = `${batchNum} ✓`;
+                              } else if (batchStatus === 'generating' || isInProgress) {
+                                bgColor = 'bg-blue-500';
+                                textColor = 'text-white';
+                                label = `${batchNum}...`;
+                              } else if (batchStatus === 'failed') {
+                                bgColor = 'bg-red-500';
+                                textColor = 'text-white';
+                                label = `${batchNum} ✗`;
+                              }
+                              
+                              return (
+                                <div
+                                  key={batchNum}
+                                  className={`${bgColor} ${textColor} rounded text-xs font-medium text-center py-1 px-1 transition-all duration-300`}
+                                  title={`Batch ${batchNum}${batchStatus === 'completed' ? ' - Completed' : batchStatus === 'generating' || isInProgress ? ' - Generating' : batchStatus === 'failed' ? ' - Failed' : ' - Pending'}`}
+                                >
+                                  {label}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Current Batch Message */}
+                      {realtimeStatus.progressDetails.batches && (
+                        <p className="text-xs text-blue-800 font-medium mt-2">
+                          {realtimeStatus.progressDetails.batches}
+                        </p>
+                      )}
+                      
+                      {/* Questions Generated/Stored */}
+                      {realtimeStatus.progressDetails.questionsGenerated !== undefined && (
+                        <p className="text-xs text-blue-700 mt-1">
+                          ✓ Generated {realtimeStatus.progressDetails.questionsGenerated} questions
+                        </p>
+                      )}
+                      {realtimeStatus.progressDetails.questionsStored !== undefined && (
+                        <p className="text-xs text-blue-700 mt-1">
+                          ✓ Stored {realtimeStatus.progressDetails.questionsStored} questions in database
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {!realtimeStatus.progressDetails && (
+                    <p className="text-xs text-blue-700">
+                      This may take a few moments. Questions are being regenerated from document chunks using AI.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -379,7 +513,12 @@ export function QuizQuestionsAndStats({ documentSlug, isSuperAdmin = false, onRe
           {statistics && (
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Questions per Attempt</span>
-              <span className="text-sm font-semibold text-gray-900">{statistics.totalQuestions}</span>
+              <span className="text-sm font-semibold text-gray-900">
+                {statistics.configuredQuizSize || statistics.totalQuestions || 10}
+                {statistics.totalAttempts === 0 && (
+                  <span className="ml-2 text-xs text-gray-500 font-normal">(configured)</span>
+                )}
+              </span>
             </div>
           )}
         </div>
@@ -387,79 +526,190 @@ export function QuizQuestionsAndStats({ documentSlug, isSuperAdmin = false, onRe
 
       {/* Questions List */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quiz Questions ({questions.length})</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Quiz Questions ({questions.length} total)
+          </h3>
+          
+          {/* Items per page selector */}
+          {questions.length > 10 && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="itemsPerPage" className="text-sm text-gray-600">
+                Show:
+              </label>
+              <select
+                id="itemsPerPage"
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={questions.length}>All</option>
+              </select>
+            </div>
+          )}
+        </div>
+        
+        {/* Pagination info */}
+        {questions.length > itemsPerPage && (
+          <div className="mb-4 text-sm text-gray-600">
+            Showing {startQuestionNumber}-{endQuestionNumber} of {questions.length} questions
+          </div>
+        )}
         
         <div className="space-y-4">
-          {questions.map((question, index) => (
-            <div
-              key={index}
-              className={`border rounded-lg transition-all ${
-                expandedQuestion === index
-                  ? 'border-blue-300 bg-blue-50'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-              }`}
-            >
-              <button
-                onClick={() => setExpandedQuestion(expandedQuestion === index ? null : index)}
-                className="w-full px-4 py-3 flex items-center justify-between text-left"
+          {paginatedQuestions.map((question, pageIndex) => {
+            const actualIndex = startIndex + pageIndex;
+            return (
+              <div
+                key={question.id || actualIndex}
+                className={`border rounded-lg transition-all ${
+                  expandedQuestion === actualIndex
+                    ? 'border-blue-300 bg-blue-50'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-semibold text-gray-700">
-                    {index + 1}
-                  </span>
-                  <span className="text-sm font-medium text-gray-900 line-clamp-2">
-                    {question.question}
-                  </span>
-                </div>
-                <svg
-                  className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ml-2 ${
-                    expandedQuestion === index ? 'transform rotate-180' : ''
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                <button
+                  onClick={() => setExpandedQuestion(expandedQuestion === actualIndex ? null : actualIndex)}
+                  className="w-full px-4 py-3 flex items-center justify-between text-left"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {expandedQuestion === index && (
-                <div className="px-4 pb-4 pt-2 border-t border-gray-200">
-                  <div className="space-y-2 mt-2">
-                    {question.options.map((option, optionIndex) => (
-                      <div
-                        key={optionIndex}
-                        className={`p-3 rounded-lg border ${
-                          optionIndex === question.correctAnswer
-                            ? 'bg-green-50 border-green-200'
-                            : 'bg-gray-50 border-gray-200'
-                        }`}
-                      >
-                        <div className="flex items-start gap-2">
-                          <span
-                            className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
-                              optionIndex === question.correctAnswer
-                                ? 'bg-green-500 text-white'
-                                : 'bg-gray-300 text-gray-700'
-                            }`}
-                          >
-                            {String.fromCharCode(65 + optionIndex)}
-                          </span>
-                          <span className="text-sm text-gray-900 flex-1">{option}</span>
-                          {optionIndex === question.correctAnswer && (
-                            <span className="flex-shrink-0 text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded">
-                              Correct
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                  <div className="flex items-center gap-3">
+                    <span className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-semibold text-gray-700">
+                      {actualIndex + 1}
+                    </span>
+                    <span className="text-sm font-medium text-gray-900 line-clamp-2">
+                      {question.question}
+                    </span>
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
+                  <svg
+                    className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ml-2 ${
+                      expandedQuestion === actualIndex ? 'transform rotate-180' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {expandedQuestion === actualIndex && (
+                  <div className="px-4 pb-4 pt-2 border-t border-gray-200">
+                    <div className="space-y-2 mt-2">
+                      {question.options.map((option, optionIndex) => (
+                        <div
+                          key={optionIndex}
+                          className={`p-3 rounded-lg border ${
+                            optionIndex === question.correctAnswer
+                              ? 'bg-green-50 border-green-200'
+                              : 'bg-gray-50 border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <span
+                              className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
+                                optionIndex === question.correctAnswer
+                                  ? 'bg-green-500 text-white'
+                                  : 'bg-gray-300 text-gray-700'
+                              }`}
+                            >
+                              {String.fromCharCode(65 + optionIndex)}
+                            </span>
+                            <span className="text-sm text-gray-900 flex-1">{option}</span>
+                            {optionIndex === question.correctAnswer && (
+                              <span className="flex-shrink-0 text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded">
+                                Correct
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  currentPage === 1
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                Previous
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                  // Show first page, last page, current page, and pages around current
+                  const showPage =
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1);
+                  
+                  if (!showPage) {
+                    // Show ellipsis
+                    const prevPage = page - 1;
+                    const nextPage = page + 1;
+                    if (
+                      (prevPage === 1 || prevPage === currentPage - 2) &&
+                      (nextPage === totalPages || nextPage === currentPage + 2)
+                    ) {
+                      return (
+                        <span key={page} className="px-2 text-gray-400">
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  }
+                  
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        currentPage === page
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  currentPage === totalPages
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                Next
+              </button>
+            </div>
+            
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

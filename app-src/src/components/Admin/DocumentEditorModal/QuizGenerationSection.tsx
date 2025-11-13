@@ -168,9 +168,98 @@ export function QuizGenerationSection({
                   <p className="text-sm font-medium text-blue-900 mb-1">
                     {realtimeStatus.message || 'Generating quiz questions...'}
                   </p>
-                  <p className="text-xs text-blue-700">
-                    This may take a few moments. Questions are being generated from document chunks using AI.
-                  </p>
+                  
+                  {/* Detailed Progress */}
+                  {realtimeStatus.progressDetails && (
+                    <div className="mt-2 space-y-2">
+                      {/* Batch Progress Bar */}
+                      {realtimeStatus.progressDetails.totalBatches && (
+                        <div className="mt-2">
+                          <div className="flex items-center justify-between text-xs text-blue-700 mb-1">
+                            <span>Batch Progress</span>
+                            <span>
+                              {realtimeStatus.progressDetails.batchesCompleted || 0} / {realtimeStatus.progressDetails.totalBatches} batches completed
+                            </span>
+                          </div>
+                          <div className="w-full bg-blue-200 rounded-full h-2.5">
+                            <div 
+                              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                              style={{ 
+                                width: `${((realtimeStatus.progressDetails.batchesCompleted || 0) / realtimeStatus.progressDetails.totalBatches) * 100}%` 
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Batch-by-Batch Status */}
+                      {realtimeStatus.progressDetails.totalBatches && realtimeStatus.progressDetails.batchStatus && (
+                        <div className="mt-3">
+                          <p className="text-xs font-medium text-blue-800 mb-2">Batch Status:</p>
+                          <div className="grid grid-cols-5 gap-1">
+                            {Array.from({ length: realtimeStatus.progressDetails.totalBatches }, (_, i) => {
+                              const batchNum = i + 1;
+                              const batchStatus = realtimeStatus.progressDetails.batchStatus?.[batchNum];
+                              const isInProgress = realtimeStatus.progressDetails.batchesInProgress?.includes(batchNum);
+                              
+                              let bgColor = 'bg-gray-200';
+                              let textColor = 'text-gray-600';
+                              let label = batchNum.toString();
+                              
+                              if (batchStatus === 'completed') {
+                                bgColor = 'bg-green-500';
+                                textColor = 'text-white';
+                                label = `${batchNum} ✓`;
+                              } else if (batchStatus === 'generating' || isInProgress) {
+                                bgColor = 'bg-blue-500';
+                                textColor = 'text-white';
+                                label = `${batchNum}...`;
+                              } else if (batchStatus === 'failed') {
+                                bgColor = 'bg-red-500';
+                                textColor = 'text-white';
+                                label = `${batchNum} ✗`;
+                              }
+                              
+                              return (
+                                <div
+                                  key={batchNum}
+                                  className={`${bgColor} ${textColor} rounded text-xs font-medium text-center py-1 px-1 transition-all duration-300`}
+                                  title={`Batch ${batchNum}${batchStatus === 'completed' ? ' - Completed' : batchStatus === 'generating' || isInProgress ? ' - Generating' : batchStatus === 'failed' ? ' - Failed' : ' - Pending'}`}
+                                >
+                                  {label}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Current Batch Message */}
+                      {realtimeStatus.progressDetails.batches && (
+                        <p className="text-xs text-blue-800 font-medium mt-2">
+                          {realtimeStatus.progressDetails.batches}
+                        </p>
+                      )}
+                      
+                      {/* Questions Generated/Stored */}
+                      {realtimeStatus.progressDetails.questionsGenerated !== undefined && (
+                        <p className="text-xs text-blue-700 mt-1">
+                          ✓ Generated {realtimeStatus.progressDetails.questionsGenerated} questions
+                        </p>
+                      )}
+                      {realtimeStatus.progressDetails.questionsStored !== undefined && (
+                        <p className="text-xs text-blue-700 mt-1">
+                          ✓ Stored {realtimeStatus.progressDetails.questionsStored} questions in database
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {!realtimeStatus.progressDetails && (
+                    <p className="text-xs text-blue-700">
+                      This may take a few moments. Questions are being generated from document chunks using AI.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

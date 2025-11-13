@@ -621,6 +621,13 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                           onRegenerationSuccess={() => {
                             // Refresh the document data if needed
                             debugLog('Quiz regeneration successful');
+                            // Only update if values have changed to prevent infinite loops
+                            if (editingValues.quizzes_generated !== true) {
+                              handleFieldChange('quizzes_generated', true);
+                            }
+                            if (editingValues.show_quizzes !== true) {
+                              handleFieldChange('show_quizzes', true);
+                            }
                           }}
                         />
                       ) : (
@@ -631,6 +638,10 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                             isSuperAdmin={isSuperAdmin}
                             onGenerationSuccess={() => {
                               handleFieldChange('quizzes_generated', true);
+                              // Automatically enable show_quizzes if not already enabled
+                              if (editingValues.show_quizzes !== true) {
+                                handleFieldChange('show_quizzes', true);
+                              }
                             }}
                           />
                           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">

@@ -59,7 +59,8 @@ export interface QuizStatisticsResponse {
   averagePercentage: number;
   highestScore: number;
   lowestScore: number;
-  totalQuestions: number;
+  totalQuestions: number; // Number of questions used in actual attempts (0 if no attempts)
+  configuredQuizSize?: number; // Configured number of questions per attempt
 }
 
 
@@ -250,9 +251,10 @@ export async function generateAndStoreQuiz(
  * Get stored quiz questions for a document
  * 
  * @param documentSlug - Document slug to get quiz for
+ * @param all - If true, return all questions instead of random sample (for admin view)
  * @returns Promise with quiz response
  */
-export async function getQuiz(documentSlug: string): Promise<QuizResponse> {
+export async function getQuiz(documentSlug: string, all: boolean = false): Promise<QuizResponse> {
   if (!documentSlug) {
     throw new Error('documentSlug is required');
   }
@@ -266,7 +268,8 @@ export async function getQuiz(documentSlug: string): Promise<QuizResponse> {
     headers['Authorization'] = `Bearer ${authToken}`;
   }
   
-  const response = await fetch(`${getAPIUrl()}/api/quiz/${encodeURIComponent(documentSlug)}`, {
+  const url = `${getAPIUrl()}/api/quiz/${encodeURIComponent(documentSlug)}${all ? '?all=true' : ''}`;
+  const response = await fetch(url, {
     method: 'GET',
     headers,
   });
@@ -373,6 +376,50 @@ export async function getQuizStatistics(documentSlug: string): Promise<QuizStati
   }
   
   const data: QuizStatisticsResponse = await response.json();
+  return data;
+}
+
+export interface QuizStatusResponse {
+  status: 'generating' | 'completed' | 'failed' | null;
+  numQuestions?: number;
+  generatedAt?: string | null;
+}
+
+/**
+ * Get quiz status for a document
+ * 
+ * @param documentSlug - Document slug to check quiz status for
+ * @returns Promise with quiz status response
+ */
+export async function getQuizStatus(documentSlug: string): Promise<QuizStatusResponse> {
+  if (!documentSlug) {
+    throw new Error('documentSlug is required');
+  }
+  
+  const authToken = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+  
+  const response = await fetch(`${getAPIUrl()}/api/quiz/${encodeURIComponent(documentSlug)}/status`, {
+    method: 'GET',
+    headers,
+  });
+  
+  if (!response.ok) {
+    // If quiz doesn't exist, return null status
+    if (response.status === 404) {
+      return { status: null };
+    }
+    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+    throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`);
+  }
+  
+  const data: QuizStatusResponse = await response.json();
   return data;
 }
 
