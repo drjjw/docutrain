@@ -591,14 +591,12 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                 <Tab index={2}>Training History</Tab>
                 <Tab index={3}>Settings & Access</Tab>
                 <Tab index={4}>Options</Tab>
-                {editingValues.show_quizzes === true && (
-                  <Tab index={5}>Quiz</Tab>
-                )}
-                <Tab index={editingValues.show_quizzes === true ? 6 : 5}>Disclaimer</Tab>
-                <Tab index={editingValues.show_quizzes === true ? 7 : 6}>Attachments</Tab>
-                <Tab index={editingValues.show_quizzes === true ? 8 : 7}>Share</Tab>
+                <Tab index={5}>Quiz</Tab>
+                <Tab index={6}>Disclaimer</Tab>
+                <Tab index={7}>Attachments</Tab>
+                <Tab index={8}>Share</Tab>
                 {isSuperAdmin && (
-                  <Tab index={editingValues.show_quizzes === true ? 9 : 8}>Metadata</Tab>
+                  <Tab index={9}>Metadata</Tab>
                 )}
               </TabList>
 
@@ -732,131 +730,86 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                   </div>
                 </TabPanel>
 
-                {/* Tab 5: Quiz (when enabled) or Disclaimer (when disabled) */}
+                {/* Tab 5: Quiz - Always visible */}
                 <TabPanel>
-                  {editingValues.show_quizzes === true ? (
-                    <div className="space-y-8">
-                      {editingValues.quizzes_generated === true ? (
-                        <QuizQuestionsAndStats 
-                          documentSlug={editingValues.slug || document.slug || ''} 
+                  <div className="space-y-8">
+                    {editingValues.quizzes_generated === true ? (
+                      <QuizQuestionsAndStats 
+                        documentSlug={editingValues.slug || document.slug || ''} 
+                        isSuperAdmin={isSuperAdmin}
+                        onRegenerationSuccess={() => {
+                          // Refresh the document data if needed
+                          debugLog('Quiz regeneration successful');
+                          // Only update if values have changed to prevent infinite loops
+                          if (editingValues.quizzes_generated !== true) {
+                            handleFieldChange('quizzes_generated', true);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <QuizGenerationSection
+                          documentSlug={editingValues.slug || document.slug || ''}
+                          quizzesGenerated={editingValues.quizzes_generated === true}
                           isSuperAdmin={isSuperAdmin}
-                          onRegenerationSuccess={() => {
-                            // Refresh the document data if needed
-                            debugLog('Quiz regeneration successful');
-                            // Only update if values have changed to prevent infinite loops
-                            if (editingValues.quizzes_generated !== true) {
-                              handleFieldChange('quizzes_generated', true);
-                            }
-                            if (editingValues.show_quizzes !== true) {
-                              handleFieldChange('show_quizzes', true);
-                            }
+                          onGenerationSuccess={() => {
+                            handleFieldChange('quizzes_generated', true);
                           }}
                         />
-                      ) : (
-                        <>
-                          <QuizGenerationSection
-                            documentSlug={editingValues.slug || document.slug || ''}
-                            quizzesGenerated={editingValues.quizzes_generated === true}
-                            isSuperAdmin={isSuperAdmin}
-                            onGenerationSuccess={() => {
-                              handleFieldChange('quizzes_generated', true);
-                              // Automatically enable show_quizzes if not already enabled
-                              if (editingValues.show_quizzes !== true) {
-                                handleFieldChange('show_quizzes', true);
-                              }
-                            }}
-                          />
-                          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                            <div className="flex items-start gap-3">
-                              <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              <div>
-                                <p className="text-sm font-medium text-amber-900 mb-1">
-                                  Quiz questions need to be generated
-                                </p>
-                                <p className="text-sm text-amber-800">
-                                  Generate quiz questions using the button above. Once questions are generated, they will appear here and quizzes will be available to users.
-                                </p>
-                              </div>
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div>
+                              <p className="text-sm font-medium text-amber-900 mb-1">
+                                Quiz questions need to be generated
+                              </p>
+                              <p className="text-sm text-amber-800">
+                                Generate quiz questions using the button above. Once questions are generated, you can enable the "Show Quiz Button" toggle in the Options tab to make quizzes available to users.
+                              </p>
                             </div>
                           </div>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-8">
-                      <DocumentDisclaimerCard
-                        showDisclaimer={editingValues.show_disclaimer || false}
-                        disclaimerText={editingValues.disclaimer_text || null}
-                        onFieldChange={handleFieldChange}
-                      />
-                    </div>
-                  )}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </TabPanel>
 
-                {/* Tab 6: Disclaimer (when quiz enabled) or Attachments (when quiz disabled) */}
+                {/* Tab 6: Disclaimer */}
                 <TabPanel>
-                  {editingValues.show_quizzes === true ? (
-                    <div className="space-y-8">
-                      <DocumentDisclaimerCard
-                        showDisclaimer={editingValues.show_disclaimer || false}
-                        disclaimerText={editingValues.disclaimer_text || null}
-                        onFieldChange={handleFieldChange}
-                      />
-                    </div>
-                  ) : (
-                    <div className="space-y-8">
-                      <DocumentDownloadsCard
-                        downloads={editingValues.downloads || []}
-                        onDownloadsChange={(downloads) => handleFieldChange('downloads', downloads)}
-                        documentId={document.id}
-                      />
-                    </div>
-                  )}
+                  <div className="space-y-8">
+                    <DocumentDisclaimerCard
+                      showDisclaimer={editingValues.show_disclaimer || false}
+                      disclaimerText={editingValues.disclaimer_text || null}
+                      onFieldChange={handleFieldChange}
+                    />
+                  </div>
                 </TabPanel>
 
-                {/* Tab 7: Attachments (when quiz enabled) or Embed Code (when quiz disabled) */}
+                {/* Tab 7: Attachments */}
                 <TabPanel>
-                  {editingValues.show_quizzes === true ? (
-                    <div className="space-y-8">
-                      <DocumentDownloadsCard
-                        downloads={editingValues.downloads || []}
-                        onDownloadsChange={(downloads) => handleFieldChange('downloads', downloads)}
-                        documentId={document.id}
-                      />
-                    </div>
-                  ) : (
-                    <div className="space-y-8">
-                      <DocumentEmbedCodeCard
-                        documentSlug={editingValues.slug || document.slug || ''}
-                        documentTitle={editingValues.title || document.title || ''}
-                      />
-                    </div>
-                  )}
+                  <div className="space-y-8">
+                    <DocumentDownloadsCard
+                      downloads={editingValues.downloads || []}
+                      onDownloadsChange={(downloads) => handleFieldChange('downloads', downloads)}
+                      documentId={document.id}
+                    />
+                  </div>
                 </TabPanel>
 
-                {/* Tab 8: Embed Code (when quiz enabled) or Metadata (when quiz disabled and super admin) */}
+                {/* Tab 8: Share */}
                 <TabPanel>
-                  {editingValues.show_quizzes === true ? (
-                    <div className="space-y-8">
-                      <DocumentEmbedCodeCard
-                        documentSlug={editingValues.slug || document.slug || ''}
-                        documentTitle={editingValues.title || document.title || ''}
-                      />
-                    </div>
-                  ) : isSuperAdmin ? (
-                    <div className="space-y-8">
-                      <DocumentMetadataCard
-                        document={document}
-                        isSuperAdmin={isSuperAdmin}
-                      />
-                    </div>
-                  ) : null}
+                  <div className="space-y-8">
+                    <DocumentEmbedCodeCard
+                      documentSlug={editingValues.slug || document.slug || ''}
+                      documentTitle={editingValues.title || document.title || ''}
+                    />
+                  </div>
                 </TabPanel>
 
-                {/* Tab 9: Metadata (Super Admin Only, only when quiz enabled) */}
-                {isSuperAdmin && editingValues.show_quizzes === true && (
+                {/* Tab 9: Metadata (Super Admin Only) */}
+                {isSuperAdmin && (
                   <TabPanel>
                     <div className="space-y-8">
                       <DocumentMetadataCard

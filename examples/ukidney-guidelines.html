@@ -386,7 +386,7 @@
 	/* Responsive Modal */
 	@media (max-width: 768px) {
 		.modern-close-button {
-			top: 16px;
+			top: 80px;
 			right: 16px;
 			width: 40px;
 			height: 40px;
@@ -442,9 +442,9 @@
 	let isOpeningModal = false; // Guard to prevent multiple simultaneous calls
 	let currentDocId = null;
 	const docUrls = {
-		'kdigo': 'https://www.docutrain.io/app/chat?doc=kdigo&footer=false',
-		'ispd': 'https://www.docutrain.io/app/chat?doc=ispd&footer=false',
-		'diabetes-canada': 'https://www.docutrain.io/app/chat?doc=dc&footer=false'
+		'kdigo': 'https://www.docutrain.io/app/chat?doc=kdigo&footer=false&owner_link=false',
+		'ispd': 'https://www.docutrain.io/app/chat?doc=ispd&footer=false&owner_link=false',
+		'diabetes-canada': 'https://www.docutrain.io/app/chat?doc=dc&footer=false&owner_link=false'
 	};
 
 	window.addEventListener('message', function(event) {
