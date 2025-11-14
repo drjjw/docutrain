@@ -10,6 +10,7 @@ import { ChatPage } from '@/pages/ChatPage';
 import { SharedConversationPage } from '@/pages/SharedConversationPage';
 import { ContactPage } from '@/pages/ContactPage';
 import { TermsPage } from '@/pages/TermsPage';
+import { DMCAPage } from '@/pages/DMCAPage';
 import { DisclaimerDeclinedPage } from '@/pages/DisclaimerDeclinedPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { AdminRoute } from './AdminRoute';
@@ -112,6 +113,11 @@ export function AppRouter() {
         <Route
           path="/terms"
           element={<TermsPage />}
+        />
+        {/* DMCA Takedown Policy page - public access */}
+        <Route
+          path="/dmca"
+          element={<DMCAPage />}
         />
         {/* Disclaimer Declined page - public access */}
         <Route
