@@ -88,6 +88,10 @@ export interface DocumentUIConfigCardProps {
   onFieldChange: FieldChangeHandler;
   isTextUpload?: boolean; // Whether this document is from a text upload (no pages)
   isSuperAdmin?: boolean; // Whether the current user is a super admin
+  referencesDisabled?: boolean; // Whether references should be disabled (multiple PDFs or retrain_add)
+  referencesDisabledReason?: string | null; // Reason why references are disabled
+  savingField?: string | null; // Field name that is currently being saved
+  savedField?: string | null; // Field name that was just saved
 }
 
 export interface DocumentMessagesCardProps {

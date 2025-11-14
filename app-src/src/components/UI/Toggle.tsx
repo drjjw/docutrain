@@ -5,7 +5,7 @@ interface ToggleProps {
   onChange: (checked: boolean) => void;
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
-  label?: string;
+  label?: string | React.ReactNode;
   description?: string;
 }
 

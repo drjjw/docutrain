@@ -82,6 +82,73 @@ export async function getValidSession(): Promise<{ access_token: string }> {
  * Get all documents based on user permissions
  * Super admins see all documents, owner admins see only their owner group's documents
  */
+/**
+ * Check if references should be disabled for a document
+ * References are disabled when:
+ * 1. Multiple PDFs were used (more than one PDF upload)
+ * 2. Retraining occurred where content was ADDED (retrain_add mode)
+ * 
+ * @param documentId - Document ID (UUID)
+ * @returns Object with disabled flag and reason message
+ */
+export async function checkReferencesDisabled(documentId: string): Promise<{
+  disabled: boolean;
+  reason: string | null;
+}> {
+  try {
+    const { data: history, error } = await supabase
+      .from('document_training_history')
+      .select('action_type, upload_type, retrain_mode, status')
+      .eq('document_id', documentId)
+      .eq('status', 'completed');
+
+    if (error) {
+      debugLog('Error checking training history:', error);
+      // If we can't check, default to allowing references (safer)
+      return { disabled: false, reason: null };
+    }
+
+    if (!history || history.length === 0) {
+      // No training history - assume single PDF, allow references
+      return { disabled: false, reason: null };
+    }
+
+    // Check for retrain_add actions
+    const hasRetrainAdd = history.some(
+      entry => entry.action_type === 'retrain_add' || entry.retrain_mode === 'add'
+    );
+
+    if (hasRetrainAdd) {
+      return {
+        disabled: true,
+        reason: 'References are disabled because content was added through retraining. Page numbers are no longer meaningful when content is added incrementally.'
+      };
+    }
+
+    // Count distinct PDF uploads (train or retrain_replace with PDF)
+    const pdfUploads = history.filter(
+      entry => 
+        entry.upload_type === 'pdf' && 
+        (entry.action_type === 'train' || entry.action_type === 'retrain_replace')
+    );
+
+    // Count unique PDF uploads by checking distinct file_name or user_document_id
+    // For simplicity, we'll count completed PDF uploads
+    // If there's more than one PDF upload, disable references
+    if (pdfUploads.length > 1) {
+      return {
+        disabled: true,
+        reason: 'References are disabled because multiple PDFs were used. Page numbers are only meaningful when a single PDF is used.'
+      };
+    }
+
+    return { disabled: false, reason: null };
+  } catch (error) {
+    debugLog('Exception checking references disabled:', error);
+    return { disabled: false, reason: null };
+  }
+}
+
 export async function getDocuments(userId: string): Promise<DocumentWithOwner[]> {
   // Get user permissions to determine access level
   const permissions = await getUserPermissions(userId);

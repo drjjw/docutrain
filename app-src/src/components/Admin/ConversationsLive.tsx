@@ -28,20 +28,26 @@ interface ConversationsLiveProps {
 export function ConversationsLive({ isSuperAdmin, ownerIds = [] }: ConversationsLiveProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [documentNames, setDocumentNames] = useState<Record<string, string>>({});
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
+  const ITEMS_PER_PAGE = 30;
 
   // Fetch conversations from API
-  const fetchConversations = async () => {
+  const fetchConversations = async (reset = false) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch('/api/conversations?limit=100', {
+      const currentOffset = reset ? 0 : offset;
+      const response = await fetch(`/api/conversations?limit=${ITEMS_PER_PAGE}&offset=${currentOffset}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -55,7 +61,16 @@ export function ConversationsLive({ isSuperAdmin, ownerIds = [] }: Conversations
       }
 
       const data = await response.json();
-      setConversations(data.conversations || []);
+      
+      if (reset) {
+        setConversations(data.conversations || []);
+        setOffset(ITEMS_PER_PAGE);
+      } else {
+        setConversations(prev => [...prev, ...(data.conversations || [])]);
+        setOffset(prev => prev + ITEMS_PER_PAGE);
+      }
+      
+      setHasMore(data.hasMore || false);
       setError(null);
 
       // Fetch document names for document IDs
@@ -87,6 +102,83 @@ export function ConversationsLive({ isSuperAdmin, ownerIds = [] }: Conversations
       setError(err instanceof Error ? err.message : 'Failed to load conversations');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  // Load more conversations (for infinite scroll)
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    
+    setLoadingMore(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const currentOffset = conversations.length; // Use current length as offset
+      const response = await fetch(`/api/conversations?limit=${ITEMS_PER_PAGE}&offset=${currentOffset}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to fetch conversations' }));
+        throw new Error(errorData.error || 'Failed to fetch conversations');
+      }
+
+      const data = await response.json();
+      setConversations(prev => [...prev, ...(data.conversations || [])]);
+      setHasMore(data.hasMore || false);
+      
+      // Fetch document names for new conversations
+      if (data.conversations && data.conversations.length > 0) {
+        const docIds = new Set<string>();
+        data.conversations.forEach((conv: Conversation) => {
+          if (conv.document_ids && Array.isArray(conv.document_ids)) {
+            conv.document_ids.forEach(id => docIds.add(id));
+          }
+        });
+
+        const missingIds = Array.from(docIds).filter(id => !documentNames[id]);
+        if (missingIds.length > 0) {
+          const { data: docs } = await supabase
+            .from('documents')
+            .select('id, title, slug')
+            .in('id', missingIds);
+
+          if (docs) {
+            setDocumentNames(prev => {
+              const updated = { ...prev };
+              docs.forEach(doc => {
+                updated[doc.id] = doc.title || doc.slug;
+              });
+              return updated;
+            });
+          }
+        }
+      }
+    } catch (err) {
+      debugLog('[ConversationsLive] Error loading more conversations:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load more conversations');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // Handle scroll to detect when user reaches bottom
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container || loadingMore || !hasMore) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    // Load more when user is within 200px of bottom
+    if (scrollHeight - scrollTop - clientHeight < 200) {
+      loadMore();
     }
   };
 
@@ -148,7 +240,72 @@ export function ConversationsLive({ isSuperAdmin, ownerIds = [] }: Conversations
 
   // Initial fetch
   useEffect(() => {
-    fetchConversations();
+    setConversations([]);
+    setOffset(0);
+    setHasMore(true);
+    setLoading(true);
+    
+    const doFetch = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setError('Not authenticated');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/conversations?limit=${ITEMS_PER_PAGE}&offset=0`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Failed to fetch conversations' }));
+          throw new Error(errorData.error || 'Failed to fetch conversations');
+        }
+
+        const data = await response.json();
+        setConversations(data.conversations || []);
+        setOffset(ITEMS_PER_PAGE);
+        setHasMore(data.hasMore || false);
+        setError(null);
+
+        // Fetch document names
+        if (data.conversations && data.conversations.length > 0) {
+          const docIds = new Set<string>();
+          data.conversations.forEach((conv: Conversation) => {
+            if (conv.document_ids && Array.isArray(conv.document_ids)) {
+              conv.document_ids.forEach(id => docIds.add(id));
+            }
+          });
+
+          if (docIds.size > 0) {
+            const { data: docs, error: docsError } = await supabase
+              .from('documents')
+              .select('id, title, slug')
+              .in('id', Array.from(docIds));
+
+            if (!docsError && docs) {
+              const namesMap: Record<string, string> = {};
+              docs.forEach(doc => {
+                namesMap[doc.id] = doc.title || doc.slug;
+              });
+              setDocumentNames(namesMap);
+            }
+          }
+        }
+      } catch (err) {
+        debugLog('[ConversationsLive] Error fetching conversations:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load conversations');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    doFetch();
   }, [isSuperAdmin, ownerIds]);
 
   // Set up real-time subscription
@@ -223,8 +380,8 @@ export function ConversationsLive({ isSuperAdmin, ownerIds = [] }: Conversations
                       }
                       docs.forEach(doc => allowedDocIds!.add(doc.id));
                       
-                      // Add conversation to list
-                      setConversations(prev => [newConv, ...prev].slice(0, 100));
+                      // Add conversation to list (prepend, but don't limit since we're using infinite scroll)
+                      setConversations(prev => [newConv, ...prev]);
                       fetchDocumentNames(newConv.document_ids);
                     }
                   });
@@ -236,8 +393,8 @@ export function ConversationsLive({ isSuperAdmin, ownerIds = [] }: Conversations
             }
           }
 
-          // Add conversation to list (super admin or owner admin with access)
-          setConversations(prev => [newConv, ...prev].slice(0, 100));
+          // Add conversation to list (prepend, but don't limit since we're using infinite scroll)
+          setConversations(prev => [newConv, ...prev]);
           
           // Fetch document names if needed
           if (newConv.document_ids && Array.isArray(newConv.document_ids) && newConv.document_ids.length > 0) {
@@ -282,7 +439,13 @@ export function ConversationsLive({ isSuperAdmin, ownerIds = [] }: Conversations
           Live Conversations
         </h3>
         <button
-          onClick={fetchConversations}
+          onClick={() => {
+            setConversations([]);
+            setOffset(0);
+            setHasMore(true);
+            setLoading(true);
+            fetchConversations(true);
+          }}
           className="text-sm text-blue-600 hover:text-blue-700 font-medium"
         >
           Refresh
@@ -294,7 +457,11 @@ export function ConversationsLive({ isSuperAdmin, ownerIds = [] }: Conversations
           <p>No conversations yet.</p>
         </div>
       ) : (
-        <div className="space-y-3 max-h-[600px] overflow-y-auto">
+        <div 
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="space-y-3 max-h-[600px] overflow-y-auto"
+        >
           {conversations.map((conv) => (
             <div
               key={conv.id}
@@ -328,6 +495,21 @@ export function ConversationsLive({ isSuperAdmin, ownerIds = [] }: Conversations
               </div>
             </div>
           ))}
+          
+          {/* Loading more indicator */}
+          {loadingMore && (
+            <div className="flex items-center justify-center py-4">
+              <Spinner size="sm" />
+              <span className="ml-2 text-sm text-gray-500">Loading more...</span>
+            </div>
+          )}
+          
+          {/* End of list indicator */}
+          {!hasMore && conversations.length > 0 && (
+            <div className="text-center py-4 text-sm text-gray-500">
+              No more conversations to load
+            </div>
+          )}
         </div>
       )}
 

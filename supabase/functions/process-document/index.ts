@@ -981,7 +981,42 @@ async function processUserDocument(userDocId: string) {
       chunks_stored: inserted
     });
 
-    // 8. Update user_documents status to ready
+    // 8. Delete PDF from storage after successful processing (temporary storage for processing only)
+    // This strengthens fair use argument - PDFs are only stored during processing, not indefinitely
+    if (!isTextUpload && userDoc.file_path && userDoc.file_path !== 'text-upload' && userDoc.file_path !== 'text-retrain') {
+      try {
+        await logToDatabase(userDocId, documentSlug, STAGES.COMPLETE, STATUSES.PROGRESS, 'Deleting PDF from storage (temporary processing storage)', {
+          file_path: userDoc.file_path
+        });
+        
+        const { error: deleteError } = await supabase.storage
+          .from('user-documents')
+          .remove([userDoc.file_path]);
+        
+        if (deleteError) {
+          // Log warning but don't fail processing - PDF deletion is not critical
+          console.warn(`⚠️ Failed to delete PDF after processing: ${deleteError.message}`);
+          await logToDatabase(userDocId, documentSlug, STAGES.COMPLETE, STATUSES.PROGRESS, `PDF deletion warning: ${deleteError.message}`, {
+            file_path: userDoc.file_path,
+            warning: true
+          });
+        } else {
+          console.log(`✅ PDF deleted from storage after successful processing: ${userDoc.file_path}`);
+          await logToDatabase(userDocId, documentSlug, STAGES.COMPLETE, STATUSES.PROGRESS, 'PDF deleted from storage successfully', {
+            file_path: userDoc.file_path
+          });
+        }
+      } catch (deleteErr) {
+        // Don't fail processing if PDF deletion fails
+        console.warn(`⚠️ Error deleting PDF after processing: ${deleteErr instanceof Error ? deleteErr.message : String(deleteErr)}`);
+        await logToDatabase(userDocId, documentSlug, STAGES.COMPLETE, STATUSES.PROGRESS, `PDF deletion error (non-critical): ${deleteErr instanceof Error ? deleteErr.message : String(deleteErr)}`, {
+          file_path: userDoc.file_path,
+          warning: true
+        });
+      }
+    }
+
+    // 9. Update user_documents status to ready
     await supabase
       .from('user_documents')
       .update({ 

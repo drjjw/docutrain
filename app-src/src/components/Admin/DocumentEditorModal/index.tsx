@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/UI/Button';
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/UI/Tabs';
-import { updateDocument, checkSlugUniqueness } from '@/lib/supabase/admin';
+import { updateDocument, checkSlugUniqueness, checkReferencesDisabled } from '@/lib/supabase/admin';
 import { DocumentOverviewSection } from './DocumentOverviewSection';
 import { DocumentRetrainSection } from './DocumentRetrainSection';
 import { DocumentTrainingHistory } from './DocumentTrainingHistory';
@@ -24,11 +24,29 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   const [editingValues, setEditingValues] = useState<Record<string, any>>({});
   const [baselineValues, setBaselineValues] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
+  const [savingField, setSavingField] = useState<string | null>(null);
+  const [savedField, setSavedField] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [retraining, setRetraining] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [yearError, setYearError] = useState<string | null>(null);
+  const [referencesDisabled, setReferencesDisabled] = useState(false);
+  const [referencesDisabledReason, setReferencesDisabledReason] = useState<string | null>(null);
+  
+  // Ref to track debounce timeout for auto-save
+  const autoSaveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  
+  // UI config toggle fields that should auto-save
+  const autoSaveToggleFields = [
+    'show_document_selector',
+    'show_keywords',
+    'show_downloads',
+    'show_references',
+    'show_recent_questions',
+    'show_country_flags',
+    'show_quizzes'
+  ];
 
   debugLog('DocumentEditorModal rendering - document:', document?.id, 'editingValues.downloads:', editingValues.downloads?.length);
 
@@ -188,7 +206,80 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
     debugLog('DocumentEditorModal: Set disclaimer_text to', document.disclaimer_text || null);
     debugLog('DocumentEditorModal: Full document object keys:', Object.keys(document));
     setYearError(null); // Clear year error when document changes
+    
+    // Check if references should be disabled
+    if (document.id) {
+      checkReferencesDisabled(document.id).then(({ disabled, reason }) => {
+        setReferencesDisabled(disabled);
+        setReferencesDisabledReason(reason);
+        // If references are disabled, force show_references to false
+        if (disabled) {
+          setEditingValues(prev => ({ ...prev, show_references: false }));
+        }
+      }).catch(error => {
+        debugLog('Error checking references disabled:', error);
+        // Default to allowing references if check fails
+        setReferencesDisabled(false);
+        setReferencesDisabledReason(null);
+      });
+    }
   }, [document]);
+
+  // Auto-save function for toggle fields
+  const autoSaveToggleField = React.useCallback(async (field: string, value: any) => {
+    if (!document?.id) return;
+    
+    try {
+      setSavingField(field);
+      setSavedField(null); // Clear any previous "Saved!" indicator
+      setError(null);
+      
+      // Prepare the update object
+      const updateData: Record<string, any> = { [field]: value };
+      
+      // Ensure boolean fields are explicitly set
+      if (field === 'show_quizzes') {
+        updateData.show_quizzes = value === true;
+      }
+      
+      // Prevent enabling references for text uploads or when disabled
+      const isTextUpload = 
+        document.pdf_filename === 'text-upload' ||
+        document.pdf_filename === 'text-content.txt' ||
+        document.pdf_subdirectory === 'text-retrain' ||
+        document.metadata?.upload_type === 'text' || 
+        document.metadata?.upload_type === 'text_retrain';
+      if (field === 'show_references' && (isTextUpload || referencesDisabled) && value === true) {
+        updateData.show_references = false;
+      }
+      
+      debugLog('DocumentEditorModal: Auto-saving toggle field:', field, value);
+      await updateDocument(document.id, updateData);
+      
+      // Update baseline to reflect saved state
+      setBaselineValues(prev => ({ ...prev, [field]: updateData[field] || value }));
+      
+      // Dispatch event to refresh other components
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('document-updated', {
+          detail: { documentSlug: editingValues.slug || document.slug }
+        }));
+      }, 200);
+      
+      debugLog('DocumentEditorModal: Auto-save successful for field:', field);
+      
+      // Show "Saved!" indicator briefly
+      setSavedField(field);
+      setTimeout(() => {
+        setSavedField(null);
+      }, 2000); // Show for 2 seconds
+    } catch (error) {
+      console.error('Failed to auto-save toggle field:', error);
+      setError(error instanceof Error ? error.message : 'Failed to auto-save. Please try again.');
+    } finally {
+      setSavingField(null);
+    }
+  }, [document, editingValues.slug, referencesDisabled]);
 
   const handleFieldChange = (field: string, value: any) => {
     debugLog('DocumentEditorModal: Field change:', field, value);
@@ -214,7 +305,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
       }
     }
     
-    // Prevent enabling references for text uploads
+    // Prevent enabling references for text uploads or when disabled (multiple PDFs/retrain_add)
     // Primary check: pdf_filename column (most reliable indicator)
     const isTextUpload = 
       document.pdf_filename === 'text-upload' ||
@@ -223,13 +314,40 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
       // Fallback: check metadata if pdf_filename isn't set
       document.metadata?.upload_type === 'text' || 
       document.metadata?.upload_type === 'text_retrain';
-    if (field === 'show_references' && isTextUpload && value === true) {
-      console.warn('Cannot enable references for text uploads');
-      return; // Don't allow enabling references for text uploads
+    if (field === 'show_references') {
+      if ((isTextUpload || referencesDisabled) && value === true) {
+        console.warn('Cannot enable references: text upload or disabled due to multiple PDFs/retrain_add');
+        return; // Don't allow enabling references
+      }
     }
     
     setEditingValues(prev => ({ ...prev, [field]: value }));
+    
+    // Auto-save toggle fields after a short debounce
+    if (autoSaveToggleFields.includes(field)) {
+      // Clear any "Saved!" indicator when user starts changing again
+      setSavedField(null);
+      
+      // Clear existing timeout
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      
+      // Set new timeout for auto-save (500ms debounce)
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        autoSaveToggleField(field, value);
+      }, 500);
+    }
   };
+  
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleSave = async () => {
     debugLog('DocumentEditorModal: handleSave called');
@@ -297,7 +415,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         documentUpdates.quizzes_generated = editingValues.quizzes_generated === true;
       }
 
-      // Prevent enabling references for text uploads
+      // Prevent enabling references for text uploads or when disabled (multiple PDFs/retrain_add)
       // Primary check: pdf_filename column (most reliable indicator)
       const isTextUpload = 
         document.pdf_filename === 'text-upload' ||
@@ -306,8 +424,8 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
         // Fallback: check metadata if pdf_filename isn't set
         document.metadata?.upload_type === 'text' || 
         document.metadata?.upload_type === 'text_retrain';
-      if (isTextUpload && documentUpdates.show_references === true) {
-        documentUpdates.show_references = false; // Force false for text uploads
+      if ((isTextUpload || referencesDisabled) && documentUpdates.show_references === true) {
+        documentUpdates.show_references = false; // Force false for text uploads or when disabled
       }
 
       const saveStartTime = performance.now();
@@ -600,6 +718,10 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                         document.metadata?.upload_type === 'text' || 
                         document.metadata?.upload_type === 'text_retrain'
                       }
+                      referencesDisabled={referencesDisabled}
+                      referencesDisabledReason={referencesDisabledReason}
+                      savingField={savingField}
+                      savedField={savedField}
                     />
 
                     <DocumentMessagesCard
@@ -762,14 +884,14 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
             <Button
               variant="outline"
               onClick={handleClose}
-              disabled={saving}
+              disabled={saving || savingField !== null}
               className="flex-1 md:flex-none"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
-              disabled={saving || retraining || !hasChanges()}
+              disabled={saving || savingField !== null || retraining || !hasChanges()}
               loading={saving}
               className="flex-1 md:flex-none"
             >

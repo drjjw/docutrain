@@ -1,0 +1,340 @@
+🧪 Testing AI Response vs Stored Chunks
+🎯 Goal: Demonstrate transformative use (AI generates new content, not verbatim copies)
+
+
+
+================================================================================
+📝 TEST QUERY: "What are the treatment targets for blood glucose in diabetes?"
+📄 Document: ckd-dc-2025
+================================================================================
+
+🔍 Making chat query...
+
+❌ Error: request to http://localhost:3458/api/chat failed, reason: 
+FetchError: request to http://localhost:3458/api/chat failed, reason: 
+    at ClientRequest.<anonymous> (/Users/jordanweinstein/GitHub/docutrain/node_modules/node-fetch/lib/index.js:1501:11)
+    at ClientRequest.emit (node:events:518:28)
+    at emitErrorEvent (node:_http_client:104:11)
+    at Socket.socketErrorListener (node:_http_client:518:5)
+    at Socket.emit (node:events:518:28)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+================================================================================
+📝 TEST QUERY: "How do you screen for chronic kidney disease in patients with diabetes?"
+📄 Document: ckd-dc-2025
+================================================================================
+
+🔍 Making chat query...
+
+✅ AI Response (2099 chars):
+--------------------------------------------------------------------------------
+To screen for chronic kidney disease (CKD) in patients with diabetes, the following guidelines should be followed:
+
+**Screening Recommendations**
+*   Individuals with diabetes and no history of kidney disease should be screened at least annually using both blood and urine tests [2, 13].
+*   For individuals with **type 1 diabetes**, screening should begin 5 years after onset or, if onset is at an earlier age, after puberty [2, 13].
+*   For individuals with **type 2 diabetes**, screening should begin at diagnosis and annually thereafter [2, 13].
+
+**Screening Tests**
+*   **Blood tests** involve measuring serum creatinine to calculate the **estimated glomerular filtration rate (eGFR)** [1, 13].
+*   **Urine tests** involve measuring random **urine albumin-to-creatinine ratio (ACR)** [1, 13]. The random urine ACR is the test of choice for measuring albuminuria as it corrects for urinary concentration and correlates well with 24-hour urine collection results [6].
+
+**Diagnosis of CKD and Diabetic Nephropathy**
+*   CKD is considered present if there is a persistently elevated albuminuria of 2.0 mg/mmol on two urine samples over at least 3 months, and/or a persistent decrease in eGFR of <60 mL/min per 1.73 m² over the same period, or both [2].
+*   For individuals with diabetes, the ACR threshold for diagnosing A2 albuminuria is 2.0 mg/mmol [13, 7].
+*   Diabetic nephropathy is diagnosed if at least two out of three abnormal ACRs (≥2.0 mg/mmol) are found over at least 3 months [6].
+*   If urine ACR is positive but <20 mg/mmol, repeat for 2 of 3 positive over at least 3 months [2].
+*   If urine ACR is ≥20 mg/mmol, diabetic nephropathy can be diagnosed [2].
+
+**Important Considerations**
+*   Screening for CKD should be delayed if transient conditions such as recent major exercise, urinary tract infection, severe febrile illness, decompensated heart failure, menstruation, or acute severe elevations in blood glucose or blood pressure are present, as these can temporarily raise ACR and reduce eGFR [7, 2].
+
+---
+**References**
+[1] Page 1
+[2] Page 2
+[6] Page 6
+[7] Page 7
+[13] Page 13
+--------------------------------------------------------------------------------
+
+📊 Metadata:
+   - Chunks used: 50
+   - Model: gemini-2.5-flash
+   - Response time: 15578ms
+
+📚 Retrieved Chunks:
+--------------------------------------------------------------------------------
+
+📄 Chunk 43 (similarity: 0.656):
+   Length: 2000 chars
+   Max consecutive match: 3 words
+   Verbatim ratio: 0.9%
+   ✅ TRANSFORMATIVE
+
+   Chunk content (first 300 chars):
+   "nic
+kidney disease. Kidney Int 2024;105(Suppl.):S117e314.
+[18]Kidney Disease: Improving Global Outcomes Blood Pressure Work Group.
+KDIGO 2021 clinical practice guideline for the management of blood pressure
+in chronic kidney disease. Kidney Int 2021;99(Suppl.):S1e87.
+[19]Go AS, Chertow GM, Fan D, Mc..."
+
+📄 Chunk 2 (similarity: 0.734):
+   Length: 1999 chars
+   Max consecutive match: 15 words
+   Verbatim ratio: 4.5%
+   ✅ TRANSFORMATIVE
+
+   Chunk content (first 300 chars):
+   "of Kidney Disease
+From Diabetes
+If you have diabetes, ensure that you receive screening tests at
+least annually for kidney diseasedusing both blood and urine
+tests.
+Ask your health-care team about your risk for CKD, including
+your eGFR (an estimate of your kidney function) and urine ACR
+(a marker ..."
+
+📄 Chunk 16 (similarity: 0.729):
+   Length: 1999 chars
+   Max consecutive match: 6 words
+   Verbatim ratio: 1.8%
+   ✅ TRANSFORMATIVE
+
+   Chunk content (first 300 chars):
+   "related to CKD (Table 7), at least 2 of 3
+abnormal ACRs over at least 3 months are required before dia-
+betic nephropathy is diagnosed (Figure 1). Screening for the
+Table 3
+Diagnostic tests for diabetic nephropathy to assess urinary albumin level on at least
+2 samples over at least 3 months
+Stage of..."
+
+================================================================================
+📊 SUMMARY:
+   - Average verbatim ratio: 2.4%
+   - Transformative chunks: 3/3
+   - ✅ STRONGLY TRANSFORMATIVE
+================================================================================
+
+================================================================================
+📝 TEST QUERY: "What medications are recommended for diabetic kidney disease?"
+📄 Document: ckd-dc-2025
+================================================================================
+
+🔍 Making chat query...
+   ⏳ API error (attempt 1/3), retrying in 2s...
+   ⏳ API error (attempt 2/3), retrying in 4s...
+
+✅ AI Response (4124 chars):
+--------------------------------------------------------------------------------
+The Chronic Kidney Disease in Diabetes: A Clinical Practice Guideline recommends several medications to slow the progression of diabetic kidney disease and reduce cardiovascular risk.
+
+**Recommended Medications:**
+
+*   **Renin-Angiotensin-Aldosterone System Inhibitors (RAASi)**:
+    *   Adults with diabetes and CKD, with either hypertension or albuminuria, should be recommended a RAASi (an **ACE inhibitor** or **ARB**) to delay CKD progression [1].
+    *   RAASi therapy should be the foundational cardiorenal protective therapy, titrated to the maximum label or maximally tolerated dose [2].
+    *   Currently available ACE inhibitors in Canada and their maximum recommended daily doses include Benazepril (40 mg), Captopril (150 mg), Cilazapril (10 mg), Enalapril (40 mg), Fosinopril (40 mg), Lisinopril (40 mg), Perindopril (8 mg), Quinapril (80 mg), Ramipril (10 mg), and Trandolapril (4 mg) [3].
+    *   Currently available ARBs in Canada and their maximum recommended daily doses include Azilsartan (80 mg), Candesartan (32 mg), Eprosartan (800 mg), Irbesartan (300 mg), Losartan (100 mg), Olmesartan (40 mg), Telmisartan (80 mg), and Valsartan (320 mg) [3].
+    *   Dual therapy with an ACEi and an ARB is not recommended due to increased risk of hyperkalemia and acute kidney injury without additional cardiovascular or renal benefit [4].
+
+*   **Sodium-Glucose Cotransporter-2 Inhibitors (SGLT2i)**:
+    *   Recommended for adults with type 2 diabetes and CKD with an eGFR between 20 and 45 mL/min per 1.73 m² (regardless of uACR), or an eGFR between 45 and 90 mL/min per 1.73 m² with uACR >20 mg/mmol, on maximally tolerated or prescribed doses of RAASis [5].
+    *   This recommendation is to delay CKD progression, progression to dialysis, and reduce the likelihood of cardiovascular events [5].
+    *   SGLT2i may have a minimal glucose-lowering effect at lower eGFR (<60 mL/min per 1.73 m²) but their cardiorenal benefits persist [6].
+    *   Three SGLT2 inhibitors available in Canada are canagliflozin, dapagliflozin, and empagliflozin [7].
+
+*   **Glucagon-Like Peptide-1 Receptor Agonists (GLP1-RA)**:
+    *   Recommended for adults with type 2 diabetic nephropathy defined by eGFR between 25 and 50 mL/min per 1.73 m² (with uACR between 10 and 500 mg/mmol), or if eGFR is >50 mL/min per 1.73 m² (with uACR between 30 and 500 mg/mmol), on maximally tolerated or prescribed doses of RAASi [8].
+    *   The purpose is to reduce proteinuria and the risk of worsening kidney function [8]. Subcutaneous semaglutide has proven kidney benefit [8].
+    *   For glycemic management in persistent diabetic nephropathy, GLP1-RA is suggested over SGLT2i and nonsteroidal mineralocorticoid receptor antagonists (nsMRA) [9].
+
+*   **Nonsteroidal Mineralocorticoid Receptor Antagonists (nsMRA)**:
+    *   Recommended for adults with type 2 diabetic nephropathy defined by eGFR between 25 and 90 mL/min per 1.73 m² (with uACR between 3 and 30 mg/mmol, with or without diabetic retinopathy, for those with eGFR between 25 and 60 mL/min per 1.73 m²), or if eGFR is >25 mL/min per 1.73 m² (with uACR between 30 and 500 mg/mmol), on maximally tolerated or prescribed doses of RAASi, with a serum potassium ≤4.8 mmol/L [10].
+    *   This is recommended with potassium monitoring to improve kidney and cardiovascular outcomes [10]. Finerenone has proven efficacy [10].
+    *   Caution should be exercised due to the risk of hyperkalemia with nsMRA [11].
+
+**Sequencing of Therapies**:
+*   Cardiorenal protective therapy should initially begin with an ACEi or ARB, titrated to the maximum label or tolerated dose [2].
+*   After RAASi, the choice of additional kidney protective medications should be based on individual values, preferences, blood pressure, blood glucose, potassium levels, eGFR, Kidney Failure Risk Equation (KFRE) projected risk, weight management, and contraindications or adverse effects [2].
+*   Combining drug therapies has demonstrated benefit [12].
+
+**References**
+[1] Page 13
+[2] Page 26
+[3] Page 2
+[4] Page 8
+[5] Page 14
+[6] Page 2
+[7] Page 9
+[8] Page 14
+[9] Page 2
+[10] Page 20
+[11] Page 2
+[12] Page 13
+--------------------------------------------------------------------------------
+
+📊 Metadata:
+   - Chunks used: 50
+   - Model: gemini-2.5-flash
+   - Response time: 15588ms
+
+📚 Retrieved Chunks:
+--------------------------------------------------------------------------------
+
+📄 Chunk 36 (similarity: 0.664):
+   Length: 2000 chars
+   Max consecutive match: 4 words
+   Verbatim ratio: 0.6%
+   ✅ TRANSFORMATIVE
+
+   Chunk content (first 300 chars):
+   "blockage therapy and have supportive evidence.
+These medications have demonstrated safety and are generally
+better tolerated [84]. For hyperkalemia, despite the measures just
+noted, referral to a nephrologist is suggested. For severe hyper-
+kalemia, it is recommended to hold RAAS blockers and MRAs
+[..."
+
+📄 Chunk 4 (similarity: 0.654):
+   Length: 2000 chars
+   Max consecutive match: 5 words
+   Verbatim ratio: 0.8%
+   ✅ TRANSFORMATIVE
+
+   Chunk content (first 300 chars):
+   "nt.
+Suggested class of nephroprotective agents to add/caution for
+persistent diabetic nephropathy
+For glycemic management, GLP1-RA>SGLT2i>nsMRA, as
+finerenone has no substantial effect on A1C.
+For low eGFR (<60 mL/min per 1.73 m
+[Page 2]
+), note the minimal
+glucose-lowering effect of SGLT2i. Refer..."
+
+📄 Chunk 5 (similarity: 0.637):
+   Length: 2000 chars
+   Max consecutive match: 3 words
+   Verbatim ratio: 0.5%
+   ✅ TRANSFORMATIVE
+
+   Chunk content (first 300 chars):
+   "BsAzilsartan80 mg
+Candesartan32 mg
+Eprosartan800 mg
+Irbesartan300 mg
+Losartan100 mg
+Olmesartan40 mg
+Telmisartan80 mg
+Valsartan320 mg
+ACEi, angiotensin-converting enzyme inhibitor;ARB, angiotensin receptor blocker.
+Table 2
+Secondary considerations for sequencing the 4 medical therapies to slow
+progre..."
+
+================================================================================
+📊 SUMMARY:
+   - Average verbatim ratio: 0.6%
+   - Transformative chunks: 3/3
+   - ✅ STRONGLY TRANSFORMATIVE
+================================================================================
+
+================================================================================
+📝 TEST QUERY: "What is the recommended approach to managing hypertension in diabetic patients?"
+📄 Document: ckd-dc-2025
+================================================================================
+
+🔍 Making chat query...
+
+✅ AI Response (1555 chars):
+--------------------------------------------------------------------------------
+The recommended approach to managing hypertension in diabetic patients focuses on specific blood pressure targets and the use of Renin-Angiotensin-Aldosterone System inhibitors (RAASi) [1, 2].
+
+**Blood Pressure Targets**
+*   Individuals with diabetes should aim for a target **systolic BP of <130 mmHg** and a **diastolic BP of <80 mmHg** [1, 2]. These targets are consistent with the BP treatment thresholds [1, 2].
+
+**Pharmacologic Management**
+*   **RAASi Recommendation**: Adults with diabetes and chronic kidney disease (CKD) who have either hypertension or albuminuria should be recommended a RAASi (an ACE inhibitor [ACEi] or Angiotensin Receptor Blocker [ARB]) [3].
+    *   This is recommended to delay the progression of CKD [3].
+    *   RAASi can reduce the risk of developing CKD in diabetes independently of their effect on blood pressure [4].
+    *   Both ACEi and ARB slow the progression of kidney disease and are cardioprotective in people with diabetes [4].
+*   **Dosage**: RAASi should be prescribed at maximally tolerated or maximally recommended doses [5, 6].
+*   **Dual Therapy**: Adding both an ACEi and an ARB together is not recommended, as there is no additional cardiovascular or renal benefit over monotherapy with either class, and it increases the risk of hyperkalemia and acute kidney injury [7].
+*   **Monitoring**: Potassium levels should be checked between 1 and 2 weeks after initiation or titration of RAASi [8].
+
+**References**
+[1] Page 13
+[2] Page 8
+[3] Page 13
+[4] Page 8
+[5] Page 4
+[6] Page 14
+[7] Page 8
+[8] Page 13
+--------------------------------------------------------------------------------
+
+📊 Metadata:
+   - Chunks used: 50
+   - Model: gemini-2.5-flash
+   - Response time: 14128ms
+
+📚 Retrieved Chunks:
+--------------------------------------------------------------------------------
+
+📄 Chunk 38 (similarity: 0.586):
+   Length: 1999 chars
+   Max consecutive match: 10 words
+   Verbatim ratio: 3.0%
+   ✅ TRANSFORMATIVE
+
+   Chunk content (first 300 chars):
+   "systolic BP of<130 mmHg and a diastolic BP of<80 mmHg.
+These target BP levels are the same as the BP treatment
+thresholds [46] [Grade A, Level 1].
+7. Adults with diabetes and CKD with either hypertension or
+albuminuria should be recommended a RAASi (an ACEi or
+ARB) to delay progression of CKD [Grade..."
+
+📄 Chunk 36 (similarity: 0.569):
+   Length: 2000 chars
+   Max consecutive match: 3 words
+   Verbatim ratio: 1.0%
+   ✅ TRANSFORMATIVE
+
+   Chunk content (first 300 chars):
+   "blockage therapy and have supportive evidence.
+These medications have demonstrated safety and are generally
+better tolerated [84]. For hyperkalemia, despite the measures just
+noted, referral to a nephrologist is suggested. For severe hyper-
+kalemia, it is recommended to hold RAAS blockers and MRAs
+[..."
+
+📄 Chunk 42 (similarity: 0.568):
+   Length: 2000 chars
+   Max consecutive match: 4 words
+   Verbatim ratio: 1.4%
+   ✅ TRANSFORMATIVE
+
+   Chunk content (first 300 chars):
+   "r outcomes in patients with type 2 diabetes mellitus (the
+ADVANCE trial): A randomised controlled trial. Lancet 2007;370:829e40.
+[9]Holman RR, Paul SK, Bethel MA, Matthews DR, Neil HA. 10-year follow-up of
+intensive glucose control in type 2 diabetes. N Engl J Med 2008;359:1577e89.
+[10]Agarwal R. Pa..."
+
+================================================================================
+📊 SUMMARY:
+   - Average verbatim ratio: 1.8%
+   - Transformative chunks: 3/3
+   - ✅ STRONGLY TRANSFORMATIVE
+================================================================================
+
+✅ All tests complete!
+
+💡 Key Finding: AI responses are TRANSFORMATIVE - they synthesize information
+   from chunks to generate new content, not copy verbatim.
