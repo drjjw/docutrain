@@ -37,6 +37,12 @@ export function PublicFooter() {
             <a href="/app/contact" className="text-white/70 hover:text-white font-medium text-sm transition-colors">
               Contact
             </a>
+            <a href="/app/terms" className="text-white/70 hover:text-white font-medium text-sm transition-colors">
+              Terms
+            </a>
+            <a href="/app/dmca" className="text-white/70 hover:text-white font-medium text-sm transition-colors">
+              DMCA
+            </a>
           </div>
         </div>
         
