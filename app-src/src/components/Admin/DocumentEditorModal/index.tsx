@@ -39,6 +39,7 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
   
   // UI config toggle fields that should auto-save
   const autoSaveToggleFields = [
+    'active',
     'show_document_selector',
     'show_keywords',
     'show_downloads',
@@ -612,6 +613,10 @@ export function DocumentEditorModal({ document, owners, isSuperAdmin = false, on
                       onOwnerChange={(value) => handleFieldChange('owner_id', value || null)}
                       owners={owners}
                       isSuperAdmin={isSuperAdmin}
+                      active={editingValues.active ?? true}
+                      onFieldChange={handleFieldChange}
+                      savingField={savingField}
+                      savedField={savedField}
                     />
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

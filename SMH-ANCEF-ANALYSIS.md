@@ -140,3 +140,4 @@ The higher verbatim ratio in Chunk 162 (14.18%) is expected and acceptable becau
 - **Minimal amount:** Only uses necessary dosing information
 - **Non-substitutive:** Doesn't replace need for original manual
 
+

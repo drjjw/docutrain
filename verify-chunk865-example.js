@@ -79,3 +79,4 @@ const matchingWords = responseWords.filter(w => chunkWordSet.has(w));
 console.log(`\n📊 Individual word matches: ${matchingWords.length}/${responseWords.length} (${(matchingWords.length / responseWords.length * 100).toFixed(1)}%)`);
 console.log('Matching words:', matchingWords.join(', '));
 
+

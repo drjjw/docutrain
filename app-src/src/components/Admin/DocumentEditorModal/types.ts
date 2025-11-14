@@ -20,6 +20,10 @@ export interface DocumentOverviewSectionProps {
   onOwnerChange: (value: string) => void;
   owners: Owner[];
   isSuperAdmin: boolean;
+  active: boolean;
+  onFieldChange: FieldChangeHandler;
+  savingField?: string | null;
+  savedField?: string | null;
 }
 
 export interface DocumentRetrainSectionProps {

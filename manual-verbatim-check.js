@@ -118,3 +118,4 @@ if (totalVerbatimWords / responseWords.length > maxMatch / responseWords.length)
     console.log(`Both methods find similar results.`);
 }
 
+
