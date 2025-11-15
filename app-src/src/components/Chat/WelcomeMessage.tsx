@@ -15,6 +15,7 @@ interface WelcomeMessageProps {
   welcomeMessage: string;
   introMessage?: string | null;
   documentSlug: string;
+  ownerSlug?: string | null;
   keywords?: Keyword[];
   downloads?: Download[];
   showKeywords?: boolean;
@@ -107,6 +108,7 @@ export function WelcomeMessage({
   welcomeMessage, 
   introMessage, 
   documentSlug,
+  ownerSlug,
   keywords,
   downloads,
   showKeywords,

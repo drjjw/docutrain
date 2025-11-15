@@ -1538,4 +1538,37 @@ export async function getDocumentAnalytics(
   return data;
 }
 
+/**
+ * Get quota information for an owner
+ */
+export interface OwnerQuota {
+  plan_tier: string;
+  document_limit: number | null;
+  document_count: number;
+  can_upload: boolean;
+  can_use_voice_training: boolean;
+  usage_percentage: number | null;
+  is_unlimited: boolean;
+}
+
+export async function getOwnerQuota(ownerId: string): Promise<OwnerQuota> {
+  const { access_token } = await getValidSession();
+
+  const response = await fetch(`/api/owners/${ownerId}/quota`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${access_token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to fetch quota information');
+  }
+
+  const data = await response.json();
+  return data;
+}
+
 

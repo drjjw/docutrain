@@ -60,3 +60,4 @@ We should **NOT** claim that our use is "well below fair use thresholds (<30%)" 
 **Correct approach:** Emphasize transformative use, factual nature of work, non-substitutive purpose, and educational value - not percentage thresholds.
 
 
+

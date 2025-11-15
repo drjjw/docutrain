@@ -43,6 +43,7 @@ export function OwnersTable() {
   const [editCustomDomain, setEditCustomDomain] = useState('');
   const [editForcedGrokModel, setEditForcedGrokModel] = useState<string | null>(null);
   const [editAccentColor, setEditAccentColor] = useState('');
+  const [editPlanTier, setEditPlanTier] = useState<'free' | 'pro' | 'enterprise' | 'unlimited'>('pro');
   const [editCategories, setEditCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
 
@@ -57,6 +58,7 @@ export function OwnersTable() {
   const [createCustomDomain, setCreateCustomDomain] = useState('');
   const [createForcedGrokModel, setCreateForcedGrokModel] = useState<string | null>(null);
   const [createAccentColor, setCreateAccentColor] = useState('');
+  const [createPlanTier, setCreatePlanTier] = useState<'free' | 'pro' | 'enterprise' | 'unlimited'>('pro');
 
   // Handlers
   const handlers = useOwnersHandlers({
@@ -72,6 +74,7 @@ export function OwnersTable() {
     editCustomDomain,
     editForcedGrokModel,
     editAccentColor,
+    editPlanTier,
     editCategories,
     createName,
     createSlug,
@@ -83,6 +86,7 @@ export function OwnersTable() {
     createCustomDomain,
     createForcedGrokModel,
     createAccentColor,
+    createPlanTier,
     isSuperAdmin,
     setSaving,
     setError,
@@ -97,6 +101,7 @@ export function OwnersTable() {
     setEditCustomDomain,
     setEditForcedGrokModel,
     setEditAccentColor,
+    setEditPlanTier,
     setEditCategories,
     setCreatingOwner,
     setCreateName,
@@ -109,6 +114,7 @@ export function OwnersTable() {
     setCreateCustomDomain,
     setCreateForcedGrokModel,
     setCreateAccentColor,
+    setCreatePlanTier,
     setDeleteConfirmId,
     setOwners,
     loadData,
@@ -161,6 +167,7 @@ export function OwnersTable() {
             setCreateCustomDomain('');
             setCreateForcedGrokModel(null);
             setCreateAccentColor('');
+            setCreatePlanTier('pro');
           }}
           disabled={saving}
         >
@@ -188,6 +195,9 @@ export function OwnersTable() {
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Chunk Limit
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Plan Tier
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Custom Domain
@@ -218,6 +228,7 @@ export function OwnersTable() {
                     setEditCustomDomain(owner.custom_domain || '');
                     setEditForcedGrokModel(owner.forced_grok_model || null);
                     setEditAccentColor((owner.metadata as any)?.accent_color || '');
+                    setEditPlanTier(owner.plan_tier || 'pro');
                     // Load categories from database
                     try {
                       setLoadingCategories(true);
@@ -259,6 +270,7 @@ export function OwnersTable() {
               setEditCustomDomain(owner.custom_domain || '');
               setEditForcedGrokModel(owner.forced_grok_model || null);
               setEditAccentColor((owner.metadata as any)?.accent_color || '');
+              setEditPlanTier(owner.plan_tier || 'pro');
               // Load categories from database
               try {
                 setLoadingCategories(true);
@@ -303,6 +315,7 @@ export function OwnersTable() {
           setEditCustomDomain('');
           setEditForcedGrokModel(null);
           setEditAccentColor('');
+          setEditPlanTier('pro');
           setEditCategories([]);
           setLoadingCategories(false);
         }}
@@ -317,6 +330,7 @@ export function OwnersTable() {
         customDomain={editCustomDomain}
         forcedGrokModel={editForcedGrokModel}
         accentColor={editAccentColor}
+        planTier={editPlanTier}
         categories={editCategories.map(cat => cat.name)}
         loadingCategories={loadingCategories}
         saving={saving}
@@ -330,6 +344,7 @@ export function OwnersTable() {
         onCustomDomainChange={setEditCustomDomain}
         onForcedGrokModelChange={setEditForcedGrokModel}
         onAccentColorChange={setEditAccentColor}
+        onPlanTierChange={setEditPlanTier}
         onCategoriesChange={async (categoryNames: string[]) => {
           // Reload full Category objects from database when categories change
           if (editingOwner?.id) {
@@ -384,6 +399,7 @@ export function OwnersTable() {
         customDomain={createCustomDomain}
         forcedGrokModel={createForcedGrokModel}
         accentColor={createAccentColor}
+        planTier={createPlanTier}
         saving={saving}
         onNameChange={setCreateName}
         onSlugChange={setCreateSlug}
@@ -395,6 +411,7 @@ export function OwnersTable() {
         onCustomDomainChange={setCreateCustomDomain}
         onForcedGrokModelChange={setCreateForcedGrokModel}
         onAccentColorChange={setCreateAccentColor}
+        onPlanTierChange={setCreatePlanTier}
         onSave={handlers.handleCreateOwner}
       />
 

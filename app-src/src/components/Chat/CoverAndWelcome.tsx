@@ -18,6 +18,7 @@ interface CoverAndWelcomeProps {
   welcomeMessage: string;
   introMessage?: string | null;
   documentSlug: string;
+  ownerSlug?: string | null;
   keywords?: Keyword[];
   downloads?: Download[];
   showKeywords?: boolean;
@@ -111,6 +112,7 @@ export function CoverAndWelcome({
   welcomeMessage,
   introMessage,
   documentSlug,
+  ownerSlug,
   keywords,
   downloads,
   showKeywords,
@@ -200,6 +202,7 @@ export function CoverAndWelcome({
         welcomeMessage={welcomeMessage}
         introMessage={introMessage}
         documentSlug={documentSlug}
+        ownerSlug={ownerSlug}
         keywords={keywords}
         downloads={downloads}
         showKeywords={showKeywords}

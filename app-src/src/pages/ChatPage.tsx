@@ -429,6 +429,7 @@ function ChatPageContent({
               welcomeMessage={docConfig.welcomeMessage || `Welcome to ${docConfig.title}`}
               introMessage={docConfig.introMessage || null}
               documentSlug={documentSlug}
+              ownerSlug={docConfig.ownerInfo?.slug || docConfig.owner || null}
               keywords={docConfig.showKeywords !== false ? docConfig.keywords : undefined}
               downloads={docConfig.showDownloads !== false ? docConfig.downloads : undefined}
               showKeywords={docConfig.showKeywords}

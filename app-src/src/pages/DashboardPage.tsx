@@ -18,7 +18,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Alert } from '@/components/UI/Alert';
 import { Spinner } from '@/components/UI/Spinner';
 import { getUserProfile } from '@/lib/supabase/database';
-import { getDocuments } from '@/lib/supabase/admin';
+import { getDocuments, getOwnerQuota, type OwnerQuota } from '@/lib/supabase/admin';
 import { docutrainIconUrl } from '@/assets';
 import type { UserRole } from '@/types/permissions';
 import { debugLog } from '@/utils/debug';
@@ -29,6 +29,7 @@ export function DashboardPage() {
   const [userProfile, setUserProfile] = useState<{ first_name?: string; last_name?: string } | null>(null);
   const [allOwners, setAllOwners] = useState<Owner[]>([]);
   const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(null);
+  const [quota, setQuota] = useState<OwnerQuota | null>(null);
   
   // Debug logging
   debugLog('DashboardPage - ownerGroups:', ownerGroups);
@@ -214,6 +215,34 @@ export function DashboardPage() {
     loadUserProfile();
   }, [user?.id]);
 
+  // Fetch quota information
+  useEffect(() => {
+    const loadQuota = async () => {
+      // Skip for super admins (no owner_id)
+      if (isSuperAdmin || !ownerGroups || ownerGroups.length === 0) {
+        setQuota(null);
+        return;
+      }
+      
+      const ownerId = ownerGroups[0]?.owner_id;
+      if (!ownerId) {
+        setQuota(null);
+        return;
+      }
+      
+      try {
+        const quotaData = await getOwnerQuota(ownerId);
+        setQuota(quotaData);
+        debugLog('Quota loaded:', quotaData);
+      } catch (err) {
+        console.error('Failed to load quota:', err);
+        setQuota(null);
+      }
+    };
+    
+    loadQuota();
+  }, [ownerGroups, isSuperAdmin]);
+
   // Get user display name (first + last name, or email as fallback)
   const getUserDisplayName = () => {
     if (userProfile?.first_name || userProfile?.last_name) {
@@ -257,7 +286,31 @@ export function DashboardPage() {
     <Dashboard>
       <div className="space-y-8">
         {/* Welcome Section */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 p-6 sm:p-8 hover:shadow-xl transition-shadow duration-300">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 p-6 sm:p-8 hover:shadow-xl transition-shadow duration-300 relative">
+          {/* Plan Tier Badge - Diagonal Corner */}
+          {quota && quota.plan_tier && (
+            <div className="absolute top-0 right-0 w-28 h-28 overflow-hidden z-10 pointer-events-none">
+              <div 
+                className={`absolute top-0 right-0 w-40 h-10 ${
+                  quota.plan_tier === 'unlimited' ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
+                  quota.plan_tier === 'enterprise' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
+                  quota.plan_tier === 'pro' ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                  quota.plan_tier === 'free' ? 'bg-gradient-to-br from-gray-500 to-gray-600' :
+                  'bg-gradient-to-br from-gray-500 to-gray-600'
+                } text-white transform rotate-45 translate-x-10 translate-y-3 shadow-lg flex items-center justify-center`}
+                style={{
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                }}
+              >
+                <span className="text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">
+                  {quota.plan_tier === 'unlimited' ? 'Unlimited' :
+                   quota.plan_tier === 'enterprise' ? 'Enterprise' :
+                   quota.plan_tier === 'pro' ? 'Pro' :
+                   quota.plan_tier === 'free' ? 'Free' : 'Pro'}
+                </span>
+              </div>
+            </div>
+          )}
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* User Avatar or Owner Logo */}
             {isSuperAdmin ? (
@@ -484,6 +537,23 @@ export function DashboardPage() {
                     userDocumentsTableRef.current?.refresh();
                   }, 3000);
                 }} />
+                
+                {/* Document Limit Reached Message */}
+                {quota && !quota.can_upload && (
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <Alert variant="error">
+                      <div>
+                        <p className="font-semibold text-red-900">Document Limit Reached</p>
+                        <p className="text-sm text-red-700 mt-1">
+                          You have reached your document limit ({quota.document_count} of {quota.document_limit || 'unlimited'} documents). 
+                          {quota.plan_tier !== 'unlimited' && (
+                            <> Please upgrade to {quota.plan_tier === 'free' ? 'Pro, Enterprise, or Unlimited' : quota.plan_tier === 'pro' ? 'Enterprise or Unlimited' : 'Unlimited'} for more capacity.</>
+                          )}
+                        </p>
+                      </div>
+                    </Alert>
+                  </div>
+                )}
               </div>
             </div>
 

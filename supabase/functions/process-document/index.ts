@@ -861,6 +861,64 @@ async function processUserDocument(userDocId: string) {
     }
     // If super admin, ownerIdToSet remains null (can be set later in edit modal)
     
+    // Check plan tier restrictions before creating document record
+    if (ownerIdToSet) {
+      // Check document limit
+      const { data: canUpload, error: quotaCheckError } = await supabase
+        .rpc('can_owner_upload_document', { p_owner_id: ownerIdToSet });
+      
+      if (quotaCheckError) {
+        console.error(`[Process Document] Error checking document quota:`, quotaCheckError);
+      } else if (!canUpload) {
+        // Get plan tier and limit for error message
+        const { data: planTier } = await supabase
+          .rpc('get_owner_plan_tier', { p_owner_id: ownerIdToSet });
+        const { data: docLimit } = await supabase
+          .rpc('get_owner_document_limit', { p_owner_id: ownerIdToSet });
+        const { data: docCount } = await supabase
+          .rpc('get_owner_document_count', { p_owner_id: ownerIdToSet });
+        
+        // Update user_documents status to failed
+        await supabase
+          .from('user_documents')
+          .update({ 
+            status: 'failed',
+            error_message: `Document limit reached (${docCount || 0}/${docLimit || 'unlimited'})`
+          })
+          .eq('id', userDocId);
+        
+        // Determine next tier for error message
+        let nextTier = 'Enterprise';
+        if (planTier === 'free') nextTier = 'Pro';
+        else if (planTier === 'pro') nextTier = 'Enterprise';
+        
+        throw new Error(`Document limit reached (${docCount || 0}/${docLimit || 'unlimited'}). Upgrade to ${nextTier} to upload more documents.`);
+      }
+      
+      // Check voice training restriction for audio files
+      const isAudioFile = userDoc.mime_type?.startsWith('audio/') || 
+                         /\.(mp3|wav|m4a|ogg|flac|aac)$/i.test(userDoc.file_path || '');
+      if (isAudioFile) {
+        const { data: canUseVoice, error: voiceCheckError } = await supabase
+          .rpc('can_owner_use_voice_training', { p_owner_id: ownerIdToSet });
+        
+        if (voiceCheckError) {
+          console.error(`[Process Document] Error checking voice training permission:`, voiceCheckError);
+        } else if (!canUseVoice) {
+          // Update user_documents status to failed
+          await supabase
+            .from('user_documents')
+            .update({ 
+              status: 'failed',
+              error_message: 'Voice training is not available on your current plan. Upgrade to Enterprise or Unlimited to enable this feature.'
+            })
+            .eq('id', userDocId);
+          
+          throw new Error('Voice training is not available on your current plan. Upgrade to Enterprise or Unlimited to enable this feature.');
+        }
+      }
+    }
+    
     // isTextUpload is already defined earlier - use it to disable references (no pages in text uploads)
     const { error: docInsertError } = await supabase
       .from('documents')

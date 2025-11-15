@@ -1,10 +1,13 @@
-import React, { useState, useImperativeHandle, forwardRef, useRef } from 'react';
+import React, { useState, useImperativeHandle, forwardRef, useRef, useEffect } from 'react';
 import { UploadZone } from './UploadZone';
 import { TextUploadZone, TextUploadZoneRef } from './TextUploadZone';
 import { AudioUploadZone } from './AudioUploadZone';
 import { Modal } from '@/components/UI/Modal';
 import { Button } from '@/components/UI/Button';
 import { Alert } from '@/components/UI/Alert';
+import { usePermissions } from '@/hooks/usePermissions';
+import { getOwnerQuota } from '@/lib/supabase/admin';
+import { debugLog } from '@/utils/debug';
 
 interface CombinedUploadZoneProps {
   onUploadSuccess?: () => void;
@@ -21,6 +24,39 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const textUploadZoneRef = useRef<TextUploadZoneRef>(null);
   const [textUploadButtonState, setTextUploadButtonState] = useState({ uploading: false, canUpload: false });
+  const { ownerGroups, isSuperAdmin } = usePermissions();
+  const [canUseVoiceTraining, setCanUseVoiceTraining] = useState(true); // Default to true to avoid flicker
+  
+  // Check voice training availability
+  useEffect(() => {
+    const checkVoiceTraining = async () => {
+      // Super admins can always use voice training
+      if (isSuperAdmin) {
+        setCanUseVoiceTraining(true);
+        return;
+      }
+      
+      // Get first owner_id from ownerGroups
+      const ownerId = ownerGroups?.[0]?.owner_id;
+      if (!ownerId) {
+        // No owner group - default to allowing (will be checked on backend)
+        setCanUseVoiceTraining(true);
+        return;
+      }
+      
+      try {
+        const quota = await getOwnerQuota(ownerId);
+        setCanUseVoiceTraining(quota.can_use_voice_training);
+        debugLog('Voice training availability:', quota.can_use_voice_training, 'for owner:', ownerId);
+      } catch (error) {
+        console.error('Failed to check voice training availability:', error);
+        // Default to allowing on error (backend will enforce)
+        setCanUseVoiceTraining(true);
+      }
+    };
+    
+    checkVoiceTraining();
+  }, [ownerGroups, isSuperAdmin]);
 
   const handleUploadSuccess = () => {
     if (onUploadSuccess) {
@@ -100,15 +136,22 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
           </div>
         </div>
 
-        {/* Audio Upload Option */}
+        {/* Audio Upload Option - Always shown, disabled for Pro accounts */}
         <div className="flex flex-col lg:flex-row items-stretch gap-2 w-full">
           <button
             onClick={() => {
-              setActiveTab('audio');
-              setShowSuccessMessage(false);
-              setIsModalOpen(true);
+              if (canUseVoiceTraining) {
+                setActiveTab('audio');
+                setShowSuccessMessage(false);
+                setIsModalOpen(true);
+              }
             }}
-            className="group relative bg-gradient-to-br from-docutrain-dark to-docutrain-dark/90 hover:from-docutrain-dark/90 hover:to-docutrain-dark/80 text-white rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-docutrain-dark focus:ring-offset-2 flex flex-row items-center gap-2 px-4 py-3 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-100 flex-shrink-0 lg:h-full"
+            disabled={!canUseVoiceTraining}
+            className={`group relative bg-gradient-to-br from-docutrain-dark to-docutrain-dark/90 text-white rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-docutrain-dark focus:ring-offset-2 flex flex-row items-center gap-2 px-4 py-3 shadow-lg flex-shrink-0 lg:h-full ${
+              canUseVoiceTraining 
+                ? 'hover:from-docutrain-dark/90 hover:to-docutrain-dark/80 hover:shadow-xl hover:scale-[1.02] active:scale-100 cursor-pointer' 
+                : 'opacity-60 cursor-not-allowed'
+            }`}
           >
             <div className="w-8 h-8 bg-white/20 rounded flex items-center justify-center group-hover:bg-white/30 transition-colors flex-shrink-0">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,9 +164,22 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
             </div>
           </button>
           <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 flex-1 flex items-center min-w-0 w-full lg:h-full">
-            <p className="text-sm text-gray-700 leading-relaxed">
-              <strong className="text-gray-900 font-semibold">Perfect for:</strong> Audio recordings, podcasts, lectures, interviews, or any spoken content. The system automatically transcribes audio using OpenAI Whisper, processes it into searchable chunks with time metadata, and generates AI embeddings. Supports MP3, WAV, M4A, OGG, FLAC, and AAC formats.
-            </p>
+            {canUseVoiceTraining ? (
+              <p className="text-sm text-gray-700 leading-relaxed">
+                <strong className="text-gray-900 font-semibold">Perfect for:</strong> Audio recordings, podcasts, lectures, interviews, or any spoken content. The system automatically transcribes audio using OpenAI Whisper, processes it into searchable chunks with time metadata, and generates AI embeddings. Supports MP3, WAV, M4A, OGG, FLAC, and AAC formats.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  <strong className="text-gray-900 font-semibold">Voice Training:</strong> Upload audio files that will be automatically transcribed and made searchable. Supports MP3, WAV, M4A, OGG, FLAC, and AAC formats.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                  <p className="text-sm text-blue-800 font-medium">
+                    🔒 Upgrade to Enterprise or Unlimited to enable voice training
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -190,17 +246,22 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
               </button>
               <button
                 onClick={() => {
-                  setActiveTab('audio');
-                  setShowSuccessMessage(false);
-                  setTextUploadButtonState({ uploading: false, canUpload: false });
+                  if (canUseVoiceTraining) {
+                    setActiveTab('audio');
+                    setShowSuccessMessage(false);
+                    setTextUploadButtonState({ uploading: false, canUpload: false });
+                  }
                 }}
+                disabled={!canUseVoiceTraining}
                 className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === 'audio'
                     ? 'border-docutrain-light text-docutrain-light'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : canUseVoiceTraining
+                    ? 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-gray-400 cursor-not-allowed'
                 }`}
               >
-                Upload Audio File
+                Upload Audio File {!canUseVoiceTraining && '(Upgrade Required)'}
               </button>
             </div>
 
@@ -243,23 +304,48 @@ export const CombinedUploadZone = forwardRef<CombinedUploadZoneRef, CombinedUplo
                     onButtonStateChange={setTextUploadButtonState}
                   />
                 </div>
-              ) : (
-                <div className="space-y-4 p-1">
-                  <div className="text-sm text-gray-600">
-                    <p className="mb-2">
-                      <strong>Audio Upload:</strong> Upload audio files that will be automatically transcribed and made searchable.
-                    </p>
-                    <ul className="ml-4 space-y-1 text-xs">
-                      <li>• Supports MP3, WAV, M4A, OGG, FLAC, and AAC formats</li>
-                      <li>• Files up to 75MB (superadmin) or 50MB (regular users)</li>
-                      <li>• Audio is automatically transcribed using OpenAI Whisper</li>
-                      <li>• Processing includes transcription, text chunking with time metadata, and AI embedding generation</li>
-                      <li>• Takes 2-15 minutes depending on audio length</li>
-                    </ul>
+              ) : activeTab === 'audio' ? (
+                canUseVoiceTraining ? (
+                  <div className="space-y-4 p-1">
+                    <div className="text-sm text-gray-600">
+                      <p className="mb-2">
+                        <strong>Audio Upload:</strong> Upload audio files that will be automatically transcribed and made searchable.
+                      </p>
+                      <ul className="ml-4 space-y-1 text-xs">
+                        <li>• Supports MP3, WAV, M4A, OGG, FLAC, and AAC formats</li>
+                        <li>• Files up to 75MB (superadmin) or 50MB (regular users)</li>
+                        <li>• Audio is automatically transcribed using OpenAI Whisper</li>
+                        <li>• Processing includes transcription, text chunking with time metadata, and AI embedding generation</li>
+                        <li>• Takes 2-15 minutes depending on audio length</li>
+                      </ul>
+                    </div>
+                    <AudioUploadZone onUploadSuccess={handleUploadSuccess} suppressSuccessMessage />
                   </div>
-                  <AudioUploadZone onUploadSuccess={handleUploadSuccess} suppressSuccessMessage />
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-4 p-1">
+                    <Alert variant="info">
+                      <div className="space-y-3">
+                        <p className="font-semibold text-lg">Voice Training Requires Upgrade</p>
+                        <p className="text-sm">
+                          Voice training is available on <strong>Enterprise</strong> and <strong>Unlimited</strong> plans. Upgrade your plan to enable audio uploads and transcription.
+                        </p>
+                        <div className="bg-white rounded-lg p-4 border border-gray-200 space-y-2">
+                          <p className="text-sm font-medium text-gray-900">Voice Training Features:</p>
+                          <ul className="text-sm text-gray-700 space-y-1 ml-4 list-disc">
+                            <li>Upload audio files (MP3, WAV, M4A, OGG, FLAC, AAC)</li>
+                            <li>Automatic transcription using OpenAI Whisper</li>
+                            <li>Searchable chunks with time metadata</li>
+                            <li>AI embedding generation for semantic search</li>
+                          </ul>
+                        </div>
+                        <p className="text-xs text-gray-600">
+                          Contact your administrator to upgrade your plan.
+                        </p>
+                      </div>
+                    </Alert>
+                  </div>
+                )
+              ) : null}
             </div>
 
             {/* Fixed Footer with Upload Button (only for text upload) */}

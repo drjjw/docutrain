@@ -214,10 +214,10 @@
   font-weight: 400;
   transition: color 0.2s ease;
   position: relative;
-  /* Truncate to 2 lines with ellipses */
+  /* Truncate to 3 lines with ellipses */
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   overflow: hidden;
   text-overflow: ellipsis;
 }

@@ -59,6 +59,17 @@ export function OwnersTableRow({
         </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          owner.plan_tier === 'unlimited' ? 'bg-purple-100 text-purple-800' :
+          owner.plan_tier === 'enterprise' ? 'bg-blue-100 text-blue-800' :
+          owner.plan_tier === 'pro' ? 'bg-green-100 text-green-800' :
+          owner.plan_tier === 'free' ? 'bg-gray-100 text-gray-800' :
+          'bg-gray-100 text-gray-500'
+        }`}>
+          {owner.plan_tier ? owner.plan_tier.charAt(0).toUpperCase() + owner.plan_tier.slice(1) : 'Pro'}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
         {owner.custom_domain ? (
           <span className="text-sm text-gray-900">{owner.custom_domain}</span>
         ) : (

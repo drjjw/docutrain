@@ -27,6 +27,7 @@ export interface Owner {
   name: string;
   description?: string;
   default_chunk_limit: number;
+  plan_tier?: 'free' | 'pro' | 'enterprise' | 'unlimited';
   logo_url?: string;
   intro_message?: string;
   default_cover?: string;

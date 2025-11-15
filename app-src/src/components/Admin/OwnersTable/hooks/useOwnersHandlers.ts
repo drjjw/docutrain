@@ -17,6 +17,7 @@ interface UseOwnersHandlersProps {
   editCustomDomain: string;
   editForcedGrokModel: string | null;
   editAccentColor: string;
+  editPlanTier: 'free' | 'pro' | 'enterprise' | 'unlimited';
   editCategories: Category[]; // Changed from string[] to Category[]
   createName: string;
   createSlug: string;
@@ -28,6 +29,7 @@ interface UseOwnersHandlersProps {
   createCustomDomain: string;
   createForcedGrokModel: string | null;
   createAccentColor: string;
+  createPlanTier: 'free' | 'pro' | 'enterprise' | 'unlimited';
   isSuperAdmin: boolean;
   setSaving: (saving: boolean) => void;
   setError: (error: string | null) => void;
@@ -42,6 +44,7 @@ interface UseOwnersHandlersProps {
   setEditCustomDomain: (domain: string) => void;
   setEditForcedGrokModel: (model: string | null) => void;
   setEditAccentColor: (color: string) => void;
+  setEditPlanTier: (tier: 'free' | 'pro' | 'enterprise' | 'unlimited') => void;
   setCreatingOwner: (creating: boolean) => void;
   setCreateName: (name: string) => void;
   setCreateSlug: (slug: string) => void;
@@ -53,6 +56,7 @@ interface UseOwnersHandlersProps {
   setCreateCustomDomain: (domain: string) => void;
   setCreateForcedGrokModel: (model: string | null) => void;
   setCreateAccentColor: (color: string) => void;
+  setCreatePlanTier: (tier: 'free' | 'pro' | 'enterprise' | 'unlimited') => void;
   setDeleteConfirmId: (id: string | null) => void;
   setOwners: (owners: Owner[]) => void;
   loadData: () => Promise<void>;
@@ -70,6 +74,7 @@ export function useOwnersHandlers({
   editCustomDomain,
   editForcedGrokModel,
   editAccentColor,
+  editPlanTier,
   editCategories,
   createName,
   createSlug,
@@ -81,6 +86,7 @@ export function useOwnersHandlers({
   createCustomDomain,
   createForcedGrokModel,
   createAccentColor,
+  createPlanTier,
   setSaving,
   setError,
   setEditingOwner,
@@ -94,6 +100,7 @@ export function useOwnersHandlers({
   setEditCustomDomain,
   setEditForcedGrokModel,
   setEditAccentColor,
+  setEditPlanTier,
   setCreatingOwner,
   setCreateName,
   setCreateSlug,
@@ -105,6 +112,7 @@ export function useOwnersHandlers({
   setCreateCustomDomain,
   setCreateForcedGrokModel,
   setCreateAccentColor,
+  setCreatePlanTier,
   setDeleteConfirmId,
   setOwners,
   loadData,
@@ -136,6 +144,7 @@ export function useOwnersHandlers({
         slug: editSlug.trim(),
         description: editDescription.trim() || null,
         default_chunk_limit: editChunkLimit,
+        plan_tier: editPlanTier,
         logo_url: editLogoUrl.trim() || null,
         intro_message: editIntroMessage.trim() || null,
         default_cover: editDefaultCover.trim() || null,
@@ -225,6 +234,7 @@ export function useOwnersHandlers({
         slug: createSlug.trim(),
         description: createDescription.trim() || null,
         default_chunk_limit: createChunkLimit,
+        plan_tier: createPlanTier,
         logo_url: createLogoUrl.trim() || null,
         intro_message: createIntroMessage.trim() || null,
         default_cover: createDefaultCover.trim() || null,
@@ -250,6 +260,7 @@ export function useOwnersHandlers({
       setCreateCustomDomain('');
       setCreateForcedGrokModel(null);
       setCreateAccentColor('');
+      setCreatePlanTier('pro');
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create owner');
