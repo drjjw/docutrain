@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Modal } from '@/components/UI/Modal';
 import { Input } from '@/components/UI/Input';
@@ -7,6 +7,7 @@ import { LogoUploader } from '@/components/Admin/LogoUploader';
 import { CoverImageUploader } from '@/components/Admin/CoverImageUploader';
 import { getCategoriesForOwner, createCategory, deleteCategory } from '@/lib/supabase/admin';
 import { invalidateCategoryCache } from '@/utils/categories';
+import { sanitizePastedContent } from '@/utils/htmlSanitizer';
 import type { Owner, Category } from '@/types/admin';
 
 interface EditOwnerModalProps {
@@ -167,14 +168,160 @@ export function EditOwnerModal({
     }
   };
 
+  const editorRef = useRef<HTMLDivElement>(null);
+  const lastPropValueRef = useRef<string>('');
+
+  // Reset ref when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      lastPropValueRef.current = '';
+    }
+  }, [isOpen]);
+
+  // Initialize editor content when modal opens or introMessage changes
+  useEffect(() => {
+    if (!isOpen || !editorRef.current) return;
+    
+    const newValue = introMessage || '';
+    
+    // Always update when modal opens (lastPropValueRef is reset) or when prop changes
+    if (newValue !== lastPropValueRef.current) {
+      // Use multiple attempts to ensure DOM is ready
+      const setContent = () => {
+        if (!editorRef.current) return;
+        
+        let cleanValue = newValue;
+        cleanValue = cleanValue.replace(/^(<p><\/p>|<br\s*\/?>|\s)+/gi, '');
+        cleanValue = cleanValue.replace(/(<p><\/p>|<br\s*\/?>|\s)+$/gi, '');
+        if (!cleanValue.trim()) {
+          cleanValue = '';
+        }
+        
+        // Force update
+        editorRef.current.innerHTML = cleanValue;
+        document.execCommand('defaultParagraphSeparator', false, 'p');
+        lastPropValueRef.current = newValue;
+      };
+
+      // Try immediately
+      setContent();
+      
+      // Also try after a short delay to ensure DOM is ready
+      const timer = setTimeout(setContent, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [introMessage, isOpen]);
+
+  const execCommand = (command: string, value?: string) => {
+    editorRef.current?.focus();
+    if (command === 'createLink') {
+      const url = prompt('Enter URL:');
+      if (url) {
+        document.execCommand('createLink', false, url);
+        requestAnimationFrame(() => {
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            let anchor: HTMLAnchorElement | null = null;
+            const commonAncestor = range.commonAncestorContainer;
+            if (commonAncestor.nodeType === Node.ELEMENT_NODE && (commonAncestor as Element).tagName === 'A') {
+              anchor = commonAncestor as HTMLAnchorElement;
+            } else if (commonAncestor.parentElement?.tagName === 'A') {
+              anchor = commonAncestor.parentElement as HTMLAnchorElement;
+            } else if (editorRef.current) {
+              const links = editorRef.current.querySelectorAll('a');
+              for (let i = links.length - 1; i >= 0; i--) {
+                const link = links[i];
+                const hrefAttr = link.getAttribute('href');
+                if (hrefAttr === url || link.href === url || link.href.endsWith(url)) {
+                  anchor = link as HTMLAnchorElement;
+                  break;
+                }
+              }
+            }
+            if (anchor) {
+              anchor.setAttribute('target', '_blank');
+              anchor.setAttribute('rel', 'noopener noreferrer');
+            }
+          }
+        });
+      }
+    } else {
+      document.execCommand(command, false, value);
+    }
+  };
+
+  const handleEditorInput = (e: React.FormEvent<HTMLDivElement>) => {
+    if (editorRef.current) {
+      const newContent = editorRef.current.innerHTML;
+      // Update lastPropValueRef to match what user is editing
+      lastPropValueRef.current = newContent;
+      onIntroMessageChange(newContent);
+    }
+  };
+
+  const handleEditorPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const clipboardData = e.clipboardData || (window as any).clipboardData;
+    const sanitizedHtml = sanitizePastedContent(clipboardData, false);
+    if (!sanitizedHtml) return;
+
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0 && editorRef.current) {
+      const range = selection.getRangeAt(0);
+      if (!editorRef.current.contains(range.commonAncestorContainer)) {
+        range.selectNodeContents(editorRef.current);
+        range.collapse(false);
+      }
+      range.deleteContents();
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = sanitizedHtml;
+      let lastNode: Node | null = null;
+      const fragment = document.createDocumentFragment();
+      while (tempDiv.firstChild) {
+        lastNode = tempDiv.firstChild;
+        fragment.appendChild(lastNode);
+      }
+      range.insertNode(fragment);
+      if (lastNode) {
+        range.setStartAfter(lastNode);
+        range.collapse(true);
+      } else {
+        range.collapse(true);
+      }
+      selection.removeAllRanges();
+      selection.addRange(range);
+      onIntroMessageChange(editorRef.current.innerHTML);
+    } else if (editorRef.current) {
+      const currentHtml = editorRef.current.innerHTML;
+      editorRef.current.innerHTML = currentHtml + sanitizedHtml;
+      onIntroMessageChange(editorRef.current.innerHTML);
+      setTimeout(() => {
+        const range = document.createRange();
+        const sel = window.getSelection();
+        if (editorRef.current && sel) {
+          range.selectNodeContents(editorRef.current);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }, 0);
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={`Edit Owner: ${owner?.name || ''}`}
       size="xl"
+      flexColumn={true}
+      fullscreen={true}
     >
-      <Tabs defaultIndex={0}>
+      <div className="flex flex-col h-full min-h-0">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto min-h-0 -mx-6 px-6">
+          <Tabs defaultIndex={0}>
         <TabList>
           <Tab index={0}>
             <span className="flex items-center gap-2">
@@ -335,66 +482,63 @@ export function EditOwnerModal({
               </div>
 
               <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Logo
-                  </label>
-                  {owner ? (
-                    <LogoUploader
-                      logoUrl={logoUrl}
-                      onChange={onLogoUrlChange}
-                      ownerId={owner.id}
-                    />
-                  ) : (
-                    <Input
-                      type="url"
-                      value={logoUrl}
-                      onChange={(e) => onLogoUrlChange(e.target.value)}
-                      placeholder="https://example.com/logo.png"
-                    />
-                  )}
-                  <p className="mt-2 text-xs text-gray-500">Logo displayed in the document interface header</p>
-                </div>
+                {/* Logo and Cover Image Side by Side */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        Logo
+                      </label>
+                      {owner ? (
+                        <LogoUploader
+                          logoUrl={logoUrl}
+                          onChange={onLogoUrlChange}
+                          ownerId={owner.id}
+                          allowManualUrl={false}
+                        />
+                      ) : (
+                        <div className="text-sm text-gray-500">Owner ID required for logo upload</div>
+                      )}
+                      <p className="mt-2 text-xs text-gray-500">Logo displayed in the document interface header</p>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Default Cover Image
-                  </label>
-                  {owner ? (
-                    <CoverImageUploader
-                      coverUrl={defaultCover}
-                      onChange={onDefaultCoverChange}
-                      ownerId={owner.id}
-                    />
-                  ) : (
-                    <Input
-                      type="url"
-                      value={defaultCover}
-                      onChange={(e) => onDefaultCoverChange(e.target.value)}
-                      placeholder="https://example.com/cover.jpg"
-                    />
-                  )}
-                  <p className="mt-2 text-xs text-gray-500">Default cover image for documents without a custom cover</p>
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Accent Color
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={accentColor || '#3399ff'}
+                          onChange={(e) => onAccentColorChange(e.target.value)}
+                          className="w-16 h-12 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 transition-colors"
+                        />
+                        <Input
+                          value={accentColor}
+                          onChange={(e) => onAccentColorChange(e.target.value)}
+                          placeholder="#3399ff"
+                          className="font-mono"
+                          helperText="Hex color code for UI accents (buttons, highlights)"
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Accent Color
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={accentColor || '#3399ff'}
-                      onChange={(e) => onAccentColorChange(e.target.value)}
-                      className="w-16 h-12 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 transition-colors"
-                    />
-                    <Input
-                      value={accentColor}
-                      onChange={(e) => onAccentColorChange(e.target.value)}
-                      placeholder="#3399ff"
-                      className="font-mono"
-                      helperText="Hex color code for UI accents (buttons, highlights)"
-                    />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Default Cover Image
+                    </label>
+                    {owner ? (
+                      <CoverImageUploader
+                        coverUrl={defaultCover}
+                        onChange={onDefaultCoverChange}
+                        ownerId={owner.id}
+                        allowManualUrl={false}
+                      />
+                    ) : (
+                      <div className="text-sm text-gray-500">Owner ID required for cover image upload</div>
+                    )}
+                    <p className="mt-2 text-xs text-gray-500">Default cover image for documents without a custom cover</p>
                   </div>
                 </div>
               </div>
@@ -466,14 +610,155 @@ export function EditOwnerModal({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Intro Message
                 </label>
-                <textarea
-                  value={introMessage}
-                  onChange={(e) => onIntroMessageChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
-                  placeholder="<p>Welcome to our document viewer...</p>"
-                  rows={6}
+                <style>{`
+                  #owner-edit-intro-editor {
+                    line-height: 1.7;
+                    color: #212529;
+                  }
+                  #owner-edit-intro-editor p {
+                    margin: 10px 0;
+                    line-height: 1.7;
+                  }
+                  #owner-edit-intro-editor p:first-child {
+                    margin-top: 0;
+                  }
+                  #owner-edit-intro-editor p:last-child {
+                    margin-bottom: 0;
+                  }
+                  #owner-edit-intro-editor ul,
+                  #owner-edit-intro-editor ol {
+                    margin: 8px 0;
+                    padding-left: 30px;
+                  }
+                  #owner-edit-intro-editor ul {
+                    list-style: disc;
+                  }
+                  #owner-edit-intro-editor ol {
+                    list-style: auto;
+                  }
+                  #owner-edit-intro-editor li {
+                    margin: 5px 0;
+                    line-height: 1.7;
+                  }
+                  #owner-edit-intro-editor strong {
+                    font-weight: 600;
+                    color: #333;
+                  }
+                  #owner-edit-intro-editor em {
+                    font-style: italic;
+                    color: #666;
+                    font-size: 0.95em;
+                  }
+                  #owner-edit-intro-editor a {
+                    font-weight: bold;
+                    color: #007bff;
+                    text-decoration: underline;
+                  }
+                  #owner-edit-intro-editor a:hover {
+                    color: #0056b3;
+                  }
+                `}</style>
+                {/* Toolbar */}
+                <div className="inline-editor-toolbar mb-0">
+                  <button
+                    type="button"
+                    className="inline-editor-toolbar-btn"
+                    onClick={() => execCommand('bold')}
+                    title="Bold"
+                  >
+                    B
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-editor-toolbar-btn"
+                    onClick={() => execCommand('italic')}
+                    title="Italic"
+                  >
+                    I
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-editor-toolbar-btn"
+                    onClick={() => execCommand('underline')}
+                    title="Underline"
+                  >
+                    U
+                  </button>
+                  <div className="inline-editor-toolbar-separator" />
+                  <button
+                    type="button"
+                    className="inline-editor-toolbar-btn"
+                    onClick={() => execCommand('insertUnorderedList')}
+                    title="Bullet List"
+                  >
+                    •
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-editor-toolbar-btn"
+                    onClick={() => execCommand('insertOrderedList')}
+                    title="Numbered List"
+                  >
+                    1.
+                  </button>
+                  <div className="inline-editor-toolbar-separator" />
+                  <button
+                    type="button"
+                    className="inline-editor-toolbar-btn"
+                    onClick={() => execCommand('createLink')}
+                    title="Insert Link"
+                  >
+                    🔗
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-editor-toolbar-btn"
+                    onClick={() => execCommand('unlink')}
+                    title="Remove Link"
+                  >
+                    🔗❌
+                  </button>
+                </div>
+                {/* Editor */}
+                <div
+                  ref={(el) => {
+                    editorRef.current = el;
+                    // Initialize content when ref is set
+                    if (el && isOpen && introMessage) {
+                      const newValue = introMessage || '';
+                      if (newValue !== lastPropValueRef.current) {
+                        let cleanValue = newValue;
+                        cleanValue = cleanValue.replace(/^(<p><\/p>|<br\s*\/?>|\s)+/gi, '');
+                        cleanValue = cleanValue.replace(/(<p><\/p>|<br\s*\/?>|\s)+$/gi, '');
+                        if (!cleanValue.trim()) {
+                          cleanValue = '';
+                        }
+                        el.innerHTML = cleanValue;
+                        document.execCommand('defaultParagraphSeparator', false, 'p');
+                        lastPropValueRef.current = newValue;
+                      }
+                    }
+                  }}
+                  contentEditable
+                  className="inline-editor-active flex-1 overflow-y-auto border border-gray-300 rounded-b-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  id="owner-edit-intro-editor"
+                  style={{ minHeight: '200px', maxHeight: '400px' }}
+                  onInput={handleEditorInput}
+                  onPaste={handleEditorPaste}
                 />
-                <p className="mt-1 text-xs text-gray-500">Default HTML intro message displayed at the top of documents. Supports basic HTML tags.</p>
+                {introMessage && (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-lg">
+                    <div className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      Preview
+                    </div>
+                    <div className="prose prose-sm max-w-none text-gray-800 wysiwyg-preview" dangerouslySetInnerHTML={{ __html: introMessage }} />
+                  </div>
+                )}
+                <p className="mt-2 text-xs text-gray-500">Default HTML intro message displayed at the top of documents. Supports basic HTML tags.</p>
               </div>
             </div>
           </TabPanel>
@@ -593,38 +878,40 @@ export function EditOwnerModal({
             </div>
           </TabPanel>
         </TabPanels>
-      </Tabs>
+          </Tabs>
+        </div>
 
-      {/* Footer Actions */}
-      <div className="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-gray-200">
-        <Button
-          variant="outline"
-          onClick={onClose}
-          disabled={saving}
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={onSave}
-          disabled={saving || !name.trim() || !slug.trim()}
-        >
-          {saving ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Saving...
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Save Changes
-            </>
-          )}
-        </Button>
+        {/* Fixed Footer */}
+        <div className="flex-shrink-0 flex items-center justify-end gap-3 pt-4 mt-4 border-t border-gray-200 bg-white">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={onSave}
+            disabled={saving || !name.trim() || !slug.trim()}
+          >
+            {saving ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Save Changes
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </Modal>
   );

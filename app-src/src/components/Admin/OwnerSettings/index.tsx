@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/UI/Button';
 import { Spinner } from '@/components/UI/Spinner';
 import { Alert } from '@/components/UI/Alert';
@@ -6,11 +6,11 @@ import { Input } from '@/components/UI/Input';
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from '@/components/UI/Tabs';
 import { LogoUploader } from '@/components/Admin/LogoUploader';
 import { CoverImageUploader } from '@/components/Admin/CoverImageUploader';
-import { WysiwygEditor } from '@/components/UI/WysiwygEditor';
 import { useOwnerSettings } from './hooks/useOwnerSettings';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getCategoriesForOwner, createCategory, deleteCategory } from '@/lib/supabase/admin';
 import { invalidateCategoryCache } from '@/utils/categories';
+import { sanitizePastedContent } from '@/utils/htmlSanitizer';
 import type { Owner, Category } from '@/types/admin';
 
 interface OwnerSettingsProps {
@@ -166,6 +166,140 @@ export function OwnerSettings({ ownerId }: OwnerSettingsProps) {
     }
   };
 
+  const editorRef = useRef<HTMLDivElement>(null);
+  const lastPropValueRef = useRef<string>('');
+
+  // Initialize editor content when introMessage changes
+  useEffect(() => {
+    if (!editorRef.current) return;
+    
+    const newValue = introMessage || '';
+    
+    // Only update if the prop value has changed externally
+    if (newValue !== lastPropValueRef.current) {
+      // Use multiple attempts to ensure DOM is ready
+      const setContent = () => {
+        if (!editorRef.current) return;
+        
+        let cleanValue = newValue;
+        cleanValue = cleanValue.replace(/^(<p><\/p>|<br\s*\/?>|\s)+/gi, '');
+        cleanValue = cleanValue.replace(/(<p><\/p>|<br\s*\/?>|\s)+$/gi, '');
+        if (!cleanValue.trim()) {
+          cleanValue = '';
+        }
+        
+        // Force update
+        editorRef.current.innerHTML = cleanValue;
+        document.execCommand('defaultParagraphSeparator', false, 'p');
+        lastPropValueRef.current = newValue;
+      };
+
+      // Try immediately
+      setContent();
+      
+      // Also try after a short delay to ensure DOM is ready
+      const timer = setTimeout(setContent, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [introMessage]);
+
+  const execCommand = (command: string, value?: string) => {
+    editorRef.current?.focus();
+    if (command === 'createLink') {
+      const url = prompt('Enter URL:');
+      if (url) {
+        document.execCommand('createLink', false, url);
+        requestAnimationFrame(() => {
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            let anchor: HTMLAnchorElement | null = null;
+            const commonAncestor = range.commonAncestorContainer;
+            if (commonAncestor.nodeType === Node.ELEMENT_NODE && (commonAncestor as Element).tagName === 'A') {
+              anchor = commonAncestor as HTMLAnchorElement;
+            } else if (commonAncestor.parentElement?.tagName === 'A') {
+              anchor = commonAncestor.parentElement as HTMLAnchorElement;
+            } else if (editorRef.current) {
+              const links = editorRef.current.querySelectorAll('a');
+              for (let i = links.length - 1; i >= 0; i--) {
+                const link = links[i];
+                const hrefAttr = link.getAttribute('href');
+                if (hrefAttr === url || link.href === url || link.href.endsWith(url)) {
+                  anchor = link as HTMLAnchorElement;
+                  break;
+                }
+              }
+            }
+            if (anchor) {
+              anchor.setAttribute('target', '_blank');
+              anchor.setAttribute('rel', 'noopener noreferrer');
+            }
+          }
+        });
+      }
+    } else {
+      document.execCommand(command, false, value);
+    }
+  };
+
+  const handleEditorInput = (e: React.FormEvent<HTMLDivElement>) => {
+    if (editorRef.current) {
+      const newContent = editorRef.current.innerHTML;
+      // Update lastPropValueRef to match what user is editing
+      lastPropValueRef.current = newContent;
+      setIntroMessage(newContent);
+    }
+  };
+
+  const handleEditorPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const clipboardData = e.clipboardData || (window as any).clipboardData;
+    const sanitizedHtml = sanitizePastedContent(clipboardData, false);
+    if (!sanitizedHtml) return;
+
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0 && editorRef.current) {
+      const range = selection.getRangeAt(0);
+      if (!editorRef.current.contains(range.commonAncestorContainer)) {
+        range.selectNodeContents(editorRef.current);
+        range.collapse(false);
+      }
+      range.deleteContents();
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = sanitizedHtml;
+      let lastNode: Node | null = null;
+      const fragment = document.createDocumentFragment();
+      while (tempDiv.firstChild) {
+        lastNode = tempDiv.firstChild;
+        fragment.appendChild(lastNode);
+      }
+      range.insertNode(fragment);
+      if (lastNode) {
+        range.setStartAfter(lastNode);
+        range.collapse(true);
+      } else {
+        range.collapse(true);
+      }
+      selection.removeAllRanges();
+      selection.addRange(range);
+      setIntroMessage(editorRef.current.innerHTML);
+    } else if (editorRef.current) {
+      const currentHtml = editorRef.current.innerHTML;
+      editorRef.current.innerHTML = currentHtml + sanitizedHtml;
+      setIntroMessage(editorRef.current.innerHTML);
+      setTimeout(() => {
+        const range = document.createRange();
+        const sel = window.getSelection();
+        if (editorRef.current && sel) {
+          range.selectNodeContents(editorRef.current);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }, 0);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -272,57 +406,62 @@ export function OwnerSettings({ ownerId }: OwnerSettingsProps) {
                 </div>
 
                 <div className="space-y-8">
-                  {/* Logo Section */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-3">
-                      Logo
-                    </label>
-                    <LogoUploader
-                      logoUrl={logoUrl}
-                      onChange={setLogoUrl}
-                      ownerId={ownerId}
-                      allowManualUrl={false}
-                    />
-                    <p className="mt-3 text-xs text-gray-500">
-                      Upload your owner group's logo. This will be displayed in the dashboard and chat interface.
-                    </p>
-                  </div>
+                  {/* Logo and Cover Image Side by Side */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Logo Section */}
+                    <div className="space-y-6">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 mb-3">
+                          Logo
+                        </label>
+                        <LogoUploader
+                          logoUrl={logoUrl}
+                          onChange={setLogoUrl}
+                          ownerId={ownerId}
+                          allowManualUrl={false}
+                        />
+                        <p className="mt-3 text-xs text-gray-500">
+                          Upload your owner group's logo. This will be displayed in the dashboard and chat interface.
+                        </p>
+                      </div>
 
-                  {/* Default Cover Image Section */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-3">
-                      Default Cover Image
-                    </label>
-                    <CoverImageUploader
-                      coverUrl={defaultCover}
-                      onChange={setDefaultCover}
-                      ownerId={ownerId}
-                      allowManualUrl={false}
-                    />
-                    <p className="mt-3 text-xs text-gray-500">
-                      Set a default cover image that will be used for documents in this owner group when no specific cover is set.
-                    </p>
-                  </div>
+                      {/* Accent Color Section */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 mb-3">
+                          Accent Color
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="color"
+                            value={accentColor || '#3399ff'}
+                            onChange={(e) => setAccentColor(e.target.value)}
+                            className="w-20 h-14 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 transition-colors"
+                          />
+                          <Input
+                            value={accentColor}
+                            onChange={(e) => setAccentColor(e.target.value)}
+                            placeholder="#3399ff"
+                            className="font-mono"
+                            helperText="Hex color code for UI accents (buttons, highlights). Default: #3399ff"
+                          />
+                        </div>
+                      </div>
+                    </div>
 
-                  {/* Accent Color Section */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-3">
-                      Accent Color
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={accentColor || '#3399ff'}
-                        onChange={(e) => setAccentColor(e.target.value)}
-                        className="w-20 h-14 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 transition-colors"
+                    {/* Default Cover Image Section */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-3">
+                        Default Cover Image
+                      </label>
+                      <CoverImageUploader
+                        coverUrl={defaultCover}
+                        onChange={setDefaultCover}
+                        ownerId={ownerId}
+                        allowManualUrl={false}
                       />
-                      <Input
-                        value={accentColor}
-                        onChange={(e) => setAccentColor(e.target.value)}
-                        placeholder="#3399ff"
-                        className="font-mono"
-                        helperText="Hex color code for UI accents (buttons, highlights). Default: #3399ff"
-                      />
+                      <p className="mt-3 text-xs text-gray-500">
+                        Set a default cover image that will be used for documents in this owner group when no specific cover is set.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -348,19 +487,141 @@ export function OwnerSettings({ ownerId }: OwnerSettingsProps) {
                   <label className="block text-sm font-semibold text-gray-900 mb-3">
                     Default HTML Intro Message for Documents
                   </label>
-                  <div className="mb-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                    <p className="text-xs text-gray-600 mb-1">
-                      <strong>Supported HTML tags:</strong>
-                    </p>
-                    <p className="text-xs text-gray-500 font-mono">
-                      &lt;p&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;br&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;li&gt;, &lt;a&gt;
-                    </p>
+                  <style>{`
+                    #owner-settings-intro-editor {
+                      line-height: 1.7;
+                      color: #212529;
+                    }
+                    #owner-settings-intro-editor p {
+                      margin: 10px 0;
+                      line-height: 1.7;
+                    }
+                    #owner-settings-intro-editor p:first-child {
+                      margin-top: 0;
+                    }
+                    #owner-settings-intro-editor p:last-child {
+                      margin-bottom: 0;
+                    }
+                    #owner-settings-intro-editor ul,
+                    #owner-settings-intro-editor ol {
+                      margin: 8px 0;
+                      padding-left: 30px;
+                    }
+                    #owner-settings-intro-editor ul {
+                      list-style: disc;
+                    }
+                    #owner-settings-intro-editor ol {
+                      list-style: auto;
+                    }
+                    #owner-settings-intro-editor li {
+                      margin: 5px 0;
+                      line-height: 1.7;
+                    }
+                    #owner-settings-intro-editor strong {
+                      font-weight: 600;
+                      color: #333;
+                    }
+                    #owner-settings-intro-editor em {
+                      font-style: italic;
+                      color: #666;
+                      font-size: 0.95em;
+                    }
+                    #owner-settings-intro-editor a {
+                      font-weight: bold;
+                      color: #007bff;
+                      text-decoration: underline;
+                    }
+                    #owner-settings-intro-editor a:hover {
+                      color: #0056b3;
+                    }
+                  `}</style>
+                  {/* Toolbar */}
+                  <div className="inline-editor-toolbar mb-0">
+                    <button
+                      type="button"
+                      className="inline-editor-toolbar-btn"
+                      onClick={() => execCommand('bold')}
+                      title="Bold"
+                    >
+                      B
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-editor-toolbar-btn"
+                      onClick={() => execCommand('italic')}
+                      title="Italic"
+                    >
+                      I
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-editor-toolbar-btn"
+                      onClick={() => execCommand('underline')}
+                      title="Underline"
+                    >
+                      U
+                    </button>
+                    <div className="inline-editor-toolbar-separator" />
+                    <button
+                      type="button"
+                      className="inline-editor-toolbar-btn"
+                      onClick={() => execCommand('insertUnorderedList')}
+                      title="Bullet List"
+                    >
+                      •
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-editor-toolbar-btn"
+                      onClick={() => execCommand('insertOrderedList')}
+                      title="Numbered List"
+                    >
+                      1.
+                    </button>
+                    <div className="inline-editor-toolbar-separator" />
+                    <button
+                      type="button"
+                      className="inline-editor-toolbar-btn"
+                      onClick={() => execCommand('createLink')}
+                      title="Insert Link"
+                    >
+                      🔗
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-editor-toolbar-btn"
+                      onClick={() => execCommand('unlink')}
+                      title="Remove Link"
+                    >
+                      🔗❌
+                    </button>
                   </div>
-                  <WysiwygEditor
-                    value={introMessage}
-                    onChange={setIntroMessage}
-                    placeholder="Enter default HTML intro message for documents..."
-                    className="w-full"
+                  {/* Editor */}
+                  <div
+                    ref={(el) => {
+                      editorRef.current = el;
+                      // Initialize content when ref is set
+                      if (el && introMessage) {
+                        const newValue = introMessage || '';
+                        if (newValue !== lastPropValueRef.current) {
+                          let cleanValue = newValue;
+                          cleanValue = cleanValue.replace(/^(<p><\/p>|<br\s*\/?>|\s)+/gi, '');
+                          cleanValue = cleanValue.replace(/(<p><\/p>|<br\s*\/?>|\s)+$/gi, '');
+                          if (!cleanValue.trim()) {
+                            cleanValue = '';
+                          }
+                          el.innerHTML = cleanValue;
+                          document.execCommand('defaultParagraphSeparator', false, 'p');
+                          lastPropValueRef.current = newValue;
+                        }
+                      }
+                    }}
+                    contentEditable
+                    className="inline-editor-active flex-1 overflow-y-auto border border-gray-300 rounded-b-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    id="owner-settings-intro-editor"
+                    style={{ minHeight: '200px', maxHeight: '400px' }}
+                    onInput={handleEditorInput}
+                    onPaste={handleEditorPaste}
                   />
                   {introMessage && (
                     <div className="mt-4 p-4 bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-lg">
