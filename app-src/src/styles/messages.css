@@ -641,6 +641,74 @@ hr.references-separator {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Reaction buttons for rating messages */
+.message-reaction-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.message-reaction-button {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  transition: all 0.2s ease-in-out;
+  font-size: 0.85em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-height: 36px;
+  min-width: 36px;
+}
+
+.message-reaction-button:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: var(--accent-color, #34a2ff);
+  color: var(--accent-color, #34a2ff);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px) scale(1.02);
+}
+
+.message-reaction-button:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.message-reaction-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Active state for thumbs up */
+.message-reaction-button.active[data-rating="thumbs_up"] {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: #22c55e;
+  color: #22c55e;
+}
+
+.message-reaction-button.active[data-rating="thumbs_up"]:hover {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: #16a34a;
+  color: #16a34a;
+}
+
+/* Active state for thumbs down */
+.message-reaction-button.active[data-rating="thumbs_down"] {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.message-reaction-button.active[data-rating="thumbs_down"]:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
 /* Streaming messages - no animation to prevent jittering */
 /* Animation disabled during streaming to prevent visual jitter */
 /* Note: .message.assistant.streaming intentionally has no additional styles */

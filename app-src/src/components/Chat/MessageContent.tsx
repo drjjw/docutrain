@@ -3,11 +3,15 @@
  * Ports the vanilla JS message rendering and styling logic
  */
 
-import { useEffect, useLayoutEffect, useRef, memo, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, memo } from 'react';
 import { marked } from 'marked';
 import { Copy, Check, RotateCcw } from 'lucide-react';
 import { styleReferences, wrapDrugConversionContent } from '@/utils/messageStyling';
+import { preprocessMarkdown, removeReferencesFromMarkdown } from '@/utils/markdownUtils';
+import { useReferenceState } from '@/hooks/useReferenceState';
+import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
 import { ShareButton } from './ShareButton';
+import { ReactionButtons } from './ReactionButtons';
 import { Tooltip } from '@/components/UI/Tooltip';
 
 interface MessageContentProps {
@@ -28,241 +32,32 @@ marked.setOptions({
   gfm: true,
 });
 
-/**
- * Preprocess markdown to prevent false blockquote detection
- * Escapes ">" characters that appear after list markers but are actually comparison operators
- * Example: "- >50 kg: 1" should not be a blockquote, but "- If patient >50 kg" is fine
- */
-function preprocessMarkdown(markdown: string): string {
-  // Split into lines to process line by line
-  return markdown.split('\n').map(line => {
-    // Check if line starts with a list marker (bullet or numbered) followed immediately by " >"
-    // This pattern is likely a false blockquote (e.g., "- >50 kg: 1" or "- > 50 kg: 1")
-    // Pattern matches: optional indent, list marker, whitespace, ">", optional space, then number/letter
-    const listMarkerPattern = /^(\s*)([-*+]|\d+\.)\s+>\s*(\d+|[A-Za-z])/;
-    
-    if (listMarkerPattern.test(line)) {
-      // Escape the ">" by replacing it with HTML entity "&gt;"
-      // This preserves the visual ">" but prevents markdown blockquote parsing
-      // Only replace the first occurrence after the list marker
-      return line.replace(/^(\s*)([-*+]|\d+\.)\s+>\s*/, '$1$2 &gt;');
-    }
-    
-    return line;
-  }).join('\n');
-}
-
-// Global state map to persist collapsed state across re-renders
-// Key: message ID, Value: Map of container index -> expanded state
-const globalCollapsedState = new Map<string, Map<number, boolean>>();
-
-/**
- * Remove references from markdown content before parsing
- * This prevents references from appearing in the DOM at all when showReferences is false
- * 
- * This function detects reference sections regardless of language by:
- * 1. Looking for common translations of "References" heading
- * 2. Detecting reference sections by pattern: consecutive lines starting with [number]
- */
-function removeReferencesFromMarkdown(markdown: string): string {
-  const lines = markdown.split('\n');
-  const cleanedLines: string[] = [];
-  let inReferencesSection = false;
-  
-  // Common translations of "References" in various languages
-  // These are normalized to lowercase for case-insensitive matching
-  const referenceHeadings = new Set([
-    'references', 'referencias', 'références', 'referenzen', 'riferimenti',
-    'referências', 'справочники', '参考文献', '참고문헌', 'संदर्भ',
-    'المراجع', 'referenser', 'referenser', 'viitteet', 'referanslar'
-  ]);
-  
-  // Pattern to detect reference headings with markdown formatting
-  // Matches: "References", "# References", "## References", "**References**", etc.
-  const isReferenceHeading = (line: string): boolean => {
-    const trimmed = line.trim().toLowerCase();
-    
-    // Remove markdown formatting for comparison
-    const withoutMarkdown = trimmed
-      .replace(/^\*\*/g, '')  // Remove **bold**
-      .replace(/\*\*$/g, '')
-      .replace(/^#+\s*/g, '')  // Remove # headings
-      .trim();
-    
-    // Check if it matches any reference heading translation
-    if (referenceHeadings.has(withoutMarkdown)) {
-      return true;
-    }
-    
-    // Also check if it contains "reference" (English) as fallback
-    if (withoutMarkdown === 'reference' || withoutMarkdown === 'reference' + 's') {
-      return true;
-    }
-    
-    return false;
-  };
-  
-  for (let i = 0; i < lines.length; i++) {
-    const originalLine = lines[i];
-    const trimmed = originalLine.trim();
-    
-    // Check if this line starts a references section (any language)
-    if (isReferenceHeading(trimmed)) {
-      inReferencesSection = true;
-      continue; // Skip the references heading
-    }
-    
-    // Detect reference section by pattern: if we see a line starting with [number]
-    // after an empty line or heading-like line, we're likely entering references
-    // This catches cases where the heading might be in an unexpected language
-    if (!inReferencesSection && i > 0) {
-      const prevLine = lines[i - 1].trim();
-      const isAfterEmptyOrHeading = !prevLine || /^#+\s/.test(prevLine) || /^\*\*/.test(prevLine);
-      
-      // If we see a [number] pattern after empty/heading line, likely entering references
-      if (isAfterEmptyOrHeading && /^\[\d+\]/.test(trimmed)) {
-        inReferencesSection = true;
-        continue; // Skip this reference item
-      }
-    }
-    
-    // If we're in references section
-    if (inReferencesSection) {
-      // Check if this line is a reference item (starts with [number])
-      if (/^\[\d+\]/.test(trimmed)) {
-        continue; // Skip reference items
-      }
-      
-      // Check if this is an empty line or whitespace
-      if (!trimmed) {
-        // Keep empty lines but they won't end the section yet
-        // We'll continue until we find non-reference content
-        continue;
-      }
-      
-      // Check if this line looks like it's still part of references
-      // (e.g., continuation lines, numbered lists that might be references)
-      if (/^\d+\.\s*\[/.test(trimmed)) {
-        continue; // Skip numbered list references
-      }
-      
-      // If we get here and the line has substantial content, we've likely left the references section
-      // Reset the flag and include this line (it's probably new content)
-      // Check for reference-related words in multiple languages
-      const lowerTrimmed = trimmed.toLowerCase();
-      const hasReferenceWord = lowerTrimmed.includes('reference') ||
-                               lowerTrimmed.includes('referencia') ||
-                               lowerTrimmed.includes('référence') ||
-                               lowerTrimmed.includes('referenz') ||
-                               lowerTrimmed.includes('riferimento') ||
-                               lowerTrimmed.includes('referência');
-      
-      if (trimmed.length > 20 && !hasReferenceWord) {
-        inReferencesSection = false;
-        // Include this line after removing inline citations
-        cleanedLines.push(originalLine.replace(/\[\d+\]/g, ''));
-      } else {
-        // Still might be a reference, skip it
-        continue;
-      }
-    } else {
-      // Not in references section - include the line but remove inline citations
-      cleanedLines.push(originalLine.replace(/\[\d+\]/g, ''));
-    }
-  }
-  
-  // Join and clean up excessive blank lines
-  let result = cleanedLines.join('\n');
-  // Remove more than 2 consecutive newlines
-  result = result.replace(/\n{3,}/g, '\n\n');
-  
-  return result;
-}
-
 function MessageContentComponent({ content, role, isStreaming = false, showReferences = true, conversationId, shareToken, question, onTryAgain, messageId }: MessageContentProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const previousContentRef = useRef<string>('');
   const htmlSetRef = useRef<boolean>(false); // Track if we've set innerHTML manually
-  const [isCopied, setIsCopied] = useState(false);
   
-  // Get state key - use messageId if available, otherwise fall back to content hash
-  const getStateKey = () => {
-    if (messageId) {
-      return messageId;
-    }
-    // Fallback to content hash if no messageId provided
-    let hash = 0;
-    for (let i = 0; i < content.length; i++) {
-      const char = content.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return hash.toString();
-  };
-
-  // Helper to restore collapsed state
-  const restoreCollapsedState = (containers: NodeListOf<Element> | Element[]) => {
-    const stateKey = getStateKey();
-    const stateMap = globalCollapsedState.get(stateKey);
+  // Use hooks for state management
+  const { getStateKey, restoreCollapsedState, collapseAllReferences, ensureCollapsedDuringStreaming, saveCollapsedState } = useReferenceState();
+  const { isCopied, handleCopy: handleCopyToClipboard } = useCopyToClipboard();
+  
+  // Wrapper for handleCopy that includes collapsing references
+  const handleCopy = async () => {
+    const stateKey = getStateKey(messageId, content);
     
-    if (!stateMap) {
-      return;
-    }
-    
-    Array.from(containers).forEach((container, index) => {
-      const savedState = stateMap.get(index);
-      
-      if (savedState !== undefined) {
-        const contentWrapper = container.querySelector('.references-content');
-        const toggle = container.querySelector('.references-toggle');
-        const plusIcon = toggle?.querySelector('.plus') as HTMLElement;
-        const minusIcon = toggle?.querySelector('.minus') as HTMLElement;
-        
-        if (contentWrapper && toggle) {
-          if (savedState) {
-            // Was expanded - restore expanded state
-            contentWrapper.classList.remove('collapsed');
-            contentWrapper.classList.add('expanded');
-            toggle.setAttribute('aria-expanded', 'true');
-            if (plusIcon) plusIcon.style.display = 'none';
-            if (minusIcon) minusIcon.style.display = '';
-          } else {
-            // Was collapsed - ensure collapsed state
-            contentWrapper.classList.remove('expanded');
-            contentWrapper.classList.add('collapsed');
-            toggle.setAttribute('aria-expanded', 'false');
-            if (plusIcon) plusIcon.style.display = '';
-            if (minusIcon) minusIcon.style.display = 'none';
+    await handleCopyToClipboard(
+      contentRef,
+      showReferences,
+      () => {
+        // Collapse all references after copying
+        if (contentRef.current) {
+          const containers = contentRef.current.querySelectorAll('.references-container');
+          if (containers.length > 0) {
+            collapseAllReferences(containers, stateKey);
           }
         }
       }
-    });
-  };
-
-  // Lightweight helper to ensure references containers stay collapsed during streaming
-  // Only does minimal DOM manipulation - just ensures existing containers are collapsed
-  const ensureCollapsedDuringStreaming = () => {
-    if (!contentRef.current) return;
-    
-    const containers = contentRef.current.querySelectorAll('.references-container');
-    if (containers.length === 0) return; // No containers yet, nothing to do
-    
-    // For each existing container, ensure it's collapsed
-    containers.forEach((container) => {
-      const contentWrapper = container.querySelector('.references-content');
-      const toggle = container.querySelector('.references-toggle');
-      const plusIcon = toggle?.querySelector('.plus') as HTMLElement;
-      const minusIcon = toggle?.querySelector('.minus') as HTMLElement;
-      
-      if (contentWrapper && toggle) {
-        // Ensure collapsed state (lightweight - just class manipulation)
-        contentWrapper.classList.remove('expanded');
-        contentWrapper.classList.add('collapsed');
-        toggle.setAttribute('aria-expanded', 'false');
-        if (plusIcon) plusIcon.style.display = '';
-        if (minusIcon) minusIcon.style.display = 'none';
-      }
-    });
+    );
   };
 
   // Save state immediately whenever the DOM might change
@@ -273,21 +68,8 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
     const containers = contentRef.current.querySelectorAll('.references-container');
     if (containers.length === 0) return;
     
-    const stateKey = getStateKey();
-    let stateMap = globalCollapsedState.get(stateKey);
-    if (!stateMap) {
-      stateMap = new Map();
-      globalCollapsedState.set(stateKey, stateMap);
-    }
-    
-    containers.forEach((container, index) => {
-      const contentWrapper = container.querySelector('.references-content');
-      const toggle = container.querySelector('.references-toggle');
-      if (contentWrapper && toggle) {
-        const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
-        stateMap.set(index, isExpanded);
-      }
-    });
+    const stateKey = getStateKey(messageId, content);
+    saveCollapsedState(containers, stateKey);
   }); // NO dependencies - runs after EVERY render to keep state fresh
 
   // Restore state after any render that might have replaced HTML (e.g., when isCopied changes)
@@ -298,9 +80,10 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
     const containers = contentRef.current.querySelectorAll('.references-container');
     if (containers.length > 0) {
       // Containers exist - restore their state immediately
-      restoreCollapsedState(containers);
+      const stateKey = getStateKey(messageId, content);
+      restoreCollapsedState(containers, stateKey);
     }
-  }, [isCopied, content, role, isStreaming, showReferences]);
+  }, [isCopied, content, role, isStreaming, showReferences, messageId, getStateKey, restoreCollapsedState]);
 
   useEffect(() => {
     if (!contentRef.current || role !== 'assistant' || !content) {
@@ -313,8 +96,9 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
     if (isStreaming) {
       // Use requestAnimationFrame to batch DOM updates with React's render
       requestAnimationFrame(() => {
-        if (showReferences) {
-          ensureCollapsedDuringStreaming();
+        if (showReferences && contentRef.current) {
+          const containers = contentRef.current.querySelectorAll('.references-container');
+          ensureCollapsedDuringStreaming(containers);
         }
         // When showReferences is false, references are already removed from markdown before parsing
         // so no need to hide anything during streaming
@@ -345,7 +129,8 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
         if (showReferences) {
           // Content hasn't changed and container exists - restore state immediately
           const containers = contentRef.current.querySelectorAll('.references-container');
-          restoreCollapsedState(containers);
+          const stateKey = getStateKey(messageId, content);
+          restoreCollapsedState(containers, stateKey);
           // Only update citations for new content, don't reorganize
         }
         // When showReferences is false, references are already removed from markdown before parsing
@@ -381,318 +166,27 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
       if (showReferences) {
         const containers = contentRef.current.querySelectorAll('.references-container');
         if (containers.length > 0) {
-          restoreCollapsedState(containers);
+          const stateKey = getStateKey(messageId, content);
+          restoreCollapsedState(containers, stateKey);
         }
       }
       
       // Update previous content ref after processing
       previousContentRef.current = content;
     });
-  }, [content, role, isStreaming, showReferences, isCopied]);
-
-  // Helper function to remove references from a cloned DOM element
-  const removeReferencesFromClone = (element: HTMLElement): void => {
-    // 1. Remove all reference containers (this removes everything inside them including .references-content, .reference-item, etc.)
-    const referencesContainers = element.querySelectorAll('.references-container');
-    referencesContainers.forEach(container => {
-      container.remove();
-    });
-    
-    // 2. Remove reference separator horizontal rules
-    const referenceSeparators = element.querySelectorAll('.references-separator');
-    referenceSeparators.forEach(hr => {
-      hr.remove();
-    });
-    
-    // 3. Remove any remaining reference items, headings, and wrappers that might exist outside containers
-    const referenceItems = element.querySelectorAll('.reference-item, .references-heading, .references-heading-wrapper, .references-content');
-    referenceItems.forEach(item => {
-      item.remove();
-    });
-    
-    // 4. Remove citation spans (inline citations like [1])
-    const citationSpans = element.querySelectorAll('.reference-citation');
-    citationSpans.forEach(span => {
-      span.remove();
-    });
-    
-    // 5. Remove any paragraphs/list items that look like references (but weren't styled yet)
-    // Use Array.from to get a snapshot before iterating (since we're removing elements)
-    const allElements = Array.from(element.querySelectorAll('p, li'));
-    
-    // Common translations of "References" in various languages (normalized to lowercase)
-    const referenceHeadings = new Set([
-      'references', 'referencias', 'références', 'referenzen', 'riferimenti',
-      'referências', 'справочники', '参考文献', '참고문헌', 'संदर्भ',
-      'المراجع', 'referenser', 'referenser', 'viitteet', 'referanslar'
-    ]);
-    
-    // Helper to check if text is a reference heading in any language
-    const isReferenceHeading = (text: string, html: string, strongText: string): boolean => {
-      const normalizedText = text.toLowerCase().trim();
-      const normalizedHtml = html.toLowerCase();
-      const normalizedStrong = strongText.toLowerCase();
-      
-      // Check exact matches
-      if (referenceHeadings.has(normalizedText) || referenceHeadings.has(normalizedStrong)) {
-        return true;
-      }
-      
-      // Check if HTML contains reference heading (with markdown formatting removed)
-      const htmlWithoutMarkdown = normalizedHtml
-        .replace(/<strong>/g, '')
-        .replace(/<\/strong>/g, '')
-        .replace(/\*\*/g, '')
-        .replace(/#+\s*/g, '')
-        .trim();
-      
-      if (referenceHeadings.has(htmlWithoutMarkdown)) {
-        return true;
-      }
-      
-      // Check for English "References" (fallback)
-      if (normalizedText === 'references' || 
-          normalizedStrong === 'references' ||
-          normalizedHtml.includes('<strong>references</strong>') ||
-          normalizedHtml.includes('**references**')) {
-        return true;
-      }
-      
-      return false;
-    };
-    
-    allElements.forEach(el => {
-      const text = el.textContent?.trim() || '';
-      const html = el.innerHTML.toLowerCase();
-      const hasStrong = el.querySelector('strong');
-      const strongText = hasStrong?.textContent?.trim().toLowerCase() || '';
-      
-      // Check if element contains "References" heading (any language, various formats)
-      const isRefHeading = isReferenceHeading(text, html, strongText);
-      
-      // Check if element starts with [number] pattern (reference item)
-      // Also check if it's mostly just a reference (contains [number] and is short)
-      const startsWithReference = /^\[\d+\]/.test(text);
-      const isReferenceLike = /^\[\d+\]/.test(text) && text.length < 200; // Reference items are usually short
-      
-      // Remove if it's a references heading or looks like a reference item
-      if (isRefHeading || startsWithReference || isReferenceLike) {
-        el.remove();
-      }
-    });
-    
-    // 6. Remove inline citations [1], [2], etc. from remaining HTML content
-    // This must be done after removing citation spans, as they might contain the pattern
-    const textElements = element.querySelectorAll('p, li, span, div, strong, em, h1, h2, h3, h4, h5, h6');
-    textElements.forEach(el => {
-      const html = el.innerHTML;
-      if (html.includes('[')) {
-        // Remove citation patterns like [1], [2], etc. but preserve other brackets
-        // Match [ followed by one or more digits followed by ]
-        const newHtml = html.replace(/\[\d+\]/g, '');
-        if (newHtml !== html) {
-          el.innerHTML = newHtml;
-        }
-      }
-    });
-    
-    // 7. Clean up any empty paragraphs or list items that might remain
-    const emptyElements = Array.from(element.querySelectorAll('p, li'));
-    emptyElements.forEach(el => {
-      const text = el.textContent?.trim() || '';
-      const html = el.innerHTML.trim();
-      // Remove if empty or only contains whitespace/line breaks
-      if (!text && (!html || html === '<br>' || html === '<br/>')) {
-        el.remove();
-      }
-    });
-  };
-
-  // Helper function to convert HTML to formatted plain text
-  const htmlToText = (html: string): string => {
-    // Create a temporary div to parse HTML
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
-    
-    // Function to recursively process nodes and preserve formatting
-    const processNode = (node: Node): string => {
-      if (node.nodeType === Node.TEXT_NODE) {
-        return node.textContent || '';
-      }
-      
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        const element = node as Element;
-        const tagName = element.tagName.toLowerCase();
-        const children = Array.from(element.childNodes)
-          .map(processNode)
-          .join('');
-        
-        // Handle different HTML elements
-        switch (tagName) {
-          case 'h1':
-          case 'h2':
-          case 'h3':
-          case 'h4':
-          case 'h5':
-          case 'h6':
-            return `\n${children}\n`;
-          case 'p':
-            return `${children}\n\n`;
-          case 'br':
-            return '\n';
-          case 'li':
-            return `• ${children}\n`;
-          case 'strong':
-          case 'b':
-            return `**${children}**`;
-          case 'em':
-          case 'i':
-            return `*${children}*`;
-          case 'code':
-            return `\`${children}\``;
-          case 'pre':
-            return `\n${children}\n`;
-          case 'blockquote':
-            return `> ${children}\n`;
-          case 'hr':
-            return '\n---\n';
-          case 'table':
-            // Extract table content
-            const rows: string[] = [];
-            const tableRows = element.querySelectorAll('tr');
-            tableRows.forEach(row => {
-              const cells = Array.from(row.querySelectorAll('td, th'))
-                .map(cell => processNode(cell).trim())
-                .join(' | ');
-              rows.push(`| ${cells} |`);
-            });
-            return `\n${rows.join('\n')}\n`;
-          case 'a':
-            const href = element.getAttribute('href');
-            return href ? `[${children}](${href})` : children;
-          default:
-            return children;
-        }
-      }
-      
-      return '';
-    };
-    
-    // Process all nodes and clean up extra whitespace
-    let text = processNode(tempDiv);
-    
-    // Clean up excessive newlines (more than 2 consecutive)
-    text = text.replace(/\n{3,}/g, '\n\n');
-    
-    // Trim leading/trailing whitespace
-    return text.trim();
-  };
-
-  // Helper function to collapse all references containers
-  const collapseAllReferences = () => {
-    if (!contentRef.current) {
-      return;
-    }
-    
-    const containers = contentRef.current.querySelectorAll('.references-container');
-    const stateKey = getStateKey();
-    let stateMap = globalCollapsedState.get(stateKey);
-    if (!stateMap) {
-      stateMap = new Map();
-      globalCollapsedState.set(stateKey, stateMap);
-    }
-    
-    containers.forEach((container, index) => {
-      const contentWrapper = container.querySelector('.references-content');
-      const toggle = container.querySelector('.references-toggle');
-      const plusIcon = toggle?.querySelector('.plus') as HTMLElement;
-      const minusIcon = toggle?.querySelector('.minus') as HTMLElement;
-      
-      if (contentWrapper && toggle) {
-        // Collapse the container
-        contentWrapper.classList.remove('expanded');
-        contentWrapper.classList.add('collapsed');
-        toggle.setAttribute('aria-expanded', 'false');
-        if (plusIcon) plusIcon.style.display = '';
-        if (minusIcon) minusIcon.style.display = 'none';
-        
-        // Update global state to reflect collapsed state
-        stateMap.set(index, false);
-      }
-    });
-  };
-
-  // Handle copy to clipboard
-  const handleCopy = async () => {
-    if (!contentRef.current) {
-      return;
-    }
-    
-    try {
-      // Clone the element to avoid modifying the original DOM
-      const clonedElement = contentRef.current.cloneNode(true) as HTMLElement;
-      
-      // If references are disabled, they should already be removed from markdown before parsing
-      // But as a safety net, remove any references that might have slipped through
-      if (!showReferences) {
-        removeReferencesFromClone(clonedElement);
-      }
-      
-      // Get the HTML content from the cloned element
-      const htmlContent = clonedElement.innerHTML;
-      
-      // Convert HTML to formatted plain text
-      const textContent = htmlToText(htmlContent);
-      
-      // Copy to clipboard
-      await navigator.clipboard.writeText(textContent);
-      
-      // Collapse all references containers after copying
-      collapseAllReferences();
-      
-      // Show success feedback
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (err) {
-      // Fallback for older browsers
-      try {
-        // Clone the element for fallback as well
-        const clonedElement = contentRef.current.cloneNode(true) as HTMLElement;
-        
-        // If references are disabled, they should already be removed from markdown before parsing
-        // But as a safety net, remove any references that might have slipped through
-        if (!showReferences) {
-          removeReferencesFromClone(clonedElement);
-        }
-        
-        const textContent = htmlToText(clonedElement.innerHTML);
-        const textArea = document.createElement('textarea');
-        textArea.value = textContent;
-        textArea.style.position = 'fixed';
-        textArea.style.opacity = '0';
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        
-        // Collapse all references containers after copying
-        collapseAllReferences();
-        
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 2000);
-      } catch (fallbackErr) {
-        console.error('Failed to copy to clipboard:', fallbackErr);
-      }
-    }
-  };
+  }, [content, role, isStreaming, showReferences, isCopied, messageId, getStateKey, restoreCollapsedState, ensureCollapsedDuringStreaming]);
 
   // Render markdown for assistant messages, plain text for user (same as vanilla JS)
   if (role === 'assistant') {
     // Remove references from markdown before parsing if showReferences is false
     let contentToRender = showReferences ? content : removeReferencesFromMarkdown(content);
-    // Preprocess to prevent false blockquote detection
+    // Preprocess to prevent false blockquote detection and remove strikethrough
     contentToRender = preprocessMarkdown(contentToRender);
-    const html = marked.parse(contentToRender) as string; // marked.parse returns string in sync mode
+    let html = marked.parse(contentToRender) as string; // marked.parse returns string in sync mode
+    
+    // Post-process HTML to remove any <del> tags that might have slipped through
+    // This is a safety measure in case strikethrough markdown wasn't fully removed
+    html = html.replace(/<del[^>]*>([\s\S]*?)<\/del>/gi, '$1'); // Remove <del> tags but keep content
     
     // Ref callback to set innerHTML only when content changes
     // This prevents React from destroying our styled references containers
@@ -756,6 +250,7 @@ function MessageContentComponent({ content, role, isStreaming = false, showRefer
             </Tooltip>
           )}
           <ShareButton conversationId={conversationId} shareToken={shareToken} />
+          <ReactionButtons conversationId={conversationId} />
         </div>
       </div>
     );
